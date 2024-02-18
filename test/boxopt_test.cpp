@@ -85,7 +85,10 @@ auto l3_use(auto m_c, auto k_c, auto n_c) {
 }
 
 struct MatOpt {
-  int32_t M, K, N;
+  double KN;
+  double MKN;
+  constexpr MatOpt(int32_t M, int32_t K, int32_t N)
+    : KN(double(K) * double(N)), MKN(double(M) * KN) {}
   auto ram_to_l3_datavolume(auto k_c, auto n_c) const {
     // Our l3 multiplies C[m_c, n_c] = A[m_c, k_c] * B[k_c, n_c]
     // Here, we consider the tiling loops that iterate over all three
@@ -101,13 +104,7 @@ struct MatOpt {
     // totalA = M*K*(N/n_c)
     // totalB = K*N
     // totalC = M*(K/k_c)*N * 2 // load & store
-    double KN = K * N, MKN = M * KN;
-    auto x = MKN / n_c;
-    auto y = (2 * MKN) / k_c;
-    auto z = x + KN;
-    auto w = z + y;
-    return w;
-    // return MKN / n_c + KN + (2 * MKN) / k_c;
+    return MKN / n_c + KN + (2 * MKN) / k_c;
   }
   auto l3_to_l2_datavolume(auto m_c, auto k_c, auto n_c) const {
     // Our l2 multiplies C[m_c, n_r] = A[m_c, k_c] * B[k_c, n_r]
@@ -122,7 +119,6 @@ struct MatOpt {
     // totalA = M*K*(N/n_c)
     // totalB = (M / m_c) * K * N
     // totalC = M * (K / k_c) * N * 2
-    double MKN = M * K * N;
     return MKN / n_c + MKN / m_c + (2 * MKN) / k_c;
   }
   auto l2_to_l1_datavolume(auto m_c, auto k_c) const {
@@ -138,7 +134,6 @@ struct MatOpt {
     // totalA = M*K*(N/n_r)
     // totalB = (M / m_c) * K * N
     // totalC = M * (K / k_c) * N * 2
-    double MKN = M * K * N;
     return (MKN / n_r) + MKN / m_c + (2 * MKN) / k_c;
   }
 
