@@ -339,6 +339,7 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
     IsBoxCall<std::remove_cvref_t<decltype(f)>>::value;
   constexpr double tol = 1e-8;
   constexpr double tol2 = tol * tol;
+  constexpr double tol4 = tol2 * tol2;
   constexpr double c = 0.5;
   constexpr double tau = 0.5;
   double alpha = 0.25, fx;
@@ -349,10 +350,11 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
   HessianResultCore hr{alloc, L};
   for (ptrdiff_t n = 0; n < 1000; ++n) {
     fx = hessian(hr, xcur, f);
+    invariant(fx == fx);
     if (hr.gradient().norm2() < tol2) break;
     LDL::ldiv<true>(hr.hessian(), dir, hr.gradient());
     if constexpr (!constrained)
-      if (dir.norm2() < tol2) break;
+      if (dir.norm2() < tol4) break;
     double t = 0.0;
     for (ptrdiff_t i = 0; i < L; ++i) {
       // TODO: 0 clamped dirs
@@ -365,37 +367,39 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
       } else xnew[i] = xi;
     }
     if constexpr (constrained)
-      if (dir.norm2() < tol2) break;
+      if (dir.norm2() < tol4) break;
     t *= c;
     double fxnew = f(xnew);
-    bool cond = (fx - fxnew) >= alpha * t;
+    invariant(fxnew == fxnew);
     bool dobreak = false;
-    if (cond) {
+    if ((fx - fxnew) >= alpha * t) {
       // success; we try to grow alpha, if we're not already optimal
-      if (((fx - fxnew) <= tol) || (norm2(xcur - xnew) <= tol2)) {
+      if (((fx - fxnew) <= tol2) || (norm2(xcur - xnew) <= tol4)) {
         std::swap(xcur, xnew);
         break;
       }
-      double alphaorig = alpha;
       for (;;) {
+        // here, we know `xnew` is better than `xcur`
+        // so we write into `xcur` to try and find something even better
         double alphanew = alpha * (1 / tau);
-        // xnew == xcur - alphaorig * dir;
-        // xcur == xnew + alphaorig * dir;
+        // xnew == xcur - alpha * dir;
+        // xcur == xnew + alpha * dir;
         // xtmp == xcur - alphanew * dir;
-        // xtmp == xnew + (alphaorig - alphanew) * dir;
+        // xtmp == xnew + (alpha - alphanew) * dir;
         // thus, we can use `xcur` as an `xtmp` buffer
-        double a = alphaorig - alphanew;
+        double a = alpha - alphanew;
         for (ptrdiff_t i = 0; i < L; ++i) {
           double xi = xnew[i] + a * dir[i];
           if constexpr (constrained) xi = std::clamp(xi, -EXTREME, EXTREME);
           xcur[i] = xi;
         }
         double fxtmp = f(xcur);
-        if ((fx - fxtmp) < alphanew * t) break;
-        std::swap(xcur, xnew); // we keep xcur as new best
+        if (fxtmp != fxtmp) break;
+        if ((fx - fxtmp) < alphanew * t) break; // xnew is better
+        std::swap(xcur, xnew);                  // we keep xcur as new best
         alpha = alphanew;
         fxnew = fxtmp;
-        dobreak = (fx - fxtmp) <= tol;
+        dobreak = (fx - fxtmp) <= tol2;
         if (dobreak) break;
       }
     } else {
@@ -408,10 +412,11 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
           xnew[i] = xi;
         }
         fxnew = f(xnew);
-        dobreak = norm2(xcur - xnew) <= tol2;
+        if (fxnew != fxnew) continue;
+        dobreak = norm2(xcur - xnew) <= tol4;
         if (dobreak) break;
         if ((fx - fxnew) < alpha * t) continue;
-        dobreak = (fx - fxnew) <= tol;
+        dobreak = (fx - fxnew) <= tol2;
         break;
       }
     }
