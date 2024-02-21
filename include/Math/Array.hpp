@@ -522,7 +522,8 @@ struct POLY_MATH_GSL_POINTER Array {
   friend inline void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
-    if constexpr (Printable<T>) std::cout << "Size: " << sz << *this << "\n";
+    if constexpr (Printable<T>)
+      std::cout << "Size: " << sz << " " << *this << "\n";
   }
   [[gnu::used]] void dump(const char *filename) const {
     if constexpr (std::integral<T>) {
@@ -566,7 +567,7 @@ template <class T, Dimension S, bool Compress>
 struct POLY_MATH_GSL_POINTER MutArray
   : Array<T, S, Compress>,
     ArrayOps<T, S, MutArray<T, S, Compress>> {
-  using BaseT = Array<T, S>;
+  using BaseT = Array<T, S, Compress>;
   // using BaseT::BaseT;
   using BaseT::operator[], BaseT::data, BaseT::begin, BaseT::end, BaseT::rbegin,
     BaseT::rend, BaseT::front, BaseT::back;

@@ -67,7 +67,11 @@ template <String S> constexpr auto matrix_from_string() {
 template <String S> consteval auto matrix_from_string() {
 #endif
   constexpr std::array<ptrdiff_t, 2> dims = dims_eltype<S>();
+#if !defined(__clang__)
+  math::StaticArray<int64_t, dims[0], dims[1], false> A(int64_t(0));
+#else
   math::StaticArray<int64_t, dims[0], dims[1], true> A(int64_t(0));
+#endif
   const char *s = S.data;
   for (ptrdiff_t i = 0; i < dims[0]; ++i) {
     for (ptrdiff_t j = 0; j < dims[1]; ++j) {

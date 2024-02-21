@@ -3,6 +3,7 @@
 #include "Math/Array.hpp"
 #include "Math/Indexing.hpp"
 #include "Utilities/Reference.hpp"
+#include "Utilities/TypeCompression.hpp"
 #include <type_traits>
 
 namespace poly::math {
@@ -236,6 +237,12 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
     StridedRange r{unsigned(min(Row(S{}), c)), unsigned(RowStride(S{})) - 1};
     return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
   }
+  constexpr operator Array<T, S, Compress && utils::Compressible<T>>() const {
+    return {const_cast<T *>(data()), size()};
+  }
+  constexpr operator MutArray<T, S, Compress && utils::Compressible<T>>() {
+    return {data(), size()};
+  }
   constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
     return std::equal(begin(), end(), rhs.begin());
   }
@@ -329,6 +336,10 @@ struct StaticArray<T, M, N, false>
     -> std::integral_constant<ptrdiff_t, M * N> {
     return {};
   }
+  constexpr operator Array<T, S, false>() const {
+    return {const_cast<T *>(data()), size()};
+  }
+  constexpr operator MutArray<T, S, false>() { return {data(), size()}; }
   template <ptrdiff_t U, typename Mask>
   [[gnu::always_inline]] inline auto
   operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const
