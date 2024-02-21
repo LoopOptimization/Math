@@ -4,6 +4,7 @@
 #include "Math/Indexing.hpp"
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
+#include <concepts>
 #include <type_traits>
 
 namespace poly::math {
@@ -33,7 +34,7 @@ template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<
   M == 1, std::integral_constant<ptrdiff_t, N>,
   std::conditional_t<
-    Compress || (((N * sizeof(T)) % simd::VecLen<N, T>) == 0), DenseDims<M, N>,
+    Compress || ((N % simd::VecLen<N, T>) == 0), DenseDims<M, N>,
     StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
@@ -237,11 +238,17 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
     StridedRange r{unsigned(min(Row(S{}), c)), unsigned(RowStride(S{})) - 1};
     return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
   }
-  constexpr operator Array<T, S, Compress && utils::Compressible<T>>() const {
-    return {const_cast<T *>(data()), size()};
+  template <typename SHAPE>
+  constexpr operator Array<T, SHAPE, Compress && utils::Compressible<T>>() const
+  requires(std::convertible_to<S, SHAPE>)
+  {
+    return {const_cast<T *>(data()), SHAPE(dim())};
   }
-  constexpr operator MutArray<T, S, Compress && utils::Compressible<T>>() {
-    return {data(), size()};
+  template <typename SHAPE>
+  constexpr operator MutArray<T, SHAPE, Compress && utils::Compressible<T>>()
+  requires(std::convertible_to<S, SHAPE>)
+  {
+    return {data(), SHAPE(dim())};
   }
   constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
     return std::equal(begin(), end(), rhs.begin());
@@ -336,10 +343,18 @@ struct StaticArray<T, M, N, false>
     -> std::integral_constant<ptrdiff_t, M * N> {
     return {};
   }
-  constexpr operator Array<T, S, false>() const {
-    return {const_cast<T *>(data()), size()};
+  template <typename SHAPE>
+  constexpr operator Array<T, SHAPE, false>() const
+  requires(std::convertible_to<S, SHAPE>)
+  {
+    return {const_cast<T *>(data()), SHAPE(dim())};
   }
-  constexpr operator MutArray<T, S, false>() { return {data(), size()}; }
+  template <typename SHAPE>
+  constexpr operator MutArray<T, SHAPE, false>()
+  requires(std::convertible_to<S, SHAPE>)
+  {
+    return {data(), SHAPE(dim())};
+  }
   template <ptrdiff_t U, typename Mask>
   [[gnu::always_inline]] inline auto
   operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const

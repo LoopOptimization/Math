@@ -1,9 +1,18 @@
 #include "Math/Array.hpp"
 #include "Utilities/MatrixStringParse.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <ostream>
 using namespace poly::math;
 using poly::utils::operator""_mat;
+
+auto autoConvert(poly::math::PtrMatrix<int64_t> A) -> int64_t {
+  int64_t s = 0;
+  for (ptrdiff_t m = 0; m < A.numRow(); ++m)
+    for (ptrdiff_t n = 0; n < A.numCol(); ++n) s += A[m, n];
+  return s;
+}
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(StringParse, BasicAssertions) {
@@ -21,4 +30,6 @@ TEST(StringParse, BasicAssertions) {
   EXPECT_EQ((A[2, 1]), 0);
   EXPECT_EQ((A[2, 2]), -3);
   EXPECT_EQ((A[2, 3]), 0);
+  static_assert(std::same_as<poly::math::StaticDims<int64_t,2,3,false>,poly::math::StridedDims<2,3,4>>);
+  EXPECT_EQ(autoConvert("[1 2 3; 4 5 6]"_mat), 21);
 }
