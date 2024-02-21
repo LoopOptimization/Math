@@ -462,10 +462,15 @@ struct POLY_MATH_GSL_POINTER Array {
       constexpr ptrdiff_t W = simd::Width<T>;
       ptrdiff_t N = size();
       if (N != other.size()) return false;
-      for (ptrdiff_t i = 0;; i += W) {
-        auto u{simd::index::unrollmask<1, W>(N, i)};
-        if (!u) break;
-        if (simd::cmp::ne<W, T>((*this)[u], other[u])) return false;
+      if constexpr (W == 1) {
+        for (ptrdiff_t i = 0; i < N; ++i)
+          if ((*this)[i] != other[i]) return false;
+      } else {
+        for (ptrdiff_t i = 0;; i += W) {
+          auto u{simd::index::unrollmask<1, W>(N, i)};
+          if (!u) break;
+          if (simd::cmp::ne<W, T>((*this)[u], other[u])) return false;
+        }
       }
     }
     return true;
@@ -1701,7 +1706,9 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     static_assert(MatrixDimension<S>);
     return identity(ptrdiff_t(C));
   }
-  friend inline void PrintTo(const ManagedArray &x, ::std::ostream *os) {
+  friend inline void PrintTo(const ManagedArray &x, ::std::ostream *os)
+  requires(Printable<T>)
+  {
     *os << x;
   }
 
