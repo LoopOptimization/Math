@@ -349,6 +349,8 @@ constexpr void reduceColumn(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
   zeroSupDiagonal(AB, c, r);
   reduceSubDiagonal(AB, c, r);
 }
+/// multiplies `A` and `B` by matrix `X`, where `X` reduces `A` to a normal
+/// form.
 constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
   auto [M, N] = shape(AB[0]);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
