@@ -657,6 +657,18 @@ struct StaticArray<T, 1, N, false>
   template <std::size_t I> [[nodiscard]] constexpr auto get() const -> T {
     return data_[I];
   }
+  constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {
+    invariant(r == 0);
+    invariant(c < N);
+    if constexpr (W == 1) {
+      data_ = x;
+    } else {
+      using IT = std::conditional_t<sizeof(T) == 8, int64_t, int32_t>;
+      data_ = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c % W)
+                ? simd::vbroadcast<W, T>(x)
+                : data_;
+    }
+  }
 };
 
 template <class T, ptrdiff_t N, ptrdiff_t Compress = false>

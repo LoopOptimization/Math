@@ -322,7 +322,7 @@ TEST(BareissTests, BasicAssertions) {
                   "20; 0 0 0 -28 52; 0 0 0 0 -142]"_mat;
   auto pivots = NormalForm::bareiss(C);
   EXPECT_EQ(C, D);
-  auto truePivots = Vector<ptrdiff_t, 16>{std::array{0, 2, 2, 3, 4}};
+  auto truePivots = Vector<ptrdiff_t, 16>{"[0 2 2 3 4]"_mat};
   EXPECT_EQ(pivots, truePivots);
 }
 
