@@ -68,7 +68,12 @@ template <String S> consteval auto matrix_from_string() {
 #endif
   constexpr std::array<ptrdiff_t, 2> dims = dims_eltype<S>();
 #if !defined(__clang__)
-  math::StaticArray<int64_t, dims[0], dims[1], false> A(int64_t(0));
+  // we want the array to be dense, so we check if the remainder
+  // of the number of cols by simd width would allow it to be dense.
+  // If so, we set `Compess = false`.
+  constexpr bool compress =
+    (dims[0] > 1) && (dims[1] % simd::VecLen<dims[1], int64_t>) != 0;
+  math::StaticArray<int64_t, dims[0], dims[1], compress> A(int64_t(0));
 #else
   math::StaticArray<int64_t, dims[0], dims[1], true> A(int64_t(0));
 #endif
