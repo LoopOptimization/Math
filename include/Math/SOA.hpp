@@ -194,7 +194,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     return *this;
   }
   void resize(S nsz) {
-    if (this->capacity(nsz) == this->capacity(this->sz)) {
+    if (this->capacity(nsz) <= this->capacity(this->sz)) {
       this->sz = nsz;
       return;
     }
@@ -207,6 +207,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
          i < L; ++i)
       self[i] = other[i];
   }
+  constexpr void clear() { this->sz = {}; }
   template <typename... Args> void emplace_back(Args &&...args) {
     push_back(T(args...));
   }
