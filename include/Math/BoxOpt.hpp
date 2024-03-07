@@ -99,7 +99,9 @@ protected:
     return (NIV * sizeof(int32_t)) * Ntotal;
   }
   [[nodiscard]] static constexpr auto dataBytes(size_t Ntotal) -> size_t {
-    return f64Bytes(Ntotal) + i32Bytes(Ntotal);
+    // dataBytes must be a multiple of the alignment to make aligned alloc happy
+    // so, if Ntotal is odd, we padd with an extra 4 bytes
+    return f64Bytes(Ntotal) + i32Bytes(Ntotal) + (Ntotal & 1) * sizeof(int32_t);
   }
   [[nodiscard]] constexpr auto f64Bytes() const -> size_t {
     return f64Bytes(Ntotal);

@@ -13,9 +13,6 @@
 #include <utility>
 #include <version>
 
-#ifndef __has_feature      // Optional of course.
-#define __has_feature(x) 0 // Compatibility with non-clang compilers.
-#endif
 // taken from LLVM, to avoid needing to include
 /// \macro LLVM_ADDRESS_SANITIZER_BUILD
 /// Whether LLVM itself is built with AddressSanitizer instrumentation.

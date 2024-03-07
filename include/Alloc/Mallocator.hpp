@@ -3,10 +3,30 @@
 #include <concepts>
 #include <cstddef>
 #include <new>
+#include <version>
+
+#ifndef __has_feature      // Optional of course.
+#define __has_feature(x) 0 // Compatibility with non-clang compilers.
+#endif
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#define USE_MIMALLOC 0
+#define USE_JEMALLOC 0
+#else
 #ifdef USING_MIMALLOC
+#define USE_MIMALLOC 1
+#define USE_JEMALLOC 0
+#elifdef USING_JEMALLOC
+#define USE_MIMALLOC 0
+#define USE_JEMALLOC 1
+#else
+#define USE_MIMALLOC 0
+#define USE_JEMALLOC 0
+#endif
+#endif
+#if USE_MIMALLOC
 // #include <mimalloc-new-delete.h>
 #include <mimalloc.h>
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
 // #include "jemalloc-new-delete.hpp"
 #include <jemalloc/jemalloc.h>
 #else
@@ -27,9 +47,9 @@ template <class Pointer> struct AllocResult {
 #endif
 
 inline auto good_malloc_size(size_t n) -> size_t {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_good_size(n);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return nallocx(n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__));
 #else
   return n;
@@ -37,9 +57,9 @@ inline auto good_malloc_size(size_t n) -> size_t {
 }
 
 inline auto malloc(size_t n) -> void * {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_malloc(n);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return mallocx(n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__));
 #else
   return std::malloc(n);
@@ -47,9 +67,9 @@ inline auto malloc(size_t n) -> void * {
 }
 inline auto malloc(size_t n, std::align_val_t al) -> void * {
   auto a = static_cast<size_t>(al);
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_malloc_aligned(n, a);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return mallocx(n, MALLOCX_ALIGN(a));
 #else
   return std::aligned_alloc(a, n);
@@ -57,9 +77,9 @@ inline auto malloc(size_t n, std::align_val_t al) -> void * {
 }
 
 inline auto zalloc(size_t n) -> void * {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_zalloc(n);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return mallocx(n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__) |
                       MALLOCX_ZERO);
 #else
@@ -68,9 +88,9 @@ inline auto zalloc(size_t n) -> void * {
 }
 inline auto zalloc(size_t n, std::align_val_t al) -> void * {
   auto a = static_cast<size_t>(al);
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_zalloc_aligned(n, a);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return mallocx(n, MALLOCX_ALIGN(a) | MALLOCX_ZERO);
 #else
   return std::aligned_alloc(a, n);
@@ -78,9 +98,9 @@ inline auto zalloc(size_t n, std::align_val_t al) -> void * {
 }
 
 inline auto realloc(void *p, size_t n) -> void * {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_realloc(p, n);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return rallocx(p, n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__)));
 #else
   return std::realloc(p, n);
@@ -89,9 +109,9 @@ inline auto realloc(void *p, size_t n) -> void * {
 // expanding in place
 // returns `nullptr` on failure
 inline auto exalloc(void *p, size_t n) -> void * {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_expand(p, n);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return xallocx(p, n, 0, MALLOCX_ALIGN(a));
 #else
   (void)p;
@@ -102,9 +122,9 @@ inline auto exalloc(void *p, size_t n) -> void * {
 
 inline auto realloc(void *p, size_t n, std::align_val_t al) -> void * {
   auto a = static_cast<size_t>(al);
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_realloc_aligned(p, n, a);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return rallocx(p, n MALLOCX_ALIGN(a));
 #else
   (void)a; // FIXME
@@ -113,9 +133,9 @@ inline auto realloc(void *p, size_t n, std::align_val_t al) -> void * {
 }
 
 inline void free(void *p) {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_free(p);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return dallocx(p, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__)));
 #else
   return std::free(p);
@@ -123,9 +143,9 @@ inline void free(void *p) {
 };
 
 inline void free(void *p, size_t n) {
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_free_size(p, n);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return sdallocx(p, n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__)));
 #else
   (void)n;
@@ -135,9 +155,9 @@ inline void free(void *p, size_t n) {
 
 inline void free(void *p, std::align_val_t al) {
   auto a = static_cast<size_t>(al);
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_free_aligned(p, a);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return dallocx(p, MALLOCX_ALIGN(a)));
 #else
   (void)a;
@@ -147,9 +167,9 @@ inline void free(void *p, std::align_val_t al) {
 
 inline void free(void *p, size_t n, std::align_val_t al) {
   auto a = static_cast<size_t>(al);
-#ifdef USING_MIMALLOC
+#if USE_MIMALLOC
   return mi_free_size_aligned(p, n, a);
-#elifdef USING_JEMALLOC
+#elif USE_JEMALLOC
   return sdallocx(p, n, MALLOCX_ALIGN(a)));
 #else
   (void)a;
@@ -175,7 +195,7 @@ template <class T> struct Mallocator {
   };
 // https://github.com/microsoft/mimalloc/issues/199#issuecomment-596023203
 // https://github.com/jemalloc/jemalloc/issues/1533#issuecomment-507915829
-#if defined(USING_MIMALLOC) || defined(USING_JEMALLOC)
+#if USE_MIMALLOC || USE_JEMALLOC
   static constexpr bool overalign = alignof(T) > 16 ||
                                     (alignof(T) > 8 && sizeof(T) <= 8);
 #else
