@@ -9,4 +9,3 @@ template <ptrdiff_t W, typename T>
 using Vec = std::conditional_t<W == 1, T, Vec_<W, T>>;
 
 } // namespace poly::simd
-

@@ -355,4 +355,3 @@ TEST(IntDivDualTest, BasicAssertions) {
   EXPECT_NEAR(z.gradient()[1].gradient()[6], 22.859958982249076, 1e-14);
   EXPECT_NEAR(z.gradient()[1].gradient()[7], 13.487122714859662, 1e-14);
 }
-
