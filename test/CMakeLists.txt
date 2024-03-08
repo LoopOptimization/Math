@@ -85,16 +85,19 @@ if(NOT TEST_INSTALLED_VERSION)
   endif()
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  target_compile_options(${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics)
+  target_compile_options(${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics -fstack-protector-strong)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(
     ${PROJECT_NAME}
     PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4 -fno-semantic-interposition
             -fdiagnostics-color=always -Wno-comma-subscript
   )
+  if(NOT ((USE_SANITIZER MATCHES "([Aa]ddress)") OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)")))
+    target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
+  endif()
 endif()
 # target_compile_options(Math INTERFACE -D_GLIBCXX_ASSERTIONS)
-target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_ASSERTIONS -ftemplate-backtrace-limit=0 -fstack-protector-strong)
+target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_ASSERTIONS -ftemplate-backtrace-limit=0)
 if(ENABLE_LLD)
   target_link_options(${PROJECT_NAME} PRIVATE -fuse-ld=lld)
 endif()
