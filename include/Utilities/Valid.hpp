@@ -10,7 +10,6 @@ template <typename T> class Valid {
 
 public:
   Valid() = delete;
-  constexpr Valid(T &v) : value(&v) {}
   constexpr Valid(T *v) : value(v) { invariant(value != nullptr); }
   constexpr explicit operator bool() const {
     invariant(value != nullptr);
