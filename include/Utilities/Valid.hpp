@@ -17,7 +17,7 @@ public:
   }
   constexpr operator Valid<const T>() const {
     invariant(value != nullptr);
-    return Valid<const T>(*value);
+    return Valid<const T>(value);
   }
   [[gnu::returns_nonnull]] constexpr operator T *() {
     invariant(value != nullptr);
