@@ -1,0 +1,40 @@
+#include "Math/Array.hpp"
+#include "Math/MatrixDimensions.hpp"
+#include "Math/Orthogonalize.hpp"
+#include <gtest/gtest.h>
+
+using poly::math::DenseMatrix, poly::math::DenseDims;
+
+// NOLINTNEXTLINE(modernize-use-trailing-return-type)
+TEST(OrthogonalizeMatricesTest, BasicAssertions) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distrib(-3, 3);
+
+  const size_t M = 7;
+  const size_t N = 7;
+  DenseMatrix<int64_t> A(DenseDims<>{{M}, {N}});
+  DenseMatrix<int64_t> B(DenseDims<>{{N}, {N}});
+  const size_t iters = 1000;
+  for (size_t i = 0; i < iters; ++i) {
+    for (auto &&a : A) a = distrib(gen);
+    // std::cout << "Random A =\n" << A << "\n";
+    A = poly::math::orthogonalize(std::move(A));
+    // std::cout << "Orthogonal A =\n" << A << "\n";
+    // note, A'A is not diagonal
+    // but AA' is
+    B = A * A.t();
+    // std::cout << "A'A =\n" << B << "\n";
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-else"
+#endif
+    for (size_t m = 0; m < M; ++m)
+      for (size_t n = 0; n < N; ++n)
+        if (m != n) EXPECT_EQ((B[m, n]), 0);
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+  }
+}
+
