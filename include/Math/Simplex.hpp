@@ -651,7 +651,7 @@ public:
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {*this, getNumVars() - n, getNumVars()};
+    return {this, getNumVars() - n, getNumVars()};
   }
   constexpr auto rLexMinStop(ptrdiff_t skippedVars) -> Solution {
 #ifndef NDEBUG
@@ -662,7 +662,7 @@ public:
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {*this, skippedVars, getNumVars()};
+    return {this, skippedVars, getNumVars()};
   }
 
   // reverse lexicographic ally minimize vars

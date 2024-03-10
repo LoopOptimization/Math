@@ -30,6 +30,11 @@ TEST(StringParse, BasicAssertions) {
   EXPECT_EQ((A[2, 1]), 0);
   EXPECT_EQ((A[2, 2]), -3);
   EXPECT_EQ((A[2, 3]), 0);
-  static_assert(std::same_as<poly::math::StaticDims<int64_t,2,3,false>,poly::math::StridedDims<2,3,4>>);
+  static_assert(std::same_as<poly::math::StaticDims<int64_t, 2, 3, false>,
+                             poly::math::StridedDims<2, 3, 4>>);
   EXPECT_EQ(autoConvert("[1 2 3; 4 5 6]"_mat), 21);
+}
+TEST(StringParse2, BasicAssertions) {
+  IntMatrix<> A = "[-1 0 1 0 0; 0 -1 1 0 0; 0 0 -1 1 0; 0 0 -1 0 1]"_mat;
+  EXPECT_EQ((A[0, 0]), -1);
 }

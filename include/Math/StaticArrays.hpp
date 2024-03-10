@@ -104,9 +104,9 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
     return StaticArray{*p};
   }
   [[nodiscard]] constexpr auto data() const noexcept -> const T * {
-    return memory_;
+    return static_cast<const T *>(memory_);
   }
-  constexpr auto data() noexcept -> T * { return memory_; }
+  constexpr auto data() noexcept -> T * { return static_cast<T *>(memory_); }
 
   constexpr auto operator=(StaticArray const &) -> StaticArray & = default;
   constexpr auto operator=(StaticArray &&) noexcept -> StaticArray & = default;

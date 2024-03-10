@@ -17,22 +17,30 @@ include(../cmake/CPM.cmake)
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-CPMAddPackage(
-  NAME benchmark
-  GITHUB_REPOSITORY google/benchmark
-  VERSION 1.8.3
-  OPTIONS "BENCHMARK_ENABLE_TESTING Off" "BENCHMARK_ENABLE_LIBPFM On" "BENCHMARK_ENABLE_WERROR Off"
-          "BENCHMARK_ENABLE_EXCEPTIONS Off" SYSTEM TRUE
-)
+cpmaddpackage(
+  NAME
+  benchmark
+  GITHUB_REPOSITORY
+  google/benchmark
+  VERSION
+  1.8.3
+  OPTIONS
+  "BENCHMARK_ENABLE_TESTING Off"
+  "BENCHMARK_ENABLE_LIBPFM On"
+  "BENCHMARK_ENABLE_WERROR Off"
+  "BENCHMARK_ENABLE_EXCEPTIONS Off"
+  SYSTEM
+  TRUE)
 if(benchmark_ADDED)
   # enable c++11 to avoid compilation errors
   set_target_properties(benchmark PROPERTIES CXX_STANDARD 11)
 endif()
 
-# FetchContent_Declare( Math GIT_REPOSITORY git@github.com:LoopModels/Math.git GIT_TAG origin/main )
-# FetchContent_MakeAvailable(Math)
+# FetchContent_Declare( Math GIT_REPOSITORY git@github.com:LoopModels/Math.git
+# GIT_TAG origin/main ) FetchContent_MakeAvailable(Math)
 
-# file(GLOB_RECURSE headers CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
+# file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+# ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
 file(GLOB benchmarks CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_executable(${PROJECT_NAME} ${benchmarks})
@@ -42,7 +50,8 @@ message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
 message(STATUS "LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS}")
 
 target_include_directories(
-  ${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/../include # ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_NAME}
+  PRIVATE ${PROJECT_SOURCE_DIR}/../include # ${PROJECT_SOURCE_DIR}/include
 )
 if(ENABLE_OPENMP)
   find_package(OpenMP)
@@ -50,13 +59,16 @@ if(ENABLE_OPENMP)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE benchmark::benchmark_main)
 
-if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM"))
-  target_compile_options(${PROJECT_NAME} PRIVATE -ferror-limit=2 -fcolor-diagnostics)
+if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES
+                                               "IntelLLVM"))
+  target_compile_options(${PROJECT_NAME} PRIVATE -ferror-limit=2
+                                                 -fcolor-diagnostics)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(
-    ${PROJECT_NAME} PRIVATE -fmax-errors=2 -fconcepts-diagnostics-depth=4
-                            -fno-semantic-interposition -fdiagnostics-color=always -fverbose-asm
-  )
+    ${PROJECT_NAME}
+    PRIVATE -fmax-errors=2 -fconcepts-diagnostics-depth=4
+            -fno-semantic-interposition -fdiagnostics-color=always
+            -fverbose-asm)
 endif()
 
 if(ENABLE_NATIVE_COMPILATION)
@@ -66,14 +78,17 @@ if(ENABLE_NATIVE_COMPILATION)
       target_compile_options(${PROJECT_NAME} PRIVATE -qopt-zmm-usage=high)
     endif()
   else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -march=native) # -fno-unroll-loops)
+    target_compile_options(${PROJECT_NAME} PRIVATE -march=native
+    )# -fno-unroll-loops)
     if(ENABLE_WIDE_VECTORS)
       check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
       if(VEC512)
-        target_compile_options(${PROJECT_NAME} PRIVATE -mprefer-vector-width=512)
+        target_compile_options(${PROJECT_NAME}
+                               PRIVATE -mprefer-vector-width=512)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
           if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            target_compile_options(${PROJECT_NAME} PRIVATE -mtune-ctrl=avx512_move_by_pieces)
+            target_compile_options(${PROJECT_NAME}
+                                   PRIVATE -mtune-ctrl=avx512_move_by_pieces)
           endif()
         endif()
       endif()
@@ -84,11 +99,10 @@ set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES CXX_STANDARD 23
              CXX_VISIBILITY_PRESET hidden
-             VISIBILITY_INLINES_HIDDEN ON
-)
+             VISIBILITY_INLINES_HIDDEN ON)
 set_target_properties(
-  ${PROJECT_NAME} PROPERTIES ENVIRONMENT WORKING_DIRECTORY=${PROJECT_BINARY_DIR}
-)
+  ${PROJECT_NAME} PROPERTIES ENVIRONMENT
+                             WORKING_DIRECTORY=${PROJECT_BINARY_DIR})
 
 target_compile_options(
   ${PROJECT_NAME}
@@ -107,8 +121,7 @@ target_compile_options(
           -Wshadow
           -Wextra
           -save-temps
-          -Werror
-)
+          -Werror)
 if(ENABLE_OPENMP)
   if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
     target_compile_options(${PROJECT_NAME} PRIVATE -fiopenmp)

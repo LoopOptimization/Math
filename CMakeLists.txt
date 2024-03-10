@@ -11,8 +11,7 @@ option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 project(
   Math
   VERSION 1.0
-  LANGUAGES CXX
-)
+  LANGUAGES CXX)
 
 # ---- Include guards ----
 
@@ -29,28 +28,31 @@ endif()
 include(cmake/CPM.cmake)
 
 # PackageProject.cmake will be used to make our target installable
-CPMAddPackage("gh:TheLartians/PackageProject.cmake@1.8.0")
+cpmaddpackage("gh:TheLartians/PackageProject.cmake@1.8.0")
 
 # ---- Add source files ----
 
-# Note: globbing sources is considered bad practice as CMake's generators may not detect new files
-# automatically. Keep that in mind when changing files, or explicitly mention them here.
-file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
+# Note: globbing sources is considered bad practice as CMake's generators may
+# not detect new files automatically. Keep that in mind when changing files, or
+# explicitly mention them here.
+file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
 
 # ---- Create library ----
 
-# Note: for header-only libraries change all PUBLIC flags to INTERFACE and create an interface
-# target:
+# Note: for header-only libraries change all PUBLIC flags to INTERFACE and
+# create an interface target:
 add_library(${PROJECT_NAME} INTERFACE ${headers})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
 # being a cross-platform target, we enforce standards conformance on MSVC
-target_compile_options(${PROJECT_NAME} INTERFACE "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
+target_compile_options(
+  ${PROJECT_NAME} INTERFACE "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 
 target_include_directories(
-  ${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-                            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
-)
+  ${PROJECT_NAME}
+  INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
 
 # --- Allocator override ----
 
@@ -69,7 +71,8 @@ if(SEARCH_JE_MALLOC)
     pkg_check_modules(JEMALLOC jemalloc)
     if(jemalloc_FOUND)
       target_link_libraries(${PROJECT_NAME} INTERFACE ${JEMALLOC_LIBRARIES})
-      target_include_directories(${PROJECT_NAME} INTERFACE ${JEMALLOC_INCLUDE_DIRS})
+      target_include_directories(${PROJECT_NAME}
+                                 INTERFACE ${JEMALLOC_INCLUDE_DIRS})
       target_compile_definitions(${PROJECT_NAME} INTERFACE USING_JEMALLOC)
     endif()
   endif()
@@ -90,11 +93,12 @@ if(ENABLE_NATIVE_COMPILATION)
       check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
       if(VEC512)
         if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-          target_compile_options(${PROJECT_NAME} INTERFACE -mprefer-vector-width=512)
+          target_compile_options(${PROJECT_NAME}
+                                 INTERFACE -mprefer-vector-width=512)
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
           target_compile_options(
-            ${PROJECT_NAME} INTERFACE -mprefer-vector-width=512 -mtune-ctrl=avx512_move_by_pieces
-          )
+            ${PROJECT_NAME} INTERFACE -mprefer-vector-width=512
+                                      -mtune-ctrl=avx512_move_by_pieces)
         endif()
       endif()
     endif()
@@ -103,17 +107,24 @@ endif()
 # ---- Create an installable target ----
 # this allows users to install and find the library via `find_package()`.
 
-# the location where the project's version header will be placed should match the project's regular
-# header paths
+# the location where the project's version header will be placed should match
+# the project's regular header paths
 string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
 
-packageProject(
-  NAME ${PROJECT_NAME}
-  VERSION ${PROJECT_VERSION}
-  NAMESPACE ${PROJECT_NAME}
-  BINARY_DIR ${PROJECT_BINARY_DIR}
-  INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include
-  INCLUDE_DESTINATION include/${PROJECT_NAME}-${PROJECT_VERSION}
-  VERSION_HEADER "${VERSION_HEADER_LOCATION}"
-  COMPATIBILITY SameMajorVersion
-)
+packageproject(
+  NAME
+  ${PROJECT_NAME}
+  VERSION
+  ${PROJECT_VERSION}
+  NAMESPACE
+  ${PROJECT_NAME}
+  BINARY_DIR
+  ${PROJECT_BINARY_DIR}
+  INCLUDE_DIR
+  ${PROJECT_SOURCE_DIR}/include
+  INCLUDE_DESTINATION
+  include/${PROJECT_NAME}-${PROJECT_VERSION}
+  VERSION_HEADER
+  "${VERSION_HEADER_LOCATION}"
+  COMPATIBILITY
+  SameMajorVersion)
