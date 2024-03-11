@@ -61,9 +61,10 @@ concept RowVectorCore = LinearlyIndexableTensor<T> && requires(T t) {
   { numRows(t) } -> std::same_as<Row<1>>;
 };
 template <typename T>
-concept ColVectorCore = LinearlyIndexableTensor<T> && requires(T t) {
-  { numCols(t) } -> std::same_as<Col<1>>;
-};
+concept ColVectorCore =
+  LinearlyIndexableTensor<T> && !RowVectorCore<T> && requires(T t) {
+    { numCols(t) } -> std::same_as<Col<1>>;
+  };
 template <typename T>
 concept RowVector = RowVectorCore<T> && requires(T t) {
   { t.view() } -> RowVectorCore;

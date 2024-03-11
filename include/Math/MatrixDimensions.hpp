@@ -2,6 +2,7 @@
 
 #include "Math/AxisTypes.hpp"
 #include <cstddef>
+#include <type_traits>
 
 namespace poly::math {
 template <ptrdiff_t R = -1> struct SquareDims;
@@ -49,13 +50,18 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   [[no_unique_address]] Row<R> M{};
   [[no_unique_address]] Col<C> N{};
   [[no_unique_address]] RowStride<X> strideM{};
-  // constexpr StridedDims() = default;
-  // constexpr StridedDims(Row<R> m, Col<C> n)
-  //   : M{m}, N{n}, strideM{ptrdiff_t(n)} {}
-  // constexpr StridedDims(Row<R> m, Col<C> n, RowStride<X> x)
-  //   : M{m}, N{n}, strideM{x} {
-  //   invariant(N <= strideM);
-  // }
+  constexpr StridedDims() = default;
+  constexpr StridedDims(Row<R> m, Col<C> n)
+    : M{m}, N{n}, strideM{ptrdiff_t(n)} {}
+  constexpr StridedDims(Row<R> m, Col<C> n, RowStride<X> x)
+    : M{m}, N{n}, strideM{x} {
+    invariant(N <= strideM);
+  }
+  constexpr StridedDims(std::integral_constant<ptrdiff_t, 1>)
+    : M{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
+      N{Col<C>(col(std::integral_constant<ptrdiff_t, 1>{}))},
+      strideM{RowStride<X>(rowStride(std::integral_constant<ptrdiff_t, 1>{}))} {
+  }
   constexpr explicit operator int() const {
     return int(ptrdiff_t(M) * ptrdiff_t(strideM));
   }

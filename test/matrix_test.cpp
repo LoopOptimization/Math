@@ -358,3 +358,20 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
     for (ptrdiff_t j = 0; j < 3; ++j) EXPECT_EQ(x[i][j], 2 * (i + 1) + j);
   EXPECT_EQ(x.pop_back_val(), y);
 }
+
+TEST(StringMat1x1, BasicAssertions) {
+  using SD = poly::math::StaticDims<int64_t, 1, 1, true>;
+  StridedDims<1, 1, 1> sdstatic = SD{};
+  StridedDims<> sddynamic = SD{};
+  EXPECT_EQ(ptrdiff_t(sdstatic), 1);
+  EXPECT_EQ(ptrdiff_t(sddynamic), 1);
+  auto B = "[-5]"_mat;
+  PtrMatrix<int64_t> Bp = B;
+  IntMatrix<> A = "[-5]"_mat;
+  poly::containers::Tuple{Bp, A}.apply([](const auto &x) {
+    EXPECT_EQ(ptrdiff_t(x.numCol()), 1);
+    EXPECT_EQ(ptrdiff_t(x.numRow()), 1);
+    EXPECT_EQ((x[0, 0]), -5);
+  });
+}
+
