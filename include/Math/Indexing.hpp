@@ -101,8 +101,14 @@ static_assert(AbstractSlice<Colon>);
 
 [[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len, ptrdiff_t i)
   -> ptrdiff_t {
+  invariant(i >= 0);
   invariant(i < len);
   return i;
+}
+[[nodiscard]] inline constexpr auto
+calcOffset(std::integral_constant<ptrdiff_t, 1>, ptrdiff_t i) -> ptrdiff_t {
+  invariant(i == 0);
+  return 0;
 }
 [[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t, Begin) -> ptrdiff_t {
   return 0;

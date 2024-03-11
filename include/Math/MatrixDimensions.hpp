@@ -147,6 +147,11 @@ static_assert(sizeof(StridedDims<-1, 8, 8>) == sizeof(ptrdiff_t));
 template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   [[no_unique_address]] Row<R> M{};
   [[no_unique_address]] Col<C> N{};
+  constexpr DenseDims() = default;
+  constexpr DenseDims(Row<R> m, Col<C> n) : M{m}, N{n} {}
+  constexpr DenseDims(std::integral_constant<ptrdiff_t, 1>)
+    : M{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
+      N{Col<C>(col(std::integral_constant<ptrdiff_t, 1>{}))} {}
   constexpr explicit operator int() const {
     return int(ptrdiff_t(M) * ptrdiff_t(N));
   }

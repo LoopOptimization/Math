@@ -368,7 +368,9 @@ TEST(StringMat1x1, BasicAssertions) {
   auto B = "[-5]"_mat;
   PtrMatrix<int64_t> Bp = B;
   IntMatrix<> A = "[-5]"_mat;
-  poly::containers::Tuple{Bp, A}.apply([](const auto &x) {
+  poly::math::DensePtrMatrix<int64_t> Dp = B;
+  poly::math::ManagedArray<int64_t, poly::math::DenseDims<>> D = "[-5]"_mat;
+  poly::containers::Tuple{Bp, A, Dp, D}.apply([](const auto &x) {
     EXPECT_EQ(ptrdiff_t(x.numCol()), 1);
     EXPECT_EQ(ptrdiff_t(x.numRow()), 1);
     EXPECT_EQ((x[0, 0]), -5);
