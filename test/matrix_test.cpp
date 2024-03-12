@@ -377,3 +377,21 @@ TEST(StringMat1x1, BasicAssertions) {
   });
 }
 
+TEST(StringVector, BasicAssertions) {
+  static_assert(!poly::utils::Compressible<int64_t>);
+  auto a = "[-5 3 7]"_mat;
+  static_assert(
+    std::convertible_to<poly::math::StaticDims<int64_t, 1, 3, false>,
+                        ptrdiff_t>);
+  poly::math::Array<int64_t, poly::math::StaticDims<int64_t, 1, 3, false>> aps =
+    a;
+  PtrVector<int64_t> ap = a;
+  Vector<int64_t> b = a;
+  poly::containers::Tuple{aps, ap, b}.apply([](const auto &x) {
+    EXPECT_EQ(ptrdiff_t(x.size()), 3);
+    EXPECT_EQ(x[0], -5);
+    EXPECT_EQ(x[1], 3);
+    EXPECT_EQ(x[2], 7);
+  });
+}
+
