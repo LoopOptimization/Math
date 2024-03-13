@@ -9,8 +9,6 @@
 #include "Math/Matrix.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/Rational.hpp"
-#include "SIMD/Transpose.hpp"
-#include "Utilities/Invariant.hpp"
 #include "Utilities/Optional.hpp"
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
@@ -321,9 +319,8 @@ struct POLY_MATH_GSL_POINTER Array {
   constexpr Array(Array<T, V> a) : ptr(a.data()), sz(a.dim()) {}
   template <size_t N>
   constexpr Array(const std::array<T, N> &a) : ptr(a.data()), sz(N) {}
-  [[nodiscard, gnu::returns_nonnull]] constexpr auto data() const noexcept
-    -> const storage_type * {
-    invariant(ptr != nullptr);
+  [[nodiscard]] constexpr auto data() const noexcept -> const storage_type * {
+    invariant(ptr != nullptr || ptrdiff_t(sz) == 0);
     return ptr;
   }
   [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> { return ptr; }
@@ -657,9 +654,8 @@ struct POLY_MATH_GSL_POINTER MutArray
   constexpr MutArray(Array<U, V> a) : Array<T, S>(a) {}
   template <size_t N>
   constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a.data(), N) {}
-  [[nodiscard, gnu::returns_nonnull]] constexpr auto data() noexcept
-    -> storage_type * {
-    invariant(this->ptr != nullptr);
+  [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
+    invariant(this->ptr != nullptr || ptrdiff_t(this->sz) == 0);
     return const_cast<storage_type *>(this->ptr);
   }
   [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
