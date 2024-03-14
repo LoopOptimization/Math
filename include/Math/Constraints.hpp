@@ -38,7 +38,7 @@ inline auto printConstraint(std::ostream &os, PtrVector<int64_t> a,
   if (!hasPrinted) os << '0';
   if (inequality) os << (allVarNonNegative ? " >= " : " <= ");
   else os << " == ";
-  os << a[0];
+  os << -sign * a[0];
 }
 /// prints in current permutation order.
 /// TODO: decide if we want to make AffineLoopNest a `SymbolicPolyhedra`
