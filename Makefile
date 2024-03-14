@@ -2,23 +2,32 @@ all: clangnosan clangsan gccnosan gccsan gccavx2 clangavx512
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
 
+# `command -v` returns nothing if not found (and we redirect stderr)
+NINJA := $(shell command -v ninja 2> /dev/null)
+ifdef NINJA
+    NINJAGEN := "-G Ninja"
+else
+    NINJAGEN := ""
+endif
+
+
 buildgcc/nosan/:
-	CXXFLAGS="" CXX=g++ cmake -S test -B buildgcc/nosan/ -DCMAKE_BUILD_TYPE=Debug
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/nosan/ -DCMAKE_BUILD_TYPE=Debug
 
 buildgcc/test/:
-	CXXFLAGS="" CXX=g++ cmake -S test -B buildgcc/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 
 buildclang/nosan/:
-	CXXFLAGS="" CXX=clang++ cmake -S test -B buildclang/nosan/ -DCMAKE_BUILD_TYPE=Debug
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosan/ -DCMAKE_BUILD_TYPE=Debug
 
 buildclang/test/:
-	CXXFLAGS="" CXX=clang++ cmake -S test -B buildclang/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 	
 buildgcc/avx2/:
-	CXXFLAGS="-march=haswell" CXX=g++ cmake -S test -B buildgcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+	CXXFLAGS="-march=haswell" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
 buildclang/sse/:
-	CXX=clang++ cmake -S test -B buildclang/sse/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+	CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/sse/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
 
 gccnosan: buildgcc/nosan/
@@ -41,9 +50,9 @@ gccavx2: buildgcc/avx2/
 	cmake --build buildgcc/avx2/
 	cmake --build buildgcc/avx2/ --target test
 
-clangavx512: buildclang/avx512/
-	cmake --build buildclang/avx512/
-	cmake --build buildclang/avx512/ --target test
+clangavx512: buildclang/sse/
+	cmake --build buildclang/sse/
+	cmake --build buildclang/sse/ --target test
 
 clean:
 	rm -rf buildclang #buildgcc
