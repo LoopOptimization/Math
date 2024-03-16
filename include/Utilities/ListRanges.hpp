@@ -139,15 +139,33 @@ template <typename T> class Valid;
 template <typename T, class Op>
 ListRange(Valid<T>, Op) -> ListRange<T, Op, Identity>;
 
+struct NoInnerObj {};
+struct NoInnerState {};
+struct NoInnerEnd {};
 template <std::forward_iterator O, std::forward_iterator I, class P, class J,
           class F, class L>
 class NestedIterator {
   [[no_unique_address]] O outer;
   [[no_unique_address]] P outerend;
   [[no_unique_address]] F innerfun;
-  [[no_unique_address]] L innerobj; // keep the inner object alive!
-  [[no_unique_address]] I inner;
-  [[no_unique_address]] J innerend;
+  [[no_unique_address]] union {
+    NoInnerObj noobj{};
+    L innerobj; // keep the inner object alive!
+  };
+  [[no_unique_address]] union {
+    NoInnerState nosate{};
+    I inner;
+  };
+  [[no_unique_address]] union {
+    NoInnerEnd noend{};
+    J innerend;
+  };
+
+  constexpr void initInner() {
+    innerobj = innerfun(*outer);
+    inner = innerobj.begin();
+    innerend = innerobj.end();
+  }
 
 public:
   using value_type = decltype(*inner);
@@ -161,11 +179,7 @@ public:
   }
   constexpr auto operator++() noexcept -> NestedIterator & {
     if (++inner != innerend) return *this;
-    if (++outer != outerend) {
-      innerobj = innerfun(*outer);
-      inner = innerobj.begin();
-      innerend = innerobj.end();
-    }
+    if (++outer != outerend) initInner();
     return *this;
   }
   constexpr auto operator++(int) noexcept -> NestedIterator {
@@ -182,23 +196,62 @@ public:
     return count;
   }
   constexpr NestedIterator() noexcept = default;
-  constexpr NestedIterator(const NestedIterator &) noexcept = default;
-  constexpr NestedIterator(NestedIterator &&) noexcept = default;
-  constexpr auto operator=(const NestedIterator &) noexcept
-    -> NestedIterator & = default;
-  constexpr auto operator=(NestedIterator &&) noexcept
-    -> NestedIterator & = default;
+  // constexpr NestedIterator(const NestedIterator &) noexcept = default;
+  // constexpr NestedIterator(NestedIterator &&) noexcept = default;
+  // constexpr auto operator=(const NestedIterator &) noexcept
+  //   -> NestedIterator & = default;
+  // constexpr auto operator=(NestedIterator &&) noexcept
+  //   -> NestedIterator & = default;
 
   constexpr NestedIterator(auto &out, auto &innerfun_) noexcept
-    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_},
-      innerobj{outer != outerend ? innerfun(*outer) : L{}},
-      inner{outer != outerend ? innerobj.begin() : I{}},
-      innerend{outer != outerend ? innerobj.end() : J{}} {}
+    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_} {
+    if (outer != outerend) initInner();
+  }
   constexpr NestedIterator(const auto &out, const auto &innerfun_) noexcept
-    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_},
-      innerobj{outer != outerend ? innerfun(*outer) : L{}},
-      inner{outer != outerend ? innerobj.begin() : I{}},
-      innerend{outer != outerend ? innerobj.end() : J{}} {}
+    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_} {
+    if (outer != outerend) initInner();
+  }
+  constexpr NestedIterator(const NestedIterator &other) noexcept
+    : outer{other.outer}, outerend{other.outerend}, innerfun{other.innerfun} {
+    if (outer != outerend) {
+      innerobj = other.innerobj;
+      inner = other.inner;
+      innerend = other.innerend;
+    }
+  }
+  constexpr NestedIterator(NestedIterator &&other) noexcept
+    : outer{std::move(other.outer)}, outerend{std::move(other.outerend)},
+      innerfun{std::move(other.innerfun)} {
+    if (outer != outerend) {
+      innerobj = std::move(other.innerobj);
+      inner = std::move(other.inner);
+      innerend = std::move(other.innerend);
+    }
+  }
+  constexpr auto operator=(const NestedIterator &other) noexcept
+    -> NestedIterator & {
+    if (this == &other) return *this;
+    outer = other.outer;
+    outerend = other.outerend;
+    innerfun = other.innerfun;
+    if (outer != outerend) {
+      innerobj = other.innerobj;
+      inner = other.inner;
+      innerend = other.innerend;
+    }
+  }
+  constexpr auto operator=(NestedIterator &&other) noexcept
+    -> NestedIterator & {
+    if (this == &other) return *this;
+    outer = std::move(other.outer);
+    outerend = std::move(other.outerend);
+    innerfun = std::move(other.innerfun);
+    if (outer != outerend) {
+      innerobj = std::move(other.innerobj);
+      inner = std::move(other.inner);
+      innerend = std::move(other.innerend);
+    }
+  }
 };
 
 /// NestedList
