@@ -140,13 +140,14 @@ template <typename T, class Op>
 ListRange(Valid<T>, Op) -> ListRange<T, Op, Identity>;
 
 template <std::forward_iterator O, std::forward_iterator I, class P, class J,
-          class F>
+          class F, class L>
 class NestedIterator {
   [[no_unique_address]] O outer;
-  [[no_unique_address]] I inner;
   [[no_unique_address]] P outerend;
-  [[no_unique_address]] J innerend;
   [[no_unique_address]] F innerfun;
+  [[no_unique_address]] L innerobj; // keep the inner object alive!
+  [[no_unique_address]] I inner;
+  [[no_unique_address]] J innerend;
 
 public:
   using value_type = decltype(*inner);
@@ -161,9 +162,9 @@ public:
   constexpr auto operator++() noexcept -> NestedIterator & {
     if (++inner != innerend) return *this;
     if (++outer != outerend) {
-      auto iter = innerfun(*outer);
-      inner = iter.begin();
-      innerend = iter.end();
+      innerobj = innerfun(*outer);
+      inner = innerobj.begin();
+      innerend = innerobj.end();
     }
     return *this;
   }
@@ -182,13 +183,22 @@ public:
   }
   constexpr NestedIterator() noexcept = default;
   constexpr NestedIterator(const NestedIterator &) noexcept = default;
-  constexpr NestedIterator(O o, I i, P p, J j, F f) noexcept
-    : outer{o}, inner{i}, outerend{p}, innerend{j}, innerfun{f} {}
   constexpr NestedIterator(NestedIterator &&) noexcept = default;
   constexpr auto operator=(const NestedIterator &) noexcept
     -> NestedIterator & = default;
   constexpr auto operator=(NestedIterator &&) noexcept
     -> NestedIterator & = default;
+
+  constexpr NestedIterator(auto &out, auto &innerfun_) noexcept
+    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_},
+      innerobj{outer != outerend ? innerfun(*outer) : L{}},
+      inner{outer != outerend ? innerobj.begin() : I{}},
+      innerend{outer != outerend ? innerobj.end() : J{}} {}
+  constexpr NestedIterator(const auto &out, const auto &innerfun_) noexcept
+    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_},
+      innerobj{outer != outerend ? innerfun(*outer) : L{}},
+      inner{outer != outerend ? innerobj.begin() : I{}},
+      innerend{outer != outerend ? innerobj.end() : J{}} {}
 };
 
 /// NestedList
@@ -212,16 +222,13 @@ public:
 private:
   using InnerBegin = decltype(std::declval<InnerType>().begin());
   using InnerEnd = decltype(std::declval<InnerType>().end());
-  using IteratorType = NestedIterator<decltype(outer.begin()), InnerBegin,
-                                      decltype(outer.end()), InnerEnd, F>;
+  using IteratorType =
+    NestedIterator<decltype(outer.begin()), InnerBegin, decltype(outer.end()),
+                   InnerEnd, F, InnerType>;
 
 public:
   constexpr auto begin() noexcept -> IteratorType {
-    auto out = outer.begin();
-    if (out == outer.end())
-      return IteratorType{out, InnerBegin{}, outer.end(), InnerEnd{}, inner};
-    InnerType inn{inner(*out)};
-    return IteratorType{out, inn.begin(), outer.end(), inn.end(), inner};
+    return IteratorType(outer, inner);
   }
   static constexpr auto end() noexcept -> End { return {}; }
   constexpr NestedList(O out, F inn) noexcept
@@ -234,13 +241,6 @@ public:
 };
 template <std::ranges::forward_range O, class F>
 NestedList(O, F) -> NestedList<O, F>;
-
-// constexpr auto nest(auto &&outer, auto &&f) noexcept {
-//   return NestedList{std::forward<decltype(outer)>(outer),
-//                     std::forward<decltype(f)>(f)};
-// }
-
-// static_assert(std::ranges::range<ListRange
 
 } // namespace poly::utils
 
