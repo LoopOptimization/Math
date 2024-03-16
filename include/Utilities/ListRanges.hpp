@@ -52,15 +52,20 @@ template <typename T, class Op, class Proj> class ListIterator {
 
 public:
   using value_type = decltype(p_(state_));
-  constexpr auto operator*() const noexcept -> value_type { return p_(state_); }
+  constexpr auto operator*() const noexcept -> value_type {
+    invariant(state_ != next_);
+    return p_(state_);
+  }
   // constexpr auto operator->() const noexcept -> T * { return state_; }
   constexpr auto getState() const noexcept -> T * { return state_; }
   constexpr auto operator++() noexcept -> ListIterator & {
+    invariant(state_ != next_);
     state_ = next_;
     if (next_) next_ = op_(next_);
     return *this;
   }
   constexpr auto operator++(int) noexcept -> ListIterator {
+    invariant(state_ != next_);
     ListIterator tmp{*this};
     state_ = next_;
     if (next_) next_ = op_(next_);
@@ -76,6 +81,7 @@ public:
     return state_ == other.state_;
   }
   constexpr auto operator==(End) const noexcept -> bool {
+    invariant((state_ == nullptr) || (state_ != next_));
     return state_ == nullptr;
   }
   constexpr ListIterator(T *state) noexcept
