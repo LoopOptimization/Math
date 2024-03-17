@@ -148,17 +148,17 @@ class NestedIterator {
   [[no_unique_address]] O outer;
   [[no_unique_address]] P outerend;
   [[no_unique_address]] F innerfun;
-  [[no_unique_address]] union {
-    NoInnerObj noobj{};
-    L innerobj; // keep the inner object alive!
+  union {
+    [[no_unique_address]] NoInnerObj noobj{};
+    [[no_unique_address]] L innerobj; // keep the inner object alive!
   };
-  [[no_unique_address]] union {
-    NoInnerState nosate{};
-    I inner;
+  union {
+    [[no_unique_address]] NoInnerState nosate{};
+    [[no_unique_address]] I inner;
   };
-  [[no_unique_address]] union {
-    NoInnerEnd noend{};
-    J innerend;
+  union {
+    [[no_unique_address]] NoInnerEnd noend{};
+    [[no_unique_address]] J innerend;
   };
 
   constexpr void initInner() {
