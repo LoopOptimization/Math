@@ -83,7 +83,9 @@ TEST(ListRangeTest, BasicAssertions) {
   }
   {
     int s = 0;
-    utils::ListRange outer{listList, utils::GetNext{}};
+    List<List<int> *> *zll =
+      arena.create<List<List<int> *>>(nullptr)->setNext(listList);
+    utils::ListRange outer{zll, utils::GetNext{}};
     utils::NestedList nlr{outer, g};
     static_assert(std::input_iterator<decltype(nlr.begin())>);
     static_assert(std::forward_iterator<decltype(nlr.begin())>);

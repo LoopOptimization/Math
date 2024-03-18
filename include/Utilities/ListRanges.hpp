@@ -162,9 +162,13 @@ class NestedIterator {
   };
 
   constexpr void initInner() {
-    innerobj = innerfun(*outer);
-    inner = innerobj.begin();
-    innerend = innerobj.end();
+    for (;;) {
+      innerobj = innerfun(*outer);
+      inner = innerobj.begin();
+      innerend = innerobj.end();
+      if (inner != innerend) break;
+      if (++outer == outerend) break;
+    }
   }
 
 public:
