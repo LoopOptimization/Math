@@ -9,11 +9,11 @@
 #define POLYMATHIVDEP _Pragma("GCC ivdep")
 #define POLYMATHNOUNROLL _Pragma("GCC unroll 0")
 #define POLYMATHFULLUNROLL _Pragma("GCC unroll 16") _Pragma("GCC ivdep")
-#if __GNUC__ >= 14
-#define POLYMATHNOVECTORIZE _Pragma("GCC novector")
-#else
+// #if __GNUC__ >= 14
+// #define POLYMATHNOVECTORIZE _Pragma("GCC novector")
+// #else
 #define POLYMATHNOVECTORIZE
-#endif
+// #endif
 #define POLYMATHFAST
 // #define POLYMATHVECTORIZE _Pragma("GCC unroll 2") _Pragma("GCC ivdep")
 #elif defined (__clang__)
