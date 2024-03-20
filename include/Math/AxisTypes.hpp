@@ -83,7 +83,7 @@ constexpr auto operator<=>(Row<> x, Row<> y) -> std::strong_ordering {
   return ptrdiff_t(x) <=> ptrdiff_t(y);
 }
 inline auto operator<<(std::ostream &os, Row<> x) -> std::ostream & {
-  return os << "Rows{" << ptrdiff_t(x) << "}";
+  return os << "Row<>{" << ptrdiff_t(x) << "}";
 }
 template <ptrdiff_t M = -1> struct Col {
   static_assert(M >= 0);
@@ -143,7 +143,7 @@ constexpr auto operator*(Row<> r, Col<> c) -> ptrdiff_t {
   return ptrdiff_t(r) * ptrdiff_t(c);
 }
 inline auto operator<<(std::ostream &os, Col<> x) -> std::ostream & {
-  return os << "Rows{" << ptrdiff_t(x) << "}";
+  return os << "Col<>{" << ptrdiff_t(x) << "}";
 }
 template <ptrdiff_t M = -1> struct RowStride {
   static_assert(M >= 0);
@@ -183,7 +183,7 @@ constexpr auto operator<=>(RowStride<> x,
   return ptrdiff_t(x) <=> ptrdiff_t(y);
 }
 inline auto operator<<(std::ostream &os, RowStride<> x) -> std::ostream & {
-  return os << "RowStrides{" << ptrdiff_t(x) << "}";
+  return os << "RowStride<>{" << ptrdiff_t(x) << "}";
 }
 
 // constexpr auto max(Row M, Col N) -> ptrdiff_t {

@@ -62,48 +62,49 @@ constexpr auto vector(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto matrix(A a, ptrdiff_t M)
+constexpr auto square_matrix(A a, ptrdiff_t M)
   -> ManagedArray<eltype_t<A>, SquareDims<>,
                   containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
   return {SquareDims<>{{M}}, a};
 }
 
 template <class T, alloc::FreeAllocator A>
-constexpr auto matrix(A a, ptrdiff_t M) {
-  if constexpr (std::same_as<T, eltype_t<A>>) return matrix(a, M);
-  else return matrix(rebound_alloc<A, T>{}, M);
+constexpr auto square_matrix(A a, ptrdiff_t M) {
+  if constexpr (std::same_as<T, eltype_t<A>>) return square_matrix(a, M);
+  else return square_matrix(rebound_alloc<A, T>{}, M);
 }
 
 template <class T>
-constexpr auto matrix(WArena<T> alloc, ptrdiff_t M) -> MutSquarePtrMatrix<T> {
+constexpr auto square_matrix(WArena<T> alloc,
+                             ptrdiff_t M) -> MutSquarePtrMatrix<T> {
   return {alloc.allocate(M * M), SquareDims<>{{M}}};
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc,
-                      ptrdiff_t M) -> MutSquarePtrMatrix<T> {
+constexpr auto square_matrix(Arena<SlabSize, BumpUp> *alloc,
+                             ptrdiff_t M) -> MutSquarePtrMatrix<T> {
   return {alloc->template allocate<T>(M * M), SquareDims<>{{M}}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto matrix(A a, ptrdiff_t M, eltype_t<A> x)
+constexpr auto square_matrix(A a, ptrdiff_t M, eltype_t<A> x)
   -> ManagedArray<eltype_t<A>, SquareDims<>,
                   containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
   return {SquareDims<>{{M}}, x, a};
 }
 template <class T, alloc::FreeAllocator A>
-constexpr auto matrix(A a, ptrdiff_t M, std::type_identity_t<T> x) {
-  if constexpr (std::same_as<T, eltype_t<A>>) return matrix(a, M, x);
-  else return matrix(rebound_alloc<A, T>{}, M, x);
+constexpr auto square_matrix(A a, ptrdiff_t M, std::type_identity_t<T> x) {
+  if constexpr (std::same_as<T, eltype_t<A>>) return square_matrix(a, M, x);
+  else return square_matrix(rebound_alloc<A, T>{}, M, x);
 }
 template <class T>
-constexpr auto matrix(WArena<T> alloc, ptrdiff_t M,
-                      T x) -> MutSquarePtrMatrix<T> {
+constexpr auto square_matrix(WArena<T> alloc, ptrdiff_t M,
+                             T x) -> MutSquarePtrMatrix<T> {
   MutSquarePtrMatrix<T> A{alloc.allocate(M * M), SquareDims<>{{M}}};
   A.fill(x);
   return A;
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
-                      T x) -> MutSquarePtrMatrix<T> {
+constexpr auto square_matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
+                             T x) -> MutSquarePtrMatrix<T> {
   MutSquarePtrMatrix<T> A{alloc->template allocate<T>(M * M),
                           SquareDims<>{{M}}};
   A.fill(x);
@@ -143,8 +144,8 @@ constexpr auto matrix(A a, Row<R> M, Col<C> N, eltype_t<A> x)
 }
 template <class T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(A a, Row<R> M, Col<C> N, std::type_identity_t<T> x) {
-  if constexpr (std::same_as<T, eltype_t<A>>) return matrix(a, M, N, x);
-  else return matrix(rebound_alloc<A, T>{}, M, N, x);
+  if constexpr (std::same_as<T, eltype_t<A>>) return square_matrix(a, M, N, x);
+  else return square_matrix(rebound_alloc<A, T>{}, M, N, x);
 }
 template <class T, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(WArena<T> alloc, Row<R> M, Col<C> N,
@@ -180,14 +181,14 @@ constexpr auto identity(A a, ptrdiff_t M) {
 }
 template <class T>
 constexpr auto identity(WArena<T> alloc, ptrdiff_t M) -> MutSquarePtrMatrix<T> {
-  MutSquarePtrMatrix<T> A{matrix(alloc, M, T{})};
+  MutSquarePtrMatrix<T> A{square_matrix(alloc, M, T{})};
   A.diag() << T{1};
   return A;
 }
 template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto identity(Arena<SlabSize, BumpUp> *alloc,
                         ptrdiff_t M) -> MutSquarePtrMatrix<T> {
-  MutSquarePtrMatrix<T> A{matrix(alloc, M, T{})};
+  MutSquarePtrMatrix<T> A{square_matrix(alloc, M, T{})};
   A.diag() << T{1};
   return A;
 }
@@ -195,8 +196,8 @@ constexpr auto identity(Arena<SlabSize, BumpUp> *alloc,
 template <typename T, typename I>
 concept Alloc = requires(T t, ptrdiff_t M, Row<> r, Col<> c, I i) {
   { identity<I>(t, M) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
-  { matrix<I>(t, M) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
-  { matrix<I>(t, M, i) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
+  { square_matrix<I>(t, M) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
+  { square_matrix<I>(t, M, i) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
   { matrix<I>(t, r, c) } -> std::convertible_to<MutDensePtrMatrix<I>>;
   { matrix(t, r, c, i) } -> std::convertible_to<MutDensePtrMatrix<I>>;
   { vector<I>(t, M) } -> std::convertible_to<MutPtrVector<I>>;
