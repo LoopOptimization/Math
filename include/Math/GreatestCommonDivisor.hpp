@@ -38,8 +38,8 @@ constexpr auto gcd(int64_t x, int64_t y) -> int64_t {
   return b << k;
 }
 template <ptrdiff_t W>
-constexpr auto gcd(simd::Vec<W, int64_t> x, simd::Vec<W, int64_t> y)
-  -> simd::Vec<W, int64_t> {
+constexpr auto gcd(simd::Vec<W, int64_t> x,
+                   simd::Vec<W, int64_t> y) -> simd::Vec<W, int64_t> {
   constexpr simd::Vec<W, int64_t> zero = {};
   constexpr simd::Vec<W, int64_t> one = zero + 1;
   constexpr simd::Vec<W, int64_t> invalid =

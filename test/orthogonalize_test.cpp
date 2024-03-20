@@ -37,4 +37,3 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
 #endif
   }
 }
-

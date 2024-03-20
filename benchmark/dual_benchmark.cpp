@@ -70,39 +70,37 @@ template <std::floating_point T, ptrdiff_t N> struct ManualDual<T, N, true> {
   auto grad() -> P & { return partials; }
 };
 template <typename T, ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator*(ManualDual<T, N, B> a,
-                                                ManualDual<T, N, B> b)
-  -> ManualDual<T, N, B> {
-  if constexpr ((!B) && (!std::floating_point<T>)&&(N == 2))
+[[gnu::always_inline]] constexpr auto
+operator*(ManualDual<T, N, B> a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
+  if constexpr ((!B) && (!std::floating_point<T>) && (N == 2))
     return {a.value * b.value,
             {a.value * b.grad()[0] + b.value + a.grad()[0],
              a.value * b.grad()[1] + b.value * a.grad()[1]}};
   else return {a.value * b.value, a.value * b.partials + b.value * a.partials};
 }
 template <typename T, ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator*(ManualDual<T, N, B> a, T b)
-  -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator*(ManualDual<T, N, B> a,
+                                                T b) -> ManualDual<T, N, B> {
   return {a.value * b, b * a.partials};
 }
 template <typename T, ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator*(T a, ManualDual<T, N, B> b)
-  -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto
+operator*(T a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
   return {b.value * a, a * b.partials};
 }
 template <typename T, ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator+(ManualDual<T, N, B> a,
-                                                ManualDual<T, N, B> b)
-  -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto
+operator+(ManualDual<T, N, B> a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
   return {a.value + b.value, a.partials + b.partials};
 }
 template <typename T, ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator+(ManualDual<T, N, B> a, T b)
-  -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator+(ManualDual<T, N, B> a,
+                                                T b) -> ManualDual<T, N, B> {
   return {a.value + b, a.partials};
 }
 template <typename T, ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator+(T a, ManualDual<T, N, B> b)
-  -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto
+operator+(T a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
   return {b.value + a, b.partials};
 }
 

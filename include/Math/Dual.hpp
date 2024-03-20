@@ -67,12 +67,12 @@ struct Dual<T, N, true> {
   }
   [[nodiscard]] constexpr auto value() -> T { return data[0]; }
   [[nodiscard]] constexpr auto value() const -> const T & { return data[0]; }
-  [[nodiscard]] constexpr auto gradient()
-    -> MutArray<T, std::integral_constant<ptrdiff_t, N>> {
+  [[nodiscard]] constexpr auto
+  gradient() -> MutArray<T, std::integral_constant<ptrdiff_t, N>> {
     return {data.data() + 1, {}};
   }
-  [[nodiscard]] constexpr auto gradient() const
-    -> Array<T, std::integral_constant<ptrdiff_t, N>> {
+  [[nodiscard]] constexpr auto
+  gradient() const -> Array<T, std::integral_constant<ptrdiff_t, N>> {
     return {data.data() + 1, {}};
   }
 
@@ -130,16 +130,16 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   [[gnu::always_inline]] constexpr auto operator-() const -> Dual {
     return {-val, -partials};
   }
-  [[gnu::always_inline]] constexpr auto operator+(const Dual &other) const
-    -> Dual {
+  [[gnu::always_inline]] constexpr auto
+  operator+(const Dual &other) const -> Dual {
     return {val + other.val, partials + other.partials};
   }
-  [[gnu::always_inline]] constexpr auto operator-(const Dual &other) const
-    -> Dual {
+  [[gnu::always_inline]] constexpr auto
+  operator-(const Dual &other) const -> Dual {
     return {val - other.val, partials - other.partials};
   }
-  [[gnu::always_inline]] constexpr auto operator*(const Dual &other) const
-    -> Dual {
+  [[gnu::always_inline]] constexpr auto
+  operator*(const Dual &other) const -> Dual {
     if constexpr (std::same_as<T, double> && (N > 1)) {
       Dual ret(val * other.val);
       using V = typename data_type::V;
@@ -158,8 +158,8 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
     } else
       return {val * other.val, val * other.partials + other.val * partials};
   }
-  [[gnu::always_inline]] constexpr auto operator/(const Dual &other) const
-    -> Dual {
+  [[gnu::always_inline]] constexpr auto
+  operator/(const Dual &other) const -> Dual {
     return {val / other.val, (other.val * partials - val * other.partials) /
                                (other.val * other.val)};
   }
@@ -184,26 +184,26 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   {
     return {val / other, partials / other};
   }
-  [[gnu::always_inline]] constexpr auto operator+=(const Dual &other)
-    -> Dual & {
+  [[gnu::always_inline]] constexpr auto
+  operator+=(const Dual &other) -> Dual & {
     val += other.val;
     partials += other.partials;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(const Dual &other)
-    -> Dual & {
+  [[gnu::always_inline]] constexpr auto
+  operator-=(const Dual &other) -> Dual & {
     val -= other.val;
     partials -= other.partials;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(const Dual &other)
-    -> Dual & {
+  [[gnu::always_inline]] constexpr auto
+  operator*=(const Dual &other) -> Dual & {
     partials << val * other.partials + other.val * partials;
     val *= other.val;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(const Dual &other)
-    -> Dual & {
+  [[gnu::always_inline]] constexpr auto
+  operator/=(const Dual &other) -> Dual & {
     partials << (other.val * partials - val * other.partials) /
                   (other.val * other.val);
     val /= other.val;
@@ -240,12 +240,12 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
     partials /= other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator==(const Dual &other) const
-    -> bool {
+  [[gnu::always_inline]] constexpr auto
+  operator==(const Dual &other) const -> bool {
     return val == other.val; // && grad == other.grad;
   }
-  [[gnu::always_inline]] constexpr auto operator!=(const Dual &other) const
-    -> bool {
+  [[gnu::always_inline]] constexpr auto
+  operator!=(const Dual &other) const -> bool {
     return val != other.val; // || grad != other.grad;
   }
   constexpr auto operator<(const Dual &other) const -> bool {
@@ -371,8 +371,8 @@ struct Dual<T, N, false> {
   constexpr Dual(std::integral auto v) { value() = v; }
   constexpr Dual(std::floating_point auto v) { value() = v; }
   constexpr auto value() -> T & { return data[value_idx]; }
-  constexpr auto gradient()
-    -> MutArray<T, std::integral_constant<ptrdiff_t, N>> {
+  constexpr auto
+  gradient() -> MutArray<T, std::integral_constant<ptrdiff_t, N>> {
     return {data.data() + partial_offset, {}};
   }
   [[nodiscard]] constexpr auto value() const -> T { return data[value_idx]; }
@@ -392,8 +392,8 @@ struct Dual<T, N, false> {
     if constexpr (data_type::L == 1) return simd::vbroadcast<W, T>(data.data_);
     else return simd::vbroadcast<W, T>(data.memory_[0]);
   }
-  [[nodiscard]] constexpr auto gradient() const
-    -> Array<T, std::integral_constant<ptrdiff_t, N>> {
+  [[nodiscard]] constexpr auto
+  gradient() const -> Array<T, std::integral_constant<ptrdiff_t, N>> {
     return {data.data() + partial_offset, {}};
   }
 
@@ -739,22 +739,22 @@ struct ScalarizeViaCast<ElementwiseBinaryOp<T, B, std::multiplies<>>> {
 template <class T, ptrdiff_t N> Dual(T, SVector<T, N>) -> Dual<T, N>;
 
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator+(const T &a, const Dual<T, N> &b)
-  -> Dual<T, N>
+[[gnu::always_inline]] constexpr auto
+operator+(const T &a, const Dual<T, N> &b) -> Dual<T, N>
 requires(!std::same_as<T, double>)
 {
   return {a + b.val, b.partials};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator-(const T &a, const Dual<T, N> &b)
-  -> Dual<T, N>
+[[gnu::always_inline]] constexpr auto
+operator-(const T &a, const Dual<T, N> &b) -> Dual<T, N>
 requires(!std::same_as<T, double>)
 {
   return {a - b.val, -b.partials};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator*(const T &a, const Dual<T, N> &b)
-  -> Dual<T, N>
+[[gnu::always_inline]] constexpr auto
+operator*(const T &a, const Dual<T, N> &b) -> Dual<T, N>
 requires(!std::same_as<T, double>)
 {
   // Dual res;
@@ -764,34 +764,30 @@ requires(!std::same_as<T, double>)
   return {a * b.val, a * b.partials};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator/(const T &a, const Dual<T, N> &b)
-  -> Dual<T, N>
+[[gnu::always_inline]] constexpr auto
+operator/(const T &a, const Dual<T, N> &b) -> Dual<T, N>
 requires(!std::same_as<T, double>)
 {
   return {a / b.val, (-a * b.partials) / (b.val * b.val)};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator+(double other,
-                                                const Dual<T, N> &x)
-  -> Dual<T, N> {
+[[gnu::always_inline]] constexpr auto
+operator+(double other, const Dual<T, N> &x) -> Dual<T, N> {
   return {x.value() + other, x.gradient()};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator-(double other,
-                                                const Dual<T, N> &x)
-  -> Dual<T, N> {
+[[gnu::always_inline]] constexpr auto
+operator-(double other, const Dual<T, N> &x) -> Dual<T, N> {
   return {other - x.value(), -x.gradient()};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator*(double other,
-                                                const Dual<T, N> &x)
-  -> Dual<T, N> {
+[[gnu::always_inline]] constexpr auto
+operator*(double other, const Dual<T, N> &x) -> Dual<T, N> {
   return {x.value() * other, other * x.gradient()};
 }
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator/(double other,
-                                                const Dual<T, N> &x)
-  -> Dual<T, N> {
+[[gnu::always_inline]] constexpr auto
+operator/(double other, const Dual<T, N> &x) -> Dual<T, N> {
   return {other / x.value(), -other * x.gradient() / (x.value() * x.value())};
 }
 template <class T, ptrdiff_t N>
@@ -967,8 +963,8 @@ constexpr auto hessian(HessianResultCore hr, PtrVector<double> x, const auto &f,
     }
   }
 }
-constexpr auto hessian(HessianResultCore hr, PtrVector<double> x, const auto &f)
-  -> double {
+constexpr auto hessian(HessianResultCore hr, PtrVector<double> x,
+                       const auto &f) -> double {
   Assign assign{};
   return hessian(hr, x, f, assign);
 }

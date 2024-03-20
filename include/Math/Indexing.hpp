@@ -21,8 +21,8 @@ namespace poly::math {
 /// We probably won't support non-zero-based indexing
 struct OffsetBegin {
   [[no_unique_address]] ptrdiff_t offset;
-  friend inline auto operator<<(std::ostream &os, OffsetBegin r)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                OffsetBegin r) -> std::ostream & {
     return os << r.offset;
   }
 };
@@ -41,8 +41,8 @@ constexpr auto operator+(OffsetBegin y, ptrdiff_t x) -> OffsetBegin {
 }
 [[maybe_unused]] static constexpr inline struct OffsetEnd {
   [[no_unique_address]] ptrdiff_t offset;
-  friend inline auto operator<<(std::ostream &os, OffsetEnd r)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                OffsetEnd r) -> std::ostream & {
     return os << "end - " << r.offset;
   }
 } last{1};
@@ -80,13 +80,13 @@ constexpr auto canonicalize(OffsetEnd e, ptrdiff_t M) -> ptrdiff_t {
   return M - e.offset;
 }
 template <typename B, typename E>
-constexpr auto canonicalizeRange(Range<B, E> r, ptrdiff_t M)
-  -> Range<ptrdiff_t, ptrdiff_t> {
+constexpr auto canonicalizeRange(Range<B, E> r,
+                                 ptrdiff_t M) -> Range<ptrdiff_t, ptrdiff_t> {
   return Range<ptrdiff_t, ptrdiff_t>{canonicalize(r.b, M),
                                      canonicalize(r.e, M)};
 }
-constexpr auto canonicalizeRange(Colon, ptrdiff_t M)
-  -> Range<ptrdiff_t, ptrdiff_t> {
+constexpr auto canonicalizeRange(Colon,
+                                 ptrdiff_t M) -> Range<ptrdiff_t, ptrdiff_t> {
   return Range<ptrdiff_t, ptrdiff_t>{0, M};
 }
 
@@ -99,8 +99,8 @@ concept AbstractSlice = requires(T t, ptrdiff_t M) {
 static_assert(AbstractSlice<Range<ptrdiff_t, ptrdiff_t>>);
 static_assert(AbstractSlice<Colon>);
 
-[[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len, ptrdiff_t i)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len,
+                                               ptrdiff_t i) -> ptrdiff_t {
   invariant(i >= 0);
   invariant(i < len);
   return i;
@@ -113,31 +113,30 @@ calcOffset(std::integral_constant<ptrdiff_t, 1>, ptrdiff_t i) -> ptrdiff_t {
 [[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t, Begin) -> ptrdiff_t {
   return 0;
 }
-[[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len, OffsetBegin i)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len,
+                                               OffsetBegin i) -> ptrdiff_t {
   return calcOffset(len, i.offset);
 }
-[[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len, OffsetEnd i)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcOffset(ptrdiff_t len,
+                                               OffsetEnd i) -> ptrdiff_t {
   invariant(i.offset <= len);
   return len - i.offset;
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t len, ptrdiff_t i)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t len,
+                                                    ptrdiff_t i) -> ptrdiff_t {
   invariant(i <= len);
   return i;
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t, Begin)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t,
+                                                    Begin) -> ptrdiff_t {
   return 0;
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t len,
-                                                    OffsetBegin i)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto
+calcRangeOffset(ptrdiff_t len, OffsetBegin i) -> ptrdiff_t {
   return calcRangeOffset(len, i.offset);
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t len, OffsetEnd i)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcRangeOffset(ptrdiff_t len,
+                                                    OffsetEnd i) -> ptrdiff_t {
   invariant(i.offset <= len);
   return len - i.offset;
 }
@@ -156,8 +155,8 @@ struct StridedRange {
   [[no_unique_address]] ptrdiff_t len;
   [[no_unique_address]] ptrdiff_t stride;
   explicit constexpr operator ptrdiff_t() const { return len; }
-  friend inline auto operator<<(std::ostream &os, StridedRange x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                StridedRange x) -> std::ostream & {
     return os << "Length: " << x.len << " (stride: " << x.stride << ")";
   }
 };
@@ -175,8 +174,8 @@ template <class I> constexpr auto calcOffset(StridedRange d, I i) -> ptrdiff_t {
 }
 
 template <class R, class C>
-[[nodiscard]] inline constexpr auto calcOffset(StridedDims<> d, R r, C c)
-  -> ptrdiff_t {
+[[nodiscard]] inline constexpr auto calcOffset(StridedDims<> d, R r,
+                                               C c) -> ptrdiff_t {
   return ptrdiff_t(stride(d)) * calcOffset(ptrdiff_t(Row<>(d)), r) +
          calcOffset(ptrdiff_t(Col<>(d)), c);
 }
@@ -257,8 +256,8 @@ constexpr auto calcNewDim(SquareDims<>, ptrdiff_t) -> Empty { return {}; }
 constexpr auto calcNewDim(DenseDims<>, ptrdiff_t) -> Empty { return {}; }
 // constexpr auto calcNewDim(auto, ptrdiff_t) -> Empty { return {}; }
 
-constexpr auto calcNewDim(ptrdiff_t len, Range<ptrdiff_t, ptrdiff_t> r)
-  -> ptrdiff_t {
+constexpr auto calcNewDim(ptrdiff_t len,
+                          Range<ptrdiff_t, ptrdiff_t> r) -> ptrdiff_t {
   invariant(r.e <= len);
   invariant(r.b <= r.e);
   return ptrdiff_t(r.e - r.b);
@@ -267,8 +266,8 @@ template <class B, class E>
 constexpr auto calcNewDim(ptrdiff_t len, Range<B, E> r) -> ptrdiff_t {
   return calcNewDim(len, canonicalizeRange(r, len));
 }
-constexpr auto calcNewDim(StridedRange len, Range<ptrdiff_t, ptrdiff_t> r)
-  -> StridedRange {
+constexpr auto calcNewDim(StridedRange len,
+                          Range<ptrdiff_t, ptrdiff_t> r) -> StridedRange {
   return StridedRange{ptrdiff_t(calcNewDim(len.len, r)), len.stride};
 }
 template <class B, class E>

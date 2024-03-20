@@ -81,8 +81,8 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     return (unsigned long long)(ptrdiff_t(M) * ptrdiff_t(strideM));
   }
   constexpr auto operator=(DenseDims<R, C> D) -> StridedDims &requires(C == X);
-  constexpr auto operator=(SquareDims<R> D)
-    -> StridedDims &requires((R == C) && (C == X));
+  constexpr auto operator=(SquareDims<R> D) -> StridedDims &requires((R == C) &&
+                                                                     (C == X));
   constexpr explicit operator Row<R>() const { return M; }
   constexpr explicit operator Col<C>() const {
     invariant(N <= strideM);
@@ -97,14 +97,14 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     return (M == D.M) && (N == D.N) && (strideM == D.strideM);
   }
   template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto truncate(Row<S> r) const
-    -> StridedDims<S, C, X> {
+  [[nodiscard]] constexpr auto
+  truncate(Row<S> r) const -> StridedDims<S, C, X> {
     invariant(r <= M);
     return similar(r);
   }
   template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto truncate(Col<S> c) const
-    -> StridedDims<R, S, X> {
+  [[nodiscard]] constexpr auto
+  truncate(Col<S> c) const -> StridedDims<R, S, X> {
     invariant(c <= N);
     return similar(c);
   }
@@ -138,8 +138,8 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   {
     return {M, N, strideM};
   }
-  friend inline auto operator<<(std::ostream &os, StridedDims x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                StridedDims x) -> std::ostream & {
     return os << x.M << " x " << x.N << " (stride " << x.strideM << ")";
   }
 };
@@ -189,8 +189,8 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     return similar(r);
   }
   template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto truncate(Col<S> c) const
-    -> StridedDims<R, S, C> {
+  [[nodiscard]] constexpr auto
+  truncate(Col<S> c) const -> StridedDims<R, S, C> {
     invariant(c <= Col{M});
     return {M, c, {ptrdiff_t(N)}};
   }
@@ -235,8 +235,8 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   {
     return {};
   }
-  friend inline auto operator<<(std::ostream &os, DenseDims x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                DenseDims x) -> std::ostream & {
     return os << x.M << " x " << x.N;
   }
 };
@@ -279,8 +279,8 @@ template <ptrdiff_t R> struct SquareDims {
     return {r, {ptrdiff_t(M)}};
   }
   template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto truncate(Col<S> c) const
-    -> StridedDims<R, S, R> {
+  [[nodiscard]] constexpr auto
+  truncate(Col<S> c) const -> StridedDims<R, S, R> {
     invariant(c <= Col{M});
     return {M, unsigned(c), {ptrdiff_t(M)}};
   }
@@ -311,8 +311,8 @@ template <ptrdiff_t R> struct SquareDims {
   {
     return {M};
   }
-  friend inline auto operator<<(std::ostream &os, SquareDims x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                SquareDims x) -> std::ostream & {
     return os << x.M << " x " << x.M;
   }
 };
@@ -343,26 +343,26 @@ StridedDims(Row<R>, Col<C>, RowStride<X>) -> StridedDims<R, C, X>;
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 constexpr inline auto StridedDims<R, C, X>::operator=(DenseDims<R, C> D)
   -> StridedDims &requires(C == X) {
-    M = D.M;
-    N = D.N;
-    strideM = N;
-    return *this;
-  };
+  M = D.M;
+  N = D.N;
+  strideM = N;
+  return *this;
+};
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 constexpr inline auto StridedDims<R, C, X>::operator=(SquareDims<R> D)
   -> StridedDims &requires((R == C) && (C == X)) {
-    M = D.M;
-    N = M;
-    strideM = M;
-    return *this;
-  };
+  M = D.M;
+  N = M;
+  strideM = M;
+  return *this;
+};
 template <ptrdiff_t R, ptrdiff_t C>
-constexpr inline auto DenseDims<R, C>::operator=(SquareDims<R> D)
-  -> DenseDims &requires(R == C) {
-    M = D.M;
-    N = M;
-    return *this;
-  };
+constexpr inline auto
+DenseDims<R, C>::operator=(SquareDims<R> D) -> DenseDims &requires(R == C) {
+  M = D.M;
+  N = M;
+  return *this;
+};
 
 template <class R, class C>
 constexpr inline CartesianIndex<R, C>::operator SquareDims<>() const
@@ -406,9 +406,9 @@ static_assert(!MatrixDimension<unsigned>);
 static_assert(std::convertible_to<const DenseDims<8, 8>, DenseDims<>>);
 
 template <typename T, typename S>
-concept PromoteDimTo = (!std::same_as<T, S>)&&std::convertible_to<T, S>;
+concept PromoteDimTo = (!std::same_as<T, S>) && std::convertible_to<T, S>;
 template <typename T, typename S>
-concept PromoteDimFrom = (!std::same_as<T, S>)&&std::convertible_to<S, T>;
+concept PromoteDimFrom = (!std::same_as<T, S>) && std::convertible_to<S, T>;
 
 constexpr auto row(MatrixDimension auto s) { return Row(s); }
 constexpr auto col(MatrixDimension auto s) { return Col(s); }

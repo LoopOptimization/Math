@@ -29,8 +29,8 @@ public:
     return Row<>{rows.size()};
   }
   [[nodiscard]] constexpr auto numCol() const -> Col<> { return col; }
-  [[nodiscard]] constexpr auto size() const
-    -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
+  [[nodiscard]] constexpr auto
+  size() const -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
     return {numRow(), numCol()};
   }
   [[nodiscard]] constexpr auto dim() const -> DenseDims<> {

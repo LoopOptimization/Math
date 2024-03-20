@@ -6,8 +6,8 @@
 #include <cstdint>
 
 namespace poly::math {
-[[nodiscard]] constexpr auto orthogonalize(DenseMatrix<int64_t> A)
-  -> DenseMatrix<int64_t> {
+[[nodiscard]] constexpr auto
+orthogonalize(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   if ((A.numCol() < 2) || (A.numRow() == 0)) return A;
   normalizeByGCD(A[0, _]);
   if (A.numRow() == 1) return A;
@@ -34,8 +34,8 @@ namespace poly::math {
   return A;
 }
 
-[[nodiscard]] constexpr auto orthogonalNullSpace(DenseMatrix<int64_t> A)
-  -> DenseMatrix<int64_t> {
+[[nodiscard]] constexpr auto
+orthogonalNullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   return orthogonalize(NormalForm::nullSpace(std::move(A)));
 }
 } // namespace poly::math

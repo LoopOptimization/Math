@@ -394,4 +394,3 @@ TEST(StringVector, BasicAssertions) {
     EXPECT_EQ(x[2], 7);
   });
 }
-

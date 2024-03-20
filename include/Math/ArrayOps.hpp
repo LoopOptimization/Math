@@ -26,20 +26,20 @@ template <typename S, typename T>
   return std::forward<T>(s);
 }
 template <typename S, LinearlyIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i)
-  -> decltype(auto) {
+[[gnu::always_inline]] constexpr auto get(const V &v,
+                                          auto i) -> decltype(auto) {
   return v[i];
 }
 template <typename S, CartesianIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i, auto j)
-  -> decltype(auto) {
+[[gnu::always_inline]] constexpr auto get(const V &v, auto i,
+                                          auto j) -> decltype(auto) {
   return v[i, j];
 }
 template <typename T, typename S>
 concept OnlyLinearlyIndexable = LinearlyIndexable<S> && !CartesianIndexable<S>;
 template <typename S, OnlyLinearlyIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i, auto j)
-  -> decltype(auto) {
+[[gnu::always_inline]] constexpr auto get(const V &v, auto i,
+                                          auto j) -> decltype(auto) {
   static_assert(AbstractVector<V>);
   if constexpr (RowVector<V>) return v[j];
   else return v[i];
@@ -275,28 +275,28 @@ public:
   [[gnu::always_inline, gnu::flatten]] constexpr auto
   operator<<(const SmallSparseMatrix<T> &B) -> P &;
 
-  [[gnu::always_inline, gnu::flatten]] constexpr auto operator<<(const auto &B)
-    -> P & {
+  [[gnu::always_inline, gnu::flatten]] constexpr auto
+  operator<<(const auto &B) -> P & {
     vcopyTo(B, utils::CopyAssign{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto operator+=(const auto &B)
-    -> P & {
+  [[gnu::always_inline, gnu::flatten]] constexpr auto
+  operator+=(const auto &B) -> P & {
     vcopyTo(B, std::plus<>{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto operator-=(const auto &B)
-    -> P & {
+  [[gnu::always_inline, gnu::flatten]] constexpr auto
+  operator-=(const auto &B) -> P & {
     vcopyTo(B, std::minus<>{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto operator*=(const auto &B)
-    -> P & {
+  [[gnu::always_inline, gnu::flatten]] constexpr auto
+  operator*=(const auto &B) -> P & {
     vcopyTo(B, std::multiplies<>{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto operator/=(const auto &B)
-    -> P & {
+  [[gnu::always_inline, gnu::flatten]] constexpr auto
+  operator/=(const auto &B) -> P & {
     vcopyTo(B, std::divides<>{});
     return Self();
   }
@@ -463,7 +463,8 @@ requires(sizeof...(As) == sizeof...(Bs))
 #else
   using C = math::scalarize_via_cast_t<
     std::remove_cvref_t<decltype(std::declval<A>().view())>>;
-  if constexpr ((!std::same_as<C, void>)&&math::ScalarizeViaCastTo<
+  if constexpr ((!std::same_as<C, void>) &&
+                math::ScalarizeViaCastTo<
                   C, As..., decltype(std::declval<B>().view()), Bs...>()) {
     using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                  utils::eltype_t<B>, utils::eltype_t<Bs>...>;

@@ -9,8 +9,8 @@
 namespace poly::containers {
 template <typename T, typename... Ts> struct Tuple;
 template <typename T, typename... Ts>
-[[gnu::always_inline]] constexpr auto cattuple(T, Tuple<Ts...>)
-  -> Tuple<T, Ts...>;
+[[gnu::always_inline]] constexpr auto cattuple(T,
+                                               Tuple<Ts...>) -> Tuple<T, Ts...>;
 
 template <typename T, typename... Ts> struct Tuple {
   [[no_unique_address]] T head;
@@ -64,16 +64,17 @@ template <typename T, typename... Ts> struct Tuple {
   requires(sizeof...(Ts) == sizeof...(Us));
   constexpr auto operator=(const Tuple &) -> Tuple & = default;
   template <typename U, typename... Us>
-  constexpr auto operator=(Tuple<U, Us...> x) -> Tuple &requires(
-    std::assignable_from<T, U> &&... &&std::assignable_from<Ts, Us>) {
+  constexpr auto operator=(Tuple<U, Us...> x)
+    -> Tuple &requires(
+      std::assignable_from<T, U> &&... &&std::assignable_from<Ts, Us>) {
     head = x.head;
     tail = x.tail;
     return *this;
   }
 };
 template <typename T, typename... Ts>
-[[gnu::always_inline]] constexpr auto cattuple(T x, Tuple<Ts...> y)
-  -> Tuple<T, Ts...> {
+[[gnu::always_inline]] constexpr auto
+cattuple(T x, Tuple<Ts...> y) -> Tuple<T, Ts...> {
   return {x, y};
 }
 template <typename T> struct Tuple<T> {
@@ -97,8 +98,8 @@ template <typename T> struct Tuple<T> {
     return {f(head)};
   }
   template <typename U>
-  constexpr auto map(const Tuple<U> &x, const auto &f) const
-    -> Tuple<decltype(f(head, x.head))> {
+  constexpr auto map(const Tuple<U> &x,
+                     const auto &f) const -> Tuple<decltype(f(head, x.head))> {
     return {f(head, x.head)};
   }
   template <typename U> inline constexpr void operator<<(const Tuple<U> &);
@@ -108,11 +109,12 @@ template <typename T> struct Tuple<T> {
   template <typename U> inline constexpr void operator/=(const Tuple<U> &);
 
   template <typename U>
-  constexpr auto operator=(Tuple<U> x)
-    -> Tuple &requires((!std::same_as<T, U>)&&std::assignable_from<T, U>) {
-      head = x.head;
-      return *this;
-    }
+  constexpr auto operator=(Tuple<U> x) -> Tuple &
+  requires((!std::same_as<T, U>) && std::assignable_from<T, U>)
+  {
+    head = x.head;
+    return *this;
+  }
 };
 
 template <typename... Ts> Tuple(Ts...) -> Tuple<Ts...>;

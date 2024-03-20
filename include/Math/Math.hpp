@@ -71,9 +71,8 @@ template <typename T, typename I> consteval auto getWidth() -> ptrdiff_t {
 }
 
 // TODO: make this part of ArrayOps!!!
-[[gnu::flatten]] constexpr auto operator==(const AbstractTensor auto &A,
-                                           const AbstractTensor auto &B)
-  -> bool {
+[[gnu::flatten]] constexpr auto
+operator==(const AbstractTensor auto &A, const AbstractTensor auto &B) -> bool {
   auto [Ma, Na] = shape(A);
   auto [Mb, Nb] = shape(B);
 
@@ -647,8 +646,8 @@ ElementwiseBinaryOp(OP, A, B) -> ElementwiseBinaryOp<A, B, OP>;
 constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
 
 template <typename T>
-inline auto operator<<(std::ostream &os, SmallSparseMatrix<T> const &A)
-  -> std::ostream & {
+inline auto operator<<(std::ostream &os,
+                       SmallSparseMatrix<T> const &A) -> std::ostream & {
   ptrdiff_t k = 0;
   os << "[ ";
   for (ptrdiff_t i = 0; i < A.numRow(); ++i) {

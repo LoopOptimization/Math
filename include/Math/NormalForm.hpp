@@ -122,16 +122,16 @@ constexpr auto pivotRows(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> K,
   MutPtrMatrix<int64_t> B = K;
   return pivotRowsPair({A, B}, Col<>{i}, M, Row<>{i});
 }
-constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M, Row<> piv)
-  -> bool {
+constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M,
+                         Row<> piv) -> bool {
   Row j = piv;
   while (A[piv, i] == 0)
     if (++piv == ptrdiff_t(M)) return true;
   if (j != piv) swap(A, j, piv);
   return false;
 }
-constexpr auto pivotRows(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> N)
-  -> bool {
+constexpr auto pivotRows(MutPtrMatrix<int64_t> A, ptrdiff_t i,
+                         Row<> N) -> bool {
   return pivotRows(A, Col<>{i}, N, Row<>{i});
 }
 
@@ -366,8 +366,8 @@ constexpr void simplifySystem(MutArray<int64_t, S0> &A,
     B.truncate(newM);
   }
 }
-[[nodiscard]] constexpr auto hermite(IntMatrix<> A)
-  -> std::pair<IntMatrix<>, SquareMatrix<int64_t>> {
+[[nodiscard]] constexpr auto
+hermite(IntMatrix<> A) -> std::pair<IntMatrix<>, SquareMatrix<int64_t>> {
   SquareMatrix<int64_t> U{
     SquareMatrix<int64_t>::identity(ptrdiff_t(A.numRow()))};
   simplifySystemsImpl({A, U});
@@ -670,8 +670,8 @@ constexpr void nullSpace11(DenseMatrix<int64_t> &B, DenseMatrix<int64_t> &A) {
               ptrdiff_t(D) * ptrdiff_t(M), B.data());
   B.truncate(D);
 }
-[[nodiscard]] constexpr auto nullSpace(DenseMatrix<int64_t> A)
-  -> DenseMatrix<int64_t> {
+[[nodiscard]] constexpr auto
+nullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   DenseMatrix<int64_t> B;
   nullSpace11(B, A);
   return B;

@@ -37,8 +37,8 @@ struct Rational {
     }
     return Rational{0, 1};
   }
-  static constexpr auto createPositiveDenominator(int64_t n, int64_t d)
-    -> Rational {
+  static constexpr auto createPositiveDenominator(int64_t n,
+                                                  int64_t d) -> Rational {
     if (n) {
       int64_t g = gcd(n, d);
       if (g != 1) {
@@ -50,8 +50,8 @@ struct Rational {
     return Rational{0, 1};
   }
 
-  [[nodiscard]] constexpr auto safeAdd(Rational y) const
-    -> std::optional<Rational> {
+  [[nodiscard]] constexpr auto
+  safeAdd(Rational y) const -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator, y.denominator);
     int64_t a, b, n, d;
     bool o1 = __builtin_mul_overflow(numerator, yd, &a);
@@ -72,8 +72,8 @@ struct Rational {
     *this = *a;
     return *this;
   }
-  [[nodiscard]] constexpr auto safeSub(Rational y) const
-    -> std::optional<Rational> {
+  [[nodiscard]] constexpr auto
+  safeSub(Rational y) const -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator, y.denominator);
     int64_t a, b, n, d;
     bool o1 = __builtin_mul_overflow(numerator, yd, &a);
@@ -94,15 +94,15 @@ struct Rational {
     *this = *a;
     return *this;
   }
-  [[nodiscard]] constexpr auto safeMul(int64_t y) const
-    -> std::optional<Rational> {
+  [[nodiscard]] constexpr auto
+  safeMul(int64_t y) const -> std::optional<Rational> {
     auto [xd, yn] = divgcd(denominator, y);
     int64_t n;
     if (__builtin_mul_overflow(numerator, yn, &n)) return {};
     return Rational{n, xd};
   }
-  [[nodiscard]] constexpr auto safeMul(Rational y) const
-    -> std::optional<Rational> {
+  [[nodiscard]] constexpr auto
+  safeMul(Rational y) const -> std::optional<Rational> {
     if ((numerator == 0) | (y.numerator == 0)) return Rational{0, 1};
     auto [xn, yd] = divgcd(numerator, y.denominator);
     auto [xd, yn] = divgcd(denominator, y.numerator);
@@ -136,8 +136,8 @@ struct Rational {
     invariant(numerator != 0);
     return Rational{-denominator, -numerator};
   }
-  [[nodiscard]] constexpr auto safeDiv(Rational y) const
-    -> std::optional<Rational> {
+  [[nodiscard]] constexpr auto
+  safeDiv(Rational y) const -> std::optional<Rational> {
     return (*this) * y.inv();
   }
   constexpr auto operator/(Rational y) const -> Rational {
@@ -205,8 +205,8 @@ struct Rational {
   constexpr void negate() { numerator = -numerator; }
   constexpr explicit operator bool() const { return numerator != 0; }
 
-  friend inline auto operator<<(std::ostream &os, const Rational &x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                const Rational &x) -> std::ostream & {
     os << x.numerator;
     if (x.denominator != 1) os << " // " << x.denominator;
     return os;

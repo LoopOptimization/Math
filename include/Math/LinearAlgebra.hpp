@@ -131,8 +131,8 @@ public:
     invariant(ptrdiff_t(F.numRow()), ptrdiff_t(ipiv.size()));
   }
 
-  [[nodiscard]] constexpr auto inv() const
-    -> std::optional<SquareMatrix<Rational, L>> {
+  [[nodiscard]] constexpr auto
+  inv() const -> std::optional<SquareMatrix<Rational, L>> {
     SquareMatrix<Rational, L> A{
       SquareMatrix<Rational, L>::identity(ptrdiff_t(F.numCol()))};
     if (!ldivrat(A)) return A;
@@ -157,8 +157,8 @@ public:
   }
 };
 template <ptrdiff_t L>
-[[nodiscard]] constexpr auto fact(const SquareMatrix<int64_t, L> &B)
-  -> std::optional<Fact<Rational, L>> {
+[[nodiscard]] constexpr auto
+fact(const SquareMatrix<int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
   Row M = B.numRow();
   SquareMatrix<Rational, L> A{B};
   // auto ipiv = Vector<unsigned>{.s = unsigned(M)};

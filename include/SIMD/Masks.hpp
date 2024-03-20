@@ -206,8 +206,8 @@ namespace cmp {
 #ifdef __AVX512VL__
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto eq(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Bit<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) { // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -235,8 +235,8 @@ template <ptrdiff_t W, typename T>
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto ne(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Bit<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) { // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -264,8 +264,8 @@ template <ptrdiff_t W, typename T>
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto lt(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Bit<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) { // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -293,8 +293,8 @@ template <ptrdiff_t W, typename T>
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto gt(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Bit<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) { // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -322,8 +322,8 @@ template <ptrdiff_t W, typename T>
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto le(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Bit<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) { // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -351,8 +351,8 @@ template <ptrdiff_t W, typename T>
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto ge(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Bit<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) { // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -479,35 +479,35 @@ template <ptrdiff_t W, typename T>
 #else  // ifdef __AVX512VL__
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto eq(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Vector<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
   return {x == y};
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto ne(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Vector<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
   return {x != y};
 }
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto lt(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Vector<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
   return {x < y};
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto gt(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Vector<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
   return {x > y};
 }
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto le(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Vector<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
   return {x <= y};
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto ge(Vec<W, T> x, Vec<W, T> y)
-  -> mask::Vector<W> {
+[[gnu::always_inline, gnu::artificial]] inline auto
+ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
   return {x >= y};
 }
 #endif // ifdef __AVX512VL__; else

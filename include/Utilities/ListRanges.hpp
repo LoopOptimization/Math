@@ -71,8 +71,8 @@ public:
     if (next_) next_ = op_(next_);
     return tmp;
   }
-  constexpr auto operator-(ListIterator const &other) const noexcept
-    -> ptrdiff_t {
+  constexpr auto
+  operator-(ListIterator const &other) const noexcept -> ptrdiff_t {
     ptrdiff_t count = 0;
     for (auto iter = other; iter != *this; ++iter) ++count;
     return count;
@@ -91,10 +91,10 @@ public:
   constexpr ListIterator() noexcept = default;
   constexpr ListIterator(const ListIterator &) noexcept = default;
   constexpr ListIterator(ListIterator &&) noexcept = default;
-  constexpr auto operator=(const ListIterator &) noexcept
-    -> ListIterator & = default;
-  constexpr auto operator=(ListIterator &&) noexcept
-    -> ListIterator & = default;
+  constexpr auto
+  operator=(const ListIterator &) noexcept -> ListIterator & = default;
+  constexpr auto
+  operator=(ListIterator &&) noexcept -> ListIterator & = default;
 };
 template <typename T, class Op, class Proj>
 ListIterator(T *, Op, Proj) -> ListIterator<T, Op, Proj>;
@@ -174,8 +174,8 @@ class NestedIterator {
 public:
   using value_type = decltype(*inner);
 
-  constexpr auto operator==(NestedIterator const &other) const noexcept
-    -> bool {
+  constexpr auto
+  operator==(NestedIterator const &other) const noexcept -> bool {
     return outer == other.outer && inner == other.inner;
   }
   constexpr auto operator==(End) const noexcept -> bool {
@@ -193,8 +193,8 @@ public:
   }
   constexpr auto operator*() const noexcept -> value_type { return *inner; }
   constexpr auto operator->() const noexcept -> I { return inner; }
-  constexpr auto operator-(NestedIterator const &other) const noexcept
-    -> ptrdiff_t {
+  constexpr auto
+  operator-(NestedIterator const &other) const noexcept -> ptrdiff_t {
     ptrdiff_t count = 0;
     for (auto iter = other; iter != *this; ++iter) ++count;
     return count;
@@ -232,8 +232,8 @@ public:
       innerend = std::move(other.innerend);
     }
   }
-  constexpr auto operator=(const NestedIterator &other) noexcept
-    -> NestedIterator & {
+  constexpr auto
+  operator=(const NestedIterator &other) noexcept -> NestedIterator & {
     if (this == &other) return *this;
     outer = other.outer;
     outerend = other.outerend;
@@ -244,8 +244,8 @@ public:
       innerend = other.innerend;
     }
   }
-  constexpr auto operator=(NestedIterator &&other) noexcept
-    -> NestedIterator & {
+  constexpr auto
+  operator=(NestedIterator &&other) noexcept -> NestedIterator & {
     if (this == &other) return *this;
     outer = std::move(other.outer);
     outerend = std::move(other.outerend);
@@ -292,8 +292,8 @@ public:
     : outer{std::move(out)}, inner{std::move(inn)} {}
   constexpr NestedList(const NestedList &) noexcept = default;
   constexpr NestedList(NestedList &&) noexcept = default;
-  constexpr auto operator=(const NestedList &) noexcept
-    -> NestedList & = default;
+  constexpr auto
+  operator=(const NestedList &) noexcept -> NestedList & = default;
   constexpr auto operator=(NestedList &&) noexcept -> NestedList & = default;
 };
 template <std::ranges::forward_range O, class F>

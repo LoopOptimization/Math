@@ -31,11 +31,10 @@ constexpr auto bound(alloc::Arena<> *alloc, BoxTransform &box, double upper,
 }
 // set floor and ceil
 // Assumes that integer floor of values is optimal
-constexpr auto
-minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r,
-               poly::math::BoxTransform &box, const auto &f,
-               double globalupper = std::numeric_limits<double>::infinity())
-  -> double {
+constexpr auto minimizeIntSol(
+  alloc::Arena<> *alloc, MutPtrVector<int32_t> r, poly::math::BoxTransform &box,
+  const auto &f,
+  double globalupper = std::numeric_limits<double>::infinity()) -> double {
   // goal is to shrink all bounds such that lb==ub, i.e. we have all
   // integer solutions.
   if (minimize(alloc, box, f) >= globalupper) return globalupper;
@@ -48,11 +47,10 @@ minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r,
   else r << box.transformed();
   return opt;
 }
-constexpr auto
-minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r, int32_t lb,
-               int32_t ub, const auto &f,
-               double globalupper = std::numeric_limits<double>::infinity())
-  -> double {
+constexpr auto minimizeIntSol(
+  alloc::Arena<> *alloc, MutPtrVector<int32_t> r, int32_t lb, int32_t ub,
+  const auto &f,
+  double globalupper = std::numeric_limits<double>::infinity()) -> double {
   // goal is to shrink all bounds such that lb==ub, i.e. we have all
   // integer solutions.
   unsigned N = r.size();

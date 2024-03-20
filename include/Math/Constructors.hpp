@@ -23,13 +23,13 @@ constexpr auto vector(A a, ptrdiff_t M) {
   else return vector(rebound_alloc<A, T>{}, M);
 }
 template <class T>
-constexpr auto vector(WArena<T> alloc, ptrdiff_t M)
-  -> ResizeableView<T, ptrdiff_t> {
+constexpr auto vector(WArena<T> alloc,
+                      ptrdiff_t M) -> ResizeableView<T, ptrdiff_t> {
   return {alloc.allocate(M), M, M};
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto vector(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M)
-  -> ResizeableView<T, ptrdiff_t> {
+constexpr auto vector(Arena<SlabSize, BumpUp> *alloc,
+                      ptrdiff_t M) -> ResizeableView<T, ptrdiff_t> {
   return {alloc->template allocate<T>(M), M, M};
 }
 
@@ -47,15 +47,15 @@ constexpr auto vector(A a, ptrdiff_t M, std::type_identity_t<T> x) {
 }
 
 template <class T>
-constexpr auto vector(WArena<T> alloc, ptrdiff_t M, T x)
-  -> ResizeableView<T, ptrdiff_t> {
+constexpr auto vector(WArena<T> alloc, ptrdiff_t M,
+                      T x) -> ResizeableView<T, ptrdiff_t> {
   ResizeableView<T, ptrdiff_t> a{alloc.allocate(M), M, M};
   a.fill(x);
   return a;
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto vector(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M, T x)
-  -> ResizeableView<T, ptrdiff_t> {
+constexpr auto vector(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
+                      T x) -> ResizeableView<T, ptrdiff_t> {
   ResizeableView<T, ptrdiff_t> a{alloc->template allocate<T>(M), M, M};
   a.fill(x);
   return a;
@@ -79,8 +79,8 @@ constexpr auto matrix(WArena<T> alloc, ptrdiff_t M) -> MutSquarePtrMatrix<T> {
   return {alloc.allocate(M * M), SquareDims<>{{M}}};
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M)
-  -> MutSquarePtrMatrix<T> {
+constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc,
+                      ptrdiff_t M) -> MutSquarePtrMatrix<T> {
   return {alloc->template allocate<T>(M * M), SquareDims<>{{M}}};
 }
 template <alloc::FreeAllocator A>
@@ -95,15 +95,15 @@ constexpr auto matrix(A a, ptrdiff_t M, std::type_identity_t<T> x) {
   else return matrix(rebound_alloc<A, T>{}, M, x);
 }
 template <class T>
-constexpr auto matrix(WArena<T> alloc, ptrdiff_t M, T x)
-  -> MutSquarePtrMatrix<T> {
+constexpr auto matrix(WArena<T> alloc, ptrdiff_t M,
+                      T x) -> MutSquarePtrMatrix<T> {
   MutSquarePtrMatrix<T> A{alloc.allocate(M * M), SquareDims<>{{M}}};
   A.fill(x);
   return A;
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M, T x)
-  -> MutSquarePtrMatrix<T> {
+constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
+                      T x) -> MutSquarePtrMatrix<T> {
   MutSquarePtrMatrix<T> A{alloc->template allocate<T>(M * M),
                           SquareDims<>{{M}}};
   A.fill(x);
@@ -123,14 +123,14 @@ constexpr auto matrix(A a, Row<R> M, Col<C> N) {
   else return matrix(rebound_alloc<A, T>{}, M, N);
 }
 template <class T, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(WArena<T> alloc, Row<R> M, Col<C> N)
-  -> MutArray<T, DenseDims<R, C>> {
+constexpr auto matrix(WArena<T> alloc, Row<R> M,
+                      Col<C> N) -> MutArray<T, DenseDims<R, C>> {
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
   return {alloc.allocate(memamt), DenseDims{M, N}};
 }
 template <class T, size_t SlabSize, bool BumpUp, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N)
-  -> MutDensePtrMatrix<T> {
+constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M,
+                      Col<C> N) -> MutDensePtrMatrix<T> {
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
   return {alloc->template allocate<T>(memamt), M, N};
 }
@@ -147,16 +147,16 @@ constexpr auto matrix(A a, Row<R> M, Col<C> N, std::type_identity_t<T> x) {
   else return matrix(rebound_alloc<A, T>{}, M, N, x);
 }
 template <class T, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(WArena<T> alloc, Row<R> M, Col<C> N, T x)
-  -> MutArray<T, DenseDims<R, C>> {
+constexpr auto matrix(WArena<T> alloc, Row<R> M, Col<C> N,
+                      T x) -> MutArray<T, DenseDims<R, C>> {
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
   MutDensePtrMatrix<T> A{alloc.allocate(memamt), DenseDims{M, N}};
   A.fill(x);
   return A;
 }
 template <class T, size_t SlabSize, bool BumpUp, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N, T x)
-  -> MutArray<T, DenseDims<R, C>> {
+constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N,
+                      T x) -> MutArray<T, DenseDims<R, C>> {
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
   MutDensePtrMatrix<T> A{alloc->template allocate<T>(memamt), DenseDims{M, N}};
   A.fill(x);
@@ -185,8 +185,8 @@ constexpr auto identity(WArena<T> alloc, ptrdiff_t M) -> MutSquarePtrMatrix<T> {
   return A;
 }
 template <class T, size_t SlabSize, bool BumpUp>
-constexpr auto identity(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M)
-  -> MutSquarePtrMatrix<T> {
+constexpr auto identity(Arena<SlabSize, BumpUp> *alloc,
+                        ptrdiff_t M) -> MutSquarePtrMatrix<T> {
   MutSquarePtrMatrix<T> A{matrix(alloc, M, T{})};
   A.diag() << T{1};
   return A;

@@ -31,8 +31,8 @@ class Simplex {
   using index_type = int;
   using value_type = int64_t;
 
-  static constexpr auto tableauOffset(ptrdiff_t conCap, ptrdiff_t varCap)
-    -> size_t {
+  static constexpr auto tableauOffset(ptrdiff_t conCap,
+                                      ptrdiff_t varCap) -> size_t {
     ptrdiff_t numIndex = conCap + varCap;
     if constexpr (sizeof(value_type) > sizeof(index_type))
       numIndex += (sizeof(value_type) / sizeof(index_type)) - 1;
@@ -44,18 +44,18 @@ class Simplex {
   [[nodiscard]] constexpr auto tableauOffset() const -> size_t {
     return tableauOffset(reservedBasicConstraints(), reservedBasicVariables());
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto tableauPointer() const
-    -> value_type * {
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto
+  tableauPointer() const -> value_type * {
     void *p = const_cast<char *>(memory) + tableauOffset();
     return (value_type *)p;
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicConsPointer() const
-    -> index_type * {
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto
+  basicConsPointer() const -> index_type * {
     void *p = const_cast<char *>(memory);
     return (index_type *)p;
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicVarsPointer() const
-    -> index_type * {
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto
+  basicVarsPointer() const -> index_type * {
     return basicConsPointer() + reservedBasicConstraints();
   }
   ptrdiff_t numConstraints{0};
@@ -82,9 +82,8 @@ class Simplex {
 public:
   // tableau is constraint * var matrix w/ extra col for LHS
   // and extra row for objective function
-  [[nodiscard]] static constexpr auto reservedTableau(ptrdiff_t conCap,
-                                                      ptrdiff_t varCap)
-    -> ptrdiff_t {
+  [[nodiscard]] static constexpr auto
+  reservedTableau(ptrdiff_t conCap, ptrdiff_t varCap) -> ptrdiff_t {
     return (ptrdiff_t(conCap) + 1) * (ptrdiff_t(varCap) + 1);
   }
   [[nodiscard]] constexpr auto reservedTableau() const -> ptrdiff_t {
@@ -135,16 +134,16 @@ public:
                                                   {varCapacity + 1},
                                                 }};
   }
-  [[nodiscard]] constexpr auto getBasicConstraints() const
-    -> PtrVector<index_type> {
+  [[nodiscard]] constexpr auto
+  getBasicConstraints() const -> PtrVector<index_type> {
     return {basicConsPointer(), numVars};
   }
-  [[nodiscard]] constexpr auto getBasicConstraints()
-    -> MutPtrVector<index_type> {
+  [[nodiscard]] constexpr auto
+  getBasicConstraints() -> MutPtrVector<index_type> {
     return {basicConsPointer(), numVars};
   }
-  [[nodiscard]] constexpr auto getBasicVariables() const
-    -> PtrVector<index_type> {
+  [[nodiscard]] constexpr auto
+  getBasicVariables() const -> PtrVector<index_type> {
     return {basicVarsPointer(), numConstraints};
   }
   [[nodiscard]] constexpr auto getBasicVariables() -> MutPtrVector<index_type> {
@@ -157,16 +156,16 @@ public:
   [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
     return {tableauPointer(), numVars + 1};
   }
-  [[nodiscard]] constexpr auto getBasicConstraint(ptrdiff_t i) const
-    -> index_type {
+  [[nodiscard]] constexpr auto
+  getBasicConstraint(ptrdiff_t i) const -> index_type {
     return getBasicConstraints()[i];
   }
-  [[nodiscard]] constexpr auto getBasicVariable(ptrdiff_t i) const
-    -> index_type {
+  [[nodiscard]] constexpr auto
+  getBasicVariable(ptrdiff_t i) const -> index_type {
     return getBasicVariables()[i];
   }
-  [[nodiscard]] constexpr auto getObjectiveCoefficient(ptrdiff_t i) const
-    -> value_type {
+  [[nodiscard]] constexpr auto
+  getObjectiveCoefficient(ptrdiff_t i) const -> value_type {
     return getCost()[++i];
   }
   [[nodiscard]] constexpr auto getObjectiveValue() -> value_type & {
@@ -326,8 +325,8 @@ public:
       PtrMatrix<int64_t> constraints = simplex->getConstraints();
       return Rational::create(constraints[j, 0], constraints[j, i + 1]);
     }
-    [[nodiscard]] constexpr auto operator[](ScalarRelativeIndex auto i) const
-      -> Rational {
+    [[nodiscard]] constexpr auto
+    operator[](ScalarRelativeIndex auto i) const -> Rational {
       return (*this)[calcOffset(size(), i)];
     }
     template <typename B, typename E>
@@ -471,8 +470,8 @@ public:
     return int(std::distance(f, neg));
   }
   [[nodiscard]] static constexpr auto
-  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t enteringVariable)
-    -> Optional<unsigned int> {
+  getLeavingVariable(PtrMatrix<int64_t> C,
+                     ptrdiff_t enteringVariable) -> Optional<unsigned int> {
     // inits guarantee first valid is selected
     int64_t n = -1, d = 0;
     unsigned int j = 0;
@@ -500,8 +499,8 @@ public:
     // an empty `Optional<unsigned int>`
     return --j;
   }
-  constexpr auto makeBasic(MutPtrMatrix<int64_t> C, int64_t f, int enteringVar)
-    -> int64_t {
+  constexpr auto makeBasic(MutPtrMatrix<int64_t> C, int64_t f,
+                           int enteringVar) -> int64_t {
     Optional<unsigned int> leaveOpt = getLeavingVariable(C, enteringVar);
     if (!leaveOpt) return 0; // unbounded
     auto leavingVar = ptrdiff_t(*leaveOpt);
@@ -672,9 +671,9 @@ public:
   // A(:,1:end)*x <= A(:,0)
   // B(:,1:end)*x == B(:,0)
   // returns a Simplex if feasible, and an empty `Optional` otherwise
-  static constexpr auto positiveVariables(Arena<> *alloc, PtrMatrix<int64_t> A,
-                                          PtrMatrix<int64_t> B)
-    -> Optional<Simplex *> {
+  static constexpr auto
+  positiveVariables(Arena<> *alloc, PtrMatrix<int64_t> A,
+                    PtrMatrix<int64_t> B) -> Optional<Simplex *> {
     invariant(A.numCol() == B.numCol());
     ptrdiff_t numVar = ptrdiff_t(A.numCol()) - 1,
               numSlack = ptrdiff_t(A.numRow()),
@@ -833,10 +832,10 @@ public:
   /// (i.e., indsFree + indOne == index of var pinned to 1)
   /// numRow is number of rows used, extras are dropped
   // [[nodiscard]] constexpr auto
-  [[nodiscard]] inline auto unSatisfiableZeroRem(Arena<> alloc, ptrdiff_t iFree,
-                                                 std::array<ptrdiff_t, 2> inds,
-                                                 ptrdiff_t numRow) const
-    -> bool {
+  [[nodiscard]] inline auto
+  unSatisfiableZeroRem(Arena<> alloc, ptrdiff_t iFree,
+                       std::array<ptrdiff_t, 2> inds,
+                       ptrdiff_t numRow) const -> bool {
     invariant(numRow <= getNumCons());
     Simplex *subSimp{Simplex::create(&alloc, numRow, iFree++)};
     auto fC{getConstraints()};
@@ -886,8 +885,8 @@ public:
     return mem;
   }
 
-  static auto operator new(size_t count, ptrdiff_t conCap, ptrdiff_t varCap)
-    -> void * {
+  static auto operator new(size_t count, ptrdiff_t conCap,
+                           ptrdiff_t varCap) -> void * {
     size_t memNeeded = tableauOffset(conCap, varCap) +
                        sizeof(value_type) * reservedTableau(conCap, varCap);
     // void *p = ::operator new(count + memNeeded);
@@ -898,8 +897,8 @@ public:
     ::operator delete(ptr, std::align_val_t(alignof(Simplex)));
   }
 
-  static auto create(ptrdiff_t numCon, ptrdiff_t numVar)
-    -> std::unique_ptr<Simplex> {
+  static auto create(ptrdiff_t numCon,
+                     ptrdiff_t numVar) -> std::unique_ptr<Simplex> {
     return create(numCon, numVar, numCon, numVar + numCon);
   }
   static auto create(ptrdiff_t numCon, ptrdiff_t numVar, ptrdiff_t conCap,

@@ -67,12 +67,12 @@ public:
   constexpr auto operator==(BitSetIterator j) const -> bool {
     return (it == j.it) && (istate == j.istate);
   }
-  friend constexpr auto operator==(EndSentinel, const BitSetIterator &bt)
-    -> bool {
+  friend constexpr auto operator==(EndSentinel,
+                                   const BitSetIterator &bt) -> bool {
     return bt.it == bt.end && (bt.istate == 0);
   }
-  friend constexpr auto operator!=(EndSentinel, const BitSetIterator &bt)
-    -> bool {
+  friend constexpr auto operator!=(EndSentinel,
+                                   const BitSetIterator &bt) -> bool {
     return bt.it != bt.end || (bt.istate != 0);
   }
 };
@@ -284,8 +284,8 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     return data == bs.data;
   }
 
-  friend inline auto operator<<(std::ostream &os, BitSet const &x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                BitSet const &x) -> std::ostream & {
     os << "BitSet[";
     auto it = x.begin();
     constexpr EndSentinel e = BitSet::end();
@@ -365,14 +365,12 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i.size(); }
 };
-[[nodiscard]] constexpr auto operator-(EndSentinel,
-                                       BitSliceView<int64_t>::Iterator v)
-  -> ptrdiff_t {
+[[nodiscard]] constexpr auto
+operator-(EndSentinel, BitSliceView<int64_t>::Iterator v) -> ptrdiff_t {
   return EndSentinel{} - v.it;
 }
-[[nodiscard]] constexpr auto operator-(EndSentinel,
-                                       BitSliceView<int64_t>::ConstIterator v)
-  -> ptrdiff_t {
+[[nodiscard]] constexpr auto
+operator-(EndSentinel, BitSliceView<int64_t>::ConstIterator v) -> ptrdiff_t {
   return EndSentinel{} - v.it;
 }
 template <typename T, typename B>

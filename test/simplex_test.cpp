@@ -113,8 +113,8 @@ TEST(LexMinSmallTest, BasicAssertions) {
   EXPECT_EQ(sol[last - 4], 15);
 }
 
-auto simplexFromTableau(Arena<> *alloc, IntMatrix<> &tableau)
-  -> Valid<Simplex> {
+auto simplexFromTableau(Arena<> *alloc,
+                        IntMatrix<> &tableau) -> Valid<Simplex> {
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
   Simplex *simp{Simplex::create(alloc, numCon, numVar)};

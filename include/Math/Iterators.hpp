@@ -37,8 +37,8 @@ template <std::integral B, std::integral E> struct Range<B, E> {
     return std::reverse_iterator{begin()};
   }
   [[nodiscard]] constexpr auto size() const { return e - b; }
-  friend inline auto operator<<(std::ostream &os, Range<B, E> r)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                Range<B, E> r) -> std::ostream & {
     return os << "[" << r.b << ":" << r.e << ")";
   }
   template <std::integral BB, std::integral EE>
@@ -152,8 +152,8 @@ template <typename T> struct StridedIterator {
   constexpr auto operator[](ptrdiff_t x) const -> T & {
     return ptr[x * stride];
   }
-  friend constexpr auto operator+(ptrdiff_t x, const StridedIterator &it)
-    -> StridedIterator {
+  friend constexpr auto
+  operator+(ptrdiff_t x, const StridedIterator &it) -> StridedIterator {
     return it + x;
   }
 };

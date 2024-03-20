@@ -178,8 +178,8 @@ constexpr auto operator<=>(ptrdiff_t x, RowStride<> y) -> std::strong_ordering {
 constexpr auto operator<=>(RowStride<> x, ptrdiff_t y) -> std::strong_ordering {
   return ptrdiff_t(x) <=> y;
 }
-constexpr auto operator<=>(RowStride<> x, RowStride<> y)
-  -> std::strong_ordering {
+constexpr auto operator<=>(RowStride<> x,
+                           RowStride<> y) -> std::strong_ordering {
   return ptrdiff_t(x) <=> ptrdiff_t(y);
 }
 inline auto operator<<(std::ostream &os, RowStride<> x) -> std::ostream & {
@@ -256,8 +256,8 @@ constexpr auto col(std::integral_constant<I, x>) -> Col<ptrdiff_t(x)> {
   return {};
 }
 template <std::integral I, I x>
-constexpr auto rowStride(std::integral_constant<I, x>)
-  -> RowStride<ptrdiff_t(x)> {
+constexpr auto
+rowStride(std::integral_constant<I, x>) -> RowStride<ptrdiff_t(x)> {
   static_assert(x >= 0);
   return {};
 }

@@ -142,9 +142,8 @@ struct MutArray;
 // 3.b.ii. Vector indexing, discontig, mask
 // all of the above for `T*` and `const T*`
 template <typename T, typename P, typename S, typename I>
-[[gnu::flatten, gnu::always_inline]] constexpr auto index(P *ptr, S shape,
-                                                          I i) noexcept
-  -> decltype(auto) {
+[[gnu::flatten, gnu::always_inline]] constexpr auto
+index(P *ptr, S shape, I i) noexcept -> decltype(auto) {
   auto offset = calcOffset(shape, i);
   auto newDim = calcNewDim(shape, i);
   invariant(ptr != nullptr);
@@ -163,9 +162,8 @@ template <typename T, typename P, typename S, typename I>
 }
 // for (row/col)vectors, we drop the row/col, essentially broadcasting
 template <typename T, typename P, typename S, typename R, typename C>
-[[gnu::flatten, gnu::always_inline]] constexpr auto index(P *ptr, S shape, R wr,
-                                                          C wc) noexcept
-  -> decltype(auto) {
+[[gnu::flatten, gnu::always_inline]] constexpr auto
+index(P *ptr, S shape, R wr, C wc) noexcept -> decltype(auto) {
   if constexpr (MatrixDimension<S>) {
     auto r = unwrapRow(wr);
     auto c = unwrapCol(wc);
@@ -228,19 +226,19 @@ template <typename T, bool Column = false> struct SliceIterator {
     --(*this);
     return ret;
   }
-  friend constexpr auto operator-(SliceIterator a, SliceIterator b)
-    -> ptrdiff_t {
+  friend constexpr auto operator-(SliceIterator a,
+                                  SliceIterator b) -> ptrdiff_t {
     return a.idx - b.idx;
   }
-  friend constexpr auto operator+(SliceIterator a, ptrdiff_t i)
-    -> SliceIterator<T, Column> {
+  friend constexpr auto operator+(SliceIterator a,
+                                  ptrdiff_t i) -> SliceIterator<T, Column> {
     return {a.data, a.len, a.rowStride, a.idx + i};
   }
   friend constexpr auto operator==(SliceIterator a, SliceIterator b) -> bool {
     return a.idx == b.idx;
   }
-  friend constexpr auto operator<=>(SliceIterator a, SliceIterator b)
-    -> std::strong_ordering {
+  friend constexpr auto operator<=>(SliceIterator a,
+                                    SliceIterator b) -> std::strong_ordering {
     return a.idx <=> b.idx;
   }
   friend constexpr auto operator==(SliceIterator a, Row<> r) -> bool
@@ -248,8 +246,8 @@ template <typename T, bool Column = false> struct SliceIterator {
   {
     return a.idx == r;
   }
-  friend constexpr auto operator<=>(SliceIterator a, Row<> r)
-    -> std::strong_ordering
+  friend constexpr auto operator<=>(SliceIterator a,
+                                    Row<> r) -> std::strong_ordering
   requires(!Column)
   {
     return a.idx <=> r;
@@ -259,8 +257,8 @@ template <typename T, bool Column = false> struct SliceIterator {
   {
     return a.idx == r;
   }
-  friend constexpr auto operator<=>(SliceIterator a, Col<> r)
-    -> std::strong_ordering
+  friend constexpr auto operator<=>(SliceIterator a,
+                                    Col<> r) -> std::strong_ordering
   requires(Column)
   {
     return a.idx <=> r;
@@ -325,8 +323,8 @@ struct POLY_MATH_GSL_POINTER Array {
   }
   [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> { return ptr; }
 
-  [[nodiscard]] constexpr auto begin() const noexcept
-    -> StridedIterator<const T>
+  [[nodiscard]] constexpr auto
+  begin() const noexcept -> StridedIterator<const T>
   requires(std::is_same_v<S, StridedRange>)
   {
     const storage_type *p = ptr;
@@ -436,8 +434,8 @@ struct POLY_MATH_GSL_POINTER Array {
     return Array<T, S>{ptr, this->sz};
   }
 
-  [[nodiscard]] constexpr auto deleteCol(ptrdiff_t c) const
-    -> ManagedArray<T, S> {
+  [[nodiscard]] constexpr auto
+  deleteCol(ptrdiff_t c) const -> ManagedArray<T, S> {
     static_assert(MatrixDimension<S>);
     auto newDim = dim().similar(numRow() - 1);
     ManagedArray<T, decltype(newDim)> A(newDim);
@@ -447,8 +445,8 @@ struct POLY_MATH_GSL_POINTER Array {
     }
     return A;
   }
-  [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept
-    -> bool {
+  [[nodiscard]] constexpr auto
+  operator==(const Array &other) const noexcept -> bool {
     if constexpr (MatrixDimension<S> && !DenseLayout<S>) {
       ptrdiff_t M = ptrdiff_t(other.numRow());
       if ((numRow() != M) || (numCol() != other.numCol())) return false;
@@ -668,10 +666,10 @@ struct POLY_MATH_GSL_POINTER MutArray
     return StridedIterator{const_cast<storage_type *>(this->ptr),
                            this->sz.stride};
   }
-  [[nodiscard]] constexpr auto begin() noexcept
-    -> storage_type *requires(!std::is_same_v<S, StridedRange>) {
-      return const_cast<storage_type *>(this->ptr);
-    }
+  [[nodiscard]] constexpr auto
+  begin() noexcept -> storage_type *requires(!std::is_same_v<S, StridedRange>) {
+    return const_cast<storage_type *>(this->ptr);
+  }
 
   [[nodiscard]] constexpr auto end() noexcept {
     return begin() + ptrdiff_t(this->sz);
@@ -700,9 +698,8 @@ struct POLY_MATH_GSL_POINTER MutArray
   }
   // TODO: switch to operator[] when we enable c++23
   template <class R, class C>
-  [[gnu::flatten, gnu::always_inline]] constexpr auto operator[](R r,
-                                                                 C c) noexcept
-    -> decltype(auto) {
+  [[gnu::flatten, gnu::always_inline]] constexpr auto
+  operator[](R r, C c) noexcept -> decltype(auto) {
     return index<T>(data(), this->sz, r, c);
   }
   constexpr void fill(T value) {
@@ -939,8 +936,8 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   /// Allocates extra space if needed
   /// Has a different name to make sure we avoid ambiguities.
   template <class... Args>
-  constexpr auto emplace_backa(alloc::Arena<> *alloc, Args &&...args)
-    -> decltype(auto) {
+  constexpr auto emplace_backa(alloc::Arena<> *alloc,
+                               Args &&...args) -> decltype(auto) {
     static_assert(std::is_integral_v<S>, "emplace_back requires integral size");
     if (isFull()) reserve(alloc, (capacity + 1) * 2);
     return *std::construct_at(this->data() + this->sz++,
@@ -1435,8 +1432,8 @@ protected:
 template <class T, class S>
 concept AbstractSimilar =
   (MatrixDimension<S> && AbstractMatrix<T>) ||
-  ((std::integral<S> || std::is_same_v<S, StridedRange> ||
-    StaticInt<S>)&&AbstractVector<T>);
+  ((std::integral<S> || std::is_same_v<S, StridedRange> || StaticInt<S>) &&
+   AbstractVector<T>);
 
 /// Stores memory, then pointer.
 /// Thus struct's alignment determines initial alignment
@@ -1632,8 +1629,8 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
 #endif
 
   template <class D>
-  constexpr auto operator=(const ManagedArray<T, D, N, A> &b) noexcept
-    -> ManagedArray & {
+  constexpr auto
+  operator=(const ManagedArray<T, D, N, A> &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     this->sz = b.dim();
     U len = U(this->sz);
@@ -1642,8 +1639,8 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     return *this;
   }
   template <class D>
-  constexpr auto operator=(ManagedArray<T, D, N, A> &&b) noexcept
-    -> ManagedArray & {
+  constexpr auto
+  operator=(ManagedArray<T, D, N, A> &&b) noexcept -> ManagedArray & {
     if (this->data() == b.data()) return *this;
     // here, we commandeer `b`'s memory
     this->sz = b.dim();
@@ -1864,8 +1861,8 @@ static_assert(std::same_as<utils::eltype_t<Matrix<int64_t>>, int64_t>);
 static_assert(std::convertible_to<Array<int64_t, SquareDims<>>,
                                   Array<int64_t, StridedDims<>>>);
 
-inline auto printVectorImpl(std::ostream &os, const AbstractVector auto &a)
-  -> std::ostream & {
+inline auto printVectorImpl(std::ostream &os,
+                            const AbstractVector auto &a) -> std::ostream & {
   os << "[ ";
   if (ptrdiff_t M = a.size()) {
     print_obj(os, a[0]);
@@ -1879,14 +1876,14 @@ inline auto printVector(std::ostream &os, PtrVector<T> a) -> std::ostream & {
   return printVectorImpl(os, a);
 }
 template <typename T>
-inline auto printVector(std::ostream &os, StridedVector<T> a)
-  -> std::ostream & {
+inline auto printVector(std::ostream &os,
+                        StridedVector<T> a) -> std::ostream & {
   return printVectorImpl(os, a);
 }
 
 template <typename T>
-inline auto operator<<(std::ostream &os, PtrVector<T> const &A)
-  -> std::ostream & {
+inline auto operator<<(std::ostream &os,
+                       PtrVector<T> const &A) -> std::ostream & {
   return printVector(os, A);
 }
 template <AbstractVector T>
@@ -1967,8 +1964,8 @@ inline auto printMatrix(std::ostream &os, PtrMatrix<T> A) -> std::ostream & {
 // to avoid allocations. We can use a Vector with a lot of initial capacity,
 // and then resize based on a conservative estimate of the number of chars per
 // elements.
-inline auto printMatrix(std::ostream &os, PtrMatrix<double> A)
-  -> std::ostream & {
+inline auto printMatrix(std::ostream &os,
+                        PtrMatrix<double> A) -> std::ostream & {
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
   auto [M, N] = shape(A);
   if ((!M) || (!N)) return os << "[ ]";
@@ -2027,18 +2024,18 @@ inline auto printMatrix(std::ostream &os, PtrMatrix<double> A)
 }
 
 template <typename T, ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
-inline auto operator<<(std::ostream &os, Array<T, StridedDims<R, C, X>> A)
-  -> std::ostream & {
+inline auto operator<<(std::ostream &os,
+                       Array<T, StridedDims<R, C, X>> A) -> std::ostream & {
   return printMatrix(os, A);
 }
 template <typename T, ptrdiff_t R>
-inline auto operator<<(std::ostream &os, Array<T, SquareDims<R>> A)
-  -> std::ostream & {
+inline auto operator<<(std::ostream &os,
+                       Array<T, SquareDims<R>> A) -> std::ostream & {
   return printMatrix(os, PtrMatrix<T>{A});
 }
 template <typename T, ptrdiff_t R, ptrdiff_t C>
-inline auto operator<<(std::ostream &os, Array<T, DenseDims<R, C>> A)
-  -> std::ostream & {
+inline auto operator<<(std::ostream &os,
+                       Array<T, DenseDims<R, C>> A) -> std::ostream & {
   return printMatrix(os, PtrMatrix<T>{A});
 }
 

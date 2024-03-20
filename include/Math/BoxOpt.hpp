@@ -20,8 +20,8 @@ public:
   constexpr BoxTransformView(char *d, unsigned ntotal, unsigned nraw)
     : data{d}, Ntotal{ntotal}, Nraw{nraw} {}
   [[nodiscard]] constexpr auto size() const -> unsigned { return Ntotal; }
-  constexpr auto operator()(const AbstractVector auto &x, ptrdiff_t i) const
-    -> utils::eltype_t<decltype(x)> {
+  constexpr auto operator()(const AbstractVector auto &x,
+                            ptrdiff_t i) const -> utils::eltype_t<decltype(x)> {
     invariant(i < Ntotal);
     int j = getInds()[i];
     double off = offs()[i];
@@ -142,8 +142,8 @@ protected:
   [[nodiscard]] constexpr auto scales() -> MutPtrVector<double> {
     return {f64() + Ntotal, Ntotal};
   }
-  static constexpr auto scaleOff(int32_t lb, int32_t ub)
-    -> std::pair<double, double> {
+  static constexpr auto scaleOff(int32_t lb,
+                                 int32_t ub) -> std::pair<double, double> {
 #ifdef __cpp_if_consteval
     // constexpr std::fma requires c++23
     constexpr double slb = sigmoid(-EXTREME);
@@ -308,12 +308,12 @@ public:
     return ret;
   }
 
-  [[nodiscard]] constexpr auto transformed() const
-    -> BoxTransformVector<PtrVector<double>> {
+  [[nodiscard]] constexpr auto
+  transformed() const -> BoxTransformVector<PtrVector<double>> {
     return {getRaw(), view()};
   }
-  [[nodiscard]] constexpr auto transformed()
-    -> BoxTransformVector<MutPtrVector<double>> {
+  [[nodiscard]] constexpr auto
+  transformed() -> BoxTransformVector<MutPtrVector<double>> {
     return {getRaw(), view()};
   }
 };

@@ -25,8 +25,8 @@ public:
   }
   constexpr TinyVector(T t) : len{1} { data.data()[0] = std::move(t); }
 
-  constexpr auto operator=(const std::initializer_list<T> &list)
-    -> TinyVector & {
+  constexpr auto
+  operator=(const std::initializer_list<T> &list) -> TinyVector & {
     invariant(list.size() <= ptrdiff_t(N));
     len = ptrdiff_t(list.size());
     std::copy(list.begin(), list.end(), data.data());
@@ -94,8 +94,8 @@ public:
     for (L i = len; i < new_size; ++i) data.data()[i] = T{};
     len = new_size;
   }
-  friend inline auto operator<<(std::ostream &os, const TinyVector &x)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                const TinyVector &x) -> std::ostream & {
     os << "[";
     if constexpr (std::same_as<T, int8_t> || std::same_as<T, uint8_t>) {
       if (!x.empty()) os << int(x[0]);

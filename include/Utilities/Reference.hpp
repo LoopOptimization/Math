@@ -200,8 +200,8 @@ template <typename T>
   return p[i];
 }
 template <typename T>
-[[gnu::always_inline]] constexpr auto ref(const T *p, ptrdiff_t i)
-  -> const T & {
+[[gnu::always_inline]] constexpr auto ref(const T *p,
+                                          ptrdiff_t i) -> const T & {
   return p[i];
 }
 template <Compressible T>

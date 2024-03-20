@@ -43,8 +43,8 @@ consteval auto log2Ceil(uint64_t x) -> uint64_t {
   return 64 - std::countl_zero(x - 1);
 }
 // NOLINTNEXTLINE(misc-no-recursion)
-consteval auto bisectFindSquare(uint64_t l, uint64_t h, uint64_t N)
-  -> uint64_t {
+consteval auto bisectFindSquare(uint64_t l, uint64_t h,
+                                uint64_t N) -> uint64_t {
   if (l == h) return l;
   uint64_t m = (l + h) / 2;
   if (m * m >= N) return bisectFindSquare(l, m, N);

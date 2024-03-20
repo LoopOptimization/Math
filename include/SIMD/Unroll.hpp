@@ -40,26 +40,26 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
     for (ptrdiff_t i = 0; i < R * C; ++i) a.data[i] = -data[i];
     return a;
   }
-  [[gnu::always_inline]] constexpr auto operator+=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator+=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data[i] += a.data[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator-=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data[i] -= a.data[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator*=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data[i] *= a.data[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator/=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data[i] /= a.data[i];
     return *this;
@@ -126,23 +126,23 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     else return {__builtin_convertvector(vec, Vec<W, U>)};
   }
   [[gnu::always_inline]] constexpr auto operator-() { return Unroll{-vec}; }
-  [[gnu::always_inline]] constexpr auto operator+=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator+=(const Unroll &a) -> Unroll & {
     vec += a.vec;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator-=(const Unroll &a) -> Unroll & {
     vec -= a.vec;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator*=(const Unroll &a) -> Unroll & {
     vec *= a.vec;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(const Unroll &a)
-    -> Unroll & {
+  [[gnu::always_inline]] constexpr auto
+  operator/=(const Unroll &a) -> Unroll & {
     vec /= a.vec;
     return *this;
   }
@@ -334,8 +334,8 @@ operator/(const Unroll<R0, C0, W0, T0> &a, const Unroll<R1, C1, W1, T1> &b) {
 
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator+(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
-  -> Unroll<R, C, W, T> {
+operator+(const Unroll<R, C, W, T> &a,
+          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a.vec + b};
   else {
     Unroll<R, C, W, T> c;
@@ -346,8 +346,8 @@ operator+(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator-(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
-  -> Unroll<R, C, W, T> {
+operator-(const Unroll<R, C, W, T> &a,
+          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a.vec - b};
   else {
     Unroll<R, C, W, T> c;
@@ -358,8 +358,8 @@ operator-(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator*(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
-  -> Unroll<R, C, W, T> {
+operator*(const Unroll<R, C, W, T> &a,
+          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a.vec * b};
   else {
     Unroll<R, C, W, T> c;
@@ -370,8 +370,8 @@ operator*(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator/(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
-  -> Unroll<R, C, W, T> {
+operator/(const Unroll<R, C, W, T> &a,
+          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a.vec / b};
   else {
     Unroll<R, C, W, T> c;
@@ -381,33 +381,33 @@ operator/(const Unroll<R, C, W, T> &a, typename Unroll<R, C, W, T>::VT b)
   }
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator+(const Unroll<R, C, W, T> &a,
-                                                std::convertible_to<T> auto b)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator+(const Unroll<R, C, W, T> &a,
+          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return a + vbroadcast<W, T>(b);
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator-(const Unroll<R, C, W, T> &a,
-                                                std::convertible_to<T> auto b)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator-(const Unroll<R, C, W, T> &a,
+          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return a - vbroadcast<W, T>(b);
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator*(const Unroll<R, C, W, T> &a,
-                                                std::convertible_to<T> auto b)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator*(const Unroll<R, C, W, T> &a,
+          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return a * vbroadcast<W, T>(b);
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator/(const Unroll<R, C, W, T> &a,
-                                                std::convertible_to<T> auto b)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator/(const Unroll<R, C, W, T> &a,
+          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return a / vbroadcast<W, T>(b);
@@ -415,8 +415,8 @@ requires(W != 1)
 
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator+(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
-  -> Unroll<R, C, W, T> {
+operator+(typename Unroll<R, C, W, T>::VT a,
+          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a + b.vec};
   else {
     Unroll<R, C, W, T> c;
@@ -427,8 +427,8 @@ operator+(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator-(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
-  -> Unroll<R, C, W, T> {
+operator-(typename Unroll<R, C, W, T>::VT a,
+          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a - b.vec};
   else {
     Unroll<R, C, W, T> c;
@@ -439,8 +439,8 @@ operator-(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator*(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
-  -> Unroll<R, C, W, T> {
+operator*(typename Unroll<R, C, W, T>::VT a,
+          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a * b.vec};
   else {
     Unroll<R, C, W, T> c;
@@ -451,8 +451,8 @@ operator*(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto
-operator/(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
-  -> Unroll<R, C, W, T> {
+operator/(typename Unroll<R, C, W, T>::VT a,
+          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
   if constexpr (R * C == 1) return {a / b.vec};
   else {
     Unroll<R, C, W, T> c;
@@ -462,33 +462,29 @@ operator/(typename Unroll<R, C, W, T>::VT a, const Unroll<R, C, W, T> &b)
   }
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator+(T b,
-                                                const Unroll<R, C, W, T> &a)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator+(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return vbroadcast<W, T>(b) + a;
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator-(T b,
-                                                const Unroll<R, C, W, T> &a)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator-(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return vbroadcast<W, T>(b) - a;
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator*(T b,
-                                                const Unroll<R, C, W, T> &a)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator*(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return vbroadcast<W, T>(b) * a;
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto operator/(T b,
-                                                const Unroll<R, C, W, T> &a)
-  -> Unroll<R, C, W, T>
+[[gnu::always_inline]] constexpr auto
+operator/(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
 requires(W != 1)
 {
   return vbroadcast<W, T>(b) / a;
@@ -497,8 +493,8 @@ requires(W != 1)
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
           size_t NM, typename MT = mask::None<N>>
 [[gnu::always_inline]] constexpr auto
-loadunroll(const T *ptr, math::RowStride<X> rowStride, std::array<MT, NM> masks)
-  -> Unroll<R, C, N, T> {
+loadunroll(const T *ptr, math::RowStride<X> rowStride,
+           std::array<MT, NM> masks) -> Unroll<R, C, N, T> {
   if constexpr (R * C == 1) return {load(ptr, masks[0])};
   else {
     constexpr auto W = ptrdiff_t(std::bit_ceil(size_t(N)));
@@ -600,30 +596,29 @@ struct UnrollRef {
   }
   constexpr auto operator=(Unroll<R, C, 1, T> x)
     -> UnrollRef &requires(!Transposed && (N != 1)) {
-      auto rs = ptrdiff_t(rowStride);
-      T *p = ptr;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r, p += rs) {
-        if constexpr (NM == 0) {
-          POLYMATHFULLUNROLL
-          for (ptrdiff_t c = 0; c < C; ++c)
-            store<T>(p + c * W, mask::None<W>{}, vbroadcast<W>(x[r, c]));
-        } else if constexpr (NM == C) {
-          POLYMATHFULLUNROLL
-          for (ptrdiff_t c = 0; c < C; ++c)
-            store<T>(p + c * W, masks[c], vbroadcast<W>(x[r, c]));
-        } else { // NM == 1
-          POLYMATHFULLUNROLL
-          for (ptrdiff_t c = 0; c < C - 1; ++c)
-            store<T>(p + c * W, mask::None<W>{}, x[r, c]);
-          store<T>(p + (C - 1) * W, masks[0], vbroadcast<W>(x[r, C - 1]));
-        }
+    auto rs = ptrdiff_t(rowStride);
+    T *p = ptr;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t r = 0; r < R; ++r, p += rs) {
+      if constexpr (NM == 0) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C; ++c)
+          store<T>(p + c * W, mask::None<W>{}, vbroadcast<W>(x[r, c]));
+      } else if constexpr (NM == C) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C; ++c)
+          store<T>(p + c * W, masks[c], vbroadcast<W>(x[r, c]));
+      } else { // NM == 1
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C - 1; ++c)
+          store<T>(p + c * W, mask::None<W>{}, x[r, c]);
+        store<T>(p + (C - 1) * W, masks[0], vbroadcast<W>(x[r, C - 1]));
       }
-      return *this;
     }
+    return *this;
+  }
 
-  constexpr auto
-  operator=(Vec<W, T> v) -> UnrollRef &
+  constexpr auto operator=(Vec<W, T> v) -> UnrollRef &
   requires(!Transposed)
   {
     auto rs = ptrdiff_t(rowStride);
@@ -712,8 +707,8 @@ struct UnrollRef {
 template <typename T, ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M,
           bool Transposed, ptrdiff_t X>
 [[gnu::always_inline]] constexpr auto
-ref(const T *p, index::UnrollDims<R, C, W, M, Transposed, X> i)
-  -> Unroll<R, C, W, T> {
+ref(const T *p,
+    index::UnrollDims<R, C, W, M, Transposed, X> i) -> Unroll<R, C, W, T> {
   if constexpr (Transposed)
     return loadstrideunroll<R, C, W>(p, i.rs, std::array<M, 1>{i.mask});
   else return loadunroll<R, C, W>(p, i.rs, std::array<M, 1>{i.mask});

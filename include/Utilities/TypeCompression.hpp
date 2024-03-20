@@ -20,8 +20,8 @@ namespace poly::utils {
 /// `T` is the canonical type, which may define `compress`
 template <typename T>
 concept Compressible =
-  (!std::same_as<T, typename T::compressed_type>)&&requires(
-    T t, typename T::compressed_type *p) {
+  (!std::same_as<T, typename T::compressed_type>) &&
+  requires(T t, typename T::compressed_type *p) {
     { t.compress(p) };
     { T::decompress(p) } -> std::same_as<T>;
     { t = *p }; // need generic code to work reasonably well with pointers `p`

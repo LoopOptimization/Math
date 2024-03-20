@@ -14,8 +14,8 @@ template <class T> struct UniformScaling {
   }
   template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
   [[gnu::always_inline]] constexpr auto
-  operator[](simd::index::Unroll<R> r, simd::index::Unroll<C, W, M> c) const
-    -> simd::Unroll<R, C, W, T> {
+  operator[](simd::index::Unroll<R> r,
+             simd::index::Unroll<C, W, M> c) const -> simd::Unroll<R, C, W, T> {
     using I = simd::IntegerOfSize<T>;
     using VI = simd::Vec<W, I>;
     simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value);
@@ -38,8 +38,8 @@ template <class T> struct UniformScaling {
   }
   template <ptrdiff_t C, ptrdiff_t W, typename M>
   [[gnu::always_inline]] constexpr auto
-  operator[](ptrdiff_t r, simd::index::Unroll<C, W, M> c) const
-    -> simd::Unroll<1, C, W, T> {
+  operator[](ptrdiff_t r,
+             simd::index::Unroll<C, W, M> c) const -> simd::Unroll<1, C, W, T> {
     return (*this)[simd::index::Unroll<1>{r}, c];
   }
   // template <ptrdiff_t C, ptrdiff_t W, typename M>
@@ -75,8 +75,8 @@ template <class T> struct UniformScaling {
   constexpr auto operator==(const AbstractMatrix auto &A) const -> bool {
     return isEqual(A);
   }
-  friend inline auto operator<<(std::ostream &os, UniformScaling S)
-    -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                UniformScaling S) -> std::ostream & {
     return os << "UniformScaling(" << S.value << ")";
   }
   [[nodiscard]] constexpr auto t() const -> UniformScaling { return *this; }

@@ -299,8 +299,8 @@ constexpr auto subnormal_exp(double, std::integral_constant<int, 2>) -> double {
 constexpr auto subnormal_exp(float, std::integral_constant<int, 2>) -> float {
   return -126.00001F;
 }
-constexpr auto subnormal_exp(double, std::integral_constant<int, 10>)
-  -> double {
+constexpr auto subnormal_exp(double,
+                             std::integral_constant<int, 10>) -> double {
   return -307.6526555685887;
 }
 constexpr auto subnormal_exp(float, std::integral_constant<int, 10>) -> float {
@@ -367,20 +367,20 @@ constexpr auto fma(double x, double y, double z) -> double {
 #endif
 }
 
-constexpr auto expm1b_kernel(std::integral_constant<int, 2>, double x)
-  -> double {
+constexpr auto expm1b_kernel(std::integral_constant<int, 2>,
+                             double x) -> double {
   return x * fma(fma(fma(0.009618130135925114, x, 0.055504115022757844), x,
                      0.2402265069590989),
                  x, 0.6931471805599393);
 }
-constexpr auto expm1b_kernel(std::integral_constant<int, 3>, double x)
-  -> double {
+constexpr auto expm1b_kernel(std::integral_constant<int, 3>,
+                             double x) -> double {
   return x * fma(fma(fma(0.04166666762124105, x, 0.1666666704849642), x,
                      0.49999999999999983),
                  x, 0.9999999999999998);
 }
-constexpr auto expm1b_kernel(std::integral_constant<int, 10>, double x)
-  -> double {
+constexpr auto expm1b_kernel(std::integral_constant<int, 10>,
+                             double x) -> double {
   return x * fma(fma(fma(fma(0.5393833837413015, x, 1.1712561359457612), x,
                          2.0346785922926713),
                      x, 2.6509490552382577),
