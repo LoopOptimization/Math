@@ -1,7 +1,6 @@
 #pragma once
-#ifndef MATH_SIMD_MASKS_HPP_INCLUDED
-#define MATH_SIMD_MASKS_HPP_INCLUDED
 #include "SIMD/Vec.hpp"
+#include "Utilities/Invariant.hpp"
 #include <cstddef>
 #include <cstdint>
 #ifdef __x86_64__
@@ -519,4 +518,3 @@ template <ptrdiff_t W,
 }
 
 } // namespace poly::simd
-#endif // Masks_hpp_INCLUDED
