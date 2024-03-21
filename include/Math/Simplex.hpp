@@ -232,15 +232,19 @@ public:
     numVars = i;
   }
   [[nodiscard]] constexpr auto getNumCons() const -> ptrdiff_t {
+    invariant(numConstraints >= 0);
     return numConstraints;
   }
   [[nodiscard]] constexpr auto getNumVars() const -> ptrdiff_t {
+    invariant(numVars >= 0);
     return numVars;
   }
   [[nodiscard]] constexpr auto getConCap() const -> ptrdiff_t {
+    invariant(constraintCapacity >= 0);
     return constraintCapacity;
   }
   [[nodiscard]] constexpr auto getVarCap() const -> ptrdiff_t {
+    invariant(varCapacity >= 0);
     return varCapacity;
   }
   constexpr void deleteConstraint(ptrdiff_t c) {
