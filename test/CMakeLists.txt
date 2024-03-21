@@ -52,17 +52,13 @@ cpmaddpackage(
   "gtest_hide_internal_symbols ON")
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
-if(TEST_INSTALLED_VERSION)
-  find_package(Math REQUIRED)
-else()
-  cpmaddpackage(NAME Math SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
-endif()
+add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----
 
 file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(${PROJECT_NAME} ${sources})
-target_link_libraries(${PROJECT_NAME} Math::Math GTest::gtest_main)
+target_link_libraries(${PROJECT_NAME} Math GTest::gtest_main)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)

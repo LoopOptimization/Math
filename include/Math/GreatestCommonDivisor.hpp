@@ -67,6 +67,10 @@ constexpr auto gcd(simd::Vec<W, int64_t> x,
   }
   return b << k;
 }
+template <> constexpr auto gcd<1>(int64_t x, int64_t y) -> int64_t {
+  return gcd(x, y);
+}
+
 template <ptrdiff_t W>
 constexpr auto gcdreduce(simd::Vec<W, int64_t> v) -> int64_t {
   if constexpr (W != 2) {
@@ -78,6 +82,7 @@ constexpr auto gcdreduce(simd::Vec<W, int64_t> v) -> int64_t {
     return gcdreduce<W / 2>(gcd<W / 2>(a, b));
   } else return gcd(v[0], v[1]);
 }
+template <> constexpr auto gcdreduce<1>(int64_t v) -> int64_t { return v; }
 
 constexpr auto lcm(int64_t x, int64_t y) -> int64_t {
   int64_t ax = constexpr_abs(x);

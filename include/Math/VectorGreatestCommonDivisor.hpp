@@ -1,4 +1,5 @@
 #pragma once
+#include "Containers/Pair.hpp"
 #include "Math/Array.hpp"
 #include "Math/GreatestCommonDivisor.hpp"
 #include <cstddef>
@@ -30,7 +31,8 @@ constexpr auto lcm(AbstractVector auto x) -> int64_t {
   for (int64_t xi : x[_(1, end)]) l = lcm(l, xi);
   return l;
 }
-constexpr auto lcmNonUnity(AbstractVector auto x) -> std::pair<int64_t, bool> {
+constexpr auto
+lcmNonUnity(AbstractVector auto x) -> containers::Pair<int64_t, bool> {
   int64_t l = x[0];
   bool nonUnity = (l != 1);
   for (int64_t xi : x[_(1, end)]) {

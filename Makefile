@@ -1,4 +1,4 @@
-all: clangnosan clangsan gccnosan gccsan gccavx2 clangavx512
+all: clangnosan clangsan gccnosan gccsan gccavx2 clangavx512 clangnosimd
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
 
@@ -29,6 +29,9 @@ buildgcc/avx2/:
 buildclang/sse/:
 	CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/sse/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
+buildclang/nosimdarrayop/:
+	CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosimdarrayop/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHSIMDARRAYOPS=OFF
+
 
 gccnosan: buildgcc/nosan/
 	cmake --build buildgcc/nosan/
@@ -53,6 +56,10 @@ gccavx2: buildgcc/avx2/
 clangavx512: buildclang/sse/
 	cmake --build buildclang/sse/
 	cmake --build buildclang/sse/ --target test
+
+clangnosimd: buildclang/nosimdarrayop/
+	cmake --build buildclang/nosimdarrayop/
+	cmake --build buildclang/nosimdarrayop/ --target test
 
 clean:
 	rm -rf buildclang #buildgcc

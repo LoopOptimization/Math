@@ -5,7 +5,6 @@
 #include "Math/Indexing.hpp"
 #include "Math/Matrix.hpp"
 #include "Math/UniformScaling.hpp"
-#include "SIMD/Unroll.hpp"
 #include "Utilities/Assign.hpp"
 #include "Utilities/LoopMacros.hpp"
 #include <algorithm>
@@ -153,6 +152,7 @@ template <class T, class S, class P> class ArrayOps {
   [[nodiscard]] constexpr auto rs() const {
     return unwrapRow(static_cast<const P *>(this)->rowStride());
   }
+#ifdef POLYMATHUSESIMDARRAYOPS
   template <typename I, typename R, typename Op>
   [[gnu::always_inline]] static void vcopyToSIMD(P &self, const auto &B, I L,
                                                  R row, Op op) {
@@ -180,7 +180,7 @@ template <class T, class S, class P> class ArrayOps {
       }
     }
   }
-
+#endif
 protected:
   template <typename Op> void vcopyTo(const auto &B, Op op) {
     // static_assert(sizeof(utils::eltype_t<decltype(B)>) <= 8);
@@ -197,10 +197,17 @@ protected:
       auto d{reinterpret<E>(Self())};
       if constexpr (assign) d << reinterpret<E>(B);
       else d << op(d, reinterpret<E>(B));
+#ifdef POLYMATHUSESIMDARRAYOPS
     } else if constexpr (simd::SIMDSupported<T>) {
 #else
-    if constexpr (simd::SIMDSupported<T>) {
+    } else if constexpr (AbstractVector<P>) {
 #endif
+#elifdef POLYMATHUSESIMDARRAYOPS
+    if constexpr (simd::SIMDSupported<T>) {
+#else
+    if constexpr (AbstractVector<P>) {
+#endif
+#ifdef POLYMATHUSESIMDARRAYOPS
       if constexpr (IsOne<decltype(M)>)
         vcopyToSIMD(self, B, N, utils::NoRowIndex{}, op);
       else if constexpr (IsOne<decltype(N)>)
@@ -226,6 +233,7 @@ protected:
         }
       }
     } else if constexpr (AbstractVector<P>) {
+#endif
       ptrdiff_t L = IsOne<decltype(N)> ? M : N;
       constexpr bool isstatic =
         IsOne<decltype(N)> ? StaticInt<decltype(M)> : StaticInt<decltype(N)>;
@@ -307,6 +315,7 @@ public:
 namespace poly::containers {
 
 namespace tupletensorops {
+#ifdef POLYMATHUSESIMDARRAYOPS
 // FIXME:
 // Need to do all loads before all stores!!!
 // This is because we want to support fusing loops where we may be overwriting
@@ -356,6 +365,7 @@ vcopyToSIMD(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src, I L, R row) {
     }
   }
 }
+#endif
 
 // template <typename A, typename B>
 // [[gnu::always_inline]] constexpr auto promote_shape(const Tuple<A> &a,
@@ -383,6 +393,7 @@ vcopyTo(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src) {
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
   // static_assert(sizeof(T) <= 8);
   auto [M, N] = promote_shape(dst, src);
+#ifdef POLYMATHUSESIMDARRAYOPS
   if constexpr (simd::SIMDSupported<std::remove_cvref_t<T>>) {
     if constexpr (math::IsOne<decltype(M)>)
       vcopyToSIMD(dst, src, N, utils::NoRowIndex{});
@@ -409,6 +420,9 @@ vcopyTo(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src) {
       }
     }
   } else if constexpr (math::AbstractVector<A>) {
+#else
+  if constexpr (math::AbstractVector<A>) {
+#endif
     ptrdiff_t L = math::IsOne<decltype(N)> ? M : N;
     if constexpr (!std::is_copy_assignable_v<T>) {
       POLYMATHIVDEP

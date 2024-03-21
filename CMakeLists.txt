@@ -5,6 +5,7 @@ option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
+option(POLYMATHSIMDARRAYOPS "Use SIMD for Array operations" ON)
 # ---- Project ----
 
 # Note: update this to your new project's name and version
@@ -53,6 +54,12 @@ target_include_directories(
   ${PROJECT_NAME}
   INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+
+# --- Maybe Use SIMD Array Ops ---
+
+if(POLYMATHSIMDARRAYOPS)
+  target_compile_definitions(${PROJECT_NAME} INTERFACE POLYMATHUSESIMDARRAYOPS)
+endif()
 
 # --- Allocator override ----
 

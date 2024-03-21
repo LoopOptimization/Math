@@ -951,9 +951,11 @@ any(const AbstractTensor auto &A, const auto &f) -> bool {
     for (ptrdiff_t r = 0; r < M; ++r)
       for (ptrdiff_t i = 0; i < N; ++i)
         if (f(A[r, i])) return true;
-  } else
-    for (ptrdiff_t i = 0; i < N; ++i)
+  } else {
+    ptrdiff_t L = RowVector<decltype(A)> ? N : M;
+    for (ptrdiff_t i = 0; i < L; ++i)
       if (f(A[i])) return true;
+  }
   return false;
 }
 constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {

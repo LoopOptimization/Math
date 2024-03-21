@@ -21,8 +21,14 @@ namespace poly::simd {
 
 // Supported means by this library currently; more types may be added in the
 // future as needed.
+
+#ifdef POLYMATHUSESIMDARRAYOPS
 template <typename T>
 concept SIMDSupported = std::same_as<T, int64_t> || std::same_as<T, double>;
+#else
+template <typename T>
+concept SIMDSupported = false;
+#endif
 
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline]] constexpr auto vbroadcast(Vec<W, T> v) -> Vec<W, T> {

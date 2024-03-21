@@ -374,7 +374,9 @@ hermite(IntMatrix<> A) -> std::pair<IntMatrix<>, SquareMatrix<int64_t>> {
   return std::make_pair(std::move(A), std::move(U));
 }
 
-/// use A(j,k) to zero A(i,k)
+/// use A[j,k] to zero A[i,k]
+
+#ifdef POLYMATHUSESIMDARRAYOPS
 constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
                              int64_t f) -> int64_t {
   int64_t Aik = A[i, k];
@@ -388,6 +390,7 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   constexpr ptrdiff_t W = simd::Width<int64_t>;
   simd::Vec<W, int64_t> vAjk = simd::vbroadcast<W, int64_t>(Ajk),
                         vAik = simd::vbroadcast<W, int64_t>(Aik), vg = {ret};
+  static constexpr simd::Vec<W, int64_t> one = simd::Vec<W, int64_t>{} + 1;
   PtrMatrix<int64_t> B = A;
   ptrdiff_t L = ptrdiff_t(A.numCol()), l = 0;
   if (ret != 1) {
@@ -398,8 +401,8 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
       A[i, u] = Ail;
       vg = gcd<W>(Ail, vg);
       l += W;
-      if (!bool(simd::cmp::ne<W, int64_t>(vg, simd::Vec<W, int64_t>{} + 1)))
-        break;
+      // if none are `> 1`, we break
+      if (!bool(simd::cmp::gt<W, int64_t>(vg, one))) break;
     }
   }
   if (l < L) {
@@ -408,10 +411,11 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
       if (!u) break;
       A[i, u] = vAjk * B[i, u].vec - vAik * B[j, u].vec;
     }
-  } else if (simd::cmp::le<W, int64_t>(vg, simd::Vec<W, int64_t>{} + 1)) {
+  } else if (simd::cmp::gt<W, int64_t>(vg, one)) {
+    // This was `le` before?
     g = gcdreduce<W>(vg);
     if (g > 1) {
-      for (ptrdiff_t ll = 0; ll < A.numCol(); ++ll)
+      for (ptrdiff_t ll = 0; ll < L; ++ll)
         if (int64_t Ail = A[i, ll]) A[i, ll] = Ail / g;
       int64_t r = ret / g;
       invariant(r * g, ret);
@@ -420,6 +424,35 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   }
   return ret;
 }
+#else
+constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
+                             int64_t f) -> int64_t {
+  int64_t Aik = A[i, k];
+  if (!Aik) return f;
+  int64_t Ajk = A[j, k];
+  invariant(Ajk != 0);
+  int64_t g = gcd(Aik, Ajk);
+  Aik /= g;
+  Ajk /= g;
+  int64_t ret = f * Ajk, vg = ret;
+  PtrMatrix<int64_t> B = A;
+  ptrdiff_t L = ptrdiff_t(A.numCol()), l = 0;
+  for (; (vg != 1) && (l < L); ++l) {
+    int64_t Ail = A[i, l] = Ajk * B[i, l] - Aik * B[j, l];
+    vg = gcd(Ail, vg);
+  }
+  if (l < L) {
+    for (; l < L; ++l) A[i, l] = Ajk * B[i, l] - Aik * B[j, l];
+  } else if (vg != 1) {
+    for (ptrdiff_t ll = 0; ll < L; ++ll)
+      if (int64_t Ail = A[i, ll]) A[i, ll] = Ail / vg;
+    int64_t r = ret / vg;
+    invariant(r * vg, ret);
+    ret = r;
+  }
+  return ret;
+}
+#endif
 constexpr void zeroWithRowOperation(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
                                     Col<> k, Range<ptrdiff_t, ptrdiff_t> skip) {
   if (int64_t Aik = A[i, k]) {
@@ -641,6 +674,7 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
   -> std::pair<SquareMatrix<int64_t>, int64_t> {
   auto B = SquareMatrix<int64_t>::identity(A.numCol());
   solveSystem(A, B);
+  static_assert(AbstractVector<decltype(A.diag())>);
   auto [s, nonUnity] = lcmNonUnity(A.diag());
   if (nonUnity)
     for (ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
