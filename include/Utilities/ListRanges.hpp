@@ -153,7 +153,7 @@ class NestedIterator {
     [[no_unique_address]] L innerobj; // keep the inner object alive!
   };
   union {
-    [[no_unique_address]] NoInnerState nosate{};
+    [[no_unique_address]] NoInnerState nostate{};
     [[no_unique_address]] I inner;
   };
   union {
@@ -170,6 +170,20 @@ class NestedIterator {
       if (++outer == outerend) break;
     }
   }
+  constexpr void initInnerConstructor() {
+    ::new (&innerobj) L{innerfun(*outer)};
+    ::new (&inner) I{innerobj.begin()};
+    ::new (&innerend) J{innerobj.end()};
+    if ((inner == innerend) && (++outer != outerend)) initInner();
+  }
+  constexpr void destroyInner() {
+    if constexpr (!std::is_trivially_destructible_v<J>) innerend.~J();
+    if constexpr (!std::is_trivially_destructible_v<I>) inner.~I();
+    if constexpr (!std::is_trivially_destructible_v<L>) innerobj.~L();
+    noend = {};
+    nostate = {};
+    noobj = {};
+  }
 
 public:
   using value_type = decltype(*inner);
@@ -184,6 +198,7 @@ public:
   constexpr auto operator++() noexcept -> NestedIterator & {
     if (++inner != innerend) return *this;
     if (++outer != outerend) initInner();
+    else destroyInner(); // outer == outerend means undef
     return *this;
   }
   constexpr auto operator++(int) noexcept -> NestedIterator {
@@ -209,52 +224,57 @@ public:
 
   constexpr NestedIterator(auto &out, auto &innerfun_) noexcept
     : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_} {
-    if (outer != outerend) initInner();
+    if (outer != outerend) initInnerConstructor();
   }
   constexpr NestedIterator(const auto &out, const auto &innerfun_) noexcept
     : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_} {
-    if (outer != outerend) initInner();
+    if (outer != outerend) initInnerConstructor();
   }
   constexpr NestedIterator(const NestedIterator &other) noexcept
     : outer{other.outer}, outerend{other.outerend}, innerfun{other.innerfun} {
     if (outer != outerend) {
-      innerobj = other.innerobj;
-      inner = other.inner;
-      innerend = other.innerend;
+      ::new (&innerobj) L{other.innerobj};
+      ::new (&inner) I{other.inner};
+      ::new (&innerend) J{other.innerend};
     }
   }
   constexpr NestedIterator(NestedIterator &&other) noexcept
     : outer{std::move(other.outer)}, outerend{std::move(other.outerend)},
       innerfun{std::move(other.innerfun)} {
     if (outer != outerend) {
-      innerobj = std::move(other.innerobj);
-      inner = std::move(other.inner);
-      innerend = std::move(other.innerend);
+      ::new (&innerobj) L{std::move(other.innerobj)};
+      ::new (&inner) I{std::move(other.inner)};
+      ::new (&innerend) J{std::move(other.innerend)};
     }
   }
   constexpr auto
   operator=(const NestedIterator &other) noexcept -> NestedIterator & {
     if (this == &other) return *this;
+    if (outer != outerend) destroyInner();
     outer = other.outer;
     outerend = other.outerend;
     innerfun = other.innerfun;
     if (outer != outerend) {
-      innerobj = other.innerobj;
-      inner = other.inner;
-      innerend = other.innerend;
+      ::new (&innerobj) L{other.innerobj};
+      ::new (&inner) I{other.inner};
+      ::new (&innerend) J{other.innerend};
     }
   }
   constexpr auto
   operator=(NestedIterator &&other) noexcept -> NestedIterator & {
     if (this == &other) return *this;
+    if (outer != outerend) destroyInner();
     outer = std::move(other.outer);
     outerend = std::move(other.outerend);
     innerfun = std::move(other.innerfun);
     if (outer != outerend) {
-      innerobj = std::move(other.innerobj);
-      inner = std::move(other.inner);
-      innerend = std::move(other.innerend);
+      ::new (&innerobj) L{std::move(other.innerobj)};
+      ::new (&inner) I{std::move(other.inner)};
+      ::new (&innerend) J{std::move(other.innerend)};
     }
+  }
+  ~NestedIterator() {
+    if (outer != outerend) destroyInner();
   }
 };
 
