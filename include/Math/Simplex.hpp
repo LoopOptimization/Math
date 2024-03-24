@@ -13,6 +13,7 @@
 #include <iostream>
 #include <limits>
 #include <new>
+#include <ostream>
 
 namespace poly::math {
 // #define VERBOSESIMPLEX
@@ -350,6 +351,21 @@ public:
       for (auto r : *this) l = lcm(l, r.denominator);
       return l;
     }
+    friend inline auto operator<<(std::ostream &os,
+                                  Solution sol) -> std::ostream & {
+      os << "Simplex::Solution[";
+      bool printComma = false;
+      for (auto b : sol) {
+        if (printComma) os << ", ";
+        printComma = true;
+        os << b;
+      }
+      os << "]";
+      return os;
+    }
+#ifndef NDEBUG
+    [[gnu::used]] void dump() const { std::cout << *this; }
+#endif
   };
   [[nodiscard]] constexpr auto getSolution() const -> Solution {
     return {this, 0, numVars};
@@ -936,6 +952,16 @@ public:
     getBasicConstraints() << other.getBasicConstraints();
     return *this;
   }
+  friend inline auto operator<<(std::ostream &os,
+                                const Simplex &s) -> std::ostream & {
+    os << "Basic Variables: " << s.getBasicVariables();
+    os << "Basic Constraints: " << s.getBasicConstraints();
+    os << "Constraints:\n" << s.getConstraints();
+    return os;
+  }
+#ifndef NDEBUG
+  [[gnu::used]] void dump() const { std::cout << *this; }
+#endif
 };
 
 static_assert(AbstractVector<Simplex::Solution>);
