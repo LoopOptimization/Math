@@ -8,8 +8,7 @@ using poly::numbers::Int8, poly::numbers::UInt8, poly::numbers::Flag8;
 TEST(Int8Test, BasicAssertions) {
   for (uint8_t x = 0; x < std::numeric_limits<uint8_t>::max(); ++x) {
     for (uint8_t y = 0; y < std::numeric_limits<uint8_t>::max(); ++y) {
-      UInt8 ux = static_cast<UInt8>(x);
-      UInt8 uy = static_cast<UInt8>(y);
+      auto ux = static_cast<UInt8>(x), uy = static_cast<UInt8>(y);
       EXPECT_EQ(ux <=> uy, x <=> y);
       EXPECT_TRUE(ux + uy == static_cast<UInt8>(x + y));
       EXPECT_FALSE(ux + uy != static_cast<UInt8>(x + y));
@@ -37,36 +36,72 @@ TEST(Int8Test, BasicAssertions) {
       EXPECT_EQ(ux > uy, x > y);
 
       EXPECT_EQ(ux + uy, static_cast<UInt8>(x + y));
+      EXPECT_EQ(ux + y, x + y);
+      EXPECT_EQ(x + uy, x + y);
       EXPECT_EQ(ux * uy, static_cast<UInt8>(x * y));
+      EXPECT_EQ(ux * y, x * y);
+      EXPECT_EQ(x * uy, x * y);
       EXPECT_EQ(ux - uy, static_cast<UInt8>(x - y));
-#if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdangling-else"
-#endif
-      if (y) EXPECT_EQ(ux / uy, static_cast<UInt8>(x / y));
-#if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+      EXPECT_EQ(ux - y, x - y);
+      EXPECT_EQ(x - uy, x - y);
+      if (y) {
+        EXPECT_EQ(ux / uy, static_cast<UInt8>(x / y));
+        EXPECT_EQ(ux / y, x / y);
+        EXPECT_EQ(x / uy, x / y);
+      }
+      auto fx = static_cast<Flag8>(x), fy = static_cast<Flag8>(y);
+      EXPECT_EQ(fx & fy, static_cast<Flag8>(x & y));
+      EXPECT_EQ(fx & y, static_cast<Flag8>(x & y));
+      EXPECT_EQ(x & fy, static_cast<Flag8>(x & y));
+      EXPECT_EQ(fx | fy, static_cast<Flag8>(x | y));
+      EXPECT_EQ(fx | y, static_cast<Flag8>(x | y));
+      EXPECT_EQ(x | fy, static_cast<Flag8>(x | y));
+      EXPECT_EQ(fx ^ fy, static_cast<Flag8>(x ^ y));
+      EXPECT_EQ(fx ^ y, static_cast<Flag8>(x ^ y));
+      EXPECT_EQ(x ^ fy, static_cast<Flag8>(x ^ y));
+
+      EXPECT_EQ(fx & fy, x & y);
+      EXPECT_EQ(fx & y, x & y);
+      EXPECT_EQ(x & fy, x & y);
+      EXPECT_EQ(fx | fy, x | y);
+      EXPECT_EQ(fx | y, x | y);
+      EXPECT_EQ(x | fy, x | y);
+      EXPECT_EQ(fx ^ fy, x ^ y);
+      EXPECT_EQ(fx ^ y, x ^ y);
+      EXPECT_EQ(x ^ fy, x ^ y);
+
+      EXPECT_EQ(x & y, fx & fy);
+      EXPECT_EQ(x & y, fx & y);
+      EXPECT_EQ(x & y, x & fy);
+      EXPECT_EQ(x | y, fx | fy);
+      EXPECT_EQ(x | y, fx | y);
+      EXPECT_EQ(x | y, x | fy);
+      EXPECT_EQ(x ^ y, fx ^ fy);
+      EXPECT_EQ(x ^ y, fx ^ y);
+      EXPECT_EQ(x ^ y, x ^ fy);
     }
   }
   for (int8_t x = std::numeric_limits<int8_t>::min();
        x < std::numeric_limits<int8_t>::max(); ++x) {
     for (int8_t y = std::numeric_limits<int8_t>::min();
          y < std::numeric_limits<int8_t>::max(); ++y) {
-      Int8 ux = static_cast<Int8>(x);
-      Int8 uy = static_cast<Int8>(y);
+      Int8 ix = static_cast<Int8>(x);
+      Int8 iy = static_cast<Int8>(y);
 
-      EXPECT_EQ(ux + uy, static_cast<Int8>(x + y));
-      EXPECT_EQ(ux * uy, static_cast<Int8>(x * y));
-      EXPECT_EQ(ux - uy, static_cast<Int8>(x - y));
-#if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdangling-else"
-#endif
-      if (y) EXPECT_EQ(ux / uy, static_cast<Int8>(x / y));
-#if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
+      EXPECT_EQ(ix + iy, static_cast<Int8>(x + y));
+      EXPECT_EQ(ix + y, x + y);
+      EXPECT_EQ(x + iy, x + y);
+      EXPECT_EQ(ix * iy, static_cast<Int8>(x * y));
+      EXPECT_EQ(ix * y, x * y);
+      EXPECT_EQ(x * iy, x * y);
+      EXPECT_EQ(ix - iy, static_cast<Int8>(x - y));
+      EXPECT_EQ(ix - y, x - y);
+      EXPECT_EQ(x - iy, x - y);
+      if (y) {
+        EXPECT_EQ(ix / iy, static_cast<Int8>(x / y));
+        EXPECT_EQ(ix / y, x / y);
+        EXPECT_EQ(x / iy, x / y);
+      }
     }
   }
 }

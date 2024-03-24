@@ -1,6 +1,7 @@
 #pragma once
 #include <compare>
 #include <concepts>
+#include <cstdint>
 
 namespace poly::numbers {
 enum class Flag8 : unsigned char {};
@@ -25,8 +26,10 @@ constexpr auto operator+=(UInt8 &x, UInt8 y) -> UInt8 {
 constexpr auto operator-(UInt8 x, std::integral auto y) {
   return static_cast<decltype(y)>(x) - y;
 }
+static_assert((static_cast<UInt8>(255) - uint8_t(253)) ==
+              (uint8_t(255) - uint8_t(253)));
 constexpr auto operator-(std::integral auto x, UInt8 y) {
-  return x + static_cast<decltype(x)>(y);
+  return x - static_cast<decltype(x)>(y);
 }
 constexpr auto operator-(UInt8 x, UInt8 y) -> UInt8 {
   return static_cast<UInt8>(static_cast<unsigned char>(x) -
@@ -97,6 +100,37 @@ constexpr auto operator/(Int8 x, Int8 y) -> Int8 {
                            static_cast<signed char>(y));
 }
 
+constexpr auto operator&(Flag8 x, std::integral auto y) -> Flag8 {
+  return static_cast<Flag8>(static_cast<decltype(y)>(x) & y);
+}
+constexpr auto operator&(std::integral auto x, Flag8 y) -> Flag8 {
+  return static_cast<Flag8>(x & static_cast<decltype(x)>(y));
+}
+constexpr auto operator&(Flag8 x, Flag8 y) -> Flag8 {
+  return static_cast<Flag8>(static_cast<unsigned char>(x) &
+                            static_cast<unsigned char>(y));
+}
+constexpr auto operator|(Flag8 x, std::integral auto y) -> Flag8 {
+  return static_cast<Flag8>(static_cast<decltype(y)>(x) | y);
+}
+constexpr auto operator|(std::integral auto x, Flag8 y) -> Flag8 {
+  return static_cast<Flag8>(x | static_cast<decltype(x)>(y));
+}
+constexpr auto operator|(Flag8 x, Flag8 y) -> Flag8 {
+  return static_cast<Flag8>(static_cast<unsigned char>(x) |
+                            static_cast<unsigned char>(y));
+}
+constexpr auto operator^(Flag8 x, std::integral auto y) -> Flag8 {
+  return static_cast<Flag8>(static_cast<decltype(y)>(x) ^ y);
+}
+constexpr auto operator^(std::integral auto x, Flag8 y) -> Flag8 {
+  return static_cast<Flag8>(x ^ static_cast<decltype(x)>(y));
+}
+constexpr auto operator^(Flag8 x, Flag8 y) -> Flag8 {
+  return static_cast<Flag8>(static_cast<unsigned char>(x) ^
+                            static_cast<unsigned char>(y));
+}
+
 constexpr auto operator<=>(UInt8 x,
                            std::integral auto y) -> std::strong_ordering {
   return static_cast<decltype(y)>(x) <=> y;
@@ -146,6 +180,9 @@ constexpr auto operator<=>(Flag8 x,
 }
 constexpr auto operator==(Flag8 x, std::integral auto y) -> bool {
   return static_cast<decltype(y)>(x) == y;
+}
+constexpr auto operator==(std::integral auto x, Flag8 y) -> bool {
+  return x == static_cast<decltype(x)>(y);
 }
 constexpr auto operator<=>(std::integral auto x,
                            Int8 y) -> std::strong_ordering {
