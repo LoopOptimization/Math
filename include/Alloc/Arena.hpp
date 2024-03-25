@@ -79,11 +79,13 @@ protected:
   // meta data is always in front, so we don't have to handle
   // the rare accidental case of huge slabs separately.
   static constexpr size_t MetaSize = align(2 * sizeof(void *));
+  static constexpr size_t SlabSpace = SlabSize - 2 * MetaSize;
   static_assert(std::has_single_bit(Alignment));
   static_assert(__STDCPP_DEFAULT_NEW_ALIGNMENT__ >= Alignment);
 
 public:
   using value_type = void;
+  constexpr Arena() = default;
   constexpr Arena(const Arena &) = default;
   constexpr Arena(Arena &&) noexcept = default;
   constexpr auto operator=(const Arena &) -> Arena & = default;
@@ -98,8 +100,8 @@ public:
   constexpr void bigAlloc(size_t Size) {
     void **oldMeta = getMetaEnd(sEnd);
     void *next = oldMeta[0];
-    if (next && Size <= (SlabSize - 2 * MetaSize)) return initSlab(next);
-    initNewSlab(align(Size) + SlabSize);
+    if (next && Size <= SlabSpace) return initSlab(next);
+    initNewSlab(Size > SlabSpace ? align(Size) + SlabSize : SlabSize);
     oldMeta[0] = slab;
     void *firstSlab = oldMeta[1];
     getMetaStart(slab)[1] = firstSlab;
@@ -337,8 +339,8 @@ private:
   }
 
 protected:
-  void *slab;
-  void *sEnd;
+  void *slab{nullptr};
+  void *sEnd{nullptr};
   /// meta layout:
   /// Either an array of length 2.
   /// 0: sEnd
@@ -387,9 +389,6 @@ protected:
     __asan_poison_memory_region(c, q - c);
 #endif
   }
-
-  // constexpr Arena() : slab(nullptr), sEnd(nullptr){};
-  constexpr Arena() = default;
 };
 static_assert(sizeof(Arena<>) == 16);
 static_assert(std::is_trivially_copyable_v<Arena<>>);

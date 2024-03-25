@@ -223,7 +223,7 @@ template <typename D>
 concept ColVectorDimension =
   std::same_as<D, StridedRange> || ColVectorSMatDimension<D>;
 
-constexpr auto row(RowVectorDimension auto) -> Row<1> { return {}; }
+// constexpr auto row(RowVectorDimension auto) -> Row<1> { return {}; }
 constexpr auto row(ColVectorSMatDimension auto s) { return Row(s); }
 constexpr auto col(ColVectorSMatDimension auto) -> Col<1> { return {}; }
 constexpr auto stride(ColVectorSMatDimension auto) -> RowStride<1> {

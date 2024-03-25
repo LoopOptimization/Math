@@ -130,12 +130,16 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return sz; }
   template <size_t I> auto get(ptrdiff_t i) -> std::tuple_element_t<I, T> & {
+    invariant(i >= 0);
+    invariant(i < size());
     return *reinterpret_cast<std::tuple_element_t<I, T> *>(
       data + CumSizeOf_v<I, T> * capacity(sz) +
       sizeof(std::tuple_element_t<I, T>) * i);
   }
   template <size_t I>
   auto get(ptrdiff_t i) const -> const std::tuple_element_t<I, T> & {
+    invariant(i >= 0);
+    invariant(i < size());
     return *reinterpret_cast<const std::tuple_element_t<I, T> *>(
       data + CumSizeOf_v<I, T> * capacity(sz) +
       sizeof(std::tuple_element_t<I, T>) * i);
