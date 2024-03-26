@@ -57,10 +57,11 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     : M{m}, N{n}, strideM{x} {
     invariant(N <= strideM);
   }
-  constexpr StridedDims(std::integral_constant<ptrdiff_t, 1>)
+  template <ptrdiff_t N>
+  constexpr StridedDims(std::integral_constant<ptrdiff_t, N>)
     : M{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
-      N{Col<C>(col(std::integral_constant<ptrdiff_t, 1>{}))},
-      strideM{RowStride<X>(rowStride(std::integral_constant<ptrdiff_t, 1>{}))} {
+      N{Col<C>(col(std::integral_constant<ptrdiff_t, N>{}))},
+      strideM{RowStride<X>(rowStride(std::integral_constant<ptrdiff_t, N>{}))} {
   }
   constexpr explicit operator int() const {
     return int(ptrdiff_t(M) * ptrdiff_t(strideM));
