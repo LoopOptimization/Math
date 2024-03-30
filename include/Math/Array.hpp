@@ -199,7 +199,9 @@ template <typename T, bool Column = false> struct SliceIterator {
     std::conditional_t<std::is_const_v<T>,
                        Array<std::remove_cvref_t<T>, stride_type>,
                        MutArray<std::remove_reference_t<T>, stride_type>>;
-  using storage_type = utils::compressed_t<T>;
+  using storage_type =
+    std::conditional_t<std::is_const_v<T>, const utils::compressed_t<T>,
+                       utils::compressed_t<T>>;
   storage_type *data;
   ptrdiff_t len;
   ptrdiff_t rowStride;
@@ -480,7 +482,7 @@ struct POLY_MATH_GSL_POINTER Array {
   }
   // FIXME: strided should skips over elements
   [[nodiscard]] constexpr auto sum() const noexcept -> value_type {
-    static_assert(DenseLayout<S>);
+    static_assert(VectorDimension<S> || DenseLayout<S>);
     value_type ret{0};
     for (auto x : *this) ret += x;
     return ret;
@@ -545,6 +547,18 @@ struct POLY_MATH_GSL_POINTER Array {
       (void)std::fprintf(f, "]");
       (void)std::fclose(f);
     }
+  }
+  constexpr auto eachRow() const -> SliceRange<const T, false>
+  requires(MatrixDimension<S>)
+  {
+    return {data(), ptrdiff_t(Col(this->sz)), ptrdiff_t(RowStride(this->sz)),
+            ptrdiff_t(Row(this->sz))};
+  }
+  constexpr auto eachCol() const -> SliceRange<const T, true>
+  requires(MatrixDimension<S>)
+  {
+    return {data(), ptrdiff_t(Row(this->sz)), ptrdiff_t(RowStride(this->sz)),
+            ptrdiff_t(Col(this->sz))};
   }
 #endif
 protected:
