@@ -102,7 +102,11 @@ template <std::unsigned_integral T> constexpr auto countDigits(T x) {
   } else if constexpr (sizeof(T) == 1) {
     bits = {1, 1, 1, 1, 2, 2, 2, 3, 3};
   }
-  T digits = bits[8 * sizeof(T) - std::countl_zero(x)];
+  T digits;
+  if constexpr (std::same_as<T, char>)
+    digits =
+      bits[8 * sizeof(unsigned char) - std::countl_zero((unsigned char)x)];
+  else digits = bits[8 * sizeof(T) - std::countl_zero(x)];
   return std::make_signed_t<T>(digits - (x < powers[digits - 1]));
 }
 template <std::signed_integral T> constexpr auto countDigits(T x) -> T {
