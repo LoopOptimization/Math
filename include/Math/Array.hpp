@@ -1770,13 +1770,17 @@ static_assert(AbstractVector<StridedVector<int64_t>>);
 static_assert(AbstractVector<MutStridedVector<int64_t>>);
 static_assert(std::is_trivially_copyable_v<StridedVector<int64_t>>);
 
-template <class T> using PtrMatrix = Array<T, StridedDims<>>;
-template <class T> using MutPtrMatrix = MutArray<T, StridedDims<>>;
+template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1, ptrdiff_t X = -1>
+using PtrMatrix = Array<T, StridedDims<R, C, X>>;
+template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1, ptrdiff_t X = -1>
+using MutPtrMatrix = MutArray<T, StridedDims<R, C, X>>;
 template <class T,
           ptrdiff_t L = containers::PreAllocStorage<T, StridedDims<>>()>
 using Matrix = ManagedArray<T, StridedDims<>, L>;
-template <class T> using DensePtrMatrix = Array<T, DenseDims<>>;
-template <class T> using MutDensePtrMatrix = MutArray<T, DenseDims<>>;
+template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1>
+using DensePtrMatrix = Array<T, DenseDims<R, C>>;
+template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1>
+using MutDensePtrMatrix = MutArray<T, DenseDims<R, C>>;
 template <class T, ptrdiff_t L = containers::PreAllocStorage<T, DenseDims<>>()>
 using DenseMatrix = ManagedArray<T, DenseDims<>, L>;
 template <class T> using SquarePtrMatrix = Array<T, SquareDims<>>;
