@@ -816,6 +816,33 @@ constexpr auto log2(const Dual<T, N> &x) -> Dual<T, N> {
   constexpr double logof2 = 0.6931471805599453; // log(2);
   return {log2(x.value()), x.gradient() / (logof2 * x.value())};
 }
+template <class T, ptrdiff_t N>
+constexpr auto log1p(const Dual<T, N> &x) -> Dual<T, N> {
+  // d log(1+x)/dx = dx/1+x
+  return {log1p(x.value()), x.gradient() / (1.0 + x.value())};
+}
+
+// Reference support...
+template <class T, ptrdiff_t N>
+constexpr auto exp(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
+  return exp(Dual<T, N>{x});
+}
+template <class T, ptrdiff_t N>
+constexpr auto sigmoid(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
+  return sigmoid(Dual<T, N>{x});
+}
+template <class T, ptrdiff_t N>
+constexpr auto log(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
+  return log(Dual<T, N>{x});
+}
+template <class T, ptrdiff_t N>
+constexpr auto log2(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
+  return log2(Dual<T, N>{x});
+}
+template <class T, ptrdiff_t N>
+constexpr auto log1p(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
+  return log1p(Dual<T, N>{x});
+}
 
 constexpr auto dval(double &x) -> double & { return x; }
 template <typename T, ptrdiff_t N>

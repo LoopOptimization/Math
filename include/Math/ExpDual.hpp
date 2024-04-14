@@ -19,10 +19,11 @@ template <int l = 8> constexpr auto smax(auto w, auto x, auto y, auto z) {
 }
 template <int l = 8, typename T, ptrdiff_t N>
 constexpr auto smax(SVector<T, N> x) -> T {
+  static_assert(!std::is_integral_v<T>);
   static constexpr double f = l, i = 1 / f;
   double m = -std::numeric_limits<double>::infinity();
   for (ptrdiff_t n = 0; n < N; ++n) m = std::max(m, value(x[n]));
-  T a{0.0};
+  T a{};
   for (ptrdiff_t n = 0; n < N; ++n) a += exp(f * (x[n] - m));
   return m + i * log(a);
 }
