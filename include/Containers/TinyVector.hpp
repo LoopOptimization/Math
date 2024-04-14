@@ -17,6 +17,7 @@ template <class T, size_t N, typename L = ptrdiff_t> class TinyVector {
   L len{};
 
 public:
+  using value_type = T;
   constexpr TinyVector() = default;
   constexpr TinyVector(const std::initializer_list<T> &list) {
     invariant(list.size() <= N);
@@ -25,8 +26,8 @@ public:
   }
   constexpr TinyVector(T t) : len{1} { data.data()[0] = std::move(t); }
 
-  constexpr auto
-  operator=(const std::initializer_list<T> &list) -> TinyVector & {
+  constexpr auto operator=(const std::initializer_list<T> &list)
+    -> TinyVector & {
     invariant(list.size() <= ptrdiff_t(N));
     len = ptrdiff_t(list.size());
     std::copy(list.begin(), list.end(), data.data());
@@ -64,9 +65,9 @@ public:
     invariant(len < ptrdiff_t(N));
     data.data()[len++] = std::move(t);
   }
-  template <class... Args> constexpr void emplace_back(Args &&...args) {
+  template <class... Args> constexpr auto emplace_back(Args &&...args) -> T & {
     invariant(len < ptrdiff_t(N));
-    data.data()[len++] = T(std::forward<Args>(args)...);
+    return data.data()[len++] = T(std::forward<Args>(args)...);
   }
   constexpr void pop_back() {
     invariant(len > 0);
@@ -94,8 +95,12 @@ public:
     for (L i = len; i < new_size; ++i) data.data()[i] = T{};
     len = new_size;
   }
-  friend inline auto operator<<(std::ostream &os,
-                                const TinyVector &x) -> std::ostream & {
+  constexpr void reserve(L space) {
+    invariant(space >= 0);
+    invariant(size_t(space) <= N);
+  }
+  friend inline auto operator<<(std::ostream &os, const TinyVector &x)
+    -> std::ostream & {
     os << "[";
     if constexpr (std::same_as<T, int8_t> || std::same_as<T, uint8_t>) {
       if (!x.empty()) os << int(x[0]);

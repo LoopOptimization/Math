@@ -313,6 +313,7 @@ TEST(SVectorTest, BasicAssertions) {
 }
 TEST(TinyVectorTest, BasicAssertions) {
   poly::containers::TinyVector<int, 5> v{};
+  static_assert(std::same_as<poly::utils::eltype_t<decltype(v)>, int>);
   EXPECT_TRUE(v.empty());
   EXPECT_EQ(v.size(), 0);
   v.resize(3);
@@ -334,7 +335,8 @@ TEST(TinyVectorTest, BasicAssertions) {
   v.pop_back();
   EXPECT_TRUE(v.empty());
   EXPECT_EQ(v.size(), 0);
-  v.push_back(5);
+  int &x = v.emplace_back(2);
+  x += 3;
   EXPECT_EQ(v.front(), 5);
   EXPECT_EQ(v.back(), 5);
   v.push_back(2);
