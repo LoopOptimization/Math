@@ -335,8 +335,8 @@ TEST(TinyVectorTest, BasicAssertions) {
   v.pop_back();
   EXPECT_TRUE(v.empty());
   EXPECT_EQ(v.size(), 0);
-  int &x = v.emplace_back(2);
-  x += 3;
+  int &y = v.emplace_back(2);
+  y += 3;
   EXPECT_EQ(v.front(), 5);
   EXPECT_EQ(v.back(), 5);
   v.push_back(2);
