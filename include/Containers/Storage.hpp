@@ -8,10 +8,19 @@
 namespace poly::containers {
 template <typename T, ptrdiff_t N> struct Storage {
   static_assert(N > 0);
-  alignas(T) char mem[N * sizeof(T)]; // NOLINT (modernize-avoid-c-style-arrays)
-  constexpr auto data() -> T * { return reinterpret_cast<T *>(mem); }
+  static constexpr bool trivial =
+    std::is_trivially_default_constructible_v<T> &&
+    std::is_trivially_destructible_v<T>;
+  static constexpr ptrdiff_t NumElt = trivial ? N : N * sizeof(T);
+  using DataElt = std::conditional_t<trivial, T, char>;
+  alignas(T) DataElt mem[NumElt]; // NOLINT (modernize-avoid-c-style-arrays)
+  constexpr auto data() -> T * {
+    if constexpr (trivial) return mem;
+    else return reinterpret_cast<T *>(mem);
+  }
   constexpr auto data() const -> const T * {
-    return reinterpret_cast<const T *>(mem);
+    if constexpr (trivial) return mem;
+    else return reinterpret_cast<const T *>(mem);
   }
   constexpr Storage() {} // NOLINT (modernize-use-equals-default)
 };
