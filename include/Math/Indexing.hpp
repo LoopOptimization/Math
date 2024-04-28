@@ -301,6 +301,43 @@ constexpr auto calcNewDim(StridedDims<> d, B r, C c) {
   auto colDims = calcNewDim(ptrdiff_t(Col(d)), c);
   return StridedDims(row(rowDims), col(colDims), RowStride(d));
 }
+template <ptrdiff_t NR, ptrdiff_t NC, AbstractSlice B, AbstractSlice C>
+constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
+  if constexpr ((NR >= 0) && std::same_as<B, Colon>) {
+    if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
+      return DenseDims(Row<NR>{}, Col<NC>{});
+    } else {
+      auto colDims = calcNewDim(ptrdiff_t(Col(d)), c);
+      return StridedDims(Row<NR>{}, col(colDims), rowStride(unwrapCol(Col(d))));
+    }
+  } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
+    auto rowDims = calcNewDim(ptrdiff_t(Row(d)), r);
+    return DenseDims(row(rowDims), Col<NC>{});
+  } else {
+    auto colDims = calcNewDim(ptrdiff_t(Col(d)), c);
+    auto rowDims = calcNewDim(ptrdiff_t(Row(d)), r);
+    return StridedDims(row(rowDims), col(colDims), RowStride(d));
+  }
+}
+template <ptrdiff_t NR, ptrdiff_t NC, ptrdiff_t X, AbstractSlice B,
+          AbstractSlice C>
+constexpr auto calcNewDim(StridedDims<NR, NC, X> d, B r, C c) {
+  if constexpr ((NR >= 0) && std::same_as<B, Colon>) {
+    if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
+      return StridedDims(Row<NR>{}, Col<NC>{}, RowStride(d));
+    } else {
+      auto colDims = calcNewDim(ptrdiff_t(Col(d)), c);
+      return StridedDims(Row<NR>{}, col(colDims), RowStride(d));
+    }
+  } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
+    auto rowDims = calcNewDim(ptrdiff_t(Row(d)), r);
+    return StridedDims(row(rowDims), Col<NC>{}, RowStride(d));
+  } else {
+    auto colDims = calcNewDim(ptrdiff_t(Col(d)), c);
+    auto rowDims = calcNewDim(ptrdiff_t(Row(d)), r);
+    return StridedDims(row(rowDims), col(colDims), RowStride(d));
+  }
+}
 template <AbstractSlice B>
 constexpr auto calcNewDim(DenseDims<> d, B r, Colon) {
   auto rowDims = calcNewDim(ptrdiff_t(Row(d)), r);

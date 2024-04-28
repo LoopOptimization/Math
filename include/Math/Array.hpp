@@ -196,6 +196,12 @@ index(P *ptr, S shape, R wr, C wc) noexcept -> decltype(auto) {
   //   return simd::transpose(index<T>(ptr, unwrapRow(Row(shape)),
   //   unwrapRow(wr)));
 }
+static_assert(
+  std::same_as<StridedDims<3>,
+               decltype(calcNewDim(std::declval<DenseDims<3>>(), _, _(1, 5)))>);
+static_assert(
+  std::same_as<StridedDims<3>, decltype(calcNewDim(
+                                 std::declval<StridedDims<3>>(), _, _(1, 5)))>);
 
 template <typename T, bool Column = false> struct SliceIterator {
   using stride_type = std::conditional_t<Column, StridedRange, ptrdiff_t>;
