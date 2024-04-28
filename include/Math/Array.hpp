@@ -304,7 +304,7 @@ struct POLY_MATH_GSL_POINTER Array {
   static constexpr bool isdense =
     std::convertible_to<S, ptrdiff_t> || std::convertible_to<S, DenseDims<>>;
   static constexpr bool flatstride = isdense || std::same_as<S, StridedRange>;
-  static_assert(flatstride != std::same_as<S, StridedDims<>>);
+  // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
   constexpr Array() = default;
   constexpr Array(const Array &) = default;

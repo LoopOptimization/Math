@@ -389,7 +389,11 @@ constexpr auto expm1b_kernel(std::integral_constant<int, 10>,
 
 template <int B> constexpr auto exp_impl(double x) -> double {
   constexpr std::integral_constant<int, B> base{};
-  if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
+  // #if __FAST_MATH__
+  if (x >= max_exp(x, base)) return std::numeric_limits<double>::max();
+  // #else
+  // if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
+  // #endif
   if (x <= subnormal_exp(x, base)) return 0.0;
   double floatN = fma(x, LogBo256INV(base), magic_round_const(x));
   auto N = std::bit_cast<uint64_t>(floatN);
@@ -407,12 +411,14 @@ constexpr auto exp2(double x) -> double { return exp_impl<2>(x); }
 constexpr auto exp10(double x) -> double { return exp_impl<10>(x); }
 
 constexpr auto exp2(int64_t x) -> double {
-  if (x > 1023) return std::numeric_limits<double>::infinity();
+  // if (x > 1023) return std::numeric_limits<double>::infinity();
+  if (x > 1023) return std::numeric_limits<double>::max();
   if (x <= -1023) return std::bit_cast<double>(uint64_t(1) << ((x + 1074)));
   return std::bit_cast<double>((x + 1023) << 52);
 }
 constexpr auto exp2(unsigned x) -> double {
-  if (x > 1023) return std::numeric_limits<double>::infinity();
+  // if (x > 1023) return std::numeric_limits<double>::infinity();
+  if (x > 1023) return std::numeric_limits<double>::max();
   return std::bit_cast<double>((uint64_t(x) + 1023) << 52);
 }
 constexpr auto log(double x) -> double { return std::log(x); }

@@ -22,7 +22,7 @@ namespace poly::simd {
 // Supported means by this library currently; more types may be added in the
 // future as needed.
 
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename T>
 concept SIMDSupported = std::same_as<T, int64_t> || std::same_as<T, double>;
 #else

@@ -176,6 +176,10 @@ static void BM_dual6x2dApI(benchmark::State &state) {
   static_assert(poly::utils::Compressible<Dual<double, 6>>);
   static_assert(poly::utils::Compressible<D>);
   static_assert(sizeof(poly::utils::compressed_t<D>) == (21 * sizeof(double)));
+  static_assert(poly::simd::SIMDSupported<double>);
+  static_assert(sizeof(poly::math::SVector<double, 7>) == (8 * sizeof(double)));
+  static_assert(sizeof(Dual<double, 6>) == (8 * sizeof(double)));
+  static_assert(sizeof(Dual<double, 6>) == (8 * sizeof(double)));
   static_assert(sizeof(D) == (24 * sizeof(double)));
   // static_assert(sizeof(D) == sizeof(Dual<Dual<double, 8>, 2>));
   ptrdiff_t dim = state.range(0);

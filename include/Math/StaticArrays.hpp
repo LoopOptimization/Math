@@ -5,6 +5,7 @@
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 
 namespace poly::math {
@@ -540,8 +541,7 @@ struct StaticArray<T, 1, N, false>
   constexpr StaticArray(V v) : data_(v){};
   constexpr StaticArray(StaticArray const &) = default;
   constexpr StaticArray(StaticArray &&) noexcept = default;
-  constexpr explicit StaticArray(const std::initializer_list<T> &list)
-    : data_{} {
+  constexpr explicit StaticArray(const std::initializer_list<T> &list) {
     if (list.size() == 1) {
       data_ += *list.begin();
       return;
@@ -552,6 +552,13 @@ struct StaticArray<T, 1, N, false>
   constexpr auto data() -> T * { return reinterpret_cast<T *>(&data_); }
   [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(&data_);
+  }
+  constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) -> MutPtrVector<T> {
+    return {data() + r.b, r.size()};
+  }
+  constexpr auto
+  operator[](Range<ptrdiff_t, ptrdiff_t> r) const -> PtrVector<T> {
+    return {data() + r.b, r.size()};
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
     (*this) << b;

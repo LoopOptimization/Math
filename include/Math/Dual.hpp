@@ -8,7 +8,6 @@
 #include <Math/StaticArrays.hpp>
 #include <Utilities/Invariant.hpp>
 #include <cstddef>
-#include <istream>
 #include <utility>
 
 namespace poly::math {
@@ -400,72 +399,74 @@ struct Dual<T, N, false> {
   }
 
   constexpr auto operator-() const -> Dual { return {-data}; }
-  constexpr auto operator+(const Dual &other) const -> Dual {
-    return {data + other.data};
-  }
-  constexpr auto operator-(const Dual &other) const -> Dual {
-    return {data - other.data};
-  }
-  constexpr auto operator*(const Dual &other) const -> Dual {
-    // TODO: either update remaining methods to match this style,
-    // or figure out how to get `conditional`'s codegen quality to match
-    if constexpr (data_type::L == 1) {
-      V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
-      return {
-        {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, int64_t>())}};
-    } else {
-      Dual ret;
-      V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
-      ret.data.memory_[0] =
-        simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, int64_t>());
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
-        ret.data.memory_[i] = vt * other.data.memory_[i] + vo * data.memory_[i];
-      return ret;
-    }
-    // return {conditional(std::plus<>{},
-    //                     elementwise_not_equal(_(0, N + 1), value_idx),
-    //                     value() * other.data, data * other.value())};
-  }
-  constexpr auto operator/(const Dual &other) const -> Dual {
-    Dual ret;
-    if constexpr (data_type::L == 1) {
-      V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
-        x = vo * data.data_;
-      ret.data.data_ =
-        simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W, int64_t>()) /
-        vo2;
-    } else {
-      V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
-        x = vo * data.memory_[0];
-      ret.data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
-                                            simd::firstoff<W, int64_t>()) /
-                            vo2;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
-        ret.data.memory_[i] =
-          (vo * data.memory_[i] - vt * other.data.memory_[i]) / vo2;
-    }
-    return ret;
-    // val = value() / other.value()
-    // partials = (other.value() * gradient() - value() * other.gradient()) /
-    // (other.value() * other.value())
-    // partials = (gradient()) / (other.value())
-    //  - (value() * other.gradient()) / (other.value() * other.value())
-    // T v{other.value()};
-    // return {conditional(std::minus<>{},
-    //                     elementwise_not_equal(_(0, N + 1), value_idx), data /
-    //                     v, value() * other.data / (v * v))};
-  }
-  constexpr auto operator+=(const Dual &other) -> Dual & {
+  // constexpr auto operator+(const Dual &other) const -> Dual {
+  //   return {data + other.data};
+  // }
+  // constexpr auto operator-(const Dual &other) const -> Dual {
+  //   return {data - other.data};
+  // }
+  // constexpr auto operator*(const Dual &other) const -> Dual {
+  //   // TODO: either update remaining methods to match this style,
+  //   // or figure out how to get `conditional`'s codegen quality to match
+  //   if constexpr (data_type::L == 1) {
+  //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
+  //     return {
+  //       {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, int64_t>())}};
+  //   } else {
+  //     Dual ret;
+  //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
+  //     ret.data.memory_[0] =
+  //       simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, int64_t>());
+  //     POLYMATHFULLUNROLL
+  //     for (ptrdiff_t i = 1; i < data_type::L; ++i)
+  //       ret.data.memory_[i] = vt * other.data.memory_[i] + vo *
+  //       data.memory_[i];
+  //     return ret;
+  //   }
+  //   // return {conditional(std::plus<>{},
+  //   //                     elementwise_not_equal(_(0, N + 1), value_idx),
+  //   //                     value() * other.data, data * other.value())};
+  // }
+  // constexpr auto operator/(const Dual &other) const -> Dual {
+  //   Dual ret;
+  //   if constexpr (data_type::L == 1) {
+  //     V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
+  //       x = vo * data.data_;
+  //     ret.data.data_ =
+  //       simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W,
+  //       int64_t>()) / vo2;
+  //   } else {
+  //     V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
+  //       x = vo * data.memory_[0];
+  //     ret.data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
+  //                                           simd::firstoff<W, int64_t>()) /
+  //                           vo2;
+  //     POLYMATHFULLUNROLL
+  //     for (ptrdiff_t i = 1; i < data_type::L; ++i)
+  //       ret.data.memory_[i] =
+  //         (vo * data.memory_[i] - vt * other.data.memory_[i]) / vo2;
+  //   }
+  //   return ret;
+  //   // val = value() / other.value()
+  //   // partials = (other.value() * gradient() - value() * other.gradient()) /
+  //   // (other.value() * other.value())
+  //   // partials = (gradient()) / (other.value())
+  //   //  - (value() * other.gradient()) / (other.value() * other.value())
+  //   // T v{other.value()};
+  //   // return {conditional(std::minus<>{},
+  //   //                     elementwise_not_equal(_(0, N + 1), value_idx),
+  //   data /
+  //   //                     v, value() * other.data / (v * v))};
+  // }
+  constexpr auto operator+=(Dual other) -> Dual & {
     data += other.data;
     return *this;
   }
-  constexpr auto operator-=(const Dual &other) -> Dual & {
+  constexpr auto operator-=(Dual other) -> Dual & {
     data -= other.data;
     return *this;
   }
-  constexpr auto operator*=(const Dual &other) -> Dual & {
+  constexpr auto operator*=(Dual other) -> Dual & {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
       data.data_ =
@@ -483,7 +484,7 @@ struct Dual<T, N, false> {
     //                     value() * other.data, data * other.value());
     return *this;
   }
-  constexpr auto operator/=(const Dual &other) -> Dual & {
+  constexpr auto operator/=(Dual other) -> Dual & {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
         x = vo * data.data_;
@@ -507,26 +508,26 @@ struct Dual<T, N, false> {
     //                     v, value() * other.data / (v * v));
     return *this;
   }
-  constexpr auto operator+(double other) const & -> Dual {
-    Dual ret = *this;
-    if constexpr (data_type::L == 1)
-      ret.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
-    else ret.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
-    return ret;
-  }
-  constexpr auto operator-(double other) const -> Dual {
-    Dual ret = *this;
-    if constexpr (data_type::L == 1)
-      ret.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
-    else ret.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
-    return ret;
-  }
-  constexpr auto operator*(double other) const -> Dual {
-    return {data * other};
-  }
-  constexpr auto operator/(double other) const -> Dual {
-    return {data / other};
-  }
+  // constexpr auto operator+(double other) const -> Dual {
+  //   Dual ret = *this;
+  //   if constexpr (data_type::L == 1)
+  //     ret.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //   else ret.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //   return ret;
+  // }
+  // constexpr auto operator-(double other) const -> Dual {
+  //   Dual ret = *this;
+  //   if constexpr (data_type::L == 1)
+  //     ret.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //   else ret.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //   return ret;
+  // }
+  // constexpr auto operator*(double other) const -> Dual {
+  //   return {data * other};
+  // }
+  // constexpr auto operator/(double other) const -> Dual {
+  //   return {data / other};
+  // }
   constexpr auto operator+=(double other) -> Dual & {
     if constexpr (data_type::L == 1)
       data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
@@ -652,6 +653,128 @@ struct Dual<T, N, false> {
     return ret;
   }
 };
+
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator+(Dual<T, N, false> x,
+                         Dual<T, N, false> y) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  return {x.data + y.data};
+}
+
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator-(Dual<T, N, false> x,
+                         Dual<T, N, false> y) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  return {x.data - y.data};
+}
+
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator*(Dual<T, N, false> a,
+                         Dual<T, N, false> b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  using D = Dual<T, N, false>;
+  using data_type = D::data_type;
+  using V = D::V;
+  if constexpr (data_type::L == 1) {
+    V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.data_;
+    return {
+      {simd::fmadd<T>(vo, a.data.data_, x, simd::firstoff<D::W, int64_t>())}};
+  } else {
+    Dual<T, N, false> ret;
+    V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.memory_[0];
+    ret.data.memory_[0] =
+      simd::fmadd<T>(vo, a.data.memory_[0], x, simd::firstoff<D::W, int64_t>());
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      ret.data.memory_[i] = vt * b.data.memory_[i] + vo * a.data.memory_[i];
+    return ret;
+  }
+}
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator/(Dual<T, N, false> a,
+                         Dual<T, N, false> b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  using D = Dual<T, N, false>;
+  using data_type = D::data_type;
+  using V = D::V;
+  Dual<T, N, false> ret;
+  if constexpr (data_type::L == 1) {
+    V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo, x = vo * a.data.data_;
+    ret.data.data_ =
+      simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<D::W, int64_t>()) /
+      vo2;
+  } else {
+    V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
+      x = vo * a.data.memory_[0];
+    ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
+                                          simd::firstoff<D::W, int64_t>()) /
+                          vo2;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      ret.data.memory_[i] =
+        (vo * a.data.memory_[i] - vt * b.data.memory_[i]) / vo2;
+  }
+  return ret;
+}
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator+(Dual<T, N, false> a, double b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  using D = Dual<T, N, false>;
+  using data_type = D::data_type;
+  if constexpr (data_type::L == 1)
+    a.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{b};
+  else a.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{b};
+  return a;
+}
+
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator+(double a, Dual<T, N, false> b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  using D = Dual<T, N, false>;
+  using data_type = D::data_type;
+  if constexpr (data_type::L == 1)
+    b.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{a};
+  else b.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{a};
+  return b;
+}
+
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator-(Dual<T, N, false> a, double b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  using D = Dual<T, N, false>;
+  using data_type = D::data_type;
+  if constexpr (data_type::L == 1)
+    a.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{b};
+  else a.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{b};
+  return a;
+}
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator*(Dual<T, N, false> a, double b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  return {a.data * b};
+}
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator*(double a, Dual<T, N, false> b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  return {a * b.data};
+}
+
+template <simd::SIMDSupported T, ptrdiff_t N>
+constexpr auto operator/(Dual<T, N, false> a, double b) -> Dual<T, N, false>
+requires(std::popcount(size_t(N)) > 1)
+{
+  return {a.data / b};
+}
+
 static_assert(!std::convertible_to<Array<Dual<double, 7, true>,
                                          std::integral_constant<ptrdiff_t, 2>>,
                                    Dual<double, 7, false>>);
