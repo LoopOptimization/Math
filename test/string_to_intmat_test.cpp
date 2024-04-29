@@ -30,7 +30,7 @@ TEST(StringParse, BasicAssertions) {
   EXPECT_EQ((A[2, 1]), 0);
   EXPECT_EQ((A[2, 2]), -3);
   EXPECT_EQ((A[2, 3]), 0);
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
   static_assert(std::same_as<poly::math::StaticDims<int64_t, 2, 3, false>,
                              poly::math::StridedDims<2, 3, 4>>);
 #else

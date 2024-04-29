@@ -139,7 +139,7 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   }
   [[gnu::always_inline]] constexpr auto
   operator*(const Dual &other) const -> Dual {
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
     if constexpr (std::same_as<T, double> && (N > 1)) {
       Dual ret(val * other.val);
       using V = typename data_type::V;

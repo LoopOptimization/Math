@@ -152,7 +152,7 @@ template <class T, class S, class P> class ArrayOps {
   [[nodiscard]] constexpr auto rs() const {
     return unwrapRow(static_cast<const P *>(this)->rowStride());
   }
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
   template <typename I, typename R, typename Op>
   [[gnu::always_inline]] static void vcopyToSIMD(P &self, const auto &B, I L,
                                                  R row, Op op) {
@@ -197,17 +197,17 @@ protected:
       auto d{reinterpret<E>(Self())};
       if constexpr (assign) d << reinterpret<E>(B);
       else d << op(d, reinterpret<E>(B));
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
     } else if constexpr (simd::SIMDSupported<T>) {
 #else
     } else if constexpr (AbstractVector<P>) {
 #endif
-#elifdef POLYMATHUSESIMDARRAYOPS
+#elifndef POLYMATHNOEXPLICITSIMDARRAY
     if constexpr (simd::SIMDSupported<T>) {
 #else
     if constexpr (AbstractVector<P>) {
 #endif
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
       if constexpr (IsOne<decltype(M)>)
         vcopyToSIMD(self, B, N, utils::NoRowIndex{}, op);
       else if constexpr (IsOne<decltype(N)>)
@@ -315,7 +315,7 @@ public:
 namespace poly::containers {
 
 namespace tupletensorops {
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
 // FIXME:
 // Need to do all loads before all stores!!!
 // This is because we want to support fusing loops where we may be overwriting
@@ -393,7 +393,7 @@ vcopyTo(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src) {
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
   // static_assert(sizeof(T) <= 8);
   auto [M, N] = promote_shape(dst, src);
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
   if constexpr (simd::SIMDSupported<std::remove_cvref_t<T>>) {
     if constexpr (math::IsOne<decltype(M)>)
       vcopyToSIMD(dst, src, N, utils::NoRowIndex{});

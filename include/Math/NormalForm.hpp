@@ -376,7 +376,7 @@ hermite(IntMatrix<> A) -> std::pair<IntMatrix<>, SquareMatrix<int64_t>> {
 
 /// use A[j,k] to zero A[i,k]
 
-#ifdef POLYMATHUSESIMDARRAYOPS
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
 constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
                              int64_t f) -> int64_t {
   int64_t Aik = A[i, k];
