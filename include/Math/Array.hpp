@@ -981,7 +981,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     static_assert(std::is_integral_v<S>, "pop_back requires integral size");
     invariant(this->sz > 0);
     if constexpr (std::is_trivially_destructible_v<T>) --this->sz;
-    else this->data()[--this->sz].~T();
+    else std::destroy_at(this->data() + (--this->sz));
   }
   constexpr auto pop_back_val() -> T {
     static_assert(std::is_integral_v<S>, "pop_back requires integral size");
@@ -1000,8 +1000,10 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (std::integral<S>) {
       invariant(U(nz) <= capacity);
       if constexpr (!std::is_trivially_destructible_v<T>) {
-        for (ptrdiff_t i = nz; i < oz; ++i) this->data()[i].~T();
-        for (ptrdiff_t i = oz; i < nz; ++i) new (this->data() + i) T();
+        if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
+        else if (nz > oz)
+          for (ptrdiff_t i = oz; i < nz; ++i)
+            std::construct_at(this->data() + i);
       } else if (nz > oz) std::fill(this->data() + oz, this->data() + nz, T{});
     } else {
       static_assert(std::is_trivially_destructible_v<T>,
@@ -1077,9 +1079,9 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     invariant(U(M) <= U(this->sz));
     if constexpr (!std::is_trivially_destructible_v<T>) {
       ptrdiff_t nz = U(M), oz = U(this->sz);
-      for (ptrdiff_t i = nz; i < oz; ++i) this->data()[i].~T();
-      // we set invariant smaller
-      // for (ptrdiff_t i = oz; i < nz; ++i) new (this->data() + i) T();
+      if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
+      else if (nz > oz)
+        for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
     }
     this->sz = M;
   }
@@ -1210,7 +1212,11 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     S oz = this->sz;
     this->sz = nz;
     if constexpr (std::integral<S>) {
-      if (nz <= oz) return;
+      if (nz <= oz) {
+        if constexpr (!std::is_trivially_destructible_v<T>)
+          if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
+        return;
+      }
       if (nz > this->capacity) {
         U newCapacity = U(nz);
         auto [newPtr, newCap] = alloc::alloc_at_least(allocator, newCapacity);
@@ -1218,12 +1224,9 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
         maybeDeallocate(newPtr, newCap);
         invariant(newCapacity > oz);
       }
-      if constexpr (!std::is_trivially_destructible_v<T>) {
-        for (ptrdiff_t i = nz; i < oz; ++i) this->data()[i].~T();
-        // new T() direct-initializes
-        // https://en.cppreference.com/w/cpp/language/direct_initialization
-        for (ptrdiff_t i = oz; i < nz; ++i) new (this->data() + i) T();
-      } else if (nz > oz) std::fill(this->data() + oz, this->data() + nz, T{});
+      if constexpr (!std::is_trivially_destructible_v<T>)
+        for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
+      else std::fill(this->data() + oz, this->data() + nz, T{});
     } else {
       static_assert(std::is_trivially_destructible_v<T>,
                     "Resizing matrices holding non-is_trivially_destructible_v "
@@ -1308,10 +1311,9 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     if (L > U(this->sz)) growUndef(L);
     if constexpr (!std::is_trivially_destructible_v<T>) {
       ptrdiff_t nz = U(M), oz = U(this->sz);
-      for (ptrdiff_t i = nz; i < oz; ++i) this->data()[i].~T();
-      // new T default-initializes
-      // https://en.cppreference.com/w/cpp/language/default_initialization
-      for (ptrdiff_t i = oz; i < nz; ++i) new (this->data() + i) T;
+      if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
+      else if (nz > oz)
+        for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
     }
     this->sz = M;
   }
@@ -1428,7 +1430,7 @@ protected:
   // (and the implementation taking the new ptr and capacity)
   void maybeDeallocate() noexcept {
     if constexpr (!std::is_trivially_destructible_v<T>)
-      for (ptrdiff_t i = 0; i < U(this->sz); ++i) this->data()[i].~T();
+      std::destroy_n(this->data(), this->size());
     if (wasAllocated()) allocator.deallocate(this->data(), this->capacity);
   }
   // this method should be called whenever the buffer lives
