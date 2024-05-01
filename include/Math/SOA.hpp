@@ -118,6 +118,18 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
       (*this) = T(x);
       return *this;
     }
+    template <size_t I> auto get() -> std::tuple_element_t<I, T> & {
+      invariant(i >= 0);
+      return *reinterpret_cast<std::tuple_element_t<I, T> *>(
+        ptr + CumSizeOf_v<I, T> * stride +
+        sizeof(std::tuple_element_t<I, T>) * i);
+    }
+    template <size_t I> auto get() const -> const std::tuple_element_t<I, T> & {
+      invariant(i >= 0);
+      return *reinterpret_cast<const std::tuple_element_t<I, T> *>(
+        ptr + CumSizeOf_v<I, T> * stride +
+        sizeof(std::tuple_element_t<I, T>) * i);
+    }
   };
   auto operator[](ptrdiff_t i) const -> T {
     char *p = std::assume_aligned<16>(data);
