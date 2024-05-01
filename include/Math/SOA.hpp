@@ -4,6 +4,7 @@
 #define SOA_hpp_INCLUDED
 
 #include "Alloc/Mallocator.hpp"
+#include "Containers/Pair.hpp"
 #include "Containers/Tuple.hpp"
 #include "Math/Matrix.hpp"
 #include "Math/MatrixDimensions.hpp"
@@ -15,6 +16,7 @@ namespace poly::math {
 template <typename... T> struct Types {};
 
 static_assert(std::tuple_size_v<containers::Tuple<int, double>> == 2);
+static_assert(std::tuple_size_v<containers::Pair<int, double>> == 2);
 
 template <typename T,
           typename I = std::make_index_sequence<std::tuple_size_v<T>>>

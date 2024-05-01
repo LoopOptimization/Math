@@ -15,7 +15,28 @@ template <class F, class S> struct Pair {
   constexpr operator Pair<A, B>() {
     return {A{first}, B{second}};
   }
+  template <size_t I> constexpr auto get() -> auto & {
+    if constexpr (I == 0) return first;
+    else return second;
+  }
+  template <size_t I> constexpr auto get() const -> const auto & {
+    if constexpr (I == 0) return first;
+    else return second;
+  }
 };
 } // namespace poly::containers
+
+template <typename F, typename S>
+struct std::tuple_size<poly::containers::Pair<F, S>>
+  : public std::integral_constant<size_t, 2> {};
+
+template <typename F, typename S>
+struct std::tuple_element<0, poly::containers::Pair<F, S>> {
+  using type = F;
+};
+template <typename F, typename S>
+struct std::tuple_element<1, poly::containers::Pair<F, S>> {
+  using type = S;
+};
 
 #endif // Pair_hpp_INCLUDED
