@@ -2,6 +2,7 @@
 #include "Containers/Tuple.hpp"
 #include "Math/SOA.hpp"
 #include <gtest/gtest.h>
+#include <type_traits>
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SOATest, BasicAssertions) {
   poly::containers::Tuple x{3, 2.0, 5.0F};
@@ -10,7 +11,13 @@ TEST(SOATest, BasicAssertions) {
   static_assert(poly::math::CumSizeOf_v<2, decltype(x)> == 12);
   static_assert(poly::math::CumSizeOf_v<3, decltype(x)> == 16);
   // poly::math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
+  using T = decltype(x);
+  static_assert(std::is_trivially_default_constructible_v<
+                poly::containers::Tuple<int, double>>);
+  static_assert(std::is_trivially_default_constructible_v<T>);
+  static_assert(std::is_trivially_destructible_v<T>);
   poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{}, ptrdiff_t(5));
+  EXPECT_EQ(soa.capacity.capacity, 8);
   soa[0] = x;
   soa[1] = {5, 2.25, 5.5F};
   soa.template get<0>(2) = 7;
@@ -77,8 +84,13 @@ TEST(SOAPairTest, BasicAssertions) {
   static_assert(poly::math::CumSizeOf_v<1, decltype(x)> == 4);
   static_assert(poly::math::CumSizeOf_v<2, decltype(x)> == 12);
   // poly::math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
-  poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{}, ptrdiff_t(5));
+  poly::math::ManagedSOA<decltype(x)> soa{};
+  // poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{});
+  EXPECT_EQ(soa.capacity.capacity, 0);
+  soa.push_back(x);
   soa[0] = x;
+  EXPECT_EQ(soa.capacity.capacity, 8);
+  soa.resize(5);
   soa[1] = {5, 2.25};
   soa.template get<0>(2) = 7;
   soa.template get<1>(2) = 2.5;
@@ -125,4 +137,16 @@ TEST(SOAPairTest, BasicAssertions) {
     EXPECT_EQ(d, soa.get<1>(j));
   }
   EXPECT_EQ(soa.size(), 65);
+}
+TEST(VecOfSOATest, BasicAssertions) {
+  poly::math::Vector<
+    poly::math::ManagedSOA<poly::containers::Tuple<int, double, float>>>
+    vsoa;
+  vsoa.emplace_back();
+  vsoa.emplace_back();
+  vsoa.pop_back();
+  vsoa.emplace_back();
+  vsoa.emplace_back();
+  vsoa.emplace_back();
+  EXPECT_EQ(vsoa.size(), 4);
 }
