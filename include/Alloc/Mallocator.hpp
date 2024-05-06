@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Utilities/Invariant.hpp"
 #include <concepts>
 #include <cstddef>
 #include <new>
@@ -179,13 +180,15 @@ inline void free(void *p, size_t n, std::align_val_t al) {
 };
 
 inline auto alloc_at_least(size_t n) -> AllocResult<void> {
-  n = good_malloc_size(n);
-  return {malloc(n), n};
+  size_t newn = good_malloc_size(n);
+  utils::invariant(newn >= n);
+  return {malloc(newn), newn};
 }
 
 inline auto alloc_at_least(size_t n, std::align_val_t al) -> AllocResult<void> {
-  n = good_malloc_size(n);
-  return {malloc(n, al), n};
+  size_t newn = good_malloc_size(n);
+  utils::invariant(newn >= n);
+  return {malloc(newn, al), newn};
 }
 
 template <class T> struct Mallocator {
@@ -224,16 +227,15 @@ template <class T> struct Mallocator {
       t = static_cast<T *>(p);
       m = l / sizeof(T);
     }
+    utils::invariant(m >= n);
     return AllocResult<T>{t, m};
   }
   // NOLINTNEXTLINE(readability-identifier-naming)
   static auto allocate_at_least(size_t n, std::align_val_t al) {
-    T *t;
-    size_t m;
     auto [p, l] = alloc_at_least(n * sizeof(T), al);
-    t = static_cast<T *>(p);
-    m = l / sizeof(T);
-    return AllocResult<T>{t, m};
+    size_t m = l / sizeof(T);
+    utils::invariant(m >= n);
+    return AllocResult<T>{static_cast<T *>(p), m};
   }
   static void deallocate(T *p, size_t n) {
     if constexpr (overalign)

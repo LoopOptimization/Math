@@ -1335,9 +1335,11 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
   }
   constexpr void reserve(S nz) {
     U newCapacity = U(nz);
+    invariant(newCapacity >= 0);
     if (newCapacity <= this->capacity) return;
     // allocate new, copy, deallocate old
     auto [newPtr, newCap] = alloc::alloc_at_least(allocator, newCapacity);
+    invariant(ptrdiff_t(newCap) >= newCapacity);
     if (U oldLen = U(this->sz))
       std::uninitialized_copy_n(this->data(), oldLen, newPtr);
     maybeDeallocate(newPtr, newCap);
