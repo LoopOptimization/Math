@@ -98,11 +98,11 @@ concept DenseTensor = AbstractTensor<T> && requires(T t) {
 };
 
 template <ptrdiff_t M> constexpr auto transpose_dim(Col<M> c) {
-  if constexpr (M == -1) return Row<>{ptrdiff_t(c)};
+  if constexpr (M == -1) return row(ptrdiff_t(c));
   else return Row<M>{};
 }
 template <ptrdiff_t M> constexpr auto transpose_dim(Row<M> r) {
-  if constexpr (M == -1) return Col<>{ptrdiff_t(r)};
+  if constexpr (M == -1) return col(ptrdiff_t(r));
   else return Col<M>{};
 }
 

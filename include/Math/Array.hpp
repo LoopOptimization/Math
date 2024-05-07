@@ -52,7 +52,7 @@ namespace poly::math {
 template <typename S>
 concept Dimension = VectorDimension<S> != MatrixDimension<S>;
 
-static_assert(Dimension<ptrdiff_t>);
+static_assert(Dimension<Length<>>);
 static_assert(Dimension<DenseDims<3, 2>>);
 static_assert(
   std::same_as<Col<1>, decltype(Col(std::declval<DenseDims<3, 1>>()))>);
@@ -204,17 +204,17 @@ static_assert(
                                  std::declval<StridedDims<3>>(), _, _(1, 5)))>);
 
 template <typename T, bool Column = false> struct SliceIterator {
-  using stride_type = std::conditional_t<Column, StridedRange, ptrdiff_t>;
+  using dim_type = std::conditional_t<Column, StridedRange, Length<>>;
   using value_type =
     std::conditional_t<std::is_const_v<T>,
-                       Array<std::remove_cvref_t<T>, stride_type>,
-                       MutArray<std::remove_reference_t<T>, stride_type>>;
+                       Array<std::remove_cvref_t<T>, dim_type>,
+                       MutArray<std::remove_reference_t<T>, dim_type>>;
   using storage_type =
     std::conditional_t<std::is_const_v<T>, const utils::compressed_t<T>,
                        utils::compressed_t<T>>;
   storage_type *data;
-  ptrdiff_t len;
-  ptrdiff_t rowStride;
+  Length<> len;
+  RowStride<> rowStride;
   ptrdiff_t idx;
   // constexpr auto operator=(const SliceIterator &) -> SliceIterator & =
   // default;
@@ -279,15 +279,15 @@ template <typename T, bool Column = false> struct SliceIterator {
 
 template <typename T, bool Column = false> struct SliceRange {
   T *data;
-  ptrdiff_t len;
-  ptrdiff_t rowStride;
+  Length<> len;
+  RowStride<> rowStride;
   ptrdiff_t stop;
   [[nodiscard]] constexpr auto begin() const -> SliceIterator<T, Column> {
     return {data, len, rowStride, 0};
   }
   [[nodiscard]] constexpr auto end() const {
-    if constexpr (Column) return Col<>{stop};
-    else return Row<>{stop};
+    if constexpr (Column) return col(stop);
+    else return row(stop);
   }
 };
 /// Constant Array
@@ -306,9 +306,11 @@ struct POLY_MATH_GSL_POINTER Array {
   using pointer = storage_type *;
   using const_pointer = const storage_type *;
   using concrete = std::true_type;
-
+  static constexpr bool trivial =
+    std::is_trivially_default_constructible_v<T> &&
+    std::is_trivially_destructible_v<T>;
   static constexpr bool isdense =
-    std::convertible_to<S, ptrdiff_t> || std::convertible_to<S, DenseDims<>>;
+    VectorDimension<S> || std::convertible_to<S, DenseDims<>>;
   static constexpr bool flatstride = isdense || std::same_as<S, StridedRange>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
@@ -407,21 +409,28 @@ struct POLY_MATH_GSL_POINTER Array {
   }
 
   [[nodiscard]] constexpr auto numRow() const noexcept {
-    if constexpr (std::convertible_to<S, ptrdiff_t>) return Row<1>{};
+    if constexpr (RowVectorDimension<S>) return Row<1>{};
     else return row(sz);
   }
   [[nodiscard]] constexpr auto numCol() const noexcept { return col(sz); }
   [[nodiscard]] constexpr auto rowStride() const noexcept {
-    if constexpr (std::integral<S>) return RowStride<1>{};
+    if constexpr (std::same_as<S, Length<>>) return RowStride<1>{};
     else return stride(sz);
   }
-  [[nodiscard]] constexpr auto empty() const -> bool { return sz == S{}; }
+  [[nodiscard]] constexpr auto empty() const -> bool {
+    if constexpr (StaticLength<S>) return S::staticint() == 0;
+    else return sz == S{};
+  }
   [[nodiscard]] constexpr auto size() const noexcept {
-    if constexpr (StaticInt<S>) return S{};
+    if constexpr (StaticLength<S>) return S::staticint();
     else return ptrdiff_t(sz);
   }
   [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz; }
-  constexpr void clear() { sz = S{}; }
+  constexpr void clear() {
+    static_assert(!std::same_as<S, Length<>>,
+                  "can only clear dynamic-sized objects!");
+    sz = S{};
+  }
   [[nodiscard]] constexpr auto t() const { return Transpose{*this}; }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool
   requires(MatrixDimension<S>)
@@ -535,7 +544,7 @@ struct POLY_MATH_GSL_POINTER Array {
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
     if constexpr (Printable<T>)
-      std::cout << "Size: " << sz << " " << *this << "\n";
+      std::cout << "Size: " << ptrdiff_t(sz) << " " << *this << "\n";
   }
   // [[gnu::used]] void dump(const char *filename) const {
   //   if constexpr (std::integral<T>) {
@@ -607,7 +616,7 @@ struct POLY_MATH_GSL_POINTER MutArray
   constexpr void truncate(S nz) {
     S oz = this->sz;
     this->sz = nz;
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       invariant(ptrdiff_t(nz) <= ptrdiff_t(oz));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       auto newX = ptrdiff_t{RowStride(nz)}, oldX = ptrdiff_t{RowStride(oz)},
@@ -638,7 +647,7 @@ struct POLY_MATH_GSL_POINTER MutArray
   }
 
   constexpr void truncate(Row<> r) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return truncate(S(r));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
@@ -653,7 +662,7 @@ struct POLY_MATH_GSL_POINTER MutArray
     }
   }
   constexpr void truncate(Col<> c) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return truncate(S(c));
     } else if constexpr (std::is_same_v<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
@@ -730,31 +739,35 @@ struct POLY_MATH_GSL_POINTER MutArray
     std::fill_n(this->data(), ptrdiff_t(this->dim()), value);
   }
   [[nodiscard]] constexpr auto diag() noexcept {
-    StridedRange r{std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(Col(this->sz))),
-                   ptrdiff_t(RowStride(this->sz)) + 1};
+    Length l =
+      length(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(Col(this->sz))));
+    RowStride rs = RowStride(this->sz);
+    StridedRange r{l, ++rs};
     return MutArray<T, StridedRange>{data(), r};
   }
   [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col<> c = Col(this->sz);
-    StridedRange r{ptrdiff_t(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(c))),
-                   ptrdiff_t(RowStride(this->sz)) - 1};
+    Length l =
+      length(ptrdiff_t(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(c))));
+    RowStride rs = RowStride(this->sz);
+    StridedRange r{l, --rs};
     return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
   }
   constexpr void erase(S i) {
-    static_assert(std::integral<S>, "erase requires integral size");
+    static_assert(std::same_as<S, Length<>>, "erase requires integral size");
     S oldLen = this->sz--;
     if (i < this->sz)
       std::copy(this->data() + i + 1, data() + oldLen, this->data() + i);
   }
   constexpr void erase(Row<> r) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return erase(S(r));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if erasing a row, matrix must be strided or dense.");
       auto col = ptrdiff_t{Col(this->sz)},
            newRow = ptrdiff_t{Row(this->sz)} - 1;
-      this->sz.set(Row<>{newRow});
+      this->sz.set(row(newRow));
       if ((col == 0) || (r == newRow)) return;
       storage_type *dst = data() + ptrdiff_t(r) * col;
       std::copy_n(dst + col, (newRow - ptrdiff_t(r)) * col, dst);
@@ -763,7 +776,7 @@ struct POLY_MATH_GSL_POINTER MutArray
       auto stride = ptrdiff_t{RowStride(this->sz)},
            col = ptrdiff_t{Col(this->sz)},
            newRow = ptrdiff_t{Row(this->sz)} - 1;
-      this->sz.set(Row<>{newRow});
+      this->sz.set(row(newRow));
       if ((col == 0) || (r == newRow)) return;
       invariant(col <= stride);
       if ((col + (512 / (sizeof(T)))) <= stride) {
@@ -780,14 +793,14 @@ struct POLY_MATH_GSL_POINTER MutArray
     }
   }
   constexpr void erase(Col<> c) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return erase(S(c));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if erasing a col, matrix must be strided or dense.");
       auto newCol = ptrdiff_t{Col(this->sz)}, oldCol = newCol--,
            row = ptrdiff_t{Row(this->sz)};
-      this->sz.set(Col<>{newCol});
+      this->sz.set(col(newCol));
       ptrdiff_t colsToCopy = newCol - ptrdiff_t(c);
       if ((colsToCopy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
@@ -801,7 +814,7 @@ struct POLY_MATH_GSL_POINTER MutArray
       auto stride = ptrdiff_t{RowStride(this->sz)},
            newCol = ptrdiff_t{Col(this->sz)} - 1,
            row = ptrdiff_t{Row(this->sz)};
-      this->sz.set(Col<>{newCol});
+      this->sz.set(col(newCol));
       ptrdiff_t colsToCopy = newCol - ptrdiff_t(c);
       if ((colsToCopy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
@@ -827,13 +840,13 @@ struct POLY_MATH_GSL_POINTER MutArray
   constexpr auto eachRow() -> SliceRange<T, false>
   requires(MatrixDimension<S>)
   {
-    return {data(), ptrdiff_t(Col(this->sz)), ptrdiff_t(RowStride(this->sz)),
+    return {data(), length(ptrdiff_t(Col(this->sz))), RowStride(this->sz),
             ptrdiff_t(Row(this->sz))};
   }
   constexpr auto eachCol() -> SliceRange<T, true>
   requires(MatrixDimension<S>)
   {
-    return {data(), ptrdiff_t(Row(this->sz)), ptrdiff_t(RowStride(this->sz)),
+    return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
   template <typename U> [[nodiscard]] auto reinterpret() {
@@ -898,11 +911,11 @@ static_assert(std::convertible_to<MutArray<int64_t, SquareDims<>>,
                                   MutArray<int64_t, StridedDims<>>>);
 static_assert(std::convertible_to<MutArray<int64_t, DenseDims<>>,
                                   MutArray<int64_t, StridedDims<>>>);
-static_assert(AbstractVector<Array<int64_t, ptrdiff_t>>);
+static_assert(AbstractVector<Array<int64_t, Length<>>>);
 static_assert(!AbstractVector<Array<int64_t, StridedDims<>>>);
 static_assert(AbstractMatrix<Array<int64_t, StridedDims<>>>);
-static_assert(RowVector<Array<int64_t, ptrdiff_t>>);
-static_assert(ColVector<Transpose<Array<int64_t, ptrdiff_t>>>);
+static_assert(RowVector<Array<int64_t, Length<>>>);
+static_assert(ColVector<Transpose<Array<int64_t, Length<>>>>);
 static_assert(ColVector<Array<int64_t, StridedRange>>);
 static_assert(RowVector<Transpose<Array<int64_t, StridedRange>>>);
 
@@ -916,7 +929,7 @@ template <typename T, bool Column>
 inline constexpr auto SliceIterator<T, Column>::operator*() const
   -> SliceIterator<T, Column>::value_type {
   if constexpr (Column) return {data + idx, StridedRange{len, rowStride}};
-  else return {data + rowStride * idx, len};
+  else return {data + ptrdiff_t(rowStride) * idx, len};
 }
 // template <typename T, bool Column>
 // inline constexpr auto operator*(SliceIterator<T, Column> it)
@@ -940,53 +953,61 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   using BaseT = MutArray<T, S>;
   using U = containers::default_capacity_type_t<S>;
   using storage_type = typename BaseT::storage_type;
-  constexpr ResizeableView() noexcept : BaseT(nullptr, 0), capacity(0) {}
+  constexpr ResizeableView() noexcept : BaseT(nullptr, S{}), capacity_(U{}) {}
   constexpr ResizeableView(storage_type *p, S s, U c) noexcept
-    : BaseT(p, s), capacity(c) {}
+    : BaseT(p, s), capacity_(c) {}
   constexpr ResizeableView(alloc::Arena<> *a, S s, U c) noexcept
     : ResizeableView{a->template allocate<storage_type>(c), s, c} {}
 
   [[nodiscard]] constexpr auto isFull() const -> bool {
-    return U(this->sz) == capacity;
+    return U(this->sz) == capacity_;
   }
 
   template <class... Args>
-  constexpr auto emplace_back(Args &&...args) -> decltype(auto) {
-    static_assert(std::is_integral_v<S>, "emplace_back requires integral size");
-    invariant(U(this->sz) < capacity);
-    return *std::construct_at(this->data() + this->sz++,
+  constexpr auto emplace_back(Args &&...args) -> decltype(auto)
+  requires(std::same_as<S, Length<>>)
+  {
+    invariant(ptrdiff_t(this->sz) < capacity_);
+    return *std::construct_at(this->data() + ptrdiff_t(this->sz++),
                               std::forward<Args>(args)...);
   }
   /// Allocates extra space if needed
   /// Has a different name to make sure we avoid ambiguities.
   template <class... Args>
   constexpr auto emplace_backa(alloc::Arena<> *alloc,
-                               Args &&...args) -> decltype(auto) {
-    static_assert(std::is_integral_v<S>, "emplace_back requires integral size");
-    if (isFull()) reserve(alloc, (capacity + 1) * 2);
-    return *std::construct_at(this->data() + this->sz++,
+                               Args &&...args) -> decltype(auto)
+  requires(std::same_as<S, Length<>>)
+  {
+    if (isFull()) reserve(alloc, (capacity_ + 1) * 2);
+    return *std::construct_at(this->data() + ptrdiff_t(this->sz++),
                               std::forward<Args>(args)...);
   }
-  constexpr void push_back(T value) {
-    static_assert(std::is_integral_v<S>, "push_back requires integral size");
-    invariant(U(this->sz) < capacity);
-    std::construct_at<T>(this->data() + this->sz++, std::move(value));
+  constexpr void push_back(T value)
+  requires(std::same_as<S, Length<>>)
+  {
+    invariant(ptrdiff_t(this->sz) < capacity_);
+    std::construct_at<T>(this->data() + ptrdiff_t(this->sz++),
+                         std::move(value));
   }
-  constexpr void push_back(alloc::Arena<> *alloc, T value) {
-    static_assert(std::is_integral_v<S>, "push_back requires integral size");
-    if (isFull()) reserve(alloc, (capacity + 1) * 2);
-    std::construct_at<T>(this->data() + this->sz++, std::move(value));
+  constexpr void push_back(alloc::Arena<> *alloc, T value)
+  requires(std::same_as<S, Length<>>)
+  {
+    if (isFull()) reserve(alloc, (capacity_ + 1) * 2);
+    std::construct_at<T>(this->data() + ptrdiff_t(this->sz++),
+                         std::move(value));
   }
-  constexpr void pop_back() {
-    static_assert(std::is_integral_v<S>, "pop_back requires integral size");
+  constexpr void pop_back()
+  requires(std::same_as<S, Length<>>)
+  {
     invariant(this->sz > 0);
     if constexpr (std::is_trivially_destructible_v<T>) --this->sz;
-    else std::destroy_at(this->data() + (--this->sz));
+    else std::destroy_at(this->data() + ptrdiff_t(--this->sz));
   }
-  constexpr auto pop_back_val() -> T {
-    static_assert(std::is_integral_v<S>, "pop_back requires integral size");
+  constexpr auto pop_back_val() -> T
+  requires(std::same_as<S, Length<>>)
+  {
     invariant(this->sz > 0);
-    return std::move(this->data()[--this->sz]);
+    return std::move(this->data()[ptrdiff_t(--this->sz)]);
   }
   // behavior
   // if S is StridedDims, then we copy data.
@@ -997,8 +1018,8 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr void resize(S nz) {
     S oz = this->sz;
     this->sz = nz;
-    if constexpr (std::integral<S>) {
-      invariant(U(nz) <= capacity);
+    if constexpr (std::same_as<S, Length<>>) {
+      invariant(U(nz) <= capacity_);
       if constexpr (!std::is_trivially_destructible_v<T>) {
         if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
         else if (nz > oz)
@@ -1013,7 +1034,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
       auto newX = ptrdiff_t{RowStride(nz)}, oldX = ptrdiff_t{RowStride(oz)},
            newN = ptrdiff_t{Col(nz)}, oldN = ptrdiff_t{Col(oz)},
            newM = ptrdiff_t{Row(nz)}, oldM = ptrdiff_t{Row(oz)};
-      invariant(U(nz) <= capacity);
+      invariant(U(nz) <= capacity_);
       U len = U(nz);
       T *npt = this->data();
       // we can copy forward so long as the new stride is smaller
@@ -1060,7 +1081,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
 
   constexpr void resize(Row<> r) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resize(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1068,7 +1089,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     }
   }
   constexpr void resize(Col<> c) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resize(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1080,13 +1101,18 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (!std::is_trivially_destructible_v<T>) {
       ptrdiff_t nz = U(M), oz = U(this->sz);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
-      else if (nz > oz)
+      else if (nz > oz) // FIXME: user should initialize?
         for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
     }
     this->sz = M;
   }
+  constexpr void resizeForOverwrite(ptrdiff_t M)
+  requires(std::same_as<S, Length<>>)
+  {
+    resizeForOverwrite(length(M));
+  }
   constexpr void resizeForOverwrite(Row<> r) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1094,14 +1120,14 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     }
   }
   constexpr void resizeForOverwrite(Col<> c) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
       return resizeForOverwrite(nz.set(c));
     }
   }
-  [[nodiscard]] constexpr auto getCapacity() const -> U { return capacity; }
+  [[nodiscard]] constexpr auto getCapacity() const -> U { return capacity_; }
 
   // set size and 0.
   constexpr void setSize(Row<> r, Col<> c) {
@@ -1131,33 +1157,34 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
 
   constexpr auto insert(T *p, T x) -> T * {
-    static_assert(std::is_same_v<S, ptrdiff_t>);
+    static_assert(std::is_same_v<S, Length<>>);
     invariant(p >= this->data());
-    invariant(p <= this->data() + this->sz);
-    invariant(this->sz < capacity);
-    if (p < this->data() + this->sz)
-      std::copy_backward(p, this->data() + this->sz,
-                         this->data() + this->sz + 1);
+    T *e = this->data() + ptrdiff_t(this->sz);
+    invariant(p <= e);
+    invariant(this->sz < capacity_);
+    if (p < e) std::copy_backward(p, e, e + 1);
     *p = x;
     ++this->sz;
     return p;
   }
   template <size_t SlabSize, bool BumpUp>
-  constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc, U newCapacity) {
-    if (newCapacity <= capacity) return;
+  constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
+                         ptrdiff_t newCapacity) {
+    if (newCapacity <= capacity_) return;
     this->ptr = alloc->template reallocate<false, T>(
-      const_cast<T *>(this->ptr), capacity, newCapacity, U{this->sz});
+      const_cast<T *>(this->ptr), ptrdiff_t(capacity_), newCapacity,
+      ptrdiff_t(this->sz));
     // T *oldPtr =
     //   std::exchange(this->data(), alloc->template
     //   allocate<T>(newCapacity));
     // std::copy_n(oldPtr, U(this->sz), this->data());
     // alloc->deallocate(oldPtr, capacity);
-    capacity = newCapacity;
+    capacity_ = capacity(newCapacity);
   }
 
 protected:
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  [[no_unique_address]] U capacity{0};
+  [[no_unique_address]] U capacity_{0};
 };
 
 // Figure out offset of first element
@@ -1167,10 +1194,13 @@ struct ArrayAlignmentAndSize : ResizeableView<T, S> {
   alignas(T) char memory[sizeof(T)];
 };
 
-static_assert(std::is_copy_assignable_v<Array<void *, ptrdiff_t>>);
-static_assert(!std::is_copy_assignable_v<MutArray<void *, ptrdiff_t>>);
-static_assert(std::is_trivially_copyable_v<MutArray<void *, ptrdiff_t>>);
-static_assert(std::is_trivially_move_assignable_v<MutArray<void *, ptrdiff_t>>);
+static_assert(std::is_copy_assignable_v<Array<void *, Length<>>>);
+static_assert(!std::is_copy_assignable_v<MutArray<void *, Length<>>>);
+static_assert(std::is_trivially_copyable_v<MutArray<void *, Length<>>>);
+static_assert(std::is_trivially_move_assignable_v<MutArray<void *, Length<>>>);
+[[nodiscard]] constexpr auto newCapacity(ptrdiff_t c) -> ptrdiff_t {
+  return c ? c + c : 4z;
+}
 
 /// Non-owning view of a managed array, capable of reallocating, etc.
 /// It does not own memory. Mostly, it serves to drop the inlined
@@ -1185,22 +1215,26 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
   constexpr ReallocView(storage_type *p, S s, U c, A alloc) noexcept
     : BaseT(p, s, c), allocator(alloc) {}
 
-  [[nodiscard]] constexpr auto newCapacity() const -> U {
-    return this->capacity ? 2 * this->capacity : U{4};
-  }
   template <class... Args>
-  constexpr auto emplace_back(Args &&...args) -> decltype(auto) {
-    static_assert(std::is_integral_v<S>, "emplace_back requires integral size");
-    if (this->sz == this->capacity) [[unlikely]]
-      reserve(newCapacity());
-    return *std::construct_at<T>(this->data() + this->sz++,
-                                 std::forward<Args>(args)...);
+  constexpr auto emplace_back(Args &&...args) -> decltype(auto)
+  requires(std::same_as<S, Length<>>)
+  {
+    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    if (s == c) [[unlikely]]
+      reserve(length(newCapacity(c)));
+    T &ret =
+      *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
+    this->sz = length(s + 1z);
+    return ret;
   }
-  constexpr void push_back(T value) {
-    static_assert(std::is_integral_v<S>, "push_back requires integral size");
-    if (ptrdiff_t(this->sz) == this->capacity) [[unlikely]]
-      reserve(newCapacity());
-    std::construct_at<T>(this->data() + this->sz++, std::move(value));
+  constexpr void push_back(T value)
+  requires(std::same_as<S, Length<>>)
+  {
+    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    if (s == c) [[unlikely]]
+      reserve(length(newCapacity(c)));
+    std::construct_at<T>(this->data() + s, std::move(value));
+    this->sz = length(s + 1z);
   }
   // behavior
   // if S is StridedDims, then we copy data.
@@ -1211,22 +1245,26 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
   constexpr void resize(S nz) {
     S oz = this->sz;
     this->sz = nz;
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
+      auto ozs = ptrdiff_t(oz), nzs = ptrdiff_t(nz);
       if (nz <= oz) {
         if constexpr (!std::is_trivially_destructible_v<T>)
-          if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
+          if (nz < oz) std::destroy_n(this->data() + nzs, ozs - nzs);
         return;
       }
-      if (nz > this->capacity) {
-        U newCapacity = U(nz);
-        auto [newPtr, newCap] = alloc::alloc_at_least(allocator, newCapacity);
-        if (oz) std::copy_n(this->data(), oz, newPtr);
-        maybeDeallocate(newPtr, newCap);
-        invariant(newCapacity > oz);
+      if (nz > this->capacity_) {
+        auto ncu = size_t(nzs);
+        auto [newPtr, newCap] = alloc::alloc_at_least(allocator, ncu);
+        invariant(newCap >= ncu);
+        auto ncs = ptrdiff_t(newCap);
+        invariant(ncs >= nzs);
+        if (oz) std::copy_n(this->data(), ozs, newPtr);
+        maybeDeallocate(newPtr, ncs);
       }
       if constexpr (!std::is_trivially_destructible_v<T>)
-        for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
-      else std::fill(this->data() + oz, this->data() + nz, T{});
+        for (ptrdiff_t i = ozs; i < nz; ++i)
+          std::construct_at(this->data() + i);
+      else std::fill(this->data() + ozs, this->data() + nzs, T{});
     } else {
       static_assert(std::is_trivially_destructible_v<T>,
                     "Resizing matrices holding non-is_trivially_destructible_v "
@@ -1237,7 +1275,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
       auto newX = ptrdiff_t{RowStride(nz)}, oldX = ptrdiff_t{RowStride(oz)},
            newN = ptrdiff_t{Col(nz)}, oldN = ptrdiff_t{Col(oz)},
            newM = ptrdiff_t{Row(nz)}, oldM = ptrdiff_t{Row(oz)};
-      bool newAlloc = len > this->capacity;
+      bool newAlloc = len > this->capacity_;
       bool inPlace = !newAlloc;
       T *npt = this->data();
       if (newAlloc) {
@@ -1291,7 +1329,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     }
   }
   constexpr void resize(Row<> r) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resize(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1299,7 +1337,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     }
   }
   constexpr void resize(Col<> c) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resize(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1307,18 +1345,28 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     }
   }
   constexpr void resizeForOverwrite(S M) {
-    U L = U(M);
-    if (L > U(this->sz)) growUndef(L);
+    auto nz = ptrdiff_t(M);
+    if (nz > ptrdiff_t(this->sz)) growUndef(nz);
     if constexpr (!std::is_trivially_destructible_v<T>) {
-      ptrdiff_t nz = U(M), oz = U(this->sz);
+      ptrdiff_t oz = ptrdiff_t(this->sz);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
-      else if (nz > oz)
+      else if (nz > oz) // TODO: user should be in charge of initialization?
         for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
     }
     this->sz = M;
   }
+  constexpr void resizeForOverwrite(ptrdiff_t M)
+  requires(std::same_as<S, Length<>>)
+  {
+    resizeForOverwrite(length(M));
+  }
+  constexpr void resize(ptrdiff_t M)
+  requires(std::same_as<S, Length<>>)
+  {
+    resize(length(M));
+  }
   constexpr void resizeForOverwrite(Row<> r) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1326,7 +1374,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     }
   }
   constexpr void resizeForOverwrite(Col<> c) {
-    if constexpr (std::integral<S>) {
+    if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz;
@@ -1334,15 +1382,19 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     }
   }
   constexpr void reserve(S nz) {
-    U newCapacity = U(nz);
-    invariant(newCapacity >= 0);
-    if (newCapacity <= this->capacity) return;
+    auto newCapacity = ptrdiff_t(nz);
+    invariant(newCapacity >= 0z);
+    if (newCapacity <= this->capacity_) return;
     // allocate new, copy, deallocate old
     auto [newPtr, newCap] = alloc::alloc_at_least(allocator, newCapacity);
-    invariant(ptrdiff_t(newCap) >= newCapacity);
-    if (U oldLen = U(this->sz))
-      std::uninitialized_copy_n(this->data(), oldLen, newPtr);
-    maybeDeallocate(newPtr, newCap);
+    auto nc = ptrdiff_t(newCap);
+    invariant(nc >= newCapacity);
+    if (auto oldLen = ptrdiff_t(this->sz)) {
+      if constexpr (Array<T, S>::trivial)
+        std::memcpy(newPtr, this->data(), oldLen * sizeof(storage_type));
+      else std::uninitialized_move_n(this->data(), oldLen, newPtr);
+    }
+    maybeDeallocate(newPtr, nc);
   }
   [[nodiscard]] constexpr auto get_allocator() const noexcept -> A {
     return allocator;
@@ -1357,15 +1409,15 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     if constexpr (std::is_same_v<S, StridedDims<>>)
       reserve(StridedDims{M, N, max(N, RowStride(this->dim()))});
     else if constexpr (std::is_same_v<S, SquareDims<>>)
-      reserve(SquareDims{Row<>{std::max(ptrdiff_t(M), ptrdiff_t(N))}});
+      reserve(SquareDims{row(std::max(ptrdiff_t(M), ptrdiff_t(N)))});
     else reserve(DenseDims{M, N});
   }
   constexpr void reserve(Row<> M, RowStride<> X) {
     if constexpr (std::is_same_v<S, StridedDims<>>)
-      reserve(S{M, Col<>{ptrdiff_t(X)}, X});
+      reserve(S{M, col(ptrdiff_t(X)), X});
     else if constexpr (std::is_same_v<S, SquareDims<>>)
-      reserve(SquareDims{Row<>{std::max(ptrdiff_t(M), ptrdiff_t(X))}});
-    else reserve(S{M, Col<>{ptrdiff_t(X)}});
+      reserve(SquareDims{row(std::max(ptrdiff_t(M), ptrdiff_t(X)))});
+    else reserve(S{M, col(ptrdiff_t(X))});
   }
   constexpr void clearReserve(Row<> M, Col<> N) {
     this->clear();
@@ -1398,10 +1450,11 @@ protected:
   [[no_unique_address]] A allocator{};
 
   constexpr void allocateAtLeast(U len) {
-    alloc::AllocResult<storage_type> res =
-      alloc::alloc_at_least(allocator, len);
+    size_t l = size_t(ptrdiff_t(len));
+    alloc::AllocResult<storage_type> res = alloc::alloc_at_least(allocator, l);
     this->ptr = res.ptr;
-    this->capacity = res.count;
+    invariant(res.count >= l);
+    this->capacity_ = capacity(res.count);
   }
   [[nodiscard]] auto firstElt() const -> const void * {
     using AS = ArrayAlignmentAndSize<storage_type, S, A>;
@@ -1416,7 +1469,7 @@ protected:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #endif
-    constexpr size_t offset = offsetof(AS, memory);
+    static constexpr size_t offset = offsetof(AS, memory);
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic pop
 #else
@@ -1433,35 +1486,38 @@ protected:
   void maybeDeallocate() noexcept {
     if constexpr (!std::is_trivially_destructible_v<T>)
       std::destroy_n(this->data(), this->size());
-    if (wasAllocated()) allocator.deallocate(this->data(), this->capacity);
+    if (wasAllocated())
+      allocator.deallocate(this->data(), ptrdiff_t(this->capacity_));
   }
   // this method should be called whenever the buffer lives
-  void maybeDeallocate(storage_type *newPtr, U newCapacity) noexcept {
+  void maybeDeallocate(storage_type *newPtr, ptrdiff_t newCapacity) noexcept {
     maybeDeallocate();
     this->ptr = newPtr;
-    this->capacity = newCapacity;
+    this->capacity_ = capacity(newCapacity);
   }
   // grow, discarding old data
-  void growUndef(U M) {
-    if (M <= this->capacity) return;
+  void growUndef(ptrdiff_t M) {
+    invariant(M >= 0);
+    if (M <= this->capacity_) return;
     maybeDeallocate();
     // because this doesn't care about the old data,
     // we can allocate after freeing, which may be faster
-    this->ptr = this->allocator.allocate(M);
-    this->capacity = M;
+    this->ptr = this->allocator.allocate(ptrdiff_t(M));
+    this->capacity_ = capacity(M);
 #ifndef NDEBUG
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
-      std::fill_n(this->data(), M, std::numeric_limits<T>::signaling_NaN());
-    else std::fill_n(this->data(), M, std::numeric_limits<T>::min());
+      std::fill_n(this->data(), ptrdiff_t(M),
+                  std::numeric_limits<T>::signaling_NaN());
+    else std::fill_n(this->data(), ptrdiff_t(M), std::numeric_limits<T>::min());
 #endif
   }
 };
 
 template <class T, class S>
-concept AbstractSimilar =
-  (MatrixDimension<S> && AbstractMatrix<T>) ||
-  ((std::integral<S> || std::is_same_v<S, StridedRange> || StaticInt<S>) &&
-   AbstractVector<T>);
+concept AbstractSimilar = (MatrixDimension<S> && AbstractMatrix<T>) ||
+                          ((std::same_as<S, Length<>> ||
+                            std::is_same_v<S, StridedRange> || StaticInt<S>) &&
+                           AbstractVector<T>);
 
 /// Stores memory, then pointer.
 /// Thus struct's alignment determines initial alignment
@@ -1487,7 +1543,8 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif
-  constexpr ManagedArray(A a) noexcept : BaseT{memory.data(), S{}, N, a} {
+  constexpr ManagedArray(A a) noexcept
+    : BaseT{memory.data(), S{}, capacity(N), a} {
 #ifndef NDEBUG
     if (!N) return;
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
@@ -1496,28 +1553,30 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
       std::fill_n(this->data(), N, std::numeric_limits<T>::min());
 #endif
   }
-  constexpr ManagedArray(S s, A a) noexcept : BaseT{memory.data(), s, N, a} {
-    U len = U(this->sz);
+  constexpr ManagedArray(S s, A a) noexcept
+    : BaseT{memory.data(), s, capacity(N), a} {
+    U len = U(capacity(ptrdiff_t(this->sz)));
     if (len > N) this->allocateAtLeast(len);
 #ifndef NDEBUG
     if (!len) return;
+    auto l = ptrdiff_t(len);
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
-      std::fill_n(this->data(), len, std::numeric_limits<T>::signaling_NaN());
+      std::fill_n(this->data(), l, std::numeric_limits<T>::signaling_NaN());
     else if constexpr (std::numeric_limits<T>::is_specialized)
-      std::fill_n(this->data(), len, std::numeric_limits<T>::min());
+      std::fill_n(this->data(), l, std::numeric_limits<T>::min());
 #endif
   }
   constexpr ManagedArray(S s, T x, A a) noexcept
-    : BaseT{memory.data(), s, N, a} {
-    U len = U(this->sz);
-    if (len > N) this->allocateAtLeast(len);
+    : BaseT{memory.data(), s, capacity(N), a} {
+    auto len = ptrdiff_t(this->sz);
+    if (len > N) this->allocateAtLeast(capacity(len));
     if (len) std::fill_n(this->data(), len, x);
   }
   constexpr ManagedArray() noexcept : ManagedArray(A{}){};
   constexpr ManagedArray(S s) noexcept : ManagedArray(s, A{}){};
   constexpr ManagedArray(ptrdiff_t s) noexcept
   requires(std::same_as<S, SquareDims<>>)
-    : ManagedArray(SquareDims<>{Row<>{s}}, A{}){};
+    : ManagedArray(SquareDims<>{row(s)}, A{}){};
   constexpr ManagedArray(S s, T x) noexcept : ManagedArray(s, x, A{}){};
 
   // constexpr ManagedArray(std::type_identity<T>) noexcept :
@@ -1531,51 +1590,50 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
 
   template <class D>
   constexpr ManagedArray(const ManagedArray<T, D, N, A> &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), U(N), b.get_allocator()} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(b.dim()), capacity(N), b.get_allocator()} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, N, AY> &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), U(N), b.get_allocator()} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(b.dim()), capacity(N), b.get_allocator()} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     (*this) << b;
   }
   template <std::convertible_to<T> Y, size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
-    : BaseT{memory.data(), S(il.size()), U(N)} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(length(il.size())), capacity(N)} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(il.begin(), len, this->data());
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, N, AY> &b, S s) noexcept
-    : BaseT{memory.data(), S(s), U(N), b.get_allocator()} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(s), capacity(N), b.get_allocator()} {
+    auto len = ptrdiff_t(this->sz);
     invariant(len == U(b.size()));
     this->growUndef(len);
     T *p = this->data();
     for (ptrdiff_t i = 0; i < len; ++i) p[i] = b[i];
   }
   constexpr ManagedArray(const ManagedArray &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), U(N), b.get_allocator()} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(b.dim()), capacity(N), b.get_allocator()} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const Array<T, S> &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), U(N)} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(b.dim()), capacity(N)} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
   }
   template <AbstractSimilar<S> V>
   constexpr ManagedArray(const V &b) noexcept
-    : BaseT{memory.data(), S(shape(b)), U(N)} {
-    U len = U(this->sz);
-    this->growUndef(len);
+    : BaseT{memory.data(), S(shape(b)), capacity(N)} {
+    this->growUndef(ptrdiff_t(this->sz));
     (*this) << b;
   }
   template <class D>
@@ -1585,22 +1643,22 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
       std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else { // steal
       this->ptr = b.data();
-      this->capacity = b.getCapacity();
+      this->capacity_ = b.getCapacity();
     }
     b.resetNoFree();
   }
   constexpr ManagedArray(ManagedArray &&b) noexcept
-    : BaseT{memory.data(), b.dim(), U(N), b.get_allocator()} {
+    : BaseT{memory.data(), b.dim(), U(capacity(N)), b.get_allocator()} {
     if constexpr (N > 0) {
       if (b.isSmall()) { // copy
         std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
       } else { // steal
         this->ptr = b.data();
-        this->capacity = b.getCapacity();
+        this->capacity_ = b.getCapacity();
       }
     } else {
-      this->capacity = b.getCapacity();
-      if (this->capacity) this->ptr = b.data();
+      this->capacity_ = b.getCapacity();
+      if (this->capacity_) this->ptr = b.data();
     }
     b.resetNoFree();
   }
@@ -1611,14 +1669,14 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
       std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else { // steal
       this->ptr = b.data();
-      this->capacity = b.getCapacity();
+      this->capacity_ = b.getCapacity();
     }
     b.resetNoFree();
   }
   template <std::convertible_to<T> Y>
   constexpr ManagedArray(const SmallSparseMatrix<Y> &B)
-    : BaseT{memory.data(), B.dim(), N} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), B.dim(), capacity(N)} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     this->fill(0);
     ptrdiff_t k = 0;
@@ -1644,8 +1702,8 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   constexpr ManagedArray(const RowVector auto &v)
   requires(MatrixDimension<S>)
-    : BaseT{memory.data(), S(CartesianIndex(1, v.size())), U(N)} {
-    U len = U(this->sz);
+    : BaseT{memory.data(), S(CartesianIndex(1, v.size())), U(capacity(N))} {
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     (*this) << v;
   }
@@ -1683,7 +1741,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   constexpr auto operator=(const ManagedArray &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     this->sz = b.dim();
-    U len = U(this->sz);
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
     return *this;
@@ -1709,13 +1767,13 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   constexpr void resetNoFree() {
     this->ptr = memory.data();
     this->sz = S{};
-    this->capacity = N;
+    this->capacity_ = capacity(N);
   }
   constexpr ~ManagedArray() noexcept { this->maybeDeallocate(); }
 
   [[nodiscard]] static constexpr auto identity(ptrdiff_t M) -> ManagedArray {
     static_assert(MatrixDimension<S>);
-    ManagedArray B(SquareDims<>{M}, T{0});
+    ManagedArray B(SquareDims<>{row(M)}, T{0});
     B.diag() << 1;
     return B;
   }
@@ -1737,8 +1795,8 @@ private:
   [[no_unique_address]] containers::Storage<storage_type, N> memory;
 };
 
-static_assert(std::move_constructible<ManagedArray<intptr_t, ptrdiff_t>>);
-static_assert(std::copyable<ManagedArray<intptr_t, ptrdiff_t>>);
+static_assert(std::move_constructible<ManagedArray<intptr_t, Length<>>>);
+static_assert(std::copyable<ManagedArray<intptr_t, Length<>>>);
 // Check that `[[no_unique_address]]` is working.
 // sizes should be:
 // [ptr, dims, capacity, allocator, array]
@@ -1759,15 +1817,15 @@ static_assert(
   536);
 
 template <class T, ptrdiff_t N = containers::PreAllocStorage<T, ptrdiff_t>()>
-using Vector = ManagedArray<T, ptrdiff_t, N>;
-template <class T> using PtrVector = Array<T, ptrdiff_t>;
-template <class T> using MutPtrVector = MutArray<T, ptrdiff_t>;
+using Vector = ManagedArray<T, Length<>, N>;
+template <class T> using PtrVector = Array<T, Length<>>;
+template <class T> using MutPtrVector = MutArray<T, Length<>>;
 
 static_assert(std::move_constructible<Vector<intptr_t>>);
 static_assert(std::copy_constructible<Vector<intptr_t>>);
 static_assert(std::copyable<Vector<intptr_t>>);
-static_assert(AbstractVector<Array<int64_t, ptrdiff_t>>);
-static_assert(AbstractVector<MutArray<int64_t, ptrdiff_t>>);
+static_assert(AbstractVector<Array<int64_t, Length<>>>);
+static_assert(AbstractVector<MutArray<int64_t, Length<>>>);
 static_assert(AbstractVector<Vector<int64_t>>);
 static_assert(!AbstractVector<int64_t>);
 static_assert(!std::is_trivially_copyable_v<Vector<int64_t>>);
@@ -1833,12 +1891,12 @@ static_assert(!AbstractVector<const PtrMatrix<int64_t>>,
 static_assert(AbstractMatrix<PtrMatrix<int64_t>>,
               "PtrMatrix<int64_t> isa AbstractMatrix failed");
 static_assert(
-  std::same_as<decltype(PtrMatrix<int64_t>(
-                 nullptr, Row<>{0}, Col<>{0})[ptrdiff_t(0), ptrdiff_t(0)]),
+  std::same_as<decltype(PtrMatrix<int64_t>(nullptr, row(0),
+                                           col(0))[ptrdiff_t(0), ptrdiff_t(0)]),
                const int64_t &>);
 static_assert(
   std::same_as<std::remove_reference_t<decltype(MutPtrMatrix<int64_t>(
-                 nullptr, Row<>{0}, Col<>{0})[ptrdiff_t(0), ptrdiff_t(0)])>,
+                 nullptr, row(0), col(0))[ptrdiff_t(0), ptrdiff_t(0)])>,
                int64_t>);
 
 static_assert(AbstractMatrix<MutPtrMatrix<int64_t>>,
@@ -1920,7 +1978,7 @@ inline auto operator<<(std::ostream &os,
 }
 template <AbstractVector T>
 inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
-  Vector<utils::eltype_t<decltype(A)>> B(A.size());
+  Vector<utils::eltype_t<decltype(A)>> B(length(A.size()));
   if constexpr (RowVector<T>) B << A;
   else B << A.t();
   return printVector(os, B);
@@ -1929,7 +1987,7 @@ inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
 constexpr auto getMaxDigits(PtrMatrix<Rational> A) -> Vector<ptrdiff_t> {
   ptrdiff_t M = ptrdiff_t(A.numRow());
   ptrdiff_t N = ptrdiff_t(A.numCol());
-  Vector<ptrdiff_t> maxDigits{ptrdiff_t(N), 0};
+  Vector<ptrdiff_t> maxDigits{length(N), 0};
   invariant(ptrdiff_t(maxDigits.size()), N);
   // this is slow, because we count the digits of every element
   // we could optimize this by reducing the number of calls to countDigits
@@ -1947,7 +2005,7 @@ template <std::integral T>
 constexpr auto getMaxDigits(PtrMatrix<T> A) -> Vector<T> {
   ptrdiff_t M = ptrdiff_t(A.numRow());
   ptrdiff_t N = ptrdiff_t(A.numCol());
-  Vector<T> maxDigits{ptrdiff_t(N), T{}};
+  Vector<T> maxDigits{length(N), T{}};
   invariant(ptrdiff_t(maxDigits.size()), N);
   // first, we find the digits with the maximum value per column
   for (ptrdiff_t i = 0; i < M; i++) {
@@ -2005,7 +2063,7 @@ inline auto printMatrix(std::ostream &os,
   Vector<char, 512> digits;
   digits.resizeForOverwrite(512);
   // we can't have more than 255 digits
-  DenseMatrix<uint8_t> numDigits{DenseDims<>{{M}, {N}}};
+  DenseMatrix<uint8_t> numDigits{DenseDims<>{row(M), col(N)}};
   char *ptr = digits.begin();
   char *pEnd = digits.end();
   for (ptrdiff_t m = 0; m < M; m++) {
@@ -2073,6 +2131,6 @@ inline auto operator<<(std::ostream &os,
 
 static_assert(std::same_as<const int64_t &,
                            decltype(std::declval<PtrMatrix<int64_t>>()[0, 0])>);
-static_assert(std::is_trivially_copyable_v<MutArray<int64_t, ptrdiff_t>>);
+static_assert(std::is_trivially_copyable_v<MutArray<int64_t, Length<>>>);
 
 } // namespace poly::math

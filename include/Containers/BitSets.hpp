@@ -98,8 +98,8 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   constexpr explicit BitSet() = default;
   constexpr explicit BitSet(T &&_data) : data{std::move(_data)} {}
   constexpr explicit BitSet(const T &_data) : data{_data} {}
-  static constexpr auto numElementsNeeded(ptrdiff_t N) -> unsigned {
-    return unsigned(((N + usize - 1) >> ushift));
+  static constexpr auto numElementsNeeded(ptrdiff_t N) -> math::Length<> {
+    return math::length(((N + usize - 1) >> ushift));
   }
   constexpr explicit BitSet(ptrdiff_t N) : data{numElementsNeeded(N), 0} {}
   static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
@@ -120,19 +120,21 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   }
   constexpr void maybeResize(ptrdiff_t N) {
     if constexpr (CanResize<T>) {
-      ptrdiff_t M = numElementsNeeded(N);
+      math::Length<> M = numElementsNeeded(N);
       if (M > std::ssize(data)) data.resize(M);
     } else invariant(N <= std::ssize(data) * ptrdiff_t(usize));
   }
   static constexpr auto dense(ptrdiff_t N) -> BitSet {
     BitSet b;
-    ptrdiff_t M = numElementsNeeded(N);
+    math::Length M = numElementsNeeded(N);
     if (!M) return b;
     U maxval = std::numeric_limits<U>::max();
-    if constexpr (CanResize<T>) b.data.resize(M, maxval);
-    else
-      for (ptrdiff_t i = 0; i < M - 1; ++i) b.data[i] = maxval;
-    if (ptrdiff_t rem = N & usize) b.data[M - 1] = (ptrdiff_t(1) << rem) - 1;
+    if constexpr (CanResize<T>) b.data.resize(M--, maxval);
+    else {
+      --M;
+      for (ptrdiff_t i = 0z; i < M; ++i) b.data[i] = maxval;
+    }
+    if (ptrdiff_t rem = N & usize) b.data[M] = (1z << rem) - 1z;
     return b;
   }
   [[nodiscard]] constexpr auto maxValue() const -> ptrdiff_t {

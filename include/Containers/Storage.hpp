@@ -32,18 +32,18 @@ template <class T>
 concept SizeMultiple8 = (sizeof(T) % 8) == 0;
 
 template <class S> struct DefaultCapacityType {
-  using type = int;
+  using type = math::Capacity<-1, int>;
 };
 template <SizeMultiple8 S> struct DefaultCapacityType<S> {
-  using type = std::ptrdiff_t;
+  using type = math::Capacity<-1, std::ptrdiff_t>;
 };
 template <class S>
 using default_capacity_type_t = typename DefaultCapacityType<S>::type;
 
 static_assert(!SizeMultiple8<uint32_t>);
 static_assert(SizeMultiple8<uint64_t>);
-static_assert(std::is_same_v<default_capacity_type_t<uint32_t>, int32_t>);
-static_assert(std::is_same_v<default_capacity_type_t<uint64_t>, ptrdiff_t>);
+static_assert(sizeof(default_capacity_type_t<uint32_t>) == 4);
+static_assert(sizeof(default_capacity_type_t<uint64_t>) == 8);
 
 consteval auto log2Floor(uint64_t x) -> uint64_t {
   return 63 - std::countl_zero(x);

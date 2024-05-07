@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Containers/Storage.hpp"
+#include "Math/AxisTypes.hpp"
 #include "Utilities/Invariant.hpp"
 #include <algorithm>
 #include <cstddef>
@@ -12,9 +13,9 @@
 namespace poly::containers {
 using utils::invariant;
 
-template <class T, size_t N, typename L = ptrdiff_t> class TinyVector {
+template <class T, size_t N, typename L = math::Length<>> class TinyVector {
   static_assert(N > 0);
-  static_assert(std::numeric_limits<L>::max() >= N);
+  static_assert(std::numeric_limits<ptrdiff_t>::max() >= N);
   Storage<T, N> data;
   L len{};
 
@@ -63,46 +64,45 @@ public:
   }
   constexpr auto back() -> T & {
     invariant(len > 0);
-    return data.data()[len - 1];
+    return data.data()[ptrdiff_t(len) - 1z];
   }
   constexpr auto back() const -> const T & {
     invariant(len > 0);
-    return data.data()[len - 1];
+    return data.data()[ptrdiff_t(len) - 1z];
   }
   constexpr auto front() -> T & {
     invariant(len > 0);
-    return data.data()[0];
+    return data.data()[0z];
   }
   constexpr auto front() const -> const T & {
     invariant(len > 0);
-    return data.data()[0];
+    return data.data()[0z];
   }
   constexpr void push_back(const T &t) {
     invariant(len < ptrdiff_t(N));
-    std::construct_at(data.data() + (len++), t);
+    std::construct_at(data.data() + ptrdiff_t(len++), t);
   }
   constexpr void push_back(T &&t) {
     invariant(len < ptrdiff_t(N));
-    std::construct_at(data.data() + (len++), std::move(t));
+    std::construct_at(data.data() + ptrdiff_t(len++), std::move(t));
   }
   template <class... Args> constexpr auto emplace_back(Args &&...args) -> T & {
     invariant(len < ptrdiff_t(N));
-    return *std::construct_at(data.data() + (len++),
+    return *std::construct_at(data.data() + ptrdiff_t(len++),
                               std::forward<Args>(args)...);
   }
   constexpr void pop_back() {
     invariant(len > 0);
     --len;
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_at(data.data() + len);
+      std::destroy_at(data.data() + ptrdiff_t(len));
   }
   [[nodiscard]] constexpr auto pop_back_val() -> T {
     invariant(len > 0);
-    return std::move(data.data()[--len]);
+    return std::move(data.data()[ptrdiff_t(--len)]);
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    ptrdiff_t l = ptrdiff_t(len);
-    invariant(l >= 0);
+    auto l = ptrdiff_t(len);
     invariant(l <= ptrdiff_t(N));
     return l;
   }
@@ -110,17 +110,18 @@ public:
   constexpr void clear() {
     len = 0;
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_n(data.data(), len);
+      std::destroy_n(data.data(), ptrdiff_t(len));
   }
 
   constexpr auto begin() -> T * { return data.data(); }
   constexpr auto begin() const -> const T * { return data.data(); }
   constexpr auto end() -> T * { return data.data() + size(); }
   constexpr auto end() const -> const T * { return data.data() + size(); }
-  constexpr void resize(L new_size) {
+  constexpr void resize(ptrdiff_t new_size) {
     // initialize new data
-    for (L i = len; i < new_size; ++i) std::construct_at(data.data() + i);
-    len = new_size;
+    for (ptrdiff_t i = size(); i < new_size; ++i)
+      std::construct_at(data.data() + i);
+    len = math::length(new_size);
   }
   constexpr void reserve(L space) {
     invariant(space >= 0);

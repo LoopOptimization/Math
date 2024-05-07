@@ -17,7 +17,7 @@ using namespace poly::math;
 using poly::utils::operator""_mat;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SparseIndexingTest, BasicAssertions) {
-  SmallSparseMatrix<int64_t> sparseA(Row<>{3}, Col<>{4});
+  SmallSparseMatrix<int64_t> sparseA(row(3), col(4));
   std::cout << "&Asparse = " << &sparseA << "\n";
   sparseA[0, 1] = 5;
   sparseA[1, 3] = 3;
@@ -26,7 +26,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   sparseA[2, 2] = -2;
   IntMatrix<> A = sparseA;
   {
-    IntMatrix<> A2(DenseDims<>{{3}, {4}});
+    IntMatrix<> A2(DenseDims<>{row(3), col(4)});
     MutPtrMatrix<int64_t> MA2 = A2;
     MA2 << sparseA;
     EXPECT_EQ(A, A2);
@@ -38,7 +38,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
     }
   }
   // EXPECT_EQ(A(i, j), Asparse(i, j));
-  ManagedArray B(std::type_identity<int64_t>{}, DenseDims<>{{4}, {5}});
+  ManagedArray B(std::type_identity<int64_t>{}, DenseDims<>{row(4), col(5)});
   EXPECT_FALSE(B.isSquare());
   B[0, 0] = 3;
   B[0, 1] = -1;
@@ -60,7 +60,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   B[3, 2] = 2;
   B[3, 3] = -3;
   B[3, 4] = 5;
-  IntMatrix<> C{DenseDims<>{{3}, {5}}};
+  IntMatrix<> C{DenseDims<>{row(3), col(5)}};
   C[0, 0] = -20;
   C[0, 1] = 25;
   C[0, 2] = -5;
@@ -95,7 +95,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   int64_t i = 0;
   IntMatrix<> D{C};
   std::cout << "C=" << C << "\n";
-  static_assert(std::same_as<decltype(D[0, _]), MutArray<int64_t, ptrdiff_t>>);
+  static_assert(std::same_as<decltype(D[0, _]), MutPtrVector<int64_t>>);
   for (ptrdiff_t r : _(0, D.numRow())) D[r, _] += ptrdiff_t(r) + 1;
   for (auto r : C.eachRow()) {
     EXPECT_EQ(r.size(), ptrdiff_t(C.numCol()));
@@ -165,9 +165,9 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
   c << A[_, 1];
   Vector<int64_t> d(std::array<int64_t, 6>{-5, 6, -2, -7, -8, -8});
   EXPECT_EQ(c, d);
-  IntMatrix<> dA1x1(DenseDims<>{{1}, {1}}, 0);
+  IntMatrix<> dA1x1(DenseDims<>{row(1), col(1)}, 0);
   EXPECT_TRUE(dA1x1.isSquare());
-  IntMatrix<> dA2x2(DenseDims<>{{2}, {2}}, 0);
+  IntMatrix<> dA2x2(DenseDims<>{row(2), col(2)}, 0);
   dA1x1.antiDiag() << 1;
   EXPECT_EQ((dA1x1[0, 0]), 1);
   dA2x2.antiDiag() << 1;
@@ -176,7 +176,7 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
   EXPECT_EQ((dA2x2[1, 0]), 1);
   EXPECT_EQ((dA2x2[1, 1]), 0);
   for (ptrdiff_t i = 1; i < 20; ++i) {
-    IntMatrix<> F(DenseDims<>{{i}, {i}});
+    IntMatrix<> F(DenseDims<>{row(i), col(i)});
     F << 0;
     F.antiDiag() << 1;
     for (ptrdiff_t j = 0; j < i; ++j)
@@ -185,8 +185,8 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(ExpressionTemplateTest2, BasicAssertions) {
-  ManagedArray<double, DenseDims<>> W{{{3}, {3}}, 0}, X{{{3}, {3}}, 0},
-    Y{{{3}, {3}}, 0}, Z{{{3}, {3}}, 0};
+  ManagedArray<double, DenseDims<>> W{{row(3), col(3)}, 0},
+    X{{row(3), col(3)}, 0}, Y{{row(3), col(3)}, 0}, Z{{row(3), col(3)}, 0};
   W[0, 0] = 0.29483432115939806;
   W[0, 1] = 1.5777027461040212;
   W[0, 2] = 0.8171761007267028;
@@ -257,22 +257,22 @@ TEST(ArrayPrint, BasicAssertions) {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(OffsetEnd, BasicAssertions) {
   auto A{"[3 3 3 3; 2 2 2 2; 1 1 1 1; 0 0 0 0]"_mat};
-  auto B = IntMatrix<>{DenseDims<>{{4}, {4}}};
+  auto B = IntMatrix<>{DenseDims<>{row(4), col(4)}};
   for (ptrdiff_t i = 0; i < 4; ++i) B[last - i, _] << i;
   EXPECT_EQ(A, B);
 }
 TEST(SquareMatrixTest, BasicAssertions) {
-  SquareMatrix<int64_t> A{SquareDims<>{{4}}};
+  SquareMatrix<int64_t> A{SquareDims<>{row(4)}};
   for (ptrdiff_t i = 0; i < 4; ++i)
     for (ptrdiff_t j = 0; j < 4; ++j) A[i, j] = 4 * i + j;
-  DenseMatrix<int64_t> B{DenseDims<>{{4}, {2}}};
+  DenseMatrix<int64_t> B{DenseDims<>{row(4), col(2)}};
   B << A[_(end - 2, end), _].t();
   for (ptrdiff_t j = 0; j < 4; ++j)
     for (ptrdiff_t i = 0; i < 2; ++i) EXPECT_EQ((B[j, i]), 4 * (i + 2) + j);
 }
 TEST(VectorTest, BasicAssertions) {
   poly::alloc::OwningArena<> alloc;
-  ResizeableView<int64_t, ptrdiff_t> x;
+  ResizeableView<int64_t, Length<>> x;
   for (size_t i = 0; i < 100; ++i) {
     if (x.getCapacity() <= x.size())
       x.reserve(&alloc, std::max<ptrdiff_t>(8, 2 * x.size()));
@@ -390,7 +390,7 @@ TEST(StringVector, BasicAssertions) {
   auto a = "[-5 3 7]"_mat;
   static_assert(
     std::convertible_to<poly::math::StaticDims<int64_t, 1, 3, false>,
-                        ptrdiff_t>);
+                        Length<>>);
   poly::math::Array<int64_t, poly::math::StaticDims<int64_t, 1, 3, false>> aps =
     a;
   PtrVector<int64_t> ap = a;

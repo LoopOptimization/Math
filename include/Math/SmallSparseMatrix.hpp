@@ -15,7 +15,7 @@ template <typename T> class SmallSparseMatrix {
   // the remaining 24 bits are a mask indicating non-zeros within this row
   static constexpr ptrdiff_t maxElemPerRow = 24;
   [[no_unique_address]] Vector<uint32_t> rows;
-  [[no_unique_address]] Col<> col;
+  [[no_unique_address]] Col<> ncol;
 
 public:
   [[nodiscard]] constexpr auto getNonZeros() const -> PtrVector<T> {
@@ -26,9 +26,9 @@ public:
   }
 
   [[nodiscard]] constexpr auto numRow() const -> Row<> {
-    return Row<>{rows.size()};
+    return row(rows.size());
   }
-  [[nodiscard]] constexpr auto numCol() const -> Col<> { return col; }
+  [[nodiscard]] constexpr auto numCol() const -> Col<> { return ncol; }
   [[nodiscard]] constexpr auto
   size() const -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
     return {numRow(), numCol()};
@@ -38,11 +38,11 @@ public:
   }
   // [[nodiscard]] constexpr auto view() const -> auto & { return *this; };
   constexpr SmallSparseMatrix(Row<> numRows, Col<> numCols)
-    : rows(ptrdiff_t(numRows), 0), col{numCols} {
-    invariant(ptrdiff_t(col) <= maxElemPerRow);
+    : rows(length(ptrdiff_t(numRows)), 0), ncol{numCols} {
+    invariant(ptrdiff_t(ncol) <= maxElemPerRow);
   }
   constexpr auto get(Row<> i, Col<> j) const -> T {
-    invariant(j < col);
+    invariant(j < ncol);
     uint32_t r(rows[ptrdiff_t(i)]);
     uint32_t jshift = uint32_t(1) << uint32_t(ptrdiff_t(j));
     if (!(r & jshift)) return T{};
@@ -52,10 +52,10 @@ public:
     return nonZeros[rowOffset + prevRowOffset];
   }
   constexpr auto operator[](ptrdiff_t i, ptrdiff_t j) const -> T {
-    return get(Row<>{i}, Col<>{j});
+    return get(row(i), col(j));
   }
   constexpr void insert(T x, Row<> i, Col<> j) {
-    invariant(j < col);
+    invariant(j < ncol);
     uint32_t r{rows[ptrdiff_t(i)]};
     uint32_t jshift = uint32_t(1) << ptrdiff_t(j);
     // offset from previous rows
@@ -75,9 +75,9 @@ public:
   struct Reference {
     [[no_unique_address]] SmallSparseMatrix<T> *A;
     [[no_unique_address]] ptrdiff_t i, j;
-    constexpr operator T() const { return A->get(Row<>{i}, Col<>{j}); }
+    constexpr operator T() const { return A->get(row(i), col(j)); }
     constexpr auto operator=(T x) -> Reference & {
-      A->insert(std::move(x), Row<>{i}, Col<>{j});
+      A->insert(std::move(x), row(i), col(j));
       return *this;
     }
   };

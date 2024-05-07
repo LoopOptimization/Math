@@ -33,7 +33,7 @@ template <typename T, ptrdiff_t L> consteval auto alignSIMD() -> size_t {
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<
-  M == 1, std::integral_constant<ptrdiff_t, N>,
+  M == 1, Length<N>,
   std::conditional_t<
     Compress || ((N % simd::VecLen<N, T>) == 0), DenseDims<M, N>,
     StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
@@ -147,13 +147,13 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
   }
 
   [[nodiscard]] constexpr auto diag() const noexcept {
-    StridedRange r{minRowCol(), unsigned(RowStride(S{})) + 1};
+    StridedRange r{length(minRowCol()), RowStride(S{}) + 1};
     auto ptr = data();
     invariant(ptr != nullptr);
     return Array<T, StridedRange>{ptr, r};
   }
   [[nodiscard]] constexpr auto antiDiag() const noexcept {
-    StridedRange r{minRowCol(), unsigned(RowStride(S{})) - 1};
+    StridedRange r{length(minRowCol()), RowStride(S{}) - 1};
     auto ptr = data();
     invariant(ptr != nullptr);
     return Array<T, StridedRange>{ptr + ptrdiff_t(Col(S{})) - 1, r};
@@ -229,13 +229,12 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
     std::fill_n(data(), ptrdiff_t(this->dim()), value);
   }
   [[nodiscard]] constexpr auto diag() noexcept {
-    StridedRange r{unsigned(min(Row(S{}), Col(S{}))),
-                   unsigned(RowStride(S{})) + 1};
+    StridedRange r{length(min(Row(S{}), Col(S{}))), RowStride(S{}) + 1};
     return MutArray<T, StridedRange>{data(), r};
   }
   [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col c = Col(S{});
-    StridedRange r{unsigned(min(Row(S{}), c)), unsigned(RowStride(S{})) - 1};
+    StridedRange r{length(min(Row(S{}), c)), RowStride(S{}) - 1};
     return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
   }
   template <typename SHAPE>
