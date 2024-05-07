@@ -1365,6 +1365,11 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
   {
     resize(length(M));
   }
+  constexpr void reserve(ptrdiff_t M)
+  requires(std::same_as<S, Length<>>)
+  {
+    reserve(length(M));
+  }
   constexpr void resizeForOverwrite(Row<> r) {
     if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(r));

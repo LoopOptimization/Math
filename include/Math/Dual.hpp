@@ -66,12 +66,10 @@ struct Dual<T, N, true> {
   }
   [[nodiscard]] constexpr auto value() -> T { return data[0]; }
   [[nodiscard]] constexpr auto value() const -> const T & { return data[0]; }
-  [[nodiscard]] constexpr auto
-  gradient() -> MutArray<T, std::integral_constant<ptrdiff_t, N>> {
+  [[nodiscard]] constexpr auto gradient() -> MutArray<T, Length<N>> {
     return {data.data() + 1, {}};
   }
-  [[nodiscard]] constexpr auto
-  gradient() const -> Array<T, std::integral_constant<ptrdiff_t, N>> {
+  [[nodiscard]] constexpr auto gradient() const -> Array<T, Length<N>> {
     return {data.data() + 1, {}};
   }
 
@@ -372,8 +370,7 @@ struct Dual<T, N, false> {
   constexpr Dual(std::integral auto v) { value() = v; }
   constexpr Dual(std::floating_point auto v) { value() = v; }
   constexpr auto value() -> T & { return data[value_idx]; }
-  constexpr auto
-  gradient() -> MutArray<T, std::integral_constant<ptrdiff_t, N>> {
+  constexpr auto gradient() -> MutArray<T, Length<N>> {
     return {data.data() + partial_offset, {}};
   }
   [[nodiscard]] constexpr auto value() const -> T { return data[value_idx]; }
@@ -393,8 +390,7 @@ struct Dual<T, N, false> {
     if constexpr (data_type::L == 1) return simd::vbroadcast<W, T>(data.data_);
     else return simd::vbroadcast<W, T>(data.memory_[0]);
   }
-  [[nodiscard]] constexpr auto
-  gradient() const -> Array<T, std::integral_constant<ptrdiff_t, N>> {
+  [[nodiscard]] constexpr auto gradient() const -> Array<T, Length<N>> {
     return {data.data() + partial_offset, {}};
   }
 
@@ -775,8 +771,7 @@ requires(std::popcount(size_t(N)) > 1)
   return {a.data / b};
 }
 
-static_assert(!std::convertible_to<Array<Dual<double, 7, true>,
-                                         std::integral_constant<ptrdiff_t, 2>>,
+static_assert(!std::convertible_to<Array<Dual<double, 7, true>, Length<2>>,
                                    Dual<double, 7, false>>);
 static_assert(utils::Compressible<Dual<double, 7>>);
 static_assert(utils::Compressible<Dual<double, 8>>);
@@ -997,10 +992,10 @@ class HessianResultCore {
 
 public:
   [[nodiscard]] constexpr auto gradient() const -> MutPtrVector<double> {
-    return {ptr, dim};
+    return {ptr, length(dim)};
   }
   [[nodiscard]] constexpr auto hessian() const -> MutSquarePtrMatrix<double> {
-    return {ptr + dim, SquareDims<>{{dim}}};
+    return {ptr + dim, SquareDims<>{row(dim)}};
   }
   constexpr HessianResultCore(alloc::Arena<> *alloc, ptrdiff_t d)
     : ptr{alloc->allocate<double>(size_t(d) * (d + 1))}, dim{d} {}

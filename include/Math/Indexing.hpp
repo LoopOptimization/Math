@@ -346,7 +346,7 @@ template <AbstractSlice B, AbstractSlice C>
 constexpr auto calcNewDim(StridedDims<> d, B r, C c) {
   auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
   auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-  return StridedDims(row(rowDims), col(colDims), RowStride(d));
+  return StridedDims(asrow(rowDims), ascol(colDims), RowStride(d));
 }
 template <ptrdiff_t NR, ptrdiff_t NC, AbstractSlice B, AbstractSlice C>
 constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
@@ -420,7 +420,7 @@ constexpr auto calcNewDim(StridedDims<> d, simd::index::Unroll<R, W, M> r,
 }
 
 template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto calcNewDim(ptrdiff_t, simd::index::Unroll<U, W, M> i) {
+constexpr auto calcNewDim(Length<>, simd::index::Unroll<U, W, M> i) {
   return simd::index::UnrollDims<1, U, W, M, false, 1>{i.mask, RowStride<1>{}};
 }
 

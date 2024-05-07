@@ -120,7 +120,7 @@ constexpr auto pivotRowsPair(std::array<MutPtrMatrix<int64_t>, 2> AK, Col<> i,
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> K,
                          ptrdiff_t i, Row<> M) -> bool {
   MutPtrMatrix<int64_t> B = K;
-  return pivotRowsPair({A, B}, Col<>{i}, M, Row<>{i});
+  return pivotRowsPair({A, B}, col(i), M, row(i));
 }
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M,
                          Row<> piv) -> bool {
@@ -132,7 +132,7 @@ constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M,
 }
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, ptrdiff_t i,
                          Row<> N) -> bool {
-  return pivotRows(A, Col<>{i}, N, Row<>{i});
+  return pivotRows(A, col(i), N, row(i));
 }
 
 constexpr void dropCol(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M, Col<> N) {
@@ -153,20 +153,20 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
   for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {
     // zero ith row
-    if (pivotRows(A, K, i, Row<>{M})) {
+    if (pivotRows(A, K, i, row(M))) {
       // cannot pivot, this is a linear combination of previous
       // therefore, we drop the row
-      dropCol(A, i, Row<>{M}, Col<>{--N});
+      dropCol(A, i, row(M), col(--N));
     } else {
-      zeroSupDiagonal(A, K, i, Row<>{M}, Col<>{N});
+      zeroSupDiagonal(A, K, i, row(M), col(N));
       int64_t Aii = A[i, i];
       if (constexpr_abs(Aii) != 1) {
         // including this row renders the matrix not unimodular!
         // therefore, we drop the row.
-        dropCol(A, i, Row<>{M}, Col<>{--N});
+        dropCol(A, i, row(M), col(--N));
       } else {
         // we zero the sub diagonal
-        zeroSubDiagonal(A, K, i++, Row<>{M}, Col<>{N});
+        zeroSubDiagonal(A, K, i++, row(M), col(N));
         included.push_back(j);
       }
     }
@@ -305,7 +305,7 @@ constexpr void reduceColumn(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
 constexpr void reduceColumnStack(MutPtrMatrix<int64_t> A,
                                  MutPtrMatrix<int64_t> B, ptrdiff_t c,
                                  ptrdiff_t r) {
-  zeroSupDiagonal(B, Col<>{c}, Row<>{r});
+  zeroSupDiagonal(B, col(c), row(r));
   reduceSubDiagonalStack(B, A, c, r);
 }
 
@@ -327,8 +327,8 @@ constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
                                   ptrdiff_t colInit = 0) -> Row<> {
   auto [M, N] = shape(A);
   for (ptrdiff_t r = 0, c = colInit; c < N && r < M; ++c)
-    if (!pivotRows(A, Col<>{c}, Row<>{M}, Row<>{r}))
-      reduceColumn(A, Col<>{c}, Row<>{r++});
+    if (!pivotRows(A, col(c), row(M), row(r)))
+      reduceColumn(A, col(c), row(r++));
   return numNonZeroRows(A);
 }
 constexpr void simplifySystem(EmptyMatrix<int64_t>, ptrdiff_t = 0) {}
@@ -354,8 +354,8 @@ constexpr void reduceColumn(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
 constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
   auto [M, N] = shape(AB[0]);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
-    if (!pivotRowsPair(AB, Col<>{c}, Row<>{M}, Row<>{r}))
-      reduceColumn(AB, Col<>{c}, Row<>{r++});
+    if (!pivotRowsPair(AB, col(c), row(M), row(r)))
+      reduceColumn(AB, col(c), row(r++));
 }
 template <MatrixDimension S0, MatrixDimension S1>
 constexpr void simplifySystem(MutArray<int64_t, S0> &A,
@@ -552,7 +552,7 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
   invariant(ptrdiff_t(pivots.size()), std::min(M, N));
   int64_t prev = 1, pivInd = 0;
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
-    if (auto piv = pivotRowsBareiss(A, c, Row<>{M}, Row<>{r})) {
+    if (auto piv = pivotRowsBareiss(A, c, row(M), row(r))) {
       pivots[pivInd++] = *piv;
       auto j{_(c + 1, N)};
       for (ptrdiff_t k = r + 1; k < M; ++k) {
@@ -565,7 +565,7 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
 }
 
 [[nodiscard]] constexpr auto bareiss(IntMatrix<> &A) -> Vector<ptrdiff_t> {
-  Vector<ptrdiff_t> pivots(A.minRowCol());
+  Vector<ptrdiff_t> pivots(length(A.minRowCol()));
   bareiss(A, pivots);
   return pivots;
 }
@@ -627,22 +627,20 @@ constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
 constexpr void solveSystem(MutPtrMatrix<int64_t> A, MutPtrMatrix<int64_t> B) {
   const auto [M, N] = shape(A);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
-    if (!pivotRowsPair({A, B}, Col<>{c}, Row<>{M}, Row<>{r}))
-      zeroColumnPair({A, B}, Col<>{c}, Row<>{r++});
+    if (!pivotRowsPair({A, B}, col(c), row(M), row(r)))
+      zeroColumnPair({A, B}, col(c), row(r++));
 }
 // diagonalizes A(0:K,0:K)
 constexpr void solveSystem(MutPtrMatrix<int64_t> A, ptrdiff_t K) {
   Row M = A.numRow();
   for (ptrdiff_t r = 0, c = 0; c < K && r < M; ++c)
-    if (!pivotRows(A, Col<>{c}, Row<>{M}, Row<>{r}))
-      zeroColumn(A, Col<>{c}, Row<>{r++});
+    if (!pivotRows(A, col(c), M, row(r))) zeroColumn(A, col(c), row(r++));
 }
 // diagonalizes A(0:K,1:K+1)
 constexpr void solveSystemSkip(MutPtrMatrix<int64_t> A) {
   const auto [M, N] = shape(A);
   for (ptrdiff_t r = 0, c = 1; c < N && r < M; ++c)
-    if (!pivotRows(A, Col<>{c}, Row<>{M}, Row<>{r}))
-      zeroColumn(A, Col<>{c}, Row<>{r++});
+    if (!pivotRows(A, col(c), row(M), row(r))) zeroColumn(A, col(c), row(r++));
 }
 
 // returns `true` if the solve failed, `false` otherwise
@@ -691,7 +689,7 @@ constexpr void nullSpace11(DenseMatrix<int64_t> &B, DenseMatrix<int64_t> &A) {
   // slice B[_(R,end), :]
   if (!R) return;
   // we keep last D columns
-  Row D = Row<>{ptrdiff_t(M) - ptrdiff_t(R)};
+  Row D = row(ptrdiff_t(M) - ptrdiff_t(R));
   // we keep `D` columns
   // TODO: shift pointer instead?
   // This seems like a bad idea given ManagedArrays that must

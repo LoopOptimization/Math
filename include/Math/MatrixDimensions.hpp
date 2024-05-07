@@ -317,7 +317,7 @@ template <ptrdiff_t R> struct SquareDims {
   {
     return {M, {ptrdiff_t(M)}};
   }
-  constexpr operator DenseDims<>() const { return {M, {ptrdiff_t(M)}}; }
+  constexpr operator DenseDims<>() const { return {M, ascol(M)}; }
   constexpr operator SquareDims<>() const
   requires((R != -1))
   {

@@ -593,4 +593,26 @@ operator-(Col<> a, Col<> b) -> Col<> {
   return {static_cast<Col<-1>::col>(ptrdiff_t(a) - ptrdiff_t(b))};
 }
 
+template <ptrdiff_t M> constexpr auto asrow(Length<M> len) -> Row<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Row<-1>::row>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M> constexpr auto asrow(Col<M> len) -> Row<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Row<-1>::row>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M> constexpr auto ascol(Length<M> len) -> Col<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Col<-1>::col>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M> constexpr auto ascol(Row<M> len) -> Col<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Col<-1>::col>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M>
+constexpr auto asrowStride(Length<M> len) -> RowStride<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<RowStride<-1>::stride>(ptrdiff_t(len))};
+}
+
 } // namespace poly::math
