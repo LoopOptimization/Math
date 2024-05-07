@@ -525,7 +525,7 @@ struct StaticArray<T, 1, N, false>
   }
   static constexpr ptrdiff_t W = simd::VecLen<N, T>;
   static constexpr ptrdiff_t Align = alignof(simd::Vec<W, T>);
-  using S = std::integral_constant<ptrdiff_t, N>;
+  using S = Length<N>;
   [[nodiscard]] static constexpr auto dim() noexcept -> S { return S{}; }
 
   [[nodiscard]] constexpr auto view() const -> StaticArray { return *this; }

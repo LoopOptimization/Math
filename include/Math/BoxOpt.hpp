@@ -39,10 +39,10 @@ public:
     return *this;
   }
   [[nodiscard]] constexpr auto getLowerBounds() -> MutPtrVector<int32_t> {
-    return {i32() + Ntotal, Ntotal};
+    return {i32() + Ntotal, length(Ntotal)};
   }
   [[nodiscard]] constexpr auto getUpperBounds() -> MutPtrVector<int32_t> {
-    return {i32() + ptrdiff_t(2) * Ntotal, Ntotal};
+    return {i32() + ptrdiff_t(2) * Ntotal, length(Ntotal)};
   }
   // gives max fractional ind on the transformed scale
   template <bool Relative = true>
@@ -65,10 +65,10 @@ public:
     return {k, static_cast<int32_t>(lb)};
   }
   [[nodiscard]] constexpr auto getRaw() -> MutPtrVector<double> {
-    return {f64() + ptrdiff_t(2) * Ntotal, Nraw};
+    return {f64() + ptrdiff_t(2) * Ntotal, length(Nraw)};
   }
   [[nodiscard]] constexpr auto getRaw() const -> PtrVector<double> {
-    return {f64() + ptrdiff_t(2) * Ntotal, Nraw};
+    return {f64() + ptrdiff_t(2) * Ntotal, length(Nraw)};
   }
 
 protected:
@@ -119,28 +119,28 @@ protected:
     return reinterpret_cast<const int32_t *>(data + f64Bytes());
   }
   [[nodiscard]] constexpr auto getInds() const -> PtrVector<int32_t> {
-    return {i32(), Ntotal};
+    return {i32(), length(Ntotal)};
   }
   [[nodiscard]] constexpr auto getLowerBounds() const -> PtrVector<int32_t> {
-    return {i32() + Ntotal, Ntotal};
+    return {i32() + Ntotal, length(Ntotal)};
   }
   [[nodiscard]] constexpr auto getUpperBounds() const -> PtrVector<int32_t> {
-    return {i32() + ptrdiff_t(2) * Ntotal, Ntotal};
+    return {i32() + ptrdiff_t(2) * Ntotal, length(Ntotal)};
   }
   [[nodiscard]] constexpr auto offs() const -> PtrVector<double> {
-    return {f64(), Ntotal};
+    return {f64(), length(Ntotal)};
   }
   [[nodiscard]] constexpr auto scales() const -> PtrVector<double> {
-    return {f64() + Ntotal, Ntotal};
+    return {f64() + Ntotal, length(Ntotal)};
   }
   [[nodiscard]] constexpr auto getInds() -> MutPtrVector<int32_t> {
-    return {i32(), Ntotal};
+    return {i32(), length(Ntotal)};
   }
   [[nodiscard]] constexpr auto offs() -> MutPtrVector<double> {
-    return {f64(), Ntotal};
+    return {f64(), length(Ntotal)};
   }
   [[nodiscard]] constexpr auto scales() -> MutPtrVector<double> {
-    return {f64() + Ntotal, Ntotal};
+    return {f64() + Ntotal, length(Ntotal)};
   }
   static constexpr auto scaleOff(int32_t lb,
                                  int32_t ub) -> std::pair<double, double> {
@@ -162,9 +162,9 @@ template <typename V>
 concept IsMutable = requires(V v, utils::eltype_t<V> x, ptrdiff_t i) {
   { v.data()[i] = x };
 };
-static_assert(IsMutable<math::MutArray<double, ptrdiff_t>>);
-static_assert(!IsMutable<math::Array<double, ptrdiff_t>>);
-static_assert(!IsMutable<DualVector<2, math::Array<double, ptrdiff_t>>>);
+static_assert(IsMutable<math::MutArray<double, Length<>>>);
+static_assert(!IsMutable<math::Array<double, Length<>>>);
+static_assert(!IsMutable<DualVector<2, math::Array<double, Length<>>>>);
 template <AbstractVector V> struct BoxTransformVector {
   using value_type = utils::eltype_t<V>;
   static_assert(Trivial<V>);
@@ -348,7 +348,7 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
   ptrdiff_t L = x.size();
   auto scope = alloc->scope();
   auto *data = alloc->allocate<double>(2 * L);
-  MutPtrVector<double> xnew{data, L}, dir{data + L, L}, xcur{x};
+  MutPtrVector<double> xnew{data, length(L)}, dir{data + L, length(L)}, xcur{x};
   HessianResultCore hr{alloc, L};
   for (ptrdiff_t n = 0; n < 1000; ++n) {
     fx = hessian(hr, xcur, f);

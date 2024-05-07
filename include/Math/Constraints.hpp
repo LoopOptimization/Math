@@ -73,7 +73,7 @@ constexpr void eraseConstraintImpl(MutDensePtrMatrix<int64_t> A, ptrdiff_t _i,
   ptrdiff_t penuRow = lastRow - 1;
   if (j == penuRow) {
     // then we only need to copy one column (i to lastCol)
-    eraseConstraintImpl(A, Row<>{i});
+    eraseConstraintImpl(A, row(i));
   } else if ((i != penuRow) && (i != lastRow)) {
     // if i == penuCol, then j == lastCol
     // and we thus don't need to copy
@@ -86,7 +86,7 @@ constexpr void eraseConstraintImpl(MutDensePtrMatrix<int64_t> A, ptrdiff_t _i,
 constexpr void eraseConstraint(MutDensePtrMatrix<int64_t> &A, ptrdiff_t i,
                                ptrdiff_t j) {
   eraseConstraintImpl(A, i, j);
-  A.truncate(Row<>{ptrdiff_t(A.numRow()) - 2});
+  A.truncate(row(ptrdiff_t(A.numRow()) - 2));
 }
 
 constexpr auto substituteEqualityImpl(MutDensePtrMatrix<int64_t> E,
@@ -103,7 +103,7 @@ constexpr auto substituteEqualityImpl(MutDensePtrMatrix<int64_t> E,
         rowMinNonZero = j;
       }
     }
-  if (rowMinNonZero == numConstraints) return {rowMinNonZero};
+  if (rowMinNonZero == numConstraints) return row(rowMinNonZero);
   auto Es = E[rowMinNonZero, _];
   int64_t Eis = Es[i];
   // we now substitute the equality expression with the minimum number
@@ -122,7 +122,7 @@ constexpr auto substituteEqualityImpl(MutDensePtrMatrix<int64_t> E,
       }
     }
   }
-  return {rowMinNonZero};
+  return row(rowMinNonZero);
 }
 constexpr auto substituteEquality(DenseMatrix<int64_t> &E,
                                   const ptrdiff_t i) -> bool {
@@ -149,7 +149,7 @@ substituteEqualityPairImpl(std::array<MutDensePtrMatrix<int64_t>, 2> AE,
       }
     }
   }
-  if (rowMinNonZero == numConstraints) return {rowMinNonZero};
+  if (rowMinNonZero == numConstraints) return row(rowMinNonZero);
   auto Es = E[rowMinNonZero, _];
   int64_t Eis = Es[i], s = 2 * (Eis > 0) - 1;
   // we now substitute the equality expression with the minimum number
@@ -179,7 +179,7 @@ substituteEqualityPairImpl(std::array<MutDensePtrMatrix<int64_t>, 2> AE,
       }
     }
   }
-  return {rowMinNonZero};
+  return row(rowMinNonZero);
 }
 constexpr auto substituteEquality(MutDensePtrMatrix<int64_t> &,
                                   EmptyMatrix<int64_t>, ptrdiff_t) -> bool {
@@ -303,7 +303,7 @@ fourierMotzkinCore(MutDensePtrMatrix<int64_t> B, DensePtrMatrix<int64_t> A,
     B[r, _(v, end)] << A[i, _(v + 1, end)];
     r += anyNEZero(B[r, _(0, end)]);
   }
-  return {r};
+  return row(r);
 }
 
 template <bool NonNegative>
@@ -316,7 +316,7 @@ constexpr auto fourierMotzkin(Alloc<int64_t> auto &alloc,
   ptrdiff_t r =
     ptrdiff_t(A.numRow()) - pos.size() + ptrdiff_t(neg.size()) * pos.size();
   if constexpr (!NonNegative) r -= neg.size();
-  auto B = matrix(alloc, Row<>{r}, --auto{A.numCol()});
+  auto B = matrix(alloc, row(r), --auto{A.numCol()});
   B.truncate(fourierMotzkinCore<NonNegative>(B, A, v, znp));
   return B;
 }
@@ -328,9 +328,9 @@ constexpr void fourierMotzkinCore(DenseMatrix<int64_t> &A, ptrdiff_t v,
   // read from two constraints we're deleting; we can't write into
   // both of them. Thus, we use a little extra memory here,
   // and then truncate.
-  const Row numRowsOld = A.numRow();
-  const Row<> numRowsNew = {ptrdiff_t(numRowsOld) - numNeg - numPos +
-                            numNeg * numPos + 1};
+  const Row numRowsOld = A.numRow(),
+            numRowsNew = row(ptrdiff_t(numRowsOld) - numNeg - numPos +
+                             numNeg * numPos + 1);
   A.resize(numRowsNew);
   // plan is to replace
   for (ptrdiff_t i = 0, numRows = ptrdiff_t(numRowsOld), posCount = numPos;
@@ -358,7 +358,7 @@ constexpr void fourierMotzkinCore(DenseMatrix<int64_t> &A, ptrdiff_t v,
         allZero &= (Ack == 0);
       }
       if (allZero) {
-        eraseConstraint(A, Row<>{c});
+        eraseConstraint(A, row(c));
         if (posCount)
           if (negCount) --numRows;
           else --i;
@@ -366,7 +366,7 @@ constexpr void fourierMotzkinCore(DenseMatrix<int64_t> &A, ptrdiff_t v,
       }
     }
     if (posCount == 0) // last posCount not overwritten, so we erase
-      eraseConstraint(A, Row<>{i});
+      eraseConstraint(A, row(i));
   }
 }
 constexpr void fourierMotzkin(DenseMatrix<int64_t> &A, ptrdiff_t v) {
@@ -404,7 +404,7 @@ removeRedundantRows(MutDensePtrMatrix<int64_t> A,
                     MutDensePtrMatrix<int64_t> B) -> std::array<Row<>, 2> {
   auto [M, N] = shape(B);
   for (ptrdiff_t r = 0, c = 0; c++ < N && r < M;)
-    if (!NormalForm::pivotRows(B, Col<>{c == N ? 0 : c}, Row<>{M}, Row<>{r}))
+    if (!NormalForm::pivotRows(B, col(c == N ? 0 : c), row(M), row(r)))
       NormalForm::reduceColumnStack(A, B, c == N ? 0 : c, r++);
   // scan duplicate rows in `A`
   for (Row r = A.numRow(); r != 0;)

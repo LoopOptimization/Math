@@ -585,32 +585,57 @@ operator+(Col<> a, Col<> b) -> Col<> {
   return {static_cast<Col<-1>::col>(ptrdiff_t(a) + ptrdiff_t(b))};
 }
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+operator-(Length<> a, Length<> b) -> Length<> {
+  ptrdiff_t delta = ptrdiff_t(a) - ptrdiff_t(b);
+  invariant(delta >= 0);
+  return {static_cast<Length<-1>::len>(delta)};
+}
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
 operator-(Row<> a, Row<> b) -> Row<> {
-  return {static_cast<Row<-1>::row>(ptrdiff_t(a) - ptrdiff_t(b))};
+  ptrdiff_t delta = ptrdiff_t(a) - ptrdiff_t(b);
+  invariant(delta >= 0);
+  return {static_cast<Row<-1>::row>(delta)};
 }
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 operator-(Col<> a, Col<> b) -> Col<> {
-  return {static_cast<Col<-1>::col>(ptrdiff_t(a) - ptrdiff_t(b))};
+  ptrdiff_t delta = ptrdiff_t(a) - ptrdiff_t(b);
+  invariant(delta >= 0);
+  return {static_cast<Col<-1>::col>(delta)};
 }
 
-template <ptrdiff_t M> constexpr auto asrow(Length<M> len) -> Row<M> {
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+aslength(Col<M> len) -> Length<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Length<-1>::len>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+asrow(Length<M> len) -> Row<M> {
   if constexpr (M != -1) return {};
   else return {static_cast<Row<-1>::row>(ptrdiff_t(len))};
 }
-template <ptrdiff_t M> constexpr auto asrow(Col<M> len) -> Row<M> {
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+asrow(Col<M> len) -> Row<M> {
   if constexpr (M != -1) return {};
   else return {static_cast<Row<-1>::row>(ptrdiff_t(len))};
 }
-template <ptrdiff_t M> constexpr auto ascol(Length<M> len) -> Col<M> {
-  if constexpr (M != -1) return {};
-  else return {static_cast<Col<-1>::col>(ptrdiff_t(len))};
-}
-template <ptrdiff_t M> constexpr auto ascol(Row<M> len) -> Col<M> {
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+ascol(Length<M> len) -> Col<M> {
   if constexpr (M != -1) return {};
   else return {static_cast<Col<-1>::col>(ptrdiff_t(len))};
 }
 template <ptrdiff_t M>
-constexpr auto asrowStride(Length<M> len) -> RowStride<M> {
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+ascol(Row<M> len) -> Col<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Col<-1>::col>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+asrowStride(Length<M> len) -> RowStride<M> {
   if constexpr (M != -1) return {};
   else return {static_cast<RowStride<-1>::stride>(ptrdiff_t(len))};
 }

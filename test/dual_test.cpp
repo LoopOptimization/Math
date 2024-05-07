@@ -20,7 +20,7 @@ TEST(DualTest, BasicAssertions) {
   std::mt19937 gen(0);
   std::uniform_real_distribution<double> dist(-1, 1);
   SquareMatrix<double> A(15);
-  Vector<double> x(15);
+  Vector<double> x(length(15));
   for (auto &a : A) a = dist(gen);
   for (auto &xx : x) xx = dist(gen);
   SquareMatrix<double> B = A + A.t();
@@ -81,14 +81,14 @@ constexpr auto log2ceil(double x) -> unsigned {
 
 template <typename T> constexpr void expmimpl(MutSquarePtrMatrix<T> A) {
   ptrdiff_t n = ptrdiff_t(A.numRow()), s = 0;
-  SquareMatrix<T> A2{SquareDims<>{{n}}}, U_{SquareDims<>{{n}}};
+  SquareMatrix<T> A2{SquareDims<>{row(n)}}, U_{SquareDims<>{row(n)}};
   MutSquarePtrMatrix<T> U{U_};
   if (double nA = opnorm1(A); nA <= 0.015) {
     A2 << A * A;
     U << A * (A2 + 60.0 * I);
     A << 12.0 * A2 + 120.0 * I;
   } else {
-    SquareMatrix<T> B{SquareDims<>{{n}}};
+    SquareMatrix<T> B{SquareDims<>{row(n)}};
     if (nA <= 2.1) {
       A2 << A * A;
       poly::containers::TinyVector<double, 5> p0, p1;

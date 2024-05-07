@@ -1,13 +1,10 @@
 #pragma once
-#include "Math/Array.hpp"
-#include <cstddef>
-#ifndef SOA_hpp_INCLUDED
-#define SOA_hpp_INCLUDED
-
 #include "Alloc/Mallocator.hpp"
 #include "Containers/Pair.hpp"
 #include "Containers/Tuple.hpp"
+#include "Math/Array.hpp"
 #include "Math/MatrixDimensions.hpp"
+#include <cstddef>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -117,7 +114,7 @@ inline constexpr size_t CumSizeOf_v = CumSizeOf<I, TupleTypes_t<T>>::value;
 // std::conditional_t<MatrixDimension<S>, CapacityCalculators::Length,
 //                                CapacityCalculators::NextPow2>
 /// requires 16 byte alignment of allocated pointer
-template <typename T, typename S = ptrdiff_t,
+template <typename T, Dimension S = Length<>,
           typename C = CapacityCalculators::Explicit,
           typename TT = TupleTypes_t<T>,
           typename II = std::make_index_sequence<std::tuple_size_v<T>>>
@@ -181,7 +178,9 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   static constexpr auto totalSizePer() -> size_t {
     return CumSizeOf_v<sizeof...(II), T>;
   }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return sz; }
+  [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
+    return ptrdiff_t(sz);
+  }
   template <size_t I> auto get(ptrdiff_t i) -> std::tuple_element_t<I, T> & {
     invariant(i >= 0);
     invariant(i < size());
@@ -211,7 +210,7 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   }
 };
 
-template <typename T, typename S = ptrdiff_t,
+template <typename T, typename S = Length<>,
           typename C = CapacityCalculators::Explicit,
           typename TT = TupleTypes_t<T>,
           typename II = std::make_index_sequence<std::tuple_size_v<T>>,
@@ -222,8 +221,8 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
   constexpr ManagedSOA() = default;
   ManagedSOA(S nsz) {
     this->sz = nsz;
-    this->capacity = C{nsz};
-    ptrdiff_t stride = this->capacity(this->sz);
+    this->capacity = C{ptrdiff_t(nsz)};
+    ptrdiff_t stride = this->capacity(ptrdiff_t(this->sz));
     this->data = alloc(stride);
     // this->data =
     //   A::allocate(stride * this->totalSizePer(), std::align_val_t{16});
@@ -274,7 +273,8 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     this->capacity = ncap;
   }
   void resize(S nsz) {
-    auto [ocap, ncap] = this->capacity.oldnewcap(this->sz, nsz);
+    auto [ocap, ncap] =
+      this->capacity.oldnewcap(ptrdiff_t(this->sz), ptrdiff_t(nsz));
     if (ocap >= ncap) {
       this->sz = nsz;
       return;
@@ -289,18 +289,25 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
          i < L; ++i)
       self[i] = other[i];
   }
+  void resize(ptrdiff_t nsz)
+  requires(std::same_as<S, Length<>>)
+  {
+    resize(length(nsz));
+  }
   constexpr void clear() { this->sz = {}; }
   template <typename... Args> void emplace_back(Args &&...args) {
     push_back(T(args...));
   }
-  void push_back(T arg) {
+  void push_back(T arg)
+  requires(std::same_as<S, Length<>>)
+  {
     S osz = this->sz;
-    resize(osz + 1);
-    (*this)[osz] = arg;
+    auto i = ptrdiff_t(osz);
+    resize(ptrdiff_t(i) + 1z);
+    (*this)[i] = arg;
   }
 };
 template <typename T, typename S>
 ManagedSOA(std::type_identity<T>, S) -> ManagedSOA<T, S>;
 
 } // namespace poly::math
-#endif // SOA_hpp_INCLUDED

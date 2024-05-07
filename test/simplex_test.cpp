@@ -13,7 +13,7 @@ TEST(SimplexTest, BasicAssertions) {
   // 10 >= 3x + 2y + z
   // 15 >= 2x + 5y + 3z
   IntMatrix<> A{"[10 3 2 1; 15 2 5 3]"_mat};
-  IntMatrix<> B{DenseDims<>{{0}, {4}}};
+  IntMatrix<> B{DenseDims<>{row(0), col(4)}};
   IntMatrix<> D{"[0 0 0 -2 -3 -4; 10 1 0  3  2  1; 15 0 1  2  5  3 ]"_mat};
   OwningArena<> alloc;
   Optional<Simplex *> optS0{Simplex::positiveVariables(&alloc, A)};
@@ -45,9 +45,9 @@ TEST(LexMinSmallTest, BasicAssertions) {
   // -15 == -2x - 5y - 3z + s1
   IntMatrix<> tableau{"[-10 0 1 -1 -2 -3; -15 1 0 -3 -5 -2]"_mat};
   // IntMatrix A{"[-10 -3 -2 -1; -15 -2 -5 -3]"_mat};
-  Simplex *simp{Simplex::create(&alloc, 2, 5)};
+  Simplex *simp{Simplex::create(&alloc, row(2), col(5))};
   simp->getConstraints() << tableau;
-  Vector<Rational> sol(5);
+  Vector<Rational> sol(length(5));
   EXPECT_FALSE(simp->initiateFeasible());
   std::cout << "S.tableau =" << simp->getTableau() << "\n";
   //       x  y  z s0  s1 a0 a1
@@ -117,7 +117,7 @@ auto simplexFromTableau(Arena<> *alloc,
                         IntMatrix<> &tableau) -> Valid<Simplex> {
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
-  Simplex *simp{Simplex::create(alloc, numCon, numVar)};
+  Simplex *simp{Simplex::create(alloc, row(numCon), col(numVar))};
   for (ptrdiff_t r = 0, R = ptrdiff_t(numRows(tableau)); r < R; ++r)
     for (ptrdiff_t c = 0, N = ptrdiff_t(numCols(tableau)); c < N; ++c)
       invariant(tableau[r, c] != std::numeric_limits<int64_t>::min());
@@ -1001,7 +1001,7 @@ TEST(LexMinSimplexTest, BasicAssertions) {
   tableau[0, _] << -5859553999884210514;
   OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
-  Vector<Rational> sol(37);
+  Vector<Rational> sol(length(37));
   EXPECT_EQ(sol.size(), 37);
   EXPECT_FALSE(simp->initiateFeasible());
   simp->rLexMin(sol);
@@ -1283,7 +1283,7 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
   // std::cout << "tableau4 =" << tableau << "\n";
   OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
-  Vector<Rational> sol(15);
+  Vector<Rational> sol(length(15));
   EXPECT_EQ(sol.size(), 15);
   EXPECT_FALSE(simp->initiateFeasible());
   auto s = simp->rLexMinLast(15);
@@ -1354,7 +1354,7 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
 }
 
 TEST(Infeasible, BasicAssertions) {
-  IntMatrix<> C{DenseDims<>{{220}, {383}}, 0};
+  IntMatrix<> C{DenseDims<>{row(220), col(383)}, 0};
   C[0, 0] = -1;
   C[0, 1] = 1;
   C[0, 2] = -1;

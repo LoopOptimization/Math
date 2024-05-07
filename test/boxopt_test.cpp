@@ -200,7 +200,7 @@ auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
   }
 
   poly::alloc::OwningArena<> arena;
-  poly::math::Vector<int32_t> r{3};
+  poly::math::Vector<int32_t> r{poly::math::length(3)};
   poly::math::minimizeIntSol(&arena, r, box, MatOpt{M, K, N});
   return {m_r * r[0], r[1], n_r * r[2]};
 }

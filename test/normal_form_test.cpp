@@ -24,7 +24,7 @@ TEST(OrthogonalizationTest, BasicAssertions) {
   ptrdiff_t luFailedCount = 0;
   ptrdiff_t invFailedCount = 0;
   ptrdiff_t numIters = 1000;
-  IntMatrix<> B(DenseDims<>{{4}, {8}});
+  IntMatrix<> B(DenseDims<>{row(4), col(8)});
   SquareMatrix<int64_t> I4 = SquareMatrix<int64_t>::identity(4);
   for (ptrdiff_t i = 0; i < numIters; ++i) {
     for (ptrdiff_t n = 0; n < 4; ++n)
@@ -123,7 +123,7 @@ TEST(OrthogonalizationTest, BasicAssertions) {
 auto isHNF(PtrMatrix<int64_t> A) -> bool {
   const auto [M, N] = shape(A);
   // l is lead
-  Col<> l = {0};
+  Col<> l = {};
   for (ptrdiff_t m = 0; m < M; ++m) {
     // all entries must be 0
     for (ptrdiff_t n = 0; n < l; ++n)
@@ -144,7 +144,7 @@ auto isHNF(PtrMatrix<int64_t> A) -> bool {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(Hermite, BasicAssertions) {
   {
-    IntMatrix<> A43(DenseDims<>{{4}, {3}});
+    IntMatrix<> A43(DenseDims<>{row(4), col(3)});
     A43[0, 0] = 2;
     A43[1, 0] = 3;
     A43[2, 0] = 6;
@@ -254,7 +254,7 @@ TEST(NullSpaceTests, BasicAssertions) {
   // ptrdiff_t numIters = 1000;
   ptrdiff_t numIters = 1;
   for (ptrdiff_t numCol = 2; numCol < 11; numCol += 2) {
-    IntMatrix<> B(DenseDims<>{{8}, {numCol}});
+    IntMatrix<> B(DenseDims<>{row(8), col(numCol)});
     ptrdiff_t nullDim = 0;
     IntMatrix<> Z;
     DenseMatrix<int64_t> NS;
@@ -333,7 +333,7 @@ TEST(InvTest, BasicAssertions) {
   std::uniform_int_distribution<> distrib(-10, 10);
   const ptrdiff_t numIters = 1000;
   for (ptrdiff_t dim = 1; dim < 5; ++dim) {
-    SquareMatrix<int64_t> B(SquareDims<>{{dim}});
+    SquareMatrix<int64_t> B(SquareDims<>{row(dim)});
     SquareMatrix<int64_t> Db = SquareMatrix<int64_t>::identity(dim);
     for (ptrdiff_t i = 0; i < numIters; ++i) {
       while (true) {

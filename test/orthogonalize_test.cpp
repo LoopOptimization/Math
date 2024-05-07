@@ -3,7 +3,8 @@
 #include "Math/Orthogonalize.hpp"
 #include <gtest/gtest.h>
 
-using poly::math::DenseMatrix, poly::math::DenseDims;
+using poly::math::DenseMatrix, poly::math::DenseDims, poly::math::row,
+  poly::math::col;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(OrthogonalizeMatricesTest, BasicAssertions) {
@@ -13,8 +14,8 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
 
   const size_t M = 7;
   const size_t N = 7;
-  DenseMatrix<int64_t> A(DenseDims<>{{M}, {N}});
-  DenseMatrix<int64_t> B(DenseDims<>{{N}, {N}});
+  DenseMatrix<int64_t> A(DenseDims<>{row(M), col(N)});
+  DenseMatrix<int64_t> B(DenseDims<>{row(N), col(N)});
   const size_t iters = 1000;
   for (size_t i = 0; i < iters; ++i) {
     for (auto &&a : A) a = distrib(gen);

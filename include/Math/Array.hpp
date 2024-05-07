@@ -309,8 +309,7 @@ struct POLY_MATH_GSL_POINTER Array {
   static constexpr bool trivial =
     std::is_trivially_default_constructible_v<T> &&
     std::is_trivially_destructible_v<T>;
-  static constexpr bool isdense =
-    VectorDimension<S> || std::convertible_to<S, DenseDims<>>;
+  static constexpr bool isdense = DenseLayout<S>;
   static constexpr bool flatstride = isdense || std::same_as<S, StridedRange>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
@@ -684,7 +683,7 @@ struct POLY_MATH_GSL_POINTER MutArray
   template <std::convertible_to<T> U, std::convertible_to<S> V>
   constexpr MutArray(Array<U, V> a) : Array<T, S>(a) {}
   template <size_t N>
-  constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a.data(), N) {}
+  constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a.data(), length(N)) {}
   [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
     invariant(this->ptr != nullptr || ptrdiff_t(this->sz) == 0);
     return const_cast<storage_type *>(this->ptr);
@@ -753,9 +752,10 @@ struct POLY_MATH_GSL_POINTER MutArray
     StridedRange r{l, --rs};
     return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
   }
-  constexpr void erase(S i) {
-    static_assert(std::same_as<S, Length<>>, "erase requires integral size");
-    S oldLen = this->sz--;
+  constexpr void erase(ptrdiff_t i)
+  requires(std::same_as<S, Length<>>)
+  {
+    auto oldLen = ptrdiff_t(this->sz--);
     if (i < this->sz)
       std::copy(this->data() + i + 1, data() + oldLen, this->data() + i);
   }
@@ -960,7 +960,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     : ResizeableView{a->template allocate<storage_type>(c), s, c} {}
 
   [[nodiscard]] constexpr auto isFull() const -> bool {
-    return U(this->sz) == capacity_;
+    return ptrdiff_t(this->sz) == capacity_;
   }
 
   template <class... Args>
@@ -1097,9 +1097,9 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     }
   }
   constexpr void resizeForOverwrite(S M) {
-    invariant(U(M) <= U(this->sz));
+    invariant(ptrdiff_t(M) <= ptrdiff_t(this->sz));
     if constexpr (!std::is_trivially_destructible_v<T>) {
-      ptrdiff_t nz = U(M), oz = U(this->sz);
+      ptrdiff_t nz = ptrdiff_t(M), oz = ptrdiff_t(this->sz);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
       else if (nz > oz) // FIXME: user should initialize?
         for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
@@ -1270,7 +1270,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
                     "Resizing matrices holding non-is_trivially_destructible_v "
                     "objects is not yet supported.");
       static_assert(MatrixDimension<S>, "Can only resize 1 or 2d containers.");
-      U len = U(nz);
+      auto len = ptrdiff_t(nz);
       if (len == 0) return;
       auto newX = ptrdiff_t{RowStride(nz)}, oldX = ptrdiff_t{RowStride(oz)},
            newN = ptrdiff_t{Col(nz)}, oldN = ptrdiff_t{Col(oz)},
@@ -1641,7 +1641,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <class D>
   constexpr ManagedArray(ManagedArray<T, D, N, A> &&b) noexcept
-    : BaseT{memory.data(), b.dim(), U(N), b.get_allocator()} {
+    : BaseT{memory.data(), b.dim(), U(capacity(N)), b.get_allocator()} {
     if (b.isSmall()) { // copy
       std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else { // steal
@@ -1667,7 +1667,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <class D>
   constexpr ManagedArray(ManagedArray<T, D, N, A> &&b, S s) noexcept
-    : BaseT{memory.data(), s, U(N), b.get_allocator()} {
+    : BaseT{memory.data(), s, U(capacity(N)), b.get_allocator()} {
     if (b.isSmall()) { // copy
       std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else { // steal
@@ -1697,17 +1697,15 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   constexpr ManagedArray(const ColVector auto &v)
   requires(MatrixDimension<S>)
-    : BaseT{memory.data(), S(shape(v)), U(N)} {
-    U len = U(this->sz);
-    this->growUndef(len);
+    : BaseT{memory.data(), S(shape(v)), U(capacity(N))} {
+    this->growUndef(ptrdiff_t(this->sz));
     MutArray<T, decltype(v.dim())>(this->data(), v.dim()) << v;
     // (*this) << v;
   }
   constexpr ManagedArray(const RowVector auto &v)
   requires(MatrixDimension<S>)
     : BaseT{memory.data(), S(CartesianIndex(1, v.size())), U(capacity(N))} {
-    auto len = ptrdiff_t(this->sz);
-    this->growUndef(len);
+    this->growUndef(ptrdiff_t(this->sz));
     (*this) << v;
   }
 #if !defined(__clang__) && defined(__GNUC__)
@@ -1722,7 +1720,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   operator=(const ManagedArray<T, D, N, A> &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     this->sz = b.dim();
-    U len = U(this->sz);
+    auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
     return *this;
@@ -1759,7 +1757,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
       // no need to shrink our capacity
       std::copy_n(b.data(), ptrdiff_t(this->sz), this->data());
     } else { // otherwise, we take its pointer
-      this->maybeDeallocate(b.data(), b.getCapacity());
+      this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
     }
     b.resetNoFree();
     return *this;

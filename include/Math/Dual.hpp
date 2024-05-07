@@ -1029,7 +1029,7 @@ template <ptrdiff_t N, AbstractVector T> struct DualVector {
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return x.size(); }
   [[nodiscard]] constexpr auto numRow() const -> Row<1> { return {}; }
-  [[nodiscard]] constexpr auto numCol() const -> Col<> { return {x.size()}; }
+  [[nodiscard]] constexpr auto numCol() const -> Col<> { return col(x.size()); }
   [[nodiscard]] constexpr auto view() const -> DualVector { return *this; }
 };
 static_assert(AbstractVector<DualVector<8, PtrVector<double>>>);

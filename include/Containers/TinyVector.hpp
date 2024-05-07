@@ -36,18 +36,18 @@ public:
   constexpr auto
   operator=(const std::initializer_list<T> &list) -> TinyVector & {
     invariant(list.size() <= ptrdiff_t(N));
-    L oldLen = len;
-    len = ptrdiff_t(list.size());
+    ptrdiff_t slen = std::ssize(list), oldLen = ptrdiff_t(len);
+    len = math::length(slen);
     auto I = list.begin();
     if constexpr (Storage<T, N>::trivial) {
       // implicit lifetime type
-      std::copy_n(I, len, data.data());
+      std::copy_n(I, slen, data.data());
     } else {
-      L J = std::min(len, oldLen);
+      ptrdiff_t J = std::min(len, ptrdiff_t(oldLen));
       // old values exist
       std::move(I, I + J, data.data());
       if (oldLen < len) {
-        std::uninitialized_move_n(I + oldLen, len - oldLen,
+        std::uninitialized_move_n(I + oldLen, slen - oldLen,
                                   data.data() + oldLen);
       } else if constexpr (!std::is_trivially_destructible_v<T>)
         if (oldLen > len) std::destroy_n(data.data() + len, oldLen - len);

@@ -59,10 +59,10 @@ class Simplex {
   basicVarsPointer() const -> index_type * {
     return basicConsPointer() + reservedBasicConstraints();
   }
-  ptrdiff_t numConstraints{0};
-  ptrdiff_t numVars{0};
-  ptrdiff_t constraintCapacity;
-  ptrdiff_t varCapacity;
+  Row<> numConstraints{};
+  Col<> numVars{};
+  Capacity<> constraintCapacity;
+  RowStride<> varCapacity;
 #ifndef NDEBUG
   bool inCanonicalForm{false};
 #endif
@@ -92,10 +92,10 @@ public:
                            reservedBasicVariables());
   }
   [[nodiscard]] constexpr auto reservedBasicConstraints() const -> ptrdiff_t {
-    return varCapacity;
+    return ptrdiff_t(varCapacity);
   }
   [[nodiscard]] constexpr auto reservedBasicVariables() const -> ptrdiff_t {
-    return constraintCapacity;
+    return ptrdiff_t(constraintCapacity);
   }
 
   // [[nodiscard]] constexpr auto intsNeeded() const -> ptrdiff_t {
@@ -107,55 +107,57 @@ public:
   [[nodiscard]] constexpr auto getTableau() const -> PtrMatrix<value_type> {
     //
     return {tableauPointer(), StridedDims<>{
-                                {numConstraints + 1},
-                                {numVars + 1},
-                                {varCapacity + 1},
+                                ++auto(numConstraints),
+                                ++auto(numVars),
+                                ++auto(varCapacity),
                               }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
   [[nodiscard]] constexpr auto getTableau() -> MutPtrMatrix<value_type> {
     return {tableauPointer(), StridedDims<>{
-                                {numConstraints + 1},
-                                {numVars + 1},
-                                {varCapacity + 1},
+                                ++auto(numConstraints),
+                                ++auto(numVars),
+                                ++auto(varCapacity),
                               }};
   }
   [[nodiscard]] constexpr auto getConstraints() const -> PtrMatrix<value_type> {
-    return {tableauPointer() + varCapacity + 1, StridedDims<>{
-                                                  {numConstraints},
-                                                  {numVars + 1},
-                                                  {varCapacity + 1},
-                                                }};
+    return {tableauPointer() + ptrdiff_t(varCapacity) + 1,
+            StridedDims<>{
+              numConstraints,
+              ++auto(numVars),
+              ++auto(varCapacity),
+            }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
   [[nodiscard]] constexpr auto getConstraints() -> MutPtrMatrix<value_type> {
-    return {tableauPointer() + varCapacity + 1, StridedDims<>{
-                                                  {numConstraints},
-                                                  {numVars + 1},
-                                                  {varCapacity + 1},
-                                                }};
+    return {tableauPointer() + ptrdiff_t(varCapacity) + 1,
+            StridedDims<>{
+              numConstraints,
+              ++auto(numVars),
+              ++auto(varCapacity),
+            }};
   }
   [[nodiscard]] constexpr auto
   getBasicConstraints() const -> PtrVector<index_type> {
-    return {basicConsPointer(), numVars};
+    return {basicConsPointer(), aslength(numVars)};
   }
   [[nodiscard]] constexpr auto
   getBasicConstraints() -> MutPtrVector<index_type> {
-    return {basicConsPointer(), numVars};
+    return {basicConsPointer(), aslength(numVars)};
   }
   [[nodiscard]] constexpr auto
   getBasicVariables() const -> PtrVector<index_type> {
-    return {basicVarsPointer(), numConstraints};
+    return {basicVarsPointer(), length(ptrdiff_t(numConstraints))};
   }
   [[nodiscard]] constexpr auto getBasicVariables() -> MutPtrVector<index_type> {
-    return {basicVarsPointer(), numConstraints};
+    return {basicVarsPointer(), length(ptrdiff_t(numConstraints))};
   }
   [[nodiscard]] constexpr auto getCost() const -> PtrVector<value_type> {
-    return {tableauPointer(), numVars + 1};
+    return {tableauPointer(), length(ptrdiff_t(numVars) + 1z)};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
   [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
-    return {tableauPointer(), numVars + 1};
+    return {tableauPointer(), length(ptrdiff_t(numVars) + 1z)};
   }
   [[nodiscard]] constexpr auto
   getBasicConstraint(ptrdiff_t i) const -> index_type {
@@ -174,10 +176,6 @@ public:
   }
   [[nodiscard]] constexpr auto getObjectiveValue() const -> value_type {
     return getCost()[0];
-  }
-  constexpr void truncateConstraints(ptrdiff_t i) {
-    ASSERT(i <= numConstraints);
-    numConstraints = i;
   }
   constexpr void simplifySystem() {
 #ifndef NDEBUG
@@ -220,33 +218,39 @@ public:
   [[nodiscard]] constexpr auto getConstants() const -> StridedVector<int64_t> {
     return getTableau()[_(1, end), 0];
   }
+  constexpr void truncateConstraints(ptrdiff_t i) {
+    invariant(ptrdiff_t(numConstraints) <= ptrdiff_t(constraintCapacity));
+    invariant(i >= 0z);
+    invariant(i <= numConstraints);
+    numConstraints = row(i);
+  }
   constexpr void setNumCons(ptrdiff_t i) {
     invariant(i <= constraintCapacity);
-    numConstraints = i;
+    numConstraints = row(i);
   }
   constexpr void setNumVars(ptrdiff_t i) {
     invariant(i <= varCapacity);
-    numVars = i;
+    numVars = col(i);
   }
   constexpr void truncateVars(ptrdiff_t i) {
     invariant(i <= numVars);
-    numVars = i;
+    numVars = col(i);
   }
   [[nodiscard]] constexpr auto getNumCons() const -> ptrdiff_t {
     invariant(numConstraints >= 0);
-    return numConstraints;
+    return ptrdiff_t(numConstraints);
   }
   [[nodiscard]] constexpr auto getNumVars() const -> ptrdiff_t {
     invariant(numVars >= 0);
-    return numVars;
+    return ptrdiff_t(numVars);
   }
   [[nodiscard]] constexpr auto getConCap() const -> ptrdiff_t {
     invariant(constraintCapacity >= 0);
-    return constraintCapacity;
+    return ptrdiff_t(constraintCapacity);
   }
   [[nodiscard]] constexpr auto getVarCap() const -> ptrdiff_t {
     invariant(varCapacity >= 0);
-    return varCapacity;
+    return ptrdiff_t(varCapacity);
   }
   constexpr void deleteConstraint(ptrdiff_t c) {
     auto basicCons = getBasicConstraints();
@@ -255,7 +259,7 @@ public:
     --numConstraints;
     if (auto basicVar = basicVars[c]; basicVar >= 0) basicCons[basicVar] = -1;
     if (c == numConstraints) return;
-    auto basicVar = basicVars[numConstraints];
+    auto basicVar = basicVars[ptrdiff_t(numConstraints)];
     basicVars[c] = basicVar;
     if (basicVar >= 0) basicCons[basicVar] = index_type(c);
     constraints[c, _] << constraints[numConstraints, _];
@@ -266,8 +270,8 @@ public:
     using value_type = Rational;
     // view of tableau dropping const column
     Valid<const Simplex> simplex;
-    ptrdiff_t skippedVars;
-    ptrdiff_t numVars;
+    Length<> skippedVars;
+    Length<> numVars;
     class iterator { // NOLINT(readability-identifier-naming)
       const Solution *sol;
       ptrdiff_t i;
@@ -312,12 +316,12 @@ public:
     };
     [[nodiscard]] constexpr auto begin() const -> iterator { return {this, 0}; }
     [[nodiscard]] constexpr auto end() const -> iterator {
-      return {this, numVars - skippedVars};
+      return {this, ptrdiff_t(numVars - skippedVars)};
     }
 
     [[nodiscard]] constexpr auto operator[](ptrdiff_t i) const -> Rational {
       invariant(ptrdiff_t(i) >= 0);
-      i += skippedVars;
+      i += ptrdiff_t(skippedVars);
       int64_t j = simplex->getBasicConstraint(i);
       if (j < 0) return 0;
       PtrMatrix<int64_t> constraints = simplex->getConstraints();
@@ -339,10 +343,11 @@ public:
       return (*this)[canonicalizeRange(r, size())];
     }
     constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) const -> Solution {
-      return {simplex, skippedVars + r.b, skippedVars + r.e};
+      return {simplex, length(ptrdiff_t(skippedVars) + r.b),
+              length(ptrdiff_t(skippedVars) + r.e)};
     }
     [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-      return numVars - skippedVars;
+      return ptrdiff_t(numVars - skippedVars);
     }
     [[nodiscard]] constexpr auto view() const -> Solution { return *this; };
 
@@ -368,7 +373,7 @@ public:
 #endif
   };
   [[nodiscard]] constexpr auto getSolution() const -> Solution {
-    return {this, 0, numVars};
+    return {this, {}, aslength(numVars)};
   }
 
   /// simplex.initiateFeasible() -> bool
@@ -427,9 +432,9 @@ public:
   }
   constexpr auto removeAugmentVars(PtrVector<unsigned> augmentVars) -> bool {
     // TODO: try to avoid reallocating, via reserving enough ahead of time
-    ptrdiff_t numAugment = augmentVars.size(), oldNumVar = numVars;
-    invariant(numAugment + numVars <= varCapacity);
-    numVars += numAugment;
+    ptrdiff_t numAugment = augmentVars.size(), oldNumVar = ptrdiff_t(numVars);
+    invariant(numAugment + ptrdiff_t(numVars) <= varCapacity);
+    numVars = col(ptrdiff_t(numVars) + ptrdiff_t(numAugment));
     MutPtrMatrix<value_type> C{getConstraints()};
     MutPtrVector<index_type> basicVars{getBasicVariables()};
     MutPtrVector<index_type> basicCons{getBasicConstraints()};
@@ -465,7 +470,7 @@ public:
           if (Ccv < 0) C[c, _] *= -1;
           for (ptrdiff_t i = 0; i < C.numRow(); ++i)
             if (i != ptrdiff_t(c))
-              NormalForm::zeroWithRowOp(C, Row<>{i}, Row<>{c}, ++Col<>{v}, 0);
+              NormalForm::zeroWithRowOp(C, row(i), row(c), ++col(v), 0);
           basicVars[c] = index_type(v);
           basicCons[v] = index_type(c);
           break;
@@ -473,7 +478,7 @@ public:
       }
     }
     // all augment vars are now 0
-    numVars = oldNumVar;
+    numVars = col(oldNumVar);
 #ifndef NDEBUG
     assertCanonical();
 #endif
@@ -526,8 +531,8 @@ public:
     auto leavingVar = ptrdiff_t(*leaveOpt);
     for (ptrdiff_t i = 0; i < C.numRow(); ++i) {
       if (i == leavingVar + 1) continue;
-      int64_t m = NormalForm::zeroWithRowOp(C, Row<>{i}, ++Row<>{leavingVar},
-                                            ++Col<>{enteringVar}, i ? 0 : f);
+      int64_t m = NormalForm::zeroWithRowOp(C, row(i), ++row(leavingVar),
+                                            ++col(enteringVar), i ? 0 : f);
       if (!i) f = m;
     }
     // update basic vars and constraints
@@ -570,7 +575,7 @@ public:
     for (ptrdiff_t c = 0; c < basicVars.size();) {
       int64_t v = basicVars[c++];
       if ((ptrdiff_t(++v) < C.numCol()) && C[0, v])
-        f = NormalForm::zeroWithRowOp(C, Row<>{0}, Row<>{c}, Col<>{v}, f);
+        f = NormalForm::zeroWithRowOp(C, row(0), row(c), col(v), f);
     }
     return runCore(f);
   }
@@ -592,7 +597,7 @@ public:
       ptrdiff_t leavingVariable = lVar++;
       for (ptrdiff_t i = 0; i < C.numRow(); ++i)
         if (i != ptrdiff_t(lVar))
-          NormalForm::zeroWithRowOp(C, Row<>{i}, Row<>{lVar}, ++Col<>{ev}, 0);
+          NormalForm::zeroWithRowOp(C, row(i), row(lVar), ++col(ev), 0);
       // update basic vars and constraints
       int64_t oldBasicVar = basicVars[leavingVariable];
       basicVars[leavingVariable] = ev;
@@ -647,7 +652,7 @@ public:
       if (C[c, ev] < 0) C[c, _] *= -1;
       for (ptrdiff_t i = 1; i < C.numRow(); ++i)
         if (i != ptrdiff_t(c))
-          NormalForm::zeroWithRowOp(C, Row<>{i}, Row<>{c}, Col<>{ev}, 0);
+          NormalForm::zeroWithRowOp(C, row(i), row(c), col(ev), 0);
       int64_t oldBasicVar = basicVars[cc];
       invariant(oldBasicVar == int64_t(v));
       basicVars[cc] = index_type(evm1);
@@ -670,7 +675,7 @@ public:
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {this, getNumVars() - n, getNumVars()};
+    return {this, length(getNumVars() - n), length(getNumVars())};
   }
   constexpr auto rLexMinStop(ptrdiff_t skippedVars) -> Solution {
 #ifndef NDEBUG
@@ -681,7 +686,7 @@ public:
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {this, skippedVars, getNumVars()};
+    return {this, length(skippedVars), length(getNumVars())};
   }
 
   // reverse lexicographic ally minimize vars
@@ -704,8 +709,8 @@ public:
     for (ptrdiff_t i = 0; i < numSlack; ++i) varCap += A[i, 0] < 0;
     // try to avoid reallocating
     auto checkpoint{alloc->checkpoint()};
-    Simplex *simplex{
-      Simplex::create(alloc, numCon, numVar + numSlack, numCon, varCap)};
+    Simplex *simplex{Simplex::create(alloc, row(numCon), col(numVar + numSlack),
+                                     capacity(numCon), rowStride(varCap))};
     // construct:
     // [ I A
     //   0 B ]
@@ -731,8 +736,8 @@ public:
     for (ptrdiff_t i = 0; i < numSlack; ++i) varCap += A[i, 0] < 0;
     // try to avoid reallocating
     auto checkpoint{alloc->checkpoint()};
-    Simplex *simplex{
-      Simplex::create(alloc, numCon, numVar + numSlack, numCon, varCap)};
+    Simplex *simplex{Simplex::create(alloc, row(numCon), col(numVar + numSlack),
+                                     capacity(numCon), rowStride(varCap))};
     // construct:
     // [ I A ]
     // then drop the extra variables
@@ -771,7 +776,7 @@ public:
     if (basicConstraints[i] < 0) makeBasic(C, 0, index_type(i));
     ptrdiff_t ind = basicConstraints[i];
     ptrdiff_t lastRow = ptrdiff_t(C.numRow()) - 1;
-    if (lastRow != ind) swap(C, Row<>{ind}, Row<>{lastRow});
+    if (lastRow != ind) swap(C, row(ind), row(lastRow));
     truncateConstraints(lastRow);
   }
   constexpr void removeExtraVariables(ptrdiff_t i) {
@@ -808,7 +813,8 @@ public:
     // is satisfiable.
     const ptrdiff_t numCon = getNumCons(), numVar = getNumVars(),
                     numFix = x.size();
-    Simplex *subSimp{Simplex::create(&alloc, numCon, numVar - numFix)};
+    Simplex *subSimp{
+      Simplex::create(&alloc, row(numCon), col(numVar - numFix))};
     // subSimp.tableau(0, 0) = 0;
     // subSimp.tableau(0, 1) = 0;
     auto fC{getTableau()};
@@ -839,7 +845,7 @@ public:
     // is satisfiable.
     invariant(numRow <= getNumCons());
     const ptrdiff_t numFix = x.size();
-    Simplex *subSimp{Simplex::create(&alloc, numRow, off++)};
+    Simplex *subSimp{Simplex::create(&alloc, row(numRow), col(off++))};
     auto fC{getConstraints()};
     auto sC{subSimp->getConstraints()};
     sC[_, 0] << fC[_(begin, numRow), 0] -
@@ -857,7 +863,7 @@ public:
                        std::array<ptrdiff_t, 2> inds,
                        ptrdiff_t numRow) const -> bool {
     invariant(numRow <= getNumCons());
-    Simplex *subSimp{Simplex::create(&alloc, numRow, iFree++)};
+    Simplex *subSimp{Simplex::create(&alloc, row(numRow), col(iFree++))};
     auto fC{getConstraints()};
     auto sC{subSimp->getConstraints()};
     auto r = _(0, numRow);
@@ -887,16 +893,17 @@ public:
       }
     }
   }
-  static constexpr auto create(Arena<> *alloc, ptrdiff_t numCon,
-                               ptrdiff_t numVar) -> Valid<Simplex> {
-    return create(alloc, numCon, numVar, numCon, numVar + numCon);
+  static constexpr auto create(Arena<> *alloc, Row<> numCon,
+                               Col<> numVar) -> Valid<Simplex> {
+    return create(alloc, numCon, numVar, capacity(ptrdiff_t(numCon)),
+                  rowStride(ptrdiff_t(numVar) + ptrdiff_t(numCon)));
   }
-  static constexpr auto create(Arena<> *alloc, ptrdiff_t numCon,
-                               ptrdiff_t numVar, ptrdiff_t conCap,
-                               ptrdiff_t varCap) -> Valid<Simplex> {
-
-    size_t memNeeded = tableauOffset(conCap, varCap) +
-                       sizeof(value_type) * reservedTableau(conCap, varCap);
+  static constexpr auto create(Arena<> *alloc, Row<> numCon, Col<> numVar,
+                               Capacity<> conCap,
+                               RowStride<> varCap) -> Valid<Simplex> {
+    auto cCap = ptrdiff_t(conCap), vCap = ptrdiff_t(varCap);
+    size_t memNeeded = tableauOffset(cCap, vCap) +
+                       sizeof(value_type) * reservedTableau(cCap, vCap);
     auto *mem = (Simplex *)alloc->allocate(sizeof(Simplex) + memNeeded);
     mem->numConstraints = numCon;
     mem->numVars = numVar;
@@ -905,24 +912,26 @@ public:
     return mem;
   }
 
-  static auto operator new(size_t count, ptrdiff_t conCap,
-                           ptrdiff_t varCap) -> void * {
-    size_t memNeeded = tableauOffset(conCap, varCap) +
-                       sizeof(value_type) * reservedTableau(conCap, varCap);
-    // void *p = ::operator new(count + memNeeded);
-    return ::operator new(count + memNeeded,
+  static auto operator new(size_t count, Capacity<> conCap,
+                           RowStride<> varCap) -> void * {
+    auto cC = ptrdiff_t(conCap), vC = ptrdiff_t(varCap);
+    size_t memNeeded =
+      tableauOffset(cC, vC) + sizeof(value_type) * reservedTableau(cC, vC);
+    // void *p = ::operator new(count * memNeeded);
+    return ::operator new(count * memNeeded,
                           std::align_val_t(alignof(Simplex)));
   }
   static void operator delete(void *ptr, size_t) {
     ::operator delete(ptr, std::align_val_t(alignof(Simplex)));
   }
 
-  static auto create(ptrdiff_t numCon,
-                     ptrdiff_t numVar) -> std::unique_ptr<Simplex> {
-    return create(numCon, numVar, numCon, numVar + numCon);
+  static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex> {
+    auto nc = ptrdiff_t(numCon);
+    return create(numCon, numVar, capacity(nc),
+                  rowStride(ptrdiff_t(numVar) + nc));
   }
-  static auto create(ptrdiff_t numCon, ptrdiff_t numVar, ptrdiff_t conCap,
-                     ptrdiff_t varCap) -> std::unique_ptr<Simplex> {
+  static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
+                     RowStride<> varCap) -> std::unique_ptr<Simplex> {
     auto *ret = new (conCap, varCap) Simplex;
     ret->numConstraints = numCon;
     ret->numVars = numVar;
@@ -932,15 +941,16 @@ public:
   }
 
   static constexpr auto
-  create(Arena<> *alloc, ptrdiff_t numCon,
-         ptrdiff_t numVar, // NOLINT(bugprone-easily-swappable-parameters)
+  create(Arena<> *alloc, Row<> numCon,
+         Col<> numVar, // NOLINT(bugprone-easily-swappable-parameters)
          ptrdiff_t numSlack) -> Valid<Simplex> {
-    ptrdiff_t conCap = numCon, varCap = numVar + numSlack + numCon;
-    return create(alloc, numCon, numVar, conCap, varCap);
+    ptrdiff_t conCap = ptrdiff_t(numCon),
+              varCap = ptrdiff_t(numVar) + numSlack + conCap;
+    return create(alloc, numCon, numVar, capacity(conCap), rowStride(varCap));
   }
   constexpr auto copy(Arena<> *alloc) const -> Valid<Simplex> {
-    Valid<Simplex> res =
-      create(alloc, getNumCons(), getNumVars(), getConCap(), getVarCap());
+    Valid<Simplex> res = create(alloc, row(getNumCons()), col(getNumVars()),
+                                capacity(getConCap()), rowStride(getVarCap()));
     *res << *this;
     return res;
   }

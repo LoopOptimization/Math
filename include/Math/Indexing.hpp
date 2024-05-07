@@ -224,10 +224,6 @@ template <typename T>
 concept StaticInt =
   std::is_same_v<T, std::integral_constant<typename T::value_type, T::value>>;
 
-template <typename T>
-concept DenseLayout =
-  std::integral<T> || std::is_convertible_v<T, DenseDims<>> || StaticInt<T>;
-
 static_assert(StaticInt<std::integral_constant<ptrdiff_t, 3>>);
 static_assert(!StaticInt<int64_t>);
 
@@ -254,6 +250,10 @@ static_assert(RowVectorDimension<Length<>>);
 static_assert(!RowVectorDimension<ptrdiff_t>);
 
 template <typename T>
+concept DenseLayout =
+  RowVectorDimension<T> || std::is_convertible_v<T, DenseDims<>>;
+
+template <typename T>
 concept StaticLength = RowVectorDimension<T> && !std::same_as<T, Length<>>;
 
 template <typename D>
@@ -271,7 +271,7 @@ constexpr auto stride(ColVectorSMatDimension auto) -> RowStride<1> {
 }
 template <class I>
 constexpr auto calcOffset(ColVectorSMatDimension auto d, I i) -> ptrdiff_t {
-  return unwrapStride(stride(d)) * calcOffset(unwrapRow(Row(d)), i);
+  return unwrapStride(stride(d)) * calcOffset(length(unwrapRow(Row(d))), i);
 }
 
 template <typename D>

@@ -16,7 +16,8 @@ TEST(SOATest, BasicAssertions) {
                 poly::containers::Tuple<int, double>>);
   static_assert(std::is_trivially_default_constructible_v<T>);
   static_assert(std::is_trivially_destructible_v<T>);
-  poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{}, ptrdiff_t(5));
+  poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{},
+                             poly::math::length(5z));
   EXPECT_EQ(soa.capacity.capacity, 8);
   soa[0] = x;
   soa[1] = {5, 2.25, 5.5F};
