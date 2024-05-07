@@ -1515,9 +1515,7 @@ protected:
 
 template <class T, class S>
 concept AbstractSimilar = (MatrixDimension<S> && AbstractMatrix<T>) ||
-                          ((std::same_as<S, Length<>> ||
-                            std::is_same_v<S, StridedRange> || StaticInt<S>) &&
-                           AbstractVector<T>);
+                          (VectorDimension<S> && AbstractVector<T>);
 
 /// Stores memory, then pointer.
 /// Thus struct's alignment determines initial alignment

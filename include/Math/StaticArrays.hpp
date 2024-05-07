@@ -10,8 +10,7 @@
 
 namespace poly::math {
 
-static_assert(
-  AbstractSimilar<PtrVector<int64_t>, std::integral_constant<unsigned int, 4>>);
+static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
 
 template <typename T, ptrdiff_t L>
 consteval auto paddedSize() -> std::array<ptrdiff_t, 2> {
@@ -674,7 +673,7 @@ struct StaticArray<T, 1, N, false>
 };
 
 template <class T, ptrdiff_t N, ptrdiff_t Compress = false>
-using SVector = StaticArray<T, 1, N, Compress>;
+using SVector = StaticArray<T, 1z, N, Compress>;
 static_assert(
   std::same_as<Row<1>, decltype(SVector<int64_t, 3, true>::numRow())>);
 static_assert(std::same_as<Row<1>, decltype(SVector<int64_t, 3>::numRow())>);
