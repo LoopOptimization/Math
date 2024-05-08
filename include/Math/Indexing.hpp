@@ -355,15 +355,16 @@ constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
       return DenseDims(Row<NR>{}, Col<NC>{});
     } else {
       auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-      return StridedDims(Row<NR>{}, col(colDims), rowStride(unwrapCol(Col(d))));
+      return StridedDims(Row<NR>{}, ascol(colDims),
+                         rowStride(unwrapCol(Col(d))));
     }
   } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
     auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return DenseDims(row(rowDims), Col<NC>{});
+    return DenseDims(asrow(rowDims), Col<NC>{});
   } else {
     auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
     auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return StridedDims(row(rowDims), col(colDims), RowStride(d));
+    return StridedDims(asrow(rowDims), ascol(colDims), RowStride(d));
   }
 }
 template <ptrdiff_t NR, ptrdiff_t NC, ptrdiff_t X, AbstractSlice B,
@@ -374,26 +375,26 @@ constexpr auto calcNewDim(StridedDims<NR, NC, X> d, B r, C c) {
       return StridedDims(Row<NR>{}, Col<NC>{}, RowStride(d));
     } else {
       auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-      return StridedDims(Row<NR>{}, col(colDims), RowStride(d));
+      return StridedDims(Row<NR>{}, ascol(colDims), RowStride(d));
     }
   } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
     auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return StridedDims(row(rowDims), Col<NC>{}, RowStride(d));
+    return StridedDims(asrow(rowDims), Col<NC>{}, RowStride(d));
   } else {
     auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
     auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return StridedDims(row(rowDims), col(colDims), RowStride(d));
+    return StridedDims(asrow(rowDims), ascol(colDims), RowStride(d));
   }
 }
 template <AbstractSlice B>
 constexpr auto calcNewDim(DenseDims<> d, B r, Colon) {
   auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-  return DenseDims(row(rowDims), Col(d));
+  return DenseDims(asrow(rowDims), Col(d));
 }
 template <AbstractSlice B>
 constexpr auto calcNewDim(SquareDims<> d, B r, Colon) {
-  auto rowDims = ptrdiff_t(calcNewDim(length(ptrdiff_t(Row(d))), r));
-  return DenseDims(row(rowDims), col(d));
+  auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
+  return DenseDims(asrow(rowDims), col(d));
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(StridedDims<> d, simd::index::Unroll<R>,

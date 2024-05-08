@@ -13,11 +13,13 @@
 namespace poly::containers {
 using utils::invariant;
 
-template <class T, size_t N, typename L = math::Length<>> class TinyVector {
+template <class T, size_t N, std::signed_integral L = ptrdiff_t>
+class TinyVector {
   static_assert(N > 0);
   static_assert(std::numeric_limits<ptrdiff_t>::max() >= N);
+  using Length = math::Length<-1, L>;
   Storage<T, N> data;
-  L len{};
+  Length len{};
 
 public:
   using value_type = T;
@@ -64,11 +66,11 @@ public:
   }
   constexpr auto back() -> T & {
     invariant(len > 0);
-    return data.data()[ptrdiff_t(len) - 1z];
+    return data.data()[size() - 1z];
   }
   constexpr auto back() const -> const T & {
     invariant(len > 0);
-    return data.data()[ptrdiff_t(len) - 1z];
+    return data.data()[size() - 1z];
   }
   constexpr auto front() -> T & {
     invariant(len > 0);
@@ -79,34 +81,34 @@ public:
     return data.data()[0z];
   }
   constexpr void push_back(const T &t) {
-    invariant(len < ptrdiff_t(N));
+    invariant(len < math::length(L(N)));
     std::construct_at(data.data() + ptrdiff_t(len++), t);
   }
   constexpr void push_back(T &&t) {
     invariant(len < ptrdiff_t(N));
-    std::construct_at(data.data() + ptrdiff_t(len++), std::move(t));
+    std::construct_at(data.data() + ptrdiff_t(L(len++)), std::move(t));
   }
   template <class... Args> constexpr auto emplace_back(Args &&...args) -> T & {
     invariant(len < ptrdiff_t(N));
-    return *std::construct_at(data.data() + ptrdiff_t(len++),
+    return *std::construct_at(data.data() + ptrdiff_t(L(len++)),
                               std::forward<Args>(args)...);
   }
   constexpr void pop_back() {
     invariant(len > 0);
     --len;
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_at(data.data() + ptrdiff_t(len));
+      std::destroy_at(data.data() + size());
   }
   [[nodiscard]] constexpr auto pop_back_val() -> T {
     invariant(len > 0);
-    return std::move(data.data()[ptrdiff_t(--len)]);
+    return std::move(data.data()[ptrdiff_t(L(--len))]);
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    auto l = ptrdiff_t(len);
+    auto l = ptrdiff_t(L(len));
     invariant(l <= ptrdiff_t(N));
     return l;
   }
-  [[nodiscard]] constexpr auto empty() const -> bool { return len == 0; }
+  [[nodiscard]] constexpr auto empty() const -> bool { return len == 0z; }
   constexpr void clear() {
     len = 0;
     if constexpr (!std::is_trivially_destructible_v<T>)
@@ -117,7 +119,7 @@ public:
   constexpr auto begin() const -> const T * { return data.data(); }
   constexpr auto end() -> T * { return data.data() + size(); }
   constexpr auto end() const -> const T * { return data.data() + size(); }
-  constexpr void resize(ptrdiff_t new_size) {
+  constexpr void resize(L new_size) {
     // initialize new data
     for (ptrdiff_t i = size(); i < new_size; ++i)
       std::construct_at(data.data() + i);

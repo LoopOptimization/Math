@@ -82,7 +82,10 @@ TEST(SparseIndexingTest, BasicAssertions) {
   IntMatrix<> C2{A * B};
   std::cout << "C=" << C << "\nC2=" << C2 << "\n";
   EXPECT_TRUE(C == C2);
-  IntMatrix<> At{A.t()}, Bt{B.t()};
+  IntMatrix<> At{
+    DenseDims<>{poly::math::asrow(A.numCol()), poly::math::ascol(A.numRow())}},
+    Bt{B.t()};
+  At[_(0, end), _(0, end)] << A.t();
   // At << A.t();
   // Bt << B.t();
   C2 += At.t() * Bt.t();
@@ -315,41 +318,80 @@ TEST(SVectorTest, BasicAssertions) {
   EXPECT_EQ(c, 33);
 }
 TEST(TinyVectorTest, BasicAssertions) {
-  poly::containers::TinyVector<int, 5> v{};
-  static_assert(std::same_as<poly::utils::eltype_t<decltype(v)>, int>);
-  EXPECT_TRUE(v.empty());
-  EXPECT_EQ(v.size(), 0);
-  v.resize(3);
-  EXPECT_FALSE(v.empty());
-  EXPECT_EQ(v.size(), 3);
-  EXPECT_EQ(v.back(), 0);
-  v.push_back(2);
-  EXPECT_EQ(v.size(), 4);
-  EXPECT_EQ(v.back(), 2);
-  EXPECT_EQ(v.pop_back_val(), 2);
-  EXPECT_EQ(v.front(), 0);
-  EXPECT_EQ(v.back(), 0);
-  EXPECT_EQ(v.size(), 3);
-  v.pop_back();
-  EXPECT_EQ(v.size(), 2);
-  v.pop_back();
-  EXPECT_FALSE(v.empty());
-  EXPECT_EQ(v.size(), 1);
-  v.pop_back();
-  EXPECT_TRUE(v.empty());
-  EXPECT_EQ(v.size(), 0);
-  int &y = v.emplace_back(2);
-  y += 3;
-  EXPECT_EQ(v.front(), 5);
-  EXPECT_EQ(v.back(), 5);
-  v.push_back(2);
-  EXPECT_EQ(v.front(), 5);
-  EXPECT_EQ(v.back(), 2);
-  v.push_back(21);
-  EXPECT_EQ(v.back(), 21);
-  int s = 0;
-  for (auto x : v) s += x;
-  EXPECT_EQ(s, 28);
+  {
+    poly::containers::TinyVector<int, 5> v{};
+    static_assert(std::same_as<poly::utils::eltype_t<decltype(v)>, int>);
+    EXPECT_TRUE(v.empty());
+    EXPECT_EQ(v.size(), 0);
+    v.resize(3);
+    EXPECT_FALSE(v.empty());
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v.back(), 0);
+    v.push_back(2);
+    EXPECT_EQ(v.size(), 4);
+    EXPECT_EQ(v.back(), 2);
+    EXPECT_EQ(v.pop_back_val(), 2);
+    EXPECT_EQ(v.front(), 0);
+    EXPECT_EQ(v.back(), 0);
+    EXPECT_EQ(v.size(), 3);
+    v.pop_back();
+    EXPECT_EQ(v.size(), 2);
+    v.pop_back();
+    EXPECT_FALSE(v.empty());
+    EXPECT_EQ(v.size(), 1);
+    v.pop_back();
+    EXPECT_TRUE(v.empty());
+    EXPECT_EQ(v.size(), 0);
+    int &y = v.emplace_back(2);
+    y += 3;
+    EXPECT_EQ(v.front(), 5);
+    EXPECT_EQ(v.back(), 5);
+    v.push_back(2);
+    EXPECT_EQ(v.front(), 5);
+    EXPECT_EQ(v.back(), 2);
+    v.push_back(21);
+    EXPECT_EQ(v.back(), 21);
+    int s = 0;
+    for (auto x : v) s += x;
+    EXPECT_EQ(s, 28);
+  }
+  {
+    poly::containers::TinyVector<int8_t, 5, int8_t> v{};
+    static_assert(std::same_as<poly::utils::eltype_t<decltype(v)>, int8_t>);
+    EXPECT_TRUE(v.empty());
+    EXPECT_EQ(v.size(), 0);
+    v.resize(3);
+    EXPECT_FALSE(v.empty());
+    EXPECT_EQ(v.size(), 3);
+    EXPECT_EQ(v.back(), 0);
+    v.push_back(2);
+    EXPECT_EQ(v.size(), 4);
+    EXPECT_EQ(v.back(), 2);
+    EXPECT_EQ(v.pop_back_val(), 2);
+    EXPECT_EQ(v.front(), 0);
+    EXPECT_EQ(v.back(), 0);
+    EXPECT_EQ(v.size(), 3);
+    v.pop_back();
+    EXPECT_EQ(v.size(), 2);
+    v.pop_back();
+    EXPECT_FALSE(v.empty());
+    EXPECT_EQ(v.size(), 1);
+    v.pop_back();
+    EXPECT_TRUE(v.empty());
+    EXPECT_EQ(v.size(), 0);
+    int8_t &y = v.emplace_back(2);
+    y += 3;
+    EXPECT_EQ(v.front(), 5);
+    EXPECT_EQ(v.back(), 5);
+    v.push_back(2);
+    EXPECT_EQ(v.front(), 5);
+    EXPECT_EQ(v.back(), 2);
+    v.push_back(21);
+    EXPECT_EQ(v.back(), 21);
+    int8_t s = 0;
+    for (auto x : v) s += x;
+    EXPECT_EQ(s, 28);
+  }
 }
 
 TEST(NonTriviallyDestructible, BasicAssertions) {

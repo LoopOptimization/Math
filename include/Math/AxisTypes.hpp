@@ -1,5 +1,6 @@
 #pragma once
 #include "Utilities/Invariant.hpp"
+#include <concepts>
 #include <cstddef>
 #include <iostream>
 #include <limits>
@@ -30,11 +31,12 @@ namespace poly::math {
 
 using utils::invariant;
 
-template <ptrdiff_t M = -1> struct Length {
+template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
   // static constexpr ptrdiff_t len = M;
   static_assert(M >= 0);
+  static_assert(M <= std::numeric_limits<I>::max());
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
-  operator ptrdiff_t() const {
+  operator I() const {
     return M;
   }
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
@@ -43,17 +45,17 @@ template <ptrdiff_t M = -1> struct Length {
   }
   [[gnu::artificial, gnu::always_inline]] static inline constexpr auto
   staticint() {
-    return std::integral_constant<ptrdiff_t, M>{};
+    return std::integral_constant<I, M>{};
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Length<-1>() const;
 };
-template <> struct Length<-1> {
-  enum class len : ptrdiff_t {};
+template <std::signed_integral I> struct Length<-1, I> {
+  enum class len : I {};
   len M;
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
-  operator ptrdiff_t() const {
-    auto m = static_cast<ptrdiff_t>(M);
+  operator I() const {
+    auto m = static_cast<I>(M);
     invariant(m >= 0);
     return m;
   }
@@ -83,13 +85,24 @@ template <> struct Length<-1> {
     M = static_cast<len>(static_cast<ptrdiff_t>(M) + 1z);
     return tmp;
   }
+  [[gnu::artificial, gnu::always_inline]] inline constexpr
+  operator Length<-1>() const
+  requires(!std::same_as<I, ptrdiff_t>)
+  {
+    return Length<-1, ptrdiff_t>{
+      static_cast<Length<-1, ptrdiff_t>::len>(ptrdiff_t(I(*this)))};
+  }
 };
 
-template <ptrdiff_t M>
+// by default, we promote to `ptrdiff_t`; smaller sizes
+// are primarilly in case we want smaller storage
+template <ptrdiff_t M, std::signed_integral I>
 [[gnu::artificial,
-  gnu::always_inline]] inline constexpr Length<M>::operator Length<-1>() const {
+  gnu::always_inline]] inline constexpr Length<M, I>::operator Length<-1>()
+  const {
   return {static_cast<Length<-1>::len>(M)};
 }
+template <ptrdiff_t M, std::signed_integral I>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 operator==(ptrdiff_t x, Length<> y) -> bool {
   return x == ptrdiff_t(y);
@@ -115,10 +128,12 @@ operator<=>(Length<> x, Length<> y) -> std::strong_ordering {
   return ptrdiff_t(x) <=> ptrdiff_t(y);
 }
 
-template <ptrdiff_t M = -1, std::integral I = ptrdiff_t> struct Capacity {
+template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t>
+struct Capacity {
   static_assert(M >= 0);
+  static_assert(M <= std::numeric_limits<I>::max());
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
-  operator ptrdiff_t() const {
+  operator I() const {
     return M;
   }
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
@@ -164,10 +179,11 @@ template <std::integral I> struct Capacity<-1, I> {
     return tmp;
   }
 };
-template <ptrdiff_t M, std::integral I>
+template <ptrdiff_t M, std::signed_integral I>
 [[gnu::artificial, gnu::always_inline]] inline constexpr Capacity<
   M, I>::operator Capacity<-1, I>() const {
-  return {static_cast<Capacity<-1, I>::cap>(M)};
+  static constexpr I cap = M;
+  return {static_cast<Capacity<-1, I>::cap>(cap)};
 }
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 operator==(ptrdiff_t x, Capacity<> y) -> bool {
@@ -543,10 +559,19 @@ rowStride(ptrdiff_t x) -> RowStride<> {
   invariant(x >= 0);
   return RowStride<-1>{static_cast<RowStride<-1>::stride>(x)};
 }
+template <std::signed_integral Int>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+length(Int x) -> Length<-1, Int>
+requires(!std::same_as<Int, ptrdiff_t>)
+{
+  invariant(x >= 0);
+  return Length<-1, Int>{static_cast<Length<-1, Int>::len>(x)};
+}
+// Overload resolution should prioritize/favor `ptrdiff_t`
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 length(ptrdiff_t x) -> Length<> {
   invariant(x >= 0);
-  return Length<-1>{static_cast<Length<-1>::len>(x)};
+  return Length<>{static_cast<Length<>::len>(x)};
 }
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 capacity(ptrdiff_t x) -> Capacity<> {

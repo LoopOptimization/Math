@@ -1157,8 +1157,8 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     } else resizeForOverwrite(S{M, N});
   }
 
-  constexpr auto insert(T *p, T x) -> T * {
-    static_assert(std::is_same_v<S, Length<>>);
+  constexpr auto insert(T *p, T x)
+    -> T *requires(std::same_as<S, Length<>>) {
     invariant(p >= this->data());
     T *e = this->data() + ptrdiff_t(this->sz);
     invariant(p <= e);
@@ -1167,10 +1167,9 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     *p = x;
     ++this->sz;
     return p;
-  }
-  template <size_t SlabSize, bool BumpUp>
-  constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
-                         ptrdiff_t newCapacity) {
+  } template <size_t SlabSize, bool BumpUp>
+    constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
+                           ptrdiff_t newCapacity) {
     if (newCapacity <= capacity_) return;
     this->ptr = alloc->template reallocate<false, T>(
       const_cast<T *>(this->ptr), ptrdiff_t(capacity_), newCapacity,
