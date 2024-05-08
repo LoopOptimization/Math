@@ -1,11 +1,11 @@
 #pragma once
-#ifndef Parameters_hpp_INCLUDED
-#define Parameters_hpp_INCLUDED
 
 #include <type_traits>
 
+namespace poly::utils {
 template <typename T>
-concept TriviallyCopyable = std::is_trivially_copyable_v<T>;
+concept TriviallyCopyable =
+  std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
 template <typename T> struct InParameter {
   using type = const T &;
 };
@@ -21,4 +21,4 @@ template <TriviallyCopyable T> struct InParameter<T> {
 /// }
 template <typename T> using inparam_t = typename InParameter<T>::type;
 
-#endif // Parameters_hpp_INCLUDED
+} // namespace poly::utils

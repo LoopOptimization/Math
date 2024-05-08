@@ -19,6 +19,7 @@
 #include <utility>
 
 namespace poly::math {
+using utils::TriviallyCopyable;
 /// Extract the value of a `Dual` number
 constexpr auto value(std::floating_point auto x) { return x; }
 struct Rational;
