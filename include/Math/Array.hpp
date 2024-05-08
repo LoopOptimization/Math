@@ -1248,6 +1248,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
+    invariant(s == ptrdiff_t(this->sz));
     return emplace_back_within_capacity(args...);
   }
   constexpr void push_back(T value)
@@ -1256,6 +1257,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
+    invariant(s == ptrdiff_t(this->sz));
     push_back_within_capacity(std::move(value));
   }
   // behavior
@@ -1417,7 +1419,8 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     auto nc = ptrdiff_t(newCap);
     invariant(nc >= newCapacity);
     if (auto oldLen = ptrdiff_t(this->sz)) {
-      if constexpr (Array<T, S>::trivial)
+      if constexpr (std::is_trivially_move_constructible_v<T> &&
+                    std::is_trivially_destructible_v<T>)
         std::memcpy(newPtr, this->data(), oldLen * sizeof(storage_type));
       else std::uninitialized_move_n(this->data(), oldLen, newPtr);
     }

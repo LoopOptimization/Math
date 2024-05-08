@@ -57,7 +57,8 @@ inline auto good_malloc_size(size_t n) -> size_t {
 #endif
 }
 
-inline auto malloc(size_t n) -> void * {
+[[using gnu: returns_nonnull, malloc, alloc_size(1)]] inline auto
+malloc(size_t n) -> void * {
 #if USE_MIMALLOC
   return mi_malloc(n);
 #elif USE_JEMALLOC
@@ -66,7 +67,9 @@ inline auto malloc(size_t n) -> void * {
   return std::malloc(n);
 #endif
 }
-inline auto malloc(size_t n, std::align_val_t al) -> void * {
+[[using gnu: returns_nonnull, malloc, alloc_size(1),
+  alloc_align(2)]] inline auto
+malloc(size_t n, std::align_val_t al) -> void * {
   auto a = static_cast<size_t>(al);
 #if USE_MIMALLOC
   return mi_malloc_aligned(n, a);
@@ -77,7 +80,8 @@ inline auto malloc(size_t n, std::align_val_t al) -> void * {
 #endif
 }
 
-inline auto zalloc(size_t n) -> void * {
+[[using gnu: returns_nonnull, malloc, alloc_size(1)]] inline auto
+zalloc(size_t n) -> void * {
 #if USE_MIMALLOC
   return mi_zalloc(n);
 #elif USE_JEMALLOC
@@ -87,7 +91,9 @@ inline auto zalloc(size_t n) -> void * {
   return std::malloc(n);
 #endif
 }
-inline auto zalloc(size_t n, std::align_val_t al) -> void * {
+[[using gnu: returns_nonnull, malloc, alloc_size(1),
+  alloc_align(2)]] inline auto
+zalloc(size_t n, std::align_val_t al) -> void * {
   auto a = static_cast<size_t>(al);
 #if USE_MIMALLOC
   return mi_zalloc_aligned(n, a);
