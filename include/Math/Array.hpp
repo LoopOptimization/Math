@@ -426,9 +426,9 @@ struct POLY_MATH_GSL_POINTER Array {
     else return ptrdiff_t(sz);
   }
   [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz; }
-  constexpr void clear() {
-    static_assert(!std::same_as<S, Length<>>,
-                  "can only clear dynamic-sized objects!");
+  constexpr void clear()
+  requires(std::same_as<S, Length<>>)
+  {
     sz = S{};
   }
   [[nodiscard]] constexpr auto t() const { return Transpose{*this}; }

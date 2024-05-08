@@ -1,7 +1,7 @@
 #pragma once
-#ifndef Pair_hpp_INCLUDED
-#define Pair_hpp_INCLUDED
+#include <cstddef>
 #include <type_traits>
+#include <utility>
 
 namespace poly::containers {
 
@@ -44,4 +44,3 @@ struct std::tuple_element<1, poly::containers::Pair<F, S>> {
   using type = S;
 };
 
-#endif // Pair_hpp_INCLUDED

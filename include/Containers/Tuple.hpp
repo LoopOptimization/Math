@@ -1,11 +1,8 @@
 #pragma once
 #include "Containers/Pair.hpp"
-#include <type_traits>
-#ifndef POLY_CONTAIERS_Tuple_hpp_INCLUDED
-#define POLY_CONTAIERS_Tuple_hpp_INCLUDED
-
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 
 namespace poly::containers {
@@ -153,4 +150,3 @@ struct std::tuple_element<I, poly::containers::Tuple<T, Ts...>> {
     typename std::tuple_element<I - 1, poly::containers::Tuple<Ts...>>::type;
 };
 
-#endif // Tuple_hpp_INCLUDED
