@@ -1,4 +1,5 @@
 #pragma once
+#include "Containers/Pair.hpp"
 #include <type_traits>
 #ifndef POLY_CONTAIERS_Tuple_hpp_INCLUDED
 #define POLY_CONTAIERS_Tuple_hpp_INCLUDED
@@ -72,6 +73,16 @@ template <typename T, typename... Ts> struct Tuple {
       std::assignable_from<T, U> &&... &&std::assignable_from<Ts, Us>) {
     head = x.head;
     tail = x.tail;
+    return *this;
+  }
+
+  template <typename U, typename V>
+  constexpr auto operator=(Pair<U, V> x) -> Tuple &
+  requires((sizeof...(Ts) == 1) &&
+           (std::assignable_from<T, U> && ... && std::assignable_from<Ts, V>))
+  {
+    head = x.first;
+    tail.head = x.second;
     return *this;
   }
 };

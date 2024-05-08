@@ -46,7 +46,8 @@ public:
   }
   // gives max fractional ind on the transformed scale
   template <bool Relative = true>
-  constexpr auto maxFractionalComponent() -> std::pair<ptrdiff_t, int32_t> {
+  constexpr auto
+  maxFractionalComponent() -> containers::Pair<ptrdiff_t, int32_t> {
     double max = 0.0, lb = 0.0;
     ptrdiff_t k = -1;
     MutPtrVector<double> x{getRaw()};
@@ -142,8 +143,8 @@ protected:
   [[nodiscard]] constexpr auto scales() -> MutPtrVector<double> {
     return {f64() + Ntotal, length(Ntotal)};
   }
-  static constexpr auto scaleOff(int32_t lb,
-                                 int32_t ub) -> std::pair<double, double> {
+  static constexpr auto
+  scaleOff(int32_t lb, int32_t ub) -> containers::Pair<double, double> {
 #ifdef __cpp_if_consteval
     // constexpr std::fma requires c++23
     constexpr double slb = sigmoid(-EXTREME);
@@ -253,7 +254,7 @@ public:
       newOff = lb;
     } else {
       untrf[getInds()[idx]] = -EXTREME;
-      std::tie(newScale, newOff) = scaleOff(lb, ub);
+      poly::containers::tie(newScale, newOff) = scaleOff(lb, ub);
     }
     scales()[idx] = newScale;
     offs()[idx] = newOff;
@@ -276,7 +277,7 @@ public:
       newOff = lb;
     } else {
       untrf[getInds()[idx]] = EXTREME;
-      std::tie(newScale, newOff) = scaleOff(lb, ub);
+      poly::containers::tie(newScale, newOff) = scaleOff(lb, ub);
     }
     scales()[idx] = newScale;
     offs()[idx] = newOff;

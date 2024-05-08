@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Alloc/Arena.hpp"
+#include "Containers/Pair.hpp"
 #include "Containers/Storage.hpp"
 #include "Math/ArrayOps.hpp"
 #include "Math/AxisTypes.hpp"
@@ -126,7 +127,7 @@ concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
 static_assert(Printable<int64_t>);
 void print_obj(std::ostream &os, Printable auto x) { os << x; };
 template <typename F, typename S>
-void print_obj(std::ostream &os, const std::pair<F, S> &x) {
+void print_obj(std::ostream &os, const containers::Pair<F, S> &x) {
   os << "(" << x.first << ", " << x.second << ")";
 };
 using utils::Valid, utils::Optional;

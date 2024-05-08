@@ -23,6 +23,11 @@ template <class F, class S> struct Pair {
     if constexpr (I == 0) return first;
     else return second;
   }
+  // template <typename T, typename U>
+  // constexpr auto operator=(Pair<T, U> x)
+  //   -> Pair &requires(std::assignable_from<F, T> &&std::assignable_from<S,
+  //   U>) { first = x.first; second = x.second; return *this;
+  // }
 };
 } // namespace poly::containers
 

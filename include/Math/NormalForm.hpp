@@ -144,7 +144,7 @@ constexpr void dropCol(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M, Col<> N) {
 }
 
 constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
-  -> std::pair<SquareMatrix<int64_t>, Vector<unsigned>> {
+  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
   // we try to orthogonalize with respect to as many rows of `A` as we can
   // prioritizing earlier rows.
   auto [M, N] = shape(A);
@@ -171,11 +171,11 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
       }
     }
   }
-  return std::make_pair(std::move(K), std::move(included));
+  return {std::move(K), std::move(included)};
 }
 
 constexpr auto orthogonalize(IntMatrix<> A)
-  -> std::pair<SquareMatrix<int64_t>, Vector<unsigned>> {
+  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
   return orthogonalizeBang(A);
 }
 
@@ -367,11 +367,11 @@ constexpr void simplifySystem(MutArray<int64_t, S0> &A,
   }
 }
 [[nodiscard]] constexpr auto
-hermite(IntMatrix<> A) -> std::pair<IntMatrix<>, SquareMatrix<int64_t>> {
+hermite(IntMatrix<> A) -> containers::Pair<IntMatrix<>, SquareMatrix<int64_t>> {
   SquareMatrix<int64_t> U{
     SquareMatrix<int64_t>::identity(ptrdiff_t(A.numRow()))};
   simplifySystemsImpl({A, U});
-  return std::make_pair(std::move(A), std::move(U));
+  return {std::move(A), std::move(U)};
 }
 
 /// use A[j,k] to zero A[i,k]
@@ -656,10 +656,10 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
 /// NOTE: This function assumes non-singular
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
 [[nodiscard]] constexpr auto inv(SquareMatrix<int64_t> A)
-  -> std::pair<SquareMatrix<int64_t>, SquareMatrix<int64_t>> {
+  -> containers::Pair<SquareMatrix<int64_t>, SquareMatrix<int64_t>> {
   auto B = SquareMatrix<int64_t>::identity(A.numCol());
   solveSystem(A, B);
-  return std::make_pair(std::move(A), std::move(B));
+  return {std::move(A), std::move(B)};
 }
 /// inv(A) -> (B, s)
 /// Given a matrix \f$\textbf{A}\f$, returns a matrix \f$\textbf{B}\f$ and a
@@ -669,7 +669,7 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
 /// (s/s) * D0 * B^{-1} = Binv0
 /// s * B^{-1} = (s/D0) * Binv0
 [[nodiscard]] constexpr auto scaledInv(SquareMatrix<int64_t> A)
-  -> std::pair<SquareMatrix<int64_t>, int64_t> {
+  -> containers::Pair<SquareMatrix<int64_t>, int64_t> {
   auto B = SquareMatrix<int64_t>::identity(A.numCol());
   solveSystem(A, B);
   static_assert(AbstractVector<decltype(A.diag())>);
