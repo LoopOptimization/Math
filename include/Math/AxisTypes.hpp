@@ -36,7 +36,13 @@ template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
   static_assert(M >= 0);
   static_assert(M <= std::numeric_limits<I>::max());
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
-  operator I() const {
+  operator I() const
+  requires(!std::same_as<I, ptrdiff_t>)
+  {
+    return M;
+  }
+  [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
+  operator ptrdiff_t() const {
     return M;
   }
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
@@ -56,6 +62,14 @@ template <std::signed_integral I> struct Length<-1, I> {
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
   operator I() const {
     auto m = static_cast<I>(M);
+    invariant(m >= I(0));
+    return m;
+  }
+  [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
+  operator ptrdiff_t() const
+  requires(!std::same_as<I, ptrdiff_t>)
+  {
+    auto m = static_cast<ptrdiff_t>(static_cast<I>(M));
     invariant(m >= 0);
     return m;
   }
@@ -578,11 +592,11 @@ capacity(ptrdiff_t x) -> Capacity<> {
   invariant(x >= 0);
   return Capacity<-1>{static_cast<Capacity<-1>::cap>(x)};
 }
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-capacity(size_t x) -> Capacity<> {
-  invariant(x <= size_t(std::numeric_limits<ptrdiff_t>::max()));
-  return capacity(ptrdiff_t(x));
-}
+// [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+// capacity(size_t x) -> Capacity<> {
+//   invariant(x <= size_t(std::numeric_limits<ptrdiff_t>::max()));
+//   return capacity(ptrdiff_t(x));
+// }
 template <std::integral I, I x>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 row(std::integral_constant<I, x>) -> Row<ptrdiff_t(x)> {

@@ -61,7 +61,7 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   [[no_unique_address]] RowStride<X> strideM{};
   constexpr StridedDims() = default;
   constexpr StridedDims(Row<R> m, Col<C> n)
-    : M{m}, N{n}, strideM{ptrdiff_t(n)} {}
+    : M{m}, N{n}, strideM{rowStride(ptrdiff_t(n))} {}
   constexpr StridedDims(Row<R> m, Col<C> n, RowStride<X> x)
     : M{m}, N{n}, strideM{x} {
     invariant(N <= strideM);

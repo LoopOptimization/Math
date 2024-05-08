@@ -330,7 +330,7 @@ struct POLY_MATH_GSL_POINTER Array {
   template <std::convertible_to<S> V>
   constexpr Array(Array<T, V> a) : ptr(a.data()), sz(a.dim()) {}
   template <size_t N>
-  constexpr Array(const std::array<T, N> &a) : ptr(a.data()), sz(N) {}
+  constexpr Array(const std::array<T, N> &a) : ptr(a.data()), sz(length(N)) {}
   [[nodiscard]] constexpr auto data() const noexcept -> const storage_type * {
     invariant(ptr != nullptr || ptrdiff_t(sz) == 0);
     return ptr;
@@ -567,16 +567,16 @@ struct POLY_MATH_GSL_POINTER Array {
   //     (void)std::fclose(f);
   //   }
   // }
-  constexpr auto eachRow() const -> SliceRange<const T, false>
+  [[nodiscard]] constexpr auto eachRow() const -> SliceRange<const T, false>
   requires(MatrixDimension<S>)
   {
-    return {data(), ptrdiff_t(Col(this->sz)), ptrdiff_t(RowStride(this->sz)),
+    return {data(), length(ptrdiff_t(Col(this->sz))), RowStride(this->sz),
             ptrdiff_t(Row(this->sz))};
   }
-  constexpr auto eachCol() const -> SliceRange<const T, true>
+  [[nodiscard]] constexpr auto eachCol() const -> SliceRange<const T, true>
   requires(MatrixDimension<S>)
   {
-    return {data(), ptrdiff_t(Row(this->sz)), ptrdiff_t(RowStride(this->sz)),
+    return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
 #endif
@@ -958,7 +958,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr ResizeableView(storage_type *p, S s, U c) noexcept
     : BaseT(p, s), capacity_(c) {}
   constexpr ResizeableView(alloc::Arena<> *a, S s, U c) noexcept
-    : ResizeableView{a->template allocate<storage_type>(c), s, c} {}
+    : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), s, c} {}
 
   [[nodiscard]] constexpr auto isFull() const -> bool {
     return ptrdiff_t(this->sz) == capacity_;
@@ -979,7 +979,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
                                Args &&...args) -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
-    if (isFull()) reserve(alloc, (capacity_ + 1) * 2);
+    if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
     return *std::construct_at(this->data() + ptrdiff_t(this->sz++),
                               std::forward<Args>(args)...);
   }
@@ -993,7 +993,7 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr void push_back(alloc::Arena<> *alloc, T value)
   requires(std::same_as<S, Length<>>)
   {
-    if (isFull()) reserve(alloc, (capacity_ + 1) * 2);
+    if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
     std::construct_at<T>(this->data() + ptrdiff_t(this->sz++),
                          std::move(value));
   }
@@ -1010,6 +1010,11 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     invariant(this->sz > 0);
     return std::move(this->data()[ptrdiff_t(--this->sz)]);
   }
+  constexpr void resize(ptrdiff_t nz)
+  requires(std::same_as<S, Length<>>)
+  {
+    resize(length(nz));
+  }
   // behavior
   // if S is StridedDims, then we copy data.
   // If the new dims are larger in rows or cols, we fill with 0.
@@ -1020,13 +1025,15 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     S oz = this->sz;
     this->sz = nz;
     if constexpr (std::same_as<S, Length<>>) {
-      invariant(U(nz) <= capacity_);
+      auto ozs = ptrdiff_t(oz), nzs = ptrdiff_t(nz);
+      invariant(nzs <= capacity_);
       if constexpr (!std::is_trivially_destructible_v<T>) {
-        if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
-        else if (nz > oz)
-          for (ptrdiff_t i = oz; i < nz; ++i)
+        if (nzs < ozs) std::destroy_n(this->data() + nz, oz - nz);
+        else if (nzs > ozs)
+          for (ptrdiff_t i = ozs; i < nzs; ++i)
             std::construct_at(this->data() + i);
-      } else if (nz > oz) std::fill(this->data() + oz, this->data() + nz, T{});
+      } else if (nz > oz)
+        std::fill(this->data() + ozs, this->data() + nzs, T{});
     } else {
       static_assert(std::is_trivially_destructible_v<T>,
                     "Resizing matrices holding non-is_trivially_destructible_v "
@@ -1216,16 +1223,32 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     : BaseT(p, s, c), allocator(alloc) {}
 
   template <class... Args>
+  constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
+  requires(std::same_as<S, Length<>>)
+  {
+    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    invariant(s < c);
+    T &ret =
+      *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
+    this->sz = length(s + 1z);
+    return ret;
+  }
+  constexpr void push_back_within_capacity(T value)
+  requires(std::same_as<S, Length<>>)
+  {
+    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    invariant(s < c);
+    std::construct_at<T>(this->data() + s, std::move(value));
+    this->sz = length(s + 1z);
+  }
+  template <class... Args>
   constexpr auto emplace_back(Args &&...args) -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
-    T &ret =
-      *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
-    this->sz = length(s + 1z);
-    return ret;
+    return emplace_back_within_capacity(args...);
   }
   constexpr void push_back(T value)
   requires(std::same_as<S, Length<>>)
@@ -1233,8 +1256,7 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
-    std::construct_at<T>(this->data() + s, std::move(value));
-    this->sz = length(s + 1z);
+    push_back_within_capacity(std::move(value));
   }
   // behavior
   // if S is StridedDims, then we copy data.
@@ -1607,7 +1629,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <std::convertible_to<T> Y, size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
-    : BaseT{memory.data(), S(length(il.size())), capacity(N)} {
+    : BaseT{memory.data(), S(length(std::ssize(il))), capacity(N)} {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(il.begin(), len, this->data());
