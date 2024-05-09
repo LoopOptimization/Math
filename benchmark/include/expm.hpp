@@ -67,14 +67,15 @@ constexpr auto log2ceil(double x) -> ptrdiff_t {
 
 template <typename T> constexpr void expm(MutSquarePtrMatrix<T> A) {
   ptrdiff_t n = ptrdiff_t(A.numRow()), s = 0;
-  SquareMatrix<T> A2{SquareDims<>{{n}}}, U_{SquareDims<>{{n}}};
+  SquareMatrix<T> A2{SquareDims<>{poly::math::row(n)}},
+    U_{SquareDims<>{poly::math::row(n)}};
   MutSquarePtrMatrix<T> U{U_};
   if (double nA = opnorm1(A); nA <= 0.015) {
     A2 << A * A;
     U << A * (A2 + 60.0 * I);
     A << 12.0 * A2 + 120.0 * I;
   } else {
-    SquareMatrix<T> B{SquareDims<>{{n}}};
+    SquareMatrix<T> B{SquareDims<>{poly::math::row(n)}};
     if (nA <= 2.1) {
       A2 << A * A;
       containers::TinyVector<double, 5> p0, p1;

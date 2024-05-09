@@ -42,7 +42,7 @@ template <typename T, typename S>
 template <ptrdiff_t N> static void BM_dualNdoublemul(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<double, N>;
-  SquareMatrix<D> A{SquareDims{{state.range(0)}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(state.range(0))}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   double t = 1.00000000001;
   for (auto b : state) eltmul(A, t);
@@ -52,7 +52,7 @@ template <ptrdiff_t M, ptrdiff_t N>
 static void BM_dualMxNdoublemul(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
-  SquareMatrix<D> A{SquareDims{{state.range(0)}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(state.range(0))}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   double t = 1.00000000001;
   for (auto b : state) eltmul(A, t);
@@ -61,7 +61,7 @@ static void BM_dualMxNdoublemul(benchmark::State &state) {
 template <ptrdiff_t N> static void BM_dualNadd(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
-  SquareDims<> dim{state.range(0)};
+  SquareDims<> dim{poly::math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);
@@ -71,7 +71,7 @@ template <ptrdiff_t M, ptrdiff_t N>
 static void BM_dualMxNadd(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
-  SquareDims<> dim{state.range(0)};
+  SquareDims<> dim{poly::math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);
@@ -80,7 +80,7 @@ static void BM_dualMxNadd(benchmark::State &state) {
 template <ptrdiff_t N> static void BM_dualNaddsub(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
-  SquareDims<> dim{state.range(0)};
+  SquareDims<> dim{poly::math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim}, D{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);
@@ -90,7 +90,7 @@ template <ptrdiff_t M, ptrdiff_t N>
 static void BM_dualMxNaddsub(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
-  SquareDims<> dim{state.range(0)};
+  SquareDims<> dim{poly::math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim}, D{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);

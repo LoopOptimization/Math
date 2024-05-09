@@ -28,8 +28,8 @@ static void BM_dual8x2dApI(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto b : state) {
     A12pI120(B, A);
@@ -42,9 +42,9 @@ static void BM_dual8x2BmApI(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
-  SquareMatrix<D> C{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> C{SquareDims{poly::math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
   for (auto b : state) {
@@ -102,9 +102,9 @@ static void BM_dual8x2BmApI_manual(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = std::array<std::array<double, 9>, 3>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
-  SquareMatrix<D> C{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> C{SquareDims{poly::math::row(dim)}};
   for (ptrdiff_t i = 0, L = dim * dim; i < L; ++i) {
     for (ptrdiff_t j = 0; j < 3; ++j) {
       for (ptrdiff_t k = 0; k < 9; ++k) {
@@ -125,8 +125,8 @@ static void BM_dual7x2dApI(benchmark::State &state) {
   static_assert(sizeof(poly::utils::compressed_t<D>) == (24 * sizeof(double)));
   static_assert(sizeof(D) == (24 * sizeof(double)));
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto b : state) {
     A12pI120(B, A);
@@ -139,9 +139,9 @@ static void BM_dual7x2BmApI(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 7>, 2>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
-  SquareMatrix<D> C{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> C{SquareDims{poly::math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
   for (auto b : state) {
@@ -155,9 +155,9 @@ static void BM_dual7x2BmApI_manual(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = std::array<std::array<double, 8>, 3>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
-  SquareMatrix<D> C{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> C{SquareDims{poly::math::row(dim)}};
   for (ptrdiff_t i = 0, L = dim * dim; i < L; ++i) {
     for (ptrdiff_t j = 0; j < 3; ++j) {
       for (ptrdiff_t k = 0; k < 8; ++k) {
@@ -183,8 +183,8 @@ static void BM_dual6x2dApI(benchmark::State &state) {
   static_assert(sizeof(D) == (24 * sizeof(double)));
   // static_assert(sizeof(D) == sizeof(Dual<Dual<double, 8>, 2>));
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto b : state) {
     A12pI120(B, A);
@@ -197,9 +197,9 @@ static void BM_dual6x2BmApI(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 6>, 2>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
-  SquareMatrix<D> C{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> C{SquareDims{poly::math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
   for (auto b : state) {
@@ -215,9 +215,9 @@ static void BM_dual6x2BmApI_manual(benchmark::State &state) {
   constexpr size_t N = Dcount + 1;
   using D = std::array<std::array<double, N>, 3>;
   ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{{dim}}};
-  SquareMatrix<D> B{SquareDims{{dim}}};
-  SquareMatrix<D> C{SquareDims{{dim}}};
+  SquareMatrix<D> A{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> B{SquareDims{poly::math::row(dim)}};
+  SquareMatrix<D> C{SquareDims{poly::math::row(dim)}};
   for (ptrdiff_t i = 0, L = dim * dim; i < L; ++i) {
     for (ptrdiff_t j = 0; j < 3; ++j) {
       for (size_t k = 0; k < N; ++k) {
