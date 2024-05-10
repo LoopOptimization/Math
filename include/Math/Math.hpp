@@ -47,6 +47,10 @@ template <class A, class B> struct ElTypes {
 // returns the element type of `A` when used in a binary op with `B`
 template <class A, class B> using indextype_t = typename ElTypes<A, B>::eltype;
 
+// template <typename T>
+// concept Trivial =
+//   std::is_trivially_destructible_v<T> && std::is_trivially_copyable_v<T> &&
+//   std::is_trivially_default_constructible_v<T>;
 template <typename T>
 concept Trivial =
   std::is_trivially_destructible_v<T> && std::is_trivially_copyable_v<T>;

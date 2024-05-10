@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
-#include <limits>
 
 constexpr auto fcore(auto u1, auto u2) {
   return (2.0 * u1 + u2 + u1 * u2) / (u1 * u2);
@@ -203,16 +202,6 @@ auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
   poly::math::Vector<int32_t> r{poly::math::length(3)};
   poly::math::minimizeIntSol(&arena, r, box, MatOpt{M, K, N});
   return {m_r * r[0], r[1], n_r * r[2]};
-}
-
-int32_t intfromchar(const char *str) {
-  long x = std::strtol(str, nullptr, 10);
-  if (x > std::numeric_limits<int32_t>::max()) {
-    std::cout << "Only sizes <= " << std::numeric_limits<int32_t>::max()
-              << "are supported, but received a value of " << x << "\n";
-    __builtin_trap();
-  }
-  return int32_t(x);
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

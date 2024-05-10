@@ -56,10 +56,10 @@ template <class R, class C> struct CartesianIndex {
 template <class R, class C> CartesianIndex(R, C) -> CartesianIndex<R, C>;
 
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
-  [[no_unique_address]] Row<R> M{};
-  [[no_unique_address]] Col<C> N{};
-  [[no_unique_address]] RowStride<X> strideM{};
-  constexpr StridedDims() = default;
+  [[no_unique_address]] Row<R> M;
+  [[no_unique_address]] Col<C> N;
+  [[no_unique_address]] RowStride<X> strideM;
+  explicit constexpr StridedDims() = default;
   constexpr StridedDims(Row<R> m, Col<C> n)
     : M{m}, N{n}, strideM{rowStride(ptrdiff_t(n))} {}
   constexpr StridedDims(Row<R> m, Col<C> n, RowStride<X> x)
@@ -155,9 +155,9 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
 };
 static_assert(sizeof(StridedDims<-1, 8, 8>) == sizeof(ptrdiff_t));
 template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
-  [[no_unique_address]] Row<R> M{};
-  [[no_unique_address]] Col<C> N{};
-  constexpr DenseDims() = default;
+  [[no_unique_address]] Row<R> M;
+  [[no_unique_address]] Col<C> N;
+  explicit constexpr DenseDims() = default;
   constexpr DenseDims(Row<R> m, Col<C> n) : M{m}, N{n} {}
   constexpr DenseDims(Length<1>)
     : M{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
@@ -252,8 +252,10 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     return os << x.M << " x " << x.N;
   }
 };
+static_assert(std::is_trivially_default_constructible_v<DenseDims<>>);
+
 template <ptrdiff_t R> struct SquareDims {
-  [[no_unique_address]] Row<R> M{};
+  [[no_unique_address]] Row<R> M;
   constexpr explicit operator int() const {
     return int(ptrdiff_t(M) * ptrdiff_t(M));
   }

@@ -336,10 +336,9 @@ constexpr auto LogBo256L(std::integral_constant<int, 10>) -> double {
   return -1.0624811566412999e-13;
 }
 
-constexpr auto magic_round_const(double) -> double {
-  return 6.755399441055744e15;
-}
-constexpr auto magic_round_const(float) -> float { return 1.048576e7F; }
+template <std::floating_point T>
+static constexpr double magic_round_const = 6.755399441055744e15;
+template <> static constexpr double magic_round_const<float> = 1.048576e7F;
 
 constexpr auto trunclo(double x) -> double {
   return std::bit_cast<double>(std::bit_cast<uint64_t>(x) & 0xfffffffff8000000);
@@ -348,7 +347,7 @@ constexpr auto trunclo(double x) -> double {
 constexpr auto fma(double x, double y, double z) -> double {
 #ifdef __cpp_if_consteval
   if consteval { // TODO drop when c++23 constexpr fma support is available
-#if defined(__linux__) && __X86_64__
+#if defined(__linux__) && defined(__x86_64__)
     __float128 a = x, b = y, c = z;
     return double(a * b + c);
 #else
@@ -367,20 +366,20 @@ constexpr auto fma(double x, double y, double z) -> double {
 #endif
 }
 
-constexpr auto expm1b_kernel(std::integral_constant<int, 2>,
-                             double x) -> double {
+[[gnu::always_inline]] constexpr auto
+expm1b_kernel(std::integral_constant<int, 2>, double x) -> double {
   return x * fma(fma(fma(0.009618130135925114, x, 0.055504115022757844), x,
                      0.2402265069590989),
                  x, 0.6931471805599393);
 }
-constexpr auto expm1b_kernel(std::integral_constant<int, 3>,
-                             double x) -> double {
+[[gnu::always_inline]] constexpr auto
+expm1b_kernel(std::integral_constant<int, 3>, double x) -> double {
   return x * fma(fma(fma(0.04166666762124105, x, 0.1666666704849642), x,
                      0.49999999999999983),
                  x, 0.9999999999999998);
 }
-constexpr auto expm1b_kernel(std::integral_constant<int, 10>,
-                             double x) -> double {
+[[gnu::always_inline]] constexpr auto
+expm1b_kernel(std::integral_constant<int, 10>, double x) -> double {
   return x * fma(fma(fma(fma(0.5393833837413015, x, 1.1712561359457612), x,
                          2.0346785922926713),
                      x, 2.6509490552382577),
@@ -395,9 +394,9 @@ template <int B> constexpr auto exp_impl(double x) -> double {
   // if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
   // #endif
   if (x <= subnormal_exp(x, base)) return 0.0;
-  double floatN = fma(x, LogBo256INV(base), magic_round_const(x));
+  double floatN = fma(x, LogBo256INV(base), magic_round_const<double>);
   auto N = std::bit_cast<uint64_t>(floatN);
-  floatN -= magic_round_const(x);
+  floatN -= magic_round_const<double>;
   double r = fma(floatN, LogBo256U(base), x);
   r = fma(floatN, LogBo256L(base), r);
   double jU = J_TABLE[N & 255];

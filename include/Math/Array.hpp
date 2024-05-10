@@ -314,7 +314,7 @@ struct POLY_MATH_GSL_POINTER Array {
   static constexpr bool flatstride = isdense || std::same_as<S, StridedRange>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
-  constexpr Array() = default;
+  explicit constexpr Array() = default;
   constexpr Array(const Array &) = default;
   constexpr Array(Array &&) noexcept = default;
   constexpr auto operator=(const Array &) -> Array & = default;
@@ -584,8 +584,11 @@ protected:
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  [[no_unique_address]] S sz{};
+  [[no_unique_address]] S sz;
 };
+
+static_assert(
+  std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
 
 template <class T, DenseLayout S>
 [[nodiscard]] constexpr auto operator<=>(Array<T, S> x, Array<T, S> y) {
@@ -606,6 +609,7 @@ struct POLY_MATH_GSL_POINTER MutArray
     BaseT::rend, BaseT::front, BaseT::back;
   using storage_type = typename BaseT::storage_type;
 
+  explicit constexpr MutArray() = default;
   constexpr MutArray(const MutArray &) = default;
   constexpr MutArray(MutArray &&) noexcept = default;
   constexpr auto operator=(const MutArray &) -> MutArray & = delete;
@@ -707,16 +711,6 @@ struct POLY_MATH_GSL_POINTER MutArray
   [[nodiscard]] constexpr auto end() noexcept {
     return begin() + ptrdiff_t(this->sz);
   }
-  // [[nodiscard, gnu::returns_nonnull]] constexpr auto begin() noexcept -> T
-  // *
-  // {
-  //   return this->ptr;
-  // }
-  // [[nodiscard, gnu::returns_nonnull]] constexpr auto end() noexcept ->
-  // storage_type *
-  // {
-  //   return this->ptr + ptrdiff_t(this->sz);
-  // }
   [[nodiscard]] constexpr auto rbegin() noexcept {
     return std::reverse_iterator(end());
   }
@@ -782,7 +776,7 @@ struct POLY_MATH_GSL_POINTER MutArray
       invariant(col <= stride);
       if ((col + (512 / (sizeof(T)))) <= stride) {
         storage_type *dst = data() + ptrdiff_t(r) * stride;
-        for (ptrdiff_t m = ptrdiff_t(r); m < newRow; ++m) {
+        for (auto m = ptrdiff_t(r); m < newRow; ++m) {
           storage_type *src = dst + stride;
           std::copy_n(src, col, dst);
           dst = src;

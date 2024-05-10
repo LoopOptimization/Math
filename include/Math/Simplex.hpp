@@ -1,17 +1,19 @@
 #pragma once
 #include "Alloc/Arena.hpp"
 #include "Math/Array.hpp"
+#include "Math/AxisTypes.hpp"
 #include "Math/Constraints.hpp"
 #include "Math/Indexing.hpp"
 #include "Math/Math.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/NormalForm.hpp"
 #include "Math/Rational.hpp"
+#include "SIMD/Intrin.hpp"
 #include "Utilities/Invariant.hpp"
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <limits>
+#include <memory>
 #include <new>
 #include <ostream>
 
@@ -32,37 +34,47 @@ class Simplex {
   using index_type = int;
   using value_type = int64_t;
 
-  static constexpr auto tableauOffset(ptrdiff_t conCap,
-                                      ptrdiff_t varCap) -> size_t {
-    ptrdiff_t numIndex = conCap + varCap;
-    if constexpr (sizeof(value_type) > sizeof(index_type))
-      numIndex += (sizeof(value_type) / sizeof(index_type)) - 1;
-    size_t indexBytes = (sizeof(index_type) * numIndex);
-    if constexpr (sizeof(value_type) > sizeof(index_type))
-      indexBytes &= (-alignof(value_type));
-    return indexBytes;
-  }
-  [[nodiscard]] constexpr auto tableauOffset() const -> size_t {
-    return tableauOffset(reservedBasicConstraints(), reservedBasicVariables());
-  }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto
-  tableauPointer() const -> value_type * {
-    void *p = const_cast<char *>(memory) + tableauOffset();
-    return (value_type *)p;
+  template <std::integral T>
+  static constexpr auto alignOffset(ptrdiff_t x) -> ptrdiff_t {
+    --x;
+    ptrdiff_t W = simd::Width<T>;
+    ptrdiff_t nW = -W;
+    x += W;
+    x &= nW;
+    return x;
+    // return (--x + simd::Width<T>)&(-simd::Width<T>);
   }
   [[gnu::returns_nonnull, nodiscard]] constexpr auto
   basicConsPointer() const -> index_type * {
     void *p = const_cast<char *>(memory);
-    return (index_type *)p;
+    return std::assume_aligned<simd::VECTORWIDTH>(static_cast<index_type *>(p));
   }
   [[gnu::returns_nonnull, nodiscard]] constexpr auto
   basicVarsPointer() const -> index_type * {
-    return basicConsPointer() + reservedBasicConstraints();
+    ptrdiff_t offset = alignOffset<index_type>(reservedBasicConstraints());
+    return std::assume_aligned<simd::VECTORWIDTH>(basicConsPointer() + offset);
+  }
+  // offset in bytes
+  static constexpr auto tableauOffset(ptrdiff_t cons,
+                                      ptrdiff_t vars) -> ptrdiff_t {
+    ptrdiff_t coff = alignOffset<index_type>(cons);
+    ptrdiff_t voff = alignOffset<index_type>(vars);
+    ptrdiff_t offset = coff + voff;
+    // ptrdiff_t offset =
+    //   alignOffset<index_type>(cons) + alignOffset<index_type>(vars);
+    return static_cast<ptrdiff_t>(sizeof(index_type)) * offset;
+  }
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto
+  tableauPointer() const -> value_type * {
+    ptrdiff_t offset =
+      tableauOffset(reservedBasicConstraints(), reservedBasicVariables());
+    void *p = const_cast<char *>(memory) + offset;
+    return std::assume_aligned<simd::VECTORWIDTH>(static_cast<value_type *>(p));
   }
   Row<> numConstraints{};
   Col<> numVars{};
   Capacity<> constraintCapacity;
-  RowStride<> varCapacity;
+  RowStride<> varCapacityP1; // varCapacity + 1
 #ifndef NDEBUG
   bool inCanonicalForm{false};
 #endif
@@ -74,25 +86,36 @@ class Simplex {
 #pragma clang diagnostic ignored "-Wc99-extensions"
 #endif
   // NOLINTNEXTLINE(modernize-avoid-c-arrays) // FAM
-  alignas(value_type) char memory[];
+  alignas(simd::VECTORWIDTH) char memory[];
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic pop
 #else
 #pragma clang diagnostic pop
 #endif
+
+  // (varCapacity+1)%simd::Width<int64_t>==0
+  static constexpr auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
+    static constexpr ptrdiff_t W = simd::Width<int64_t>;
+    return rowStride((ptrdiff_t(rs) + W) & -W);
+  }
+  [[nodiscard]] static constexpr auto
+  reservedTableau(ptrdiff_t cons, ptrdiff_t vars) -> ptrdiff_t {
+    return static_cast<ptrdiff_t>(sizeof(value_type)) *
+           ((ptrdiff_t(cons) + 1) * vars);
+  }
+  static constexpr auto requiredMemory(ptrdiff_t cons,
+                                       ptrdiff_t vars) -> size_t {
+    ptrdiff_t base = static_cast<ptrdiff_t>(sizeof(Simplex)),
+              indices = tableauOffset(cons, vars),
+              tableau = reservedTableau(cons, vars);
+    return static_cast<size_t>(base + indices + tableau);
+  }
+
 public:
   // tableau is constraint * var matrix w/ extra col for LHS
   // and extra row for objective function
-  [[nodiscard]] static constexpr auto
-  reservedTableau(ptrdiff_t conCap, ptrdiff_t varCap) -> ptrdiff_t {
-    return (ptrdiff_t(conCap) + 1) * (ptrdiff_t(varCap) + 1);
-  }
-  [[nodiscard]] constexpr auto reservedTableau() const -> ptrdiff_t {
-    return reservedTableau(reservedBasicConstraints(),
-                           reservedBasicVariables());
-  }
   [[nodiscard]] constexpr auto reservedBasicConstraints() const -> ptrdiff_t {
-    return ptrdiff_t(varCapacity);
+    return ptrdiff_t(varCapacityP1) - 1;
   }
   [[nodiscard]] constexpr auto reservedBasicVariables() const -> ptrdiff_t {
     return ptrdiff_t(constraintCapacity);
@@ -102,6 +125,14 @@ public:
   //   return reservedTableau() + reservedBasicConstraints() +
   //          reservedBasicVariables();
   // }
+  // We with to align every row of `getConstraints()` and `getTableau()`.
+  // To do this, we
+  // 0. (varCapacity+1) % simd::Width<int64_t> == 0
+  // 1. offset...
+  //
+  // tableau has a stride of `varCapacityP1`, which is the maximum var capacity
+  // +1. The `+1` is room for the LHS.
+  //
   /// [ value | objective function ]
   /// [ LHS   | tableau            ]
   [[nodiscard]] constexpr auto getTableau() const -> PtrMatrix<value_type> {
@@ -109,7 +140,7 @@ public:
     return {tableauPointer(), StridedDims<>{
                                 ++auto(numConstraints),
                                 ++auto(numVars),
-                                ++auto(varCapacity),
+                                varCapacityP1,
                               }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
@@ -117,25 +148,23 @@ public:
     return {tableauPointer(), StridedDims<>{
                                 ++auto(numConstraints),
                                 ++auto(numVars),
-                                ++auto(varCapacity),
+                                varCapacityP1,
                               }};
   }
   [[nodiscard]] constexpr auto getConstraints() const -> PtrMatrix<value_type> {
-    return {tableauPointer() + ptrdiff_t(varCapacity) + 1,
-            StridedDims<>{
-              numConstraints,
-              ++auto(numVars),
-              ++auto(varCapacity),
-            }};
+    return {tableauPointer() + ptrdiff_t(varCapacityP1), StridedDims<>{
+                                                           numConstraints,
+                                                           ++auto(numVars),
+                                                           varCapacityP1,
+                                                         }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
   [[nodiscard]] constexpr auto getConstraints() -> MutPtrMatrix<value_type> {
-    return {tableauPointer() + ptrdiff_t(varCapacity) + 1,
-            StridedDims<>{
-              numConstraints,
-              ++auto(numVars),
-              ++auto(varCapacity),
-            }};
+    return {tableauPointer() + ptrdiff_t(varCapacityP1), StridedDims<>{
+                                                           numConstraints,
+                                                           ++auto(numVars),
+                                                           varCapacityP1,
+                                                         }};
   }
   [[nodiscard]] constexpr auto
   getBasicConstraints() const -> PtrVector<index_type> {
@@ -198,9 +227,9 @@ public:
     for (ptrdiff_t v = 0; v < basicCons.size();) {
       index_type c = basicCons[v++];
       if (c < 0) continue;
-      ASSERT(allZero(C[_(1, 1 + c), v]));
-      ASSERT(allZero(C[_(2 + c, end), v]));
-      invariant(ptrdiff_t(basicVars[c]), v - 1);
+      if (!allZero(C[_(1, 1 + c), v])) __builtin_trap();
+      if (!allZero(C[_(2 + c, end), v])) __builtin_trap();
+      if (ptrdiff_t(basicVars[c]) != (v - 1)) __builtin_trap();
     }
     for (ptrdiff_t c = 1; c < C.numRow(); ++c) {
       index_type v = basicVars[c - 1];
@@ -229,7 +258,7 @@ public:
     numConstraints = row(i);
   }
   constexpr void setNumVars(ptrdiff_t i) {
-    invariant(i <= varCapacity);
+    invariant(i < varCapacityP1);
     numVars = col(i);
   }
   constexpr void truncateVars(ptrdiff_t i) {
@@ -244,13 +273,13 @@ public:
     invariant(numVars >= 0);
     return ptrdiff_t(numVars);
   }
-  [[nodiscard]] constexpr auto getConCap() const -> ptrdiff_t {
+  [[nodiscard]] constexpr auto getConCap() const -> Capacity<> {
     invariant(constraintCapacity >= 0);
-    return ptrdiff_t(constraintCapacity);
+    return constraintCapacity;
   }
-  [[nodiscard]] constexpr auto getVarCap() const -> ptrdiff_t {
-    invariant(varCapacity >= 0);
-    return ptrdiff_t(varCapacity);
+  [[nodiscard]] constexpr auto getVarCap() const -> RowStride<> {
+    invariant(varCapacityP1 > 0);
+    return --auto{varCapacityP1};
   }
   constexpr void deleteConstraint(ptrdiff_t c) {
     auto basicCons = getBasicConstraints();
@@ -433,7 +462,7 @@ public:
   constexpr auto removeAugmentVars(PtrVector<unsigned> augmentVars) -> bool {
     // TODO: try to avoid reallocating, via reserving enough ahead of time
     ptrdiff_t numAugment = augmentVars.size(), oldNumVar = ptrdiff_t(numVars);
-    invariant(numAugment + ptrdiff_t(numVars) <= varCapacity);
+    invariant(numAugment + ptrdiff_t(numVars) < varCapacityP1);
     numVars = col(ptrdiff_t(numVars) + ptrdiff_t(numAugment));
     MutPtrMatrix<value_type> C{getConstraints()};
     MutPtrVector<index_type> basicVars{getBasicVariables()};
@@ -754,7 +783,8 @@ public:
   constexpr void pruneBounds(Arena<> *alloc, ptrdiff_t numSlack = 0) {
     auto p = alloc->scope();
     Simplex *simplex{Simplex::create(alloc, numConstraints, numVars,
-                                     constraintCapacity, varCapacity)};
+                                     constraintCapacity,
+                                     --auto{varCapacityP1})};
     // Simplex simplex{getNumCons(), getNumVars(), getNumSlack(), 0};
     for (ptrdiff_t c = 0; c < getNumCons(); ++c) {
       *simplex << *this;
@@ -901,28 +931,30 @@ public:
   static constexpr auto create(Arena<> *alloc, Row<> numCon, Col<> numVar,
                                Capacity<> conCap,
                                RowStride<> varCap) -> Valid<Simplex> {
+    varCap = alignVarCapacity(varCap);
     auto cCap = ptrdiff_t(conCap), vCap = ptrdiff_t(varCap);
-    size_t memNeeded = tableauOffset(cCap, vCap) +
-                       sizeof(value_type) * reservedTableau(cCap, vCap);
-    auto *mem = (Simplex *)alloc->allocate(sizeof(Simplex) + memNeeded);
+    size_t memNeeded = requiredMemory(cCap, vCap);
+    auto *mem = (Simplex *)alloc->allocate<alignof(Simplex)>(memNeeded);
     mem->numConstraints = numCon;
     mem->numVars = numVar;
     mem->constraintCapacity = conCap;
-    mem->varCapacity = varCap;
+    mem->varCapacityP1 = varCap;
     return mem;
   }
 
   static auto operator new(size_t count, Capacity<> conCap,
                            RowStride<> varCap) -> void * {
     auto cC = ptrdiff_t(conCap), vC = ptrdiff_t(varCap);
-    size_t memNeeded =
-      tableauOffset(cC, vC) + sizeof(value_type) * reservedTableau(cC, vC);
+    size_t memNeeded = requiredMemory(cC, vC);
     // void *p = ::operator new(count * memNeeded);
-    return ::operator new(count * memNeeded,
-                          std::align_val_t(alignof(Simplex)));
+    return poly::alloc::malloc(count * memNeeded,
+                               std::align_val_t(alignof(Simplex)));
+    // return ::operator new(count * memNeeded,
+    //                       std::align_val_t(alignof(Simplex)));
   }
-  static void operator delete(void *ptr, size_t) {
-    ::operator delete(ptr, std::align_val_t(alignof(Simplex)));
+  static void operator delete(void *ptr, size_t sz) {
+    poly::alloc::free(ptr, sz, std::align_val_t(alignof(Simplex)));
+    // ::operator delete(ptr, std::align_val_t(alignof(Simplex)));
   }
 
   static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex> {
@@ -932,11 +964,12 @@ public:
   }
   static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
                      RowStride<> varCap) -> std::unique_ptr<Simplex> {
+    varCap = alignVarCapacity(varCap);
     auto *ret = new (conCap, varCap) Simplex;
     ret->numConstraints = numCon;
     ret->numVars = numVar;
     ret->constraintCapacity = conCap;
-    ret->varCapacity = varCap;
+    ret->varCapacityP1 = varCap;
     return std::unique_ptr<Simplex>(ret);
   }
 
@@ -950,7 +983,7 @@ public:
   }
   constexpr auto copy(Arena<> *alloc) const -> Valid<Simplex> {
     Valid<Simplex> res = create(alloc, row(getNumCons()), col(getNumVars()),
-                                capacity(getConCap()), rowStride(getVarCap()));
+                                getConCap(), getVarCap());
     *res << *this;
     return res;
   }
@@ -982,4 +1015,5 @@ static_assert(AbstractVector<ElementwiseBinaryOp<
 static_assert(std::movable<Simplex::Solution::iterator>);
 static_assert(std::indirectly_readable<Simplex::Solution::iterator>);
 static_assert(std::forward_iterator<Simplex::Solution::iterator>);
+static_assert(alignof(Simplex) == simd::VECTORWIDTH);
 } // namespace poly::math

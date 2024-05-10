@@ -1,6 +1,7 @@
 #pragma once
 #include "Math/Array.hpp"
 #include "Math/BoxOpt.hpp"
+#include <cstddef>
 #include <cstdint>
 
 namespace poly::math {
@@ -39,12 +40,23 @@ constexpr auto minimizeIntSol(
   // integer solutions.
   if (minimize(alloc, box, f) >= globalupper) return globalupper;
   // cache upper bound result
-  r << Elementwise{[](auto x) { return std::floor(x); }, box.transformed()};
+  {
+    auto btf = box.transformed();
+    for (ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] = std::floor(btf[i]);
+  }
+  // TODO: simd floor support?
+  // r << Elementwise{[](auto x) { return std::floor(x); }, box.transformed()};
   double upper = f(r);
   double opt = branch(alloc, box, upper, upper, f);
   if (opt >= upper) return upper;
-  if (box.getRaw().empty()) r << box.getLowerBounds();
-  else r << box.transformed();
+  if (box.getRaw().empty()) {
+    r << box.getLowerBounds();
+  } else {
+    // TODO: fix these
+    // r << box.transformed();
+    auto btf = box.transformed();
+    for (ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] = std::floor(btf[i]);
+  }
   return opt;
 }
 constexpr auto minimizeIntSol(

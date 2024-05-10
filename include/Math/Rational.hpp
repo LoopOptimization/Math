@@ -72,6 +72,18 @@ struct Rational {
     *this = *a;
     return *this;
   }
+  friend constexpr auto operator+(Rational x, int64_t y) -> Rational {
+    return Rational{x.numerator + y * x.denominator, x.denominator};
+  }
+  friend constexpr auto operator+(int64_t y, Rational x) -> Rational {
+    return x + y;
+  }
+  friend constexpr auto operator-(Rational x, int64_t y) -> Rational {
+    return Rational{x.numerator - y * x.denominator, x.denominator};
+  }
+  friend constexpr auto operator-(int64_t y, Rational x) -> Rational {
+    return Rational{y * x.denominator - x.numerator, x.denominator};
+  }
   [[nodiscard]] constexpr auto
   safeSub(Rational y) const -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator, y.denominator);
@@ -112,8 +124,11 @@ struct Rational {
     if (o1 | o2) return {};
     return Rational{n, d};
   }
-  constexpr auto operator*(int64_t y) const -> Rational {
-    return *safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
+  friend constexpr auto operator*(Rational x, int64_t y) -> Rational {
+    return *x.safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
+  }
+  friend constexpr auto operator*(int64_t y, Rational x) -> Rational {
+    return x * y;
   }
   constexpr auto operator*(Rational y) const -> Rational {
     return *safeMul(y); // NOLINT(bugprone-unchecked-optional-access)

@@ -384,8 +384,10 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   int64_t Ajk = A[j, k];
   invariant(Ajk != 0);
   int64_t g = gcd(Aik, Ajk);
-  Aik /= g;
-  Ajk /= g;
+  if (g != 1) {
+    Aik /= g;
+    Ajk /= g;
+  }
   int64_t ret = f * Ajk;
   constexpr ptrdiff_t W = simd::Width<int64_t>;
   simd::Vec<W, int64_t> vAjk = simd::vbroadcast<W, int64_t>(Ajk),

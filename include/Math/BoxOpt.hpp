@@ -3,6 +3,7 @@
 #include "Alloc/Mallocator.hpp"
 #include "Math/Array.hpp"
 #include "Math/Dual.hpp"
+#include "Math/ElementarySIMD.hpp"
 #include "Math/Exp.hpp"
 #include "Math/LinearAlgebra.hpp"
 #include "Math/Math.hpp"
@@ -28,11 +29,36 @@ public:
     if (j < 0) return off;
     return scales()[i] * sigmoid(x[j]) + off;
   }
+  template <ptrdiff_t U, ptrdiff_t W, typename M>
+  constexpr auto operator()(const AbstractVector auto &x,
+                            simd::index::Unroll<U, W, M> i) const
+    -> simd::Unroll<1, U, W, utils::eltype_t<decltype(x)>> {
+    using T = utils::eltype_t<decltype(x)>;
+    using V = simd::Vec<W, T>;
+    simd::Unroll<1, U, W, int> j = getInds()[i];
+    simd::Unroll<1, U, W, double> off = offs()[i], scale = scales()[i];
+    simd::Unroll<1, U, W, T> y;
+    if constexpr (U == 1) {
+      auto m = simd::cmp::le<W, int>(j.vec, simd::Vec<W, int>{});
+      V xload = simd::gather(x.data(), i.mask & m, j.vec);
+      y.vec = simd::select<double>(m, off.vec,
+                                   scale.vec * sigmoid<W>(xload) + off.vec);
+    } else {
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t u = 0; u < U; ++u) {
+        auto m = simd::cmp::le<W, int>(j.data[u], simd::Vec<W, int>{});
+        V xload = simd::gather(x.data(), i.mask & m, j.data[u]);
+        y.data[u] =
+          select(m, off.data[u], scale.data[u] * sigmoid(xload) + off.data[u]);
+      }
+    }
+    return y;
+  }
   constexpr void set(AbstractVector auto &x, auto y, ptrdiff_t i) {
     invariant(i < Ntotal);
     int j = getInds()[i];
-    double off = offs()[i];
     if (j < 0) return;
+    double off = offs()[i];
     x[j] = logit((y - off) / scales()[i]);
   }
   [[nodiscard]] constexpr auto view() const -> BoxTransformView {
@@ -174,6 +200,11 @@ template <AbstractVector V> struct BoxTransformVector {
 
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return btv.size(); }
   constexpr auto operator[](ptrdiff_t i) const -> value_type {
+    return btv(v, i);
+  }
+  template <ptrdiff_t U, ptrdiff_t W, typename M>
+  constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
+    -> simd::Unroll<1, U, W, double> {
     return btv(v, i);
   }
   struct Reference {

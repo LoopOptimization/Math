@@ -1,6 +1,4 @@
 #pragma once
-#ifndef MATH_SIMD_INTRIN_HPP_INCLUDED
-#define MATH_SIMD_INTRIN_HPP_INCLUDED
 
 #include <Math/AxisTypes.hpp>
 #include <SIMD/Indexing.hpp>
@@ -24,7 +22,8 @@ namespace poly::simd {
 
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename T>
-concept SIMDSupported = std::same_as<T, int64_t> || std::same_as<T, double>;
+concept SIMDSupported =
+  (std::integral<T> || std::floating_point<T>) && (sizeof(T) >= 4);
 #else
 template <typename T>
 concept SIMDSupported = false;
@@ -101,14 +100,6 @@ template <ptrdiff_t W, typename T> consteval auto mmzero() {
     else return __m128i{};
   }
 }
-template <ptrdiff_t W> inline auto vindex(int32_t stride) {
-  if constexpr (W <= 4) return std::bit_cast<__m128i>(range<W>() * stride);
-  else if constexpr (W == 8) return std::bit_cast<__m256i>(range<W>() * stride);
-  else {
-    static_assert(W == 16);
-    return std::bit_cast<__m512i>(range<W>() * stride);
-  }
-}
 
 #ifdef __AVX512F__
 static constexpr ptrdiff_t REGISTERS = 32;
@@ -122,16 +113,16 @@ static constexpr ptrdiff_t VECTORWIDTH = 64;
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::None<8>) -> Vec<8, T> {
-  if constexpr (std::same_as<T, double>) {
-    // hw::__m512d_u v = *reinterpret_cast<const hw::__m512d_u *>(p);
-    // return std::bit_cast<Vec<8, double>>(v);
-    return std::bit_cast<Vec<8, double>>(_mm512_loadu_pd(p));
-  } else if constexpr (std::same_as<T, int64_t>) {
-    // hw::__m512i_u v = *reinterpret_cast<const hw::__m512i_u *>(p);
-    // return std::bit_cast<Vec<8, int64_t>>(v);
-    return std::bit_cast<Vec<8, int64_t>>(_mm512_loadu_epi64(p));
-  } else static_assert(false);
+load(const T *p, mask::None<16>) -> Vec<16, T> {
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<16, float>>(_mm512_loadu_ps(p));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<16, T>>(_mm512_loadu_epi32(p));
+#ifdef __AVX512VL__
+  else if constexpr (sizeof(T) == 2)
+    return std::bit_cast<Vec<16, T>>(_mm256_loadu_epi16(p));
+#endif
+  else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
@@ -139,76 +130,261 @@ load(const T *p, mask::Bit<8> i) -> Vec<8, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<8, double>>(
       _mm512_maskz_loadu_pd(uint8_t(i.mask), p));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<8, int64_t>>(
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<8, T>>(
       _mm512_maskz_loadu_epi64(uint8_t(i.mask), p));
+#ifdef __AVX512VL__
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<8, float>>(
+      _mm256_maskz_loadu_ps(uint8_t(i.mask), p));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(
+      _mm256_maskz_loadu_epi32(uint8_t(i.mask), p));
+  else if constexpr (sizeof(T) == 2)
+    return std::bit_cast<Vec<8, T>>(_mm_maskz_loadu_epi16(uint8_t(i.mask), p));
+#endif
   else static_assert(false);
 }
 template <typename T>
-[[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::None<8>,
-                                                          Vec<8, T> x) {
-  if constexpr (std::same_as<T, double>) {
-    // hw::__m512d_u v = std::bit_cast<Vec<8, double>>(x);
-    // *reinterpret_cast<hw::__m512d_u *>(p) = v;
-    _mm512_storeu_pd(p, std::bit_cast<__m512d>(x));
-  } else if constexpr (std::same_as<T, int64_t>) {
-    // hw::__m512i_u v = std::bit_cast<Vec<8, int64_t>>(x);
-    // *reinterpret_cast<hw::__m512i_u *>(p) = v;
-    _mm512_storeu_epi64(p, std::bit_cast<__m512i>(x));
-  } else static_assert(false);
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Bit<16> i) -> Vec<16, T> {
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<16, float>>(
+      _mm512_maskz_loadu_ps(uint16_t(i.mask), p));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<16, T>>(
+      _mm512_maskz_loadu_epi32(uint16_t(i.mask), p));
+#ifdef __AVX512VL__
+  else if constexpr (sizeof(T) == 2)
+    return std::bit_cast<Vec<16, T>>(
+      _mm256_maskz_loadu_epi16(uint16_t(i.mask), p));
+#endif
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::None<16>,
+                                                          Vec<16, T> x) {
+  if constexpr (std::same_as<T, float>)
+    _mm512_storeu_ps(p, std::bit_cast<__m512>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm512_storeu_epi32(p, std::bit_cast<__m512i>(x));
+#ifdef __AVX512VL__
+  else if constexpr (sizeof(T) == 2)
+    _mm256_storeu_epi16(p, std::bit_cast<__m256i>(x));
+#endif
+  else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::Bit<8> i,
                                                           Vec<8, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm512_mask_storeu_pd(p, uint8_t(i.mask), std::bit_cast<__m512d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
     _mm512_mask_storeu_epi64(p, uint8_t(i.mask), std::bit_cast<__m512i>(x));
+#ifdef __AVX512VL__
+  else if constexpr (std::same_as<T, float>)
+    _mm256_mask_storeu_ps(p, uint8_t(i.mask), std::bit_cast<__m256>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm256_mask_storeu_epi32(p, uint8_t(i.mask), std::bit_cast<__m256i>(x));
+  else if constexpr (sizeof(T) == 2)
+    _mm_mask_storeu_epi16(p, uint8_t(i.mask), std::bit_cast<__m128i>(x));
+#endif
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::Bit<16> i,
+                                                          Vec<16, T> x) {
+  if constexpr (std::same_as<T, float>)
+    _mm512_mask_storeu_ps(p, uint16_t(i.mask), std::bit_cast<__m512>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm512_mask_storeu_epi32(p, uint16_t(i.mask), std::bit_cast<__m512i>(x));
+#ifdef __AVX512VL__
+  else if constexpr (sizeof(T) == 2)
+    _mm256_mask_storeu_epi16(p, uint16_t(i.mask), std::bit_cast<__m256i>(x));
+#endif
   else static_assert(false);
 }
 
 // strided memory accesses
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::None<8>, int32_t stride) -> Vec<8, T> {
+gather(const T *p, mask::None<16>, Vec<16, int32_t> i) -> Vec<16, T> {
+  auto inds = std::bit_cast<__m512i>(i);
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<16, T>>(_mm512_i32gather_ps(inds, p, 4));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_epi32(inds, p, 4));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::None<16>, int32_t stride) -> Vec<16, T> {
+  return gather(p, mask::None<16>{}, range<16>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Bit<8> i, Vec<8, int32_t> indv) -> Vec<8, T> {
+  auto inds = std::bit_cast<__m256i>(indv);
+  static constexpr auto src = mmzero<8, T>();
   if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<8, double>>(
+      _mm512_mask_i32gather_pd(src, uint8_t(i.mask), inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
     return std::bit_cast<Vec<8, T>>(
-      _mm512_i32gather_pd(vindex<8>(stride), p, 8));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<8, int64_t>>(
-      _mm512_i32gather_pd(vindex<8>(stride), p, 8));
+      _mm512_mask_i32gather_epi64(src, uint8_t(i.mask), inds, p, 8));
+#ifdef __AVX512VL__
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<8, float>>(
+      _mm256_mmask_i32gather_ps(src, uint8_t(i.mask), inds, p, 4));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(
+      _mm256_mmask_i32gather_epi32(src, uint8_t(i.mask), inds, p, 4));
+#endif
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Bit<8> i, Vec<8, int64_t> indv) -> Vec<8, T> {
+  auto inds = std::bit_cast<__m512i>(indv);
+  static constexpr auto src = mmzero<8, T>();
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<8, double>>(
+      _mm512_mask_i64gather_pd(src, uint8_t(i.mask), inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<8, T>>(
+      _mm512_mask_i64gather_epi64(src, uint8_t(i.mask), inds, p, 8));
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::Bit<8> i, int32_t stride) -> Vec<8, T> {
+  return gather(p, i, range<8>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Bit<16> i, Vec<16, int32_t> indv) -> Vec<16, T> {
+  auto inds = std::bit_cast<__m512i>(indv);
   auto src = mmzero<8, T>();
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<16, float>>(
+      _mm512_mask_i32gather_ps(src, uint16_t(i.mask), inds, p, 4));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<16, T>>(
+      _mm512_mask_i32gather_epi32(src, uint16_t(i.mask), inds, p, 4));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Bit<16> i, int32_t stride) -> Vec<16, T> {
+  return gather(p, i, range<16>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<8>, Vec<8, T> x, Vec<8, int32_t> indv) {
+  auto inds = std::bit_cast<__m256i>(indv);
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<8, double>>(
-      _mm512_mask_i32gather_pd(src, uint8_t(i.mask), vindex<8>(stride), p, 8));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<8, int64_t>>(_mm512_mask_i32gather_epi64(
-      src, uint8_t(i.mask), vindex<8>(stride), p, 8));
+    _mm512_i32scatter_pd(p, inds, std::bit_cast<__m512d>(x), 8);
+  else if constexpr (sizeof(T) == 8)
+    _mm512_i32scatter_epi64(p, inds, std::bit_cast<__m512i>(x), 8);
+#ifdef __AVX512VL__
+  else if constexpr (std::same_as<T, float>)
+    _mm256_i32scatter_ps(p, inds, std::bit_cast<__m256>(x), 4);
+  else if constexpr (sizeof(T) == 4)
+    _mm256_i32scatter_epi32(p, inds, std::bit_cast<__m256i>(x), 4);
+#endif
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::None<8>, Vec<8, T> x, int32_t stride) {
+  scatter(p, mask::None<8>{}, x, range<8>() * stride);
+}
+
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<16>, Vec<16, T> x, Vec<16, int32_t> indv) {
+  auto inds = std::bit_cast<__m512i>(indv);
+  if constexpr (std::same_as<T, float>)
+    _mm512_i32scatter_ps(p, inds, std::bit_cast<__m512>(x), 4);
+  else if constexpr (sizeof(T) == 4)
+    _mm512_i32scatter_epi32(p, inds, std::bit_cast<__m512i>(x), 4);
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+store(T *p, mask::None<16>, Vec<16, T> x, int32_t stride) {
+  scatter(p, mask::None<16>{}, x, range<16>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Bit<8> i, Vec<8, T> x, Vec<8, int32_t> indv) {
+  auto inds = std::bit_cast<__m256i>(indv);
   if constexpr (std::same_as<T, double>)
-    _mm512_i32scatter_pd(p, vindex<8>(stride), std::bit_cast<__m512d>(x), 8);
-  else if constexpr (std::same_as<T, int64_t>)
-    _mm512_i32scatter_epi64(p, vindex<8>(stride), std::bit_cast<__m512i>(x), 8);
+    _mm512_mask_i32scatter_pd(p, uint8_t(i.mask), inds,
+                              std::bit_cast<__m512d>(x), 8);
+  else if constexpr (sizeof(T) == 8)
+    _mm512_mask_i32scatter_epi64(p, uint8_t(i.mask), inds,
+                                 std::bit_cast<__m512i>(x), 8);
+#ifdef __AVX512VL__
+  else if constexpr (std::same_as<T, float>)
+    _mm256_mask_i32scatter_ps(p, uint8_t(i.mask), inds,
+                              std::bit_cast<__m256>(x), 4);
+  else if constexpr (sizeof(T) == 4)
+    _mm256_mask_i32scatter_epi32(p, uint8_t(i.mask), inds,
+                                 std::bit_cast<__m256i>(x), 4);
+#endif
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::Bit<8> i, Vec<8, T> x, int32_t stride) {
+  scatter(p, i, x, range<8>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Bit<16> i, Vec<16, T> x, Vec<16, int32_t> indv) {
+  auto inds = std::bit_cast<__m512i>(indv);
+  if constexpr (std::same_as<T, float>)
+    _mm512_mask_i32scatter_ps(p, uint16_t(i.mask), inds,
+                              std::bit_cast<__m512>(x), 4);
+  else if constexpr (sizeof(T) == 4)
+    _mm512_mask_i32scatter_epi32(p, uint16_t(i.mask), inds,
+                                 std::bit_cast<__m512i>(x), 4);
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+store(T *p, mask::Bit<16> i, Vec<16, T> x, int32_t stride) {
+  scatter(p, i, x, range<16>() * stride);
+}
+template <typename T>
+constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y) -> Vec<8, T> {
   if constexpr (std::same_as<T, double>)
-    _mm512_mask_i32scatter_pd(p, uint8_t(i.mask), vindex<8>(stride),
-                              std::bit_cast<__m512d>(x), 8);
-  else if constexpr (std::same_as<T, int64_t>)
-    _mm512_mask_i32scatter_epi64(p, uint8_t(i.mask), vindex<8>(stride),
-                                 std::bit_cast<__m512i>(x), 8);
+    return std::bit_cast<Vec<8, T>>(_mm512_mask_mov_pd(
+      std::bit_cast<__m512d>(y), uint8_t(m), std::bit_cast<__m512d>(x)));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<8, T>>(_mm512_mask_mov_epi64(
+      std::bit_cast<__m512i>(y), uint8_t(m.mask), std::bit_cast<__m512i>(x)));
+#ifdef __AVX512VL__
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<8, T>>(_mm256_mask_mov_ps(
+      std::bit_cast<__m256>(y), uint8_t(m), std::bit_cast<__m256>(x)));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(_mm256_mask_mov_epi32(
+      std::bit_cast<__m256i>(y), uint8_t(m.mask), std::bit_cast<__m256i>(x)));
+#endif
+  else static_assert(false);
+}
+
+template <typename T>
+constexpr auto select(mask::Bit<16> m, Vec<16, T> x,
+                      Vec<16, T> y) -> Vec<16, T> {
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<16, T>>(_mm512_mask_mov_ps(
+      std::bit_cast<__m512>(y), uint16_t(m), std::bit_cast<__m512>(x)));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<16, T>>(_mm512_mask_mov_epi32(
+      std::bit_cast<__m512i>(y), uint16_t(m.mask), std::bit_cast<__m512i>(x)));
   else static_assert(false);
 }
 
@@ -221,30 +397,122 @@ static constexpr ptrdiff_t VECTORWIDTH = 32;
 static constexpr ptrdiff_t VECTORWIDTH = 16;
 #endif // no AVX
 #endif // no AVX512F
+#ifdef __AVX__
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::None<8>) -> Vec<8, T> {
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<8, float>>(_mm256_loadu_ps(p));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(_mm256_loadu_epi32(p));
+  else if constexpr (sizeof(T) == 2)
+    return std::bit_cast<Vec<8, T>>(_mm_loadu_epi16(p));
+#ifdef __AVX512F__
+  else if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<8, double>>(_mm512_loadu_pd(p));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<8, T>>(_mm512_loadu_epi64(p));
+#endif
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::None<8>,
+                                                          Vec<8, T> x) {
+  if constexpr (std::same_as<T, float>)
+    _mm256_storeu_ps(p, std::bit_cast<__m256>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm256_storeu_epi32(p, std::bit_cast<__m256i>(x));
+  else if constexpr (sizeof(T) == 2)
+    _mm_storeu_epi16(p, std::bit_cast<__m128i>(x));
+#ifdef __AVX512F__
+  else if constexpr (std::same_as<T, double>)
+    _mm512_storeu_pd(p, std::bit_cast<__m512d>(x));
+  else if constexpr (sizeof(T) == 8)
+    _mm512_storeu_epi64(p, std::bit_cast<__m512i>(x));
+#endif
+  else static_assert(false);
+}
 #ifdef __AVX2__
-
-// Non-masked gather/scatter are the same with AVX512VL and AVX2
+// Non-masked gather is same with AVX512VL and AVX2
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<4>, Vec<4, int32_t> indv) -> Vec<4, T> {
+  auto x = std::bit_cast<__m128i>(indv);
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<4, double>>(_mm256_i32gather_pd(p, x, 8));
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(_mm_i32gather_ps(p, x, 4));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(_mm256_i32gather_epi64(p, x, 8));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(_mm_i32gather_epi32(p, x, 4));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<4>, Vec<4, int64_t> indv) -> Vec<4, T> {
+  auto x = std::bit_cast<__m256i>(indv);
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<4, double>>(_mm256_i64gather_pd(p, x, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(_mm256_i64gather_epi64(p, x, 8));
+  else static_assert(false);
+}
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::None<4>, int32_t stride) -> Vec<4, T> {
-  auto x{vindex<4>(stride)};
+  return gather(p, mask::None<4>{}, range<4>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<2>, Vec<2, int64_t> indv) -> Vec<2, T> {
+  auto x = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(_mm256_i32gather_pd(p, x, 8));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<4, int64_t>>(_mm256_i32gather_pd(p, x, 8));
+    return std::bit_cast<Vec<2, double>>(_mm_i64gather_pd(p, x, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<2, T>>(_mm_i64gather_epi64(p, x, 8));
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::None<2>, int32_t stride) -> Vec<2, T> {
-  auto x{vindex<2>(stride)};
-  if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(_mm_i64gather_pd(p, x, 8));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<2, int64_t>>(_mm_i64gather_pd(p, x, 8));
+  return gather(p, mask::None<2>{}, range<2>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<8>, Vec<8, int32_t> indv) -> Vec<8, T> {
+  auto inds = std::bit_cast<__m256i>(indv);
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<8, T>>(_mm256_i32gather_ps(p, inds, 4));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(_mm256_i32gather_epi32(p, inds, 4));
+#ifdef __AVX512F__
+  else if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_pd(inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_epi64(inds, p, 8));
+#endif
   else static_assert(false);
 }
+#ifdef __AVX512F__
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<8>, Vec<8, int64_t> indv) -> Vec<8, T> {
+  auto inds = std::bit_cast<__m512i>(indv);
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<8, T>>(_mm512_i64gather_pd(inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<8, T>>(_mm512_i64gather_epi64(inds, p, 8));
+  else static_assert(false);
+}
+#endif // AVX512F
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::None<8>, int32_t stride) -> Vec<8, T> {
+  return gather(p, mask::None<8>{}, range<8>() * stride);
+}
 #endif // AVX2
+#endif // AVX
 
 // Here, we handle masked loads/stores
 #ifdef __AVX512VL__
@@ -254,9 +522,13 @@ load(const T *p, mask::Bit<4> i) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(
       _mm256_maskz_loadu_pd(uint8_t(i.mask), p));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<4, int64_t>>(
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(
       _mm256_maskz_loadu_epi64(uint8_t(i.mask), p));
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(_mm_maskz_loadu_ps(uint8_t(i.mask), p));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(_mm_maskz_loadu_epi32(uint8_t(i.mask), p));
   else static_assert(false);
 }
 template <typename T>
@@ -264,8 +536,12 @@ template <typename T>
                                                           Vec<4, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm256_mask_storeu_pd(p, uint8_t(i.mask), std::bit_cast<__m256d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
     _mm256_mask_storeu_epi64(p, uint8_t(i.mask), std::bit_cast<__m256i>(x));
+  else if constexpr (std::same_as<T, float>)
+    _mm_mask_storeu_ps(p, uint8_t(i.mask), std::bit_cast<__m128>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm_mask_storeu_epi32(p, uint8_t(i.mask), std::bit_cast<__m128i>(x));
   else static_assert(false);
 }
 
@@ -275,9 +551,8 @@ load(const T *p, mask::Bit<2> i) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(
       _mm_maskz_loadu_pd(uint8_t(i.mask), p));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<2, int64_t>>(
-      _mm_maskz_loadu_epi64(uint8_t(i.mask), p));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<2, T>>(_mm_maskz_loadu_epi64(uint8_t(i.mask), p));
   else static_assert(false);
 }
 template <typename T>
@@ -285,74 +560,140 @@ template <typename T>
                                                           Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm_mask_storeu_pd(p, uint8_t(i.mask), std::bit_cast<__m128d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
     _mm_mask_storeu_epi64(p, uint8_t(i.mask), std::bit_cast<__m128i>(x));
   else static_assert(false);
 }
 // gather/scatter
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Bit<4> i, int32_t stride) -> Vec<4, T> {
+gather(const T *p, mask::Bit<4> i, Vec<4, int32_t> indv) -> Vec<4, T> {
+  auto inds = std::bit_cast<__m128i>(indv);
   auto src{mmzero<4, T>()};
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(
-      _mm256_mmask_i32gather_pd(src, uint8_t(i.mask), vindex<4>(stride), p, 8));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<4, int64_t>>(_mm256_mmask_i32gather_epi64(
-      src, uint8_t(i.mask), vindex<4>(stride), p, 8));
+      _mm256_mmask_i32gather_pd(src, uint8_t(i.mask), inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(
+      _mm256_mmask_i32gather_epi64(src, uint8_t(i.mask), inds, p, 8));
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(
+      _mm_mmask_i32gather_ps(src, uint8_t(i.mask), inds, p, 4));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(
+      _mm_mmask_i32gather_epi32(src, uint8_t(i.mask), inds, p, 4));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Bit<4> i, Vec<4, int64_t> indv) -> Vec<4, T> {
+  auto inds = std::bit_cast<__m256i>(indv);
+  auto src{mmzero<4, T>()};
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<4, double>>(
+      _mm256_mmask_i64gather_pd(src, uint8_t(i.mask), inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(
+      _mm256_mmask_i64gather_epi64(src, uint8_t(i.mask), inds, p, 8));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Bit<4> i, int32_t stride) -> Vec<4, T> {
+  return gather(p, i, range<4>() * stride);
+}
+
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<4>, Vec<4, T> x, Vec<4, int32_t> indv) {
+  auto inds = std::bit_cast<__m128i>(indv);
+  if constexpr (std::same_as<T, double>)
+    _mm256_i32scatter_pd(p, inds, std::bit_cast<__m256d>(x), 8);
+  else if constexpr (sizeof(T) == 8)
+    _mm256_i32scatter_epi64(p, inds, std::bit_cast<__m256i>(x), 8);
+  else if constexpr (std::same_as<T, float>)
+    _mm_i32scatter_ps(p, inds, std::bit_cast<__m128>(x), 4);
+  else if constexpr (sizeof(T) == 4)
+    _mm_i32scatter_epi32(p, inds, std::bit_cast<__m128i>(x), 4);
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::None<4>, Vec<4, T> x, int32_t stride) {
+  scatter(p, mask::None<4>{}, x, range<4>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Bit<4> i, Vec<4, T> x, Vec<4, int32_t> indv) {
+  auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
-    _mm256_i32scatter_pd(p, vindex<4>(stride), std::bit_cast<__m256d>(x), 8);
-  else if constexpr (std::same_as<T, int64_t>)
-    _mm256_i32scatter_epi64(p, vindex<4>(stride), std::bit_cast<__m256i>(x), 8);
+    _mm256_mask_i32scatter_pd(p, uint8_t(i.mask), inds,
+                              std::bit_cast<__m256d>(x), 8);
+  else if constexpr (sizeof(T) == 8)
+    _mm256_mask_i32scatter_epi64(p, uint8_t(i.mask), inds,
+                                 std::bit_cast<__m256i>(x), 8);
+  else if constexpr (std::same_as<T, double>)
+    _mm_mask_i32scatter_ps(p, uint8_t(i.mask), inds, std::bit_cast<__m128>(x),
+                           4);
+  else if constexpr (sizeof(T) == 4)
+    _mm_mask_i32scatter_epi32(p, uint8_t(i.mask), inds,
+                              std::bit_cast<__m128i>(x), 4);
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::Bit<4> i, Vec<4, T> x, int32_t stride) {
+  scatter(p, i, x, range<4>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Bit<2> i, Vec<2, int64_t> indv) -> Vec<2, T> {
+  auto inds = std::bit_cast<__m128i>(indv);
+  auto src{mmzero<2, T>()};
   if constexpr (std::same_as<T, double>)
-    _mm256_mask_i32scatter_pd(p, uint8_t(i.mask), vindex<4>(stride),
-                              std::bit_cast<__m256d>(x), 8);
-  else if constexpr (std::same_as<T, int64_t>)
-    _mm256_mask_i32scatter_epi64(p, uint8_t(i.mask), vindex<4>(stride),
-                                 std::bit_cast<__m256i>(x), 8);
+    return std::bit_cast<Vec<2, double>>(
+      _mm_mmask_i64gather_pd(src, uint8_t(i.mask), inds, p, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<2, T>>(
+      _mm_mmask_i64gather_epi64(src, uint8_t(i.mask), inds, p, 8));
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::Bit<2> i, int32_t stride) -> Vec<2, T> {
-  auto src{mmzero<2, T>()};
+  return gather(p, i, range<2>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<2>, Vec<2, T> x, Vec<2, int64_t> indv) {
+  auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(
-      _mm_mmask_i64gather_pd(src, uint8_t(i.mask), vindex<2>(stride), p, 8));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<2, int64_t>>(
-      _mm_mmask_i64gather_epi64(src, uint8_t(i.mask), vindex<2>(stride), p, 8));
+    _mm_i64scatter_pd(p, inds, std::bit_cast<__m128d>(x), 8);
+  else if constexpr (sizeof(T) == 8)
+    _mm_i64scatter_epi64(p, inds, std::bit_cast<__m128i>(x), 8);
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::None<2>, Vec<2, T> x, int32_t stride) {
+  scatter(p, mask::None<2>{}, x, range<2>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Bit<2> i, Vec<2, T> x, Vec<2, int64_t> indv) {
+  auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
-    _mm_i64scatter_pd(p, vindex<2>(stride), std::bit_cast<__m128d>(x), 8);
-  else if constexpr (std::same_as<T, int64_t>)
-    _mm_i64scatter_epi64(p, vindex<2>(stride), std::bit_cast<__m128i>(x), 8);
+    _mm_mask_i64scatter_pd(p, uint8_t(i.mask), inds, std::bit_cast<__m128d>(x),
+                           8);
+  else if constexpr (sizeof(T) == 8)
+    _mm_mask_i64scatter_epi64(p, uint8_t(i.mask), inds,
+                              std::bit_cast<__m128i>(x), 8);
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::Bit<2> i, Vec<2, T> x, int32_t stride) {
-  if constexpr (std::same_as<T, double>)
-    _mm_mask_i64scatter_pd(p, uint8_t(i.mask), vindex<2>(stride),
-                           std::bit_cast<__m128d>(x), 8);
-  else if constexpr (std::same_as<T, int64_t>)
-    _mm_mask_i64scatter_epi64(p, uint8_t(i.mask), vindex<2>(stride),
-                              std::bit_cast<__m128i>(x), 8);
-  else static_assert(false);
+  scatter(p, i, x, range<2>() * stride);
 }
 
 template <typename T, ptrdiff_t W>
@@ -428,6 +769,32 @@ fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Bit<W> m) {
     }
   }
 }
+template <typename T>
+constexpr auto select(mask::Bit<4> m, Vec<4, T> x, Vec<4, T> y) -> Vec<4, T> {
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<4, T>>(_mm256_mask_mov_pd(
+      std::bit_cast<__m256d>(y), uint8_t(m), std::bit_cast<__m256d>(x)));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(_mm256_mask_mov_epi64(
+      std::bit_cast<__m256i>(y), uint8_t(m.mask), std::bit_cast<__m256i>(x)));
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, T>>(_mm_mask_mov_ps(
+      std::bit_cast<__m128>(y), uint8_t(m), std::bit_cast<__m128>(x)));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(_mm_mask_mov_epi32(
+      std::bit_cast<__m128i>(y), uint8_t(m.mask), std::bit_cast<__m128i>(x)));
+  else static_assert(false);
+}
+template <typename T>
+constexpr auto select(mask::Bit<2> m, Vec<2, T> x, Vec<2, T> y) -> Vec<2, T> {
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<2, T>>(_mm_mask_mov_pd(
+      std::bit_cast<__m128d>(y), uint8_t(m), std::bit_cast<__m128d>(x)));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<2, T>>(_mm_mask_mov_epi64(
+      std::bit_cast<__m128i>(y), uint8_t(m.mask), std::bit_cast<__m128i>(x)));
+  else static_assert(false);
+}
 
 #else // No AVX512VL
 template <typename T, ptrdiff_t W>
@@ -468,6 +835,12 @@ store(T *p, mask::None<2>, Vec<2, T> x, int32_t stride) {
   p[0] = x[0];
   p[stride] = x[1];
 }
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<2>, Vec<2, T> x, Vec<2, int64_t> i) {
+  p[i[0]] = x[0];
+  p[i[1]] = x[1];
+}
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
@@ -475,37 +848,70 @@ store(T *p, mask::Vector<2> i, Vec<2, T> x, int32_t stride) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[stride] = x[1];
 }
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Vector<2> i, Vec<2, T> x, Vec<2, int64_t> indv) {
+  if (i.m[0] != 0) p[indv[0]] = x[0];
+  if (i.m[1] != 0) p[indv[1]] = x[1];
+}
 
 #ifdef __AVX2__
 // masked gathers
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<4> m, int32_t stride) -> Vec<4, T> {
-  __m128i x = vindex<4>(stride);
+gather(const T *p, mask::Vector<4> m, Vec<4, int32_t> indv) -> Vec<4, T> {
+  auto x = std::bit_cast<__m128i>(indv);
   __m256i mask = __m256i(m);
-  if constexpr (std::same_as<T, double>) {
-    constexpr __m256d z = mmzero<4, double>();
+  static constexpr auto z = mmzero<4, T>();
+  if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(
       _mm256_mask_i32gather_pd(z, p, x, mask, 8));
-  } else if constexpr (std::same_as<T, int64_t>) {
-    constexpr __m256i z = mmzero<4, int64_t>();
-    return std::bit_cast<Vec<4, int64_t>>(
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(
       _mm256_mask_i32gather_epi64(z, p, x, mask, 8));
-  } else static_assert(false);
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(
+      _mm_mask_i32gather_ps(z, p, x, mask, 4));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(_mm_mask_i32gather_epi32(z, p, x, mask, 4));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<4> m, Vec<4, int64_t> indv) -> Vec<4, T> {
+  auto x = std::bit_cast<__m256i>(indv);
+  __m256i mask = __m256i(m);
+  static constexpr auto z = mmzero<4, T>();
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<4, double>>(
+      _mm256_mask_i64gather_pd(z, p, x, mask, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(
+      _mm256_mask_i64gather_epi64(z, p, x, mask, 8));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Vector<4> m, int32_t stride) -> Vec<4, T> {
+  return gather(p, m, range<4>() * stride);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<2> m, Vec<2, int64_t> x) -> Vec<2, T> {
+  auto x = std::bit_cast<__m128i>(indv);
+  __m128i mask = __m128i(m);
+  static constexpr auto z = mmzero<2, T>();
+  if constexpr (std::same_as<T, double>)
+    return std::bit_cast<Vec<2, double>>(
+      _mm_mask_i64gather_pd(z, p, x, mask, 8));
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<2, T>>(_mm_mask_i64gather_epi64(z, p, x, mask, 8));
+  else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::Vector<2> m, int32_t stride) -> Vec<2, T> {
-  __m128i x = vindex<2>(stride), mask = __m128i(m);
-  if constexpr (std::same_as<T, double>) {
-    constexpr __m128d z = mmzero<2, double>();
-    return std::bit_cast<Vec<2, double>>(
-      _mm_mask_i64gather_pd(z, p, x, mask, 8));
-  } else if constexpr (std::same_as<T, int64_t>) {
-    constexpr __m128i z = mmzero<2, int64_t>();
-    return std::bit_cast<Vec<2, int64_t>>(
-      _mm_mask_i64gather_epi64(z, p, x, mask, 8));
-  } else static_assert(false);
+  return gather(p, m, range<2>() * stride);
 }
 
 #else          // no AVX2
@@ -515,11 +921,22 @@ template <typename T>
 load(const T *p, mask::None<2>, int32_t stride) -> Vec<2, T> {
   return Vec<2, T>{p[0], p[stride]};
 }
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<2>, Vec<2, int64_t> i) -> Vec<2, T> {
+  return Vec<2, T>{p[i[0]], p[i[1]]};
+}
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::Vector<2> i, int32_t stride) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[stride] : T{}};
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<2> i, Vec<2, int64_t> indv) -> Vec<2, T> {
+  return Vec<2, T>{(i.m[0] != 0) ? p[indv[0]] : T{},
+                   (i.m[1] != 0) ? p[indv[1]] : T{}};
 }
 #ifdef __AVX__ // no AVX2, but AVX
 // fallback 256-bit gather
@@ -527,6 +944,16 @@ template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::None<4>, int32_t stride) -> Vec<4, T> {
   return Vec<4, T>{p[0], p[stride], p[2 * stride], p[3 * stride]};
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<4>, Vec<4, int32_t> i) -> Vec<4, T> {
+  return Vec<4, T>{p[i[0]], p[i[1]], p[i[2]], p[i[3]]};
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<4>, Vec<4, int64_t> i) -> Vec<4, T> {
+  return Vec<4, T>{p[i[0]], p[i[1]], p[i[2]], p[i[3]]};
 }
 
 template <typename T>
@@ -539,6 +966,26 @@ load(const T *p, mask::Vector<4> i, int32_t stride) -> Vec<4, T> {
     (i.m[3] != 0) ? p[3 * stride] : T{},
   };
 }
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<4> i, Vec<4, int32_t> indv) -> Vec<4, T> {
+  return Vec<4, T>{
+    (i.m[0] != 0) ? p[indv[0]] : T{},
+    (i.m[1] != 0) ? p[indv[1]] : T{},
+    (i.m[2] != 0) ? p[indv[2]] : T{},
+    (i.m[3] != 0) ? p[indv[3]] : T{},
+  };
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<4> i, Vec<4, int64_t> indv) -> Vec<4, T> {
+  return Vec<4, T>{
+    (i.m[0] != 0) ? p[indv[0]] : T{},
+    (i.m[1] != 0) ? p[indv[1]] : T{},
+    (i.m[2] != 0) ? p[indv[2]] : T{},
+    (i.m[3] != 0) ? p[indv[3]] : T{},
+  };
+}
 
 #endif // AVX
 #endif // no AVX2
@@ -548,9 +995,22 @@ template <typename T>
 load(const T *p, mask::Vector<4> i) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_maskload_pd(p, i));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<4, int64_t>>(
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<4, T>>(
       _mm256_maskload_epi64((const long long *)p, i));
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(_mm_maskload_ps(p, i));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(_mm_maskload_epi32((const int *)p, i));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Vector<8> i) -> Vec<8, T> {
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<8, float>>(_mm256_maskload_ps(p, i));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<8, T>>(_mm256_maskload_epi32((const int *)p, i));
   else static_assert(false);
 }
 template <typename T>
@@ -558,8 +1018,21 @@ template <typename T>
 store(T *p, mask::Vector<4> i, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm256_maskstore_pd(p, i, std::bit_cast<__m256d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
     _mm256_maskstore_epi64((long long *)p, i, std::bit_cast<__m256i>(x));
+  else if constexpr (std::same_as<T, float>)
+    _mm_maskstore_ps(p, i, std::bit_cast<__m128>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm_maskstore_epi32((int *)p, i, std::bit_cast<__m128i>(x));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+store(T *p, mask::Vector<8> i, Vec<8, T> x) {
+  if constexpr (std::same_as<T, float>)
+    _mm256_maskstore_ps(p, i, std::bit_cast<__m256>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm256_maskstore_epi32((int *)p, i, std::bit_cast<__m256i>(x));
   else static_assert(false);
 }
 
@@ -568,8 +1041,8 @@ template <typename T>
 load(const T *p, mask::Vector<2> i) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(_mm_maskload_pd(p, i));
-  else if constexpr (std::same_as<T, int64_t>)
-    return std::bit_cast<Vec<2, int64_t>>(
+  else if constexpr (sizeof(T) == 8)
+    return std::bit_cast<Vec<2, T>>(
       _mm_maskload_epi64((const long long *)p, i));
   else static_assert(false);
 }
@@ -578,7 +1051,7 @@ template <typename T>
 store(T *p, mask::Vector<2> i, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm_maskstore_pd(p, i, std::bit_cast<__m128d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
     _mm_maskstore_epi64((long long *)p, i, std::bit_cast<__m128i>(x));
   else static_assert(false);
 }
@@ -594,11 +1067,27 @@ store(T *p, mask::None<4>, Vec<4, T> x, int32_t stride) {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<4>, Vec<4, T> x, Vec<4, int32_t> i) {
+  p[i[0]] = x[0];
+  p[i[1]] = x[1];
+  p[i[2]] = x[2];
+  p[i[3]] = x[3];
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::Vector<4> i, Vec<4, T> x, int32_t stride) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[stride] = x[1];
   if (i.m[2] != 0) p[2 * stride] = x[2];
   if (i.m[3] != 0) p[3 * stride] = x[3];
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Vector<4> i, Vec<4, T> x, Vec<4, int32_t> indv) {
+  if (i.m[0] != 0) p[indv[0]] = x[0];
+  if (i.m[1] != 0) p[indv[1]] = x[1];
+  if (i.m[2] != 0) p[indv[2]] = x[2];
+  if (i.m[3] != 0) p[indv[3]] = x[3];
 }
 #else // No AVX
 template <typename T>
@@ -622,12 +1111,19 @@ template <typename T>
 load(const T *p, mask::None<4>) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_loadu_pd(p));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
 #ifdef __AVX512VL__
-    return std::bit_cast<Vec<4, int64_t>>(_mm256_loadu_epi64(p));
+    return std::bit_cast<Vec<4, T>>(_mm256_loadu_epi64(p));
 #else
-    return std::bit_cast<Vec<4, int64_t>>(
-      _mm256_loadu_si256((const __m256i *)p));
+    return std::bit_cast<Vec<4, T>>(_mm256_loadu_si256((const __m256i *)p));
+#endif
+  else if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(_mm_loadu_ps(p));
+  else if constexpr (sizeof(T) == 4)
+#ifdef __AVX512VL__
+    return std::bit_cast<Vec<4, T>>(_mm_loadu_epi32(p));
+#else
+    return std::bit_cast<Vec<4, T>>(_mm_loadu_si128((const __m128i *)p));
 #endif
   else static_assert(false);
 }
@@ -636,11 +1132,19 @@ template <typename T>
                                                           Vec<4, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm256_storeu_pd(p, std::bit_cast<__m256d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
 #ifdef __AVX512VL__
     _mm256_storeu_epi64(p, std::bit_cast<__m256i>(x));
 #else
     _mm256_storeu_si256((__m256i *)p, std::bit_cast<__m256i>(x));
+#endif
+  else if constexpr (std::same_as<T, float>)
+    _mm_storeu_ps(p, std::bit_cast<__m128>(x));
+  else if constexpr (sizeof(T) == 4)
+#ifdef __AVX512VL__
+    _mm_storeu_epi32(p, std::bit_cast<__m128i>(x));
+#else
+    _mm_storeu_si128((__m256i *)p, std::bit_cast<__m128i>(x));
 #endif
   else static_assert(false);
 }
@@ -682,11 +1186,11 @@ template <typename T>
 load(const T *p, mask::None<2>) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(p));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
 #ifdef __AVX512VL__
-    return std::bit_cast<Vec<2, int64_t>>(_mm_loadu_epi64(p));
+    return std::bit_cast<Vec<2, T>>(_mm_loadu_epi64(p));
 #else
-    return std::bit_cast<Vec<2, int64_t>>(_mm_loadu_si128((const __m128i *)p));
+    return std::bit_cast<Vec<2, T>>(_mm_loadu_si128((const __m128i *)p));
 #endif
   else static_assert(false);
 }
@@ -696,7 +1200,7 @@ template <typename T>
                                                           Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm_storeu_pd(p, std::bit_cast<__m128d>(x));
-  else if constexpr (std::same_as<T, int64_t>)
+  else if constexpr (sizeof(T) == 8)
 #ifdef __AVX512VL__
     _mm_storeu_epi64(p, std::bit_cast<__m128i>(x));
 #else
@@ -747,11 +1251,25 @@ load(const T *p, mask::None<W>, int32_t stride) -> Vec<W, T> {
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[w * stride];
   return ret;
 }
+template <typename T, ptrdiff_t W, std::integral I>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<W>, Vec<W, I> indv) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[indv[w]];
+  return ret;
+}
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::None<W>, Vec<W, T> x, int32_t stride) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) p[w * stride] = x[w];
+}
+template <typename T, ptrdiff_t W, std::integral I>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::None<W>, Vec<W, T> x, Vec<W, I> indv) {
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w) p[indv[w]] = x[w];
 }
 
 template <typename T, ptrdiff_t W>
@@ -763,12 +1281,27 @@ load(const T *p, mask::Vector<W> i, int32_t stride) -> Vec<W, T> {
     ret[w] = (i.m[w] != 0) ? p[w * stride] : T{};
   return ret;
 }
+template <typename T, ptrdiff_t W, std::integral I>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<W> i, Vec<W, I> indv) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[indv[w]] : T{};
+  return ret;
+}
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::Vector<W> i, Vec<W, T> x, int32_t stride) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w * stride] = x[w];
+}
+template <typename T, ptrdiff_t W, std::integral I>
+[[gnu::always_inline, gnu::artificial]] inline void
+scatter(T *p, mask::Vector<W> i, Vec<W, T> x, Vec<W, I> indv) {
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w)
+    if (i.m[w] != 0) p[indv[w]] = x[w];
 }
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
@@ -782,10 +1315,18 @@ fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W> m) {
 }
 
 #endif
+#ifndef __AVX512F__
+template <typename T, ptrdiff_t W>
+constexpr auto select(mask::Vector<W> m, Vec<W, T> x,
+                      Vec<W, T> y) -> Vec<W, T> {
+  return m.m ? x : y;
+}
+#endif
 #ifdef __AVX512CD__
 
 // count left zeros
-template <ptrdiff_t W, std::integral T> constexpr auto clz(Vec<W, T> v) {
+template <ptrdiff_t W, std::integral T>
+[[gnu::always_inline, gnu::artificial]] inline constexpr auto clz(Vec<W, T> v) {
   static_assert((sizeof(T) == 4) || (sizeof(T) == 8));
   if constexpr (W == 16) {
     static_assert(sizeof(T) == 4);
@@ -811,7 +1352,8 @@ template <ptrdiff_t W, std::integral T> constexpr auto clz(Vec<W, T> v) {
   }
 }
 // count right zeros
-template <ptrdiff_t W, std::integral T> constexpr auto crz(Vec<W, T> v) {
+template <ptrdiff_t W, std::integral T>
+[[gnu::always_inline, gnu::artificial]] inline constexpr auto crz(Vec<W, T> v) {
   return T(8 * sizeof(T)) - clz<W, T>((~v) & (v - T(1)));
 }
 
@@ -832,6 +1374,7 @@ template <ptrdiff_t W, std::integral T> constexpr auto crz(Vec<W, T> v) {
 
 #endif
 
+
 template <typename T>
 static constexpr ptrdiff_t Width =
   SIMDSupported<T> ? VECTORWIDTH / sizeof(T) : 1;
@@ -851,4 +1394,3 @@ consteval auto VectorDivRem() -> std::array<ptrdiff_t, 3> {
 };
 
 } // namespace poly::simd
-#endif // SIMD_hpp_INCLUDED

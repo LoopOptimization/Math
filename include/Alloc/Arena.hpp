@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <new>
 #include <utility>
 #include <version>
 
@@ -127,6 +128,16 @@ public:
 #endif
     return p;
   }
+  // [[using gnu: returns_nonnull, alloc_size(2), alloc_align(3), malloc]]
+  template <size_t Align> constexpr auto allocate(size_t Size) -> void * {
+    static_assert(std::popcount(Align) == 1, "Alignment must be a power of 2");
+    if constexpr (Align > Alignment) {
+      size_t space = Size + Align - Alignment;
+      void *p = allocate(space);
+      // TODO: rollback sEnd by the amount `space` decreased?
+      return std::assume_aligned<Align>(std::align(Align, Size, p, space));
+    } else return std::assume_aligned<Alignment>(allocate(Size));
+  }
   template <typename T>
   [[gnu::returns_nonnull, gnu::flatten]] constexpr auto
   allocate(size_t N = 1) -> T * {
@@ -141,7 +152,7 @@ public:
   create(Args &&...args) -> T * {
     static_assert(std::is_trivially_destructible_v<T>,
                   "Arena only supports trivially destructible types.");
-    return std::construct_at(static_cast<T *>(allocate(sizeof(T))),
+    return std::construct_at(static_cast<T *>(allocate<alignof(T)>(sizeof(T))),
                              std::forward<Args>(args)...);
   }
   constexpr void deallocate(void *Ptr, size_t Size) {

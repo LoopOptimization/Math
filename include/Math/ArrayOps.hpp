@@ -7,8 +7,10 @@
 #include "Math/UniformScaling.hpp"
 #include "Utilities/Assign.hpp"
 #include "Utilities/LoopMacros.hpp"
+#include "Utilities/TypePromotion.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <type_traits>
 
@@ -132,7 +134,6 @@ template <typename A, typename B>
 
 template <typename T> class SmallSparseMatrix;
 template <class T, class S, class P> class ArrayOps {
-
   static_assert(std::is_copy_assignable_v<T> ||
                 (std::is_trivially_copyable_v<T> &&
                  std::is_trivially_move_assignable_v<T>));
@@ -153,15 +154,17 @@ template <class T, class S, class P> class ArrayOps {
   [[nodiscard]] constexpr auto rs() const {
     return unwrapRow(static_cast<const P *>(this)->rowStride());
   }
+
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
-  template <typename I, typename R, typename Op>
-  [[gnu::always_inline]] static void vcopyToSIMD(P &self, const auto &B, I L,
+  template <typename RHS, typename I, typename R, typename Op>
+  [[gnu::always_inline]] inline void vcopyToSIMD(P &self, const RHS &B, I L,
                                                  R row, Op op) {
     // TODO: if `R` is a row index, maybe don't fully unroll static `L`
     // We're going for very short SIMD vectors to focus on small sizes
+    using PT = utils::promote_eltype_t<P, RHS>;
     if constexpr (StaticInt<I>) {
       constexpr ptrdiff_t SL = ptrdiff_t(L);
-      constexpr std::array<ptrdiff_t, 3> vdr = simd::VectorDivRem<SL, T>();
+      constexpr std::array<ptrdiff_t, 3> vdr = simd::VectorDivRem<SL, PT>();
       constexpr ptrdiff_t W = vdr[0];
       constexpr ptrdiff_t fulliter = vdr[1];
       constexpr ptrdiff_t remainder = vdr[2];
@@ -173,7 +176,7 @@ template <class T, class S, class P> class ArrayOps {
         utils::assign(self, B, row, u, op);
       }
     } else {
-      constexpr ptrdiff_t W = simd::Width<T>;
+      constexpr ptrdiff_t W = simd::Width<PT>;
       for (ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
@@ -183,11 +186,12 @@ template <class T, class S, class P> class ArrayOps {
   }
 #endif
 protected:
-  template <typename Op> void vcopyTo(const auto &B, Op op) {
+  template <typename Op, typename RHS> void vcopyTo(const RHS &B, Op op) {
     // static_assert(sizeof(utils::eltype_t<decltype(B)>) <= 8);
     P &self{Self()};
     auto [M, N] = promote_shape(self, B);
     constexpr bool assign = std::same_as<Op, utils::CopyAssign>;
+    using PT = utils::promote_eltype_t<P, RHS>;
 #ifdef CASTTOSCALARIZE
     using E = math::scalarize_via_cast_t<
       std::remove_cvref_t<decltype(std::declval<P>().view())>>;
@@ -199,12 +203,12 @@ protected:
       if constexpr (assign) d << reinterpret<E>(B);
       else d << op(d, reinterpret<E>(B));
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
-    } else if constexpr (simd::SIMDSupported<T>) {
+    } else if constexpr (simd::SIMDSupported<PT>) {
 #else
     } else if constexpr (AbstractVector<P>) {
 #endif
 #elifndef POLYMATHNOEXPLICITSIMDARRAY
-    if constexpr (simd::SIMDSupported<T>) {
+    if constexpr (simd::SIMDSupported<PT>) {
 #else
     if constexpr (AbstractVector<P>) {
 #endif
@@ -238,10 +242,10 @@ protected:
       ptrdiff_t L = IsOne<decltype(N)> ? M : N;
       constexpr bool isstatic =
         IsOne<decltype(N)> ? StaticInt<decltype(M)> : StaticInt<decltype(N)>;
-      if constexpr (!std::is_copy_assignable_v<T> && assign) {
+      if constexpr (!std::is_copy_assignable_v<PT> && assign) {
         POLYMATHIVDEP
         for (ptrdiff_t j = 0; j < L; ++j)
-          if constexpr (std::convertible_to<decltype(B), T>) self[j] = auto{B};
+          if constexpr (std::convertible_to<decltype(B), PT>) self[j] = auto{B};
           else self[j] = auto{B[j]};
       } else if constexpr (isstatic) {
         POLYMATHFULLUNROLL
@@ -256,10 +260,10 @@ protected:
       ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
       POLYMATHNOVECTORIZE
       for (ptrdiff_t i = 0; i < R; ++i) {
-        if constexpr (!std::is_copy_assignable_v<T> && assign) {
+        if constexpr (!std::is_copy_assignable_v<PT> && assign) {
           POLYMATHIVDEP
           for (ptrdiff_t j = 0; j < C; ++j)
-            if constexpr (std::convertible_to<decltype(B), T>)
+            if constexpr (std::convertible_to<decltype(B), PT>)
               self[i, j] = auto{B};
             else if constexpr (RowVector<decltype(B)>) self[i, j] = auto{B[j]};
             else if constexpr (ColVector<decltype(B)>) self[i, j] = auto{B[i]};
