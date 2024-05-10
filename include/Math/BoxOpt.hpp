@@ -39,17 +39,17 @@ public:
     simd::Unroll<1, U, W, double> off = offs()[i], scale = scales()[i];
     simd::Unroll<1, U, W, T> y;
     if constexpr (U == 1) {
-      auto m = simd::cmp::le<W, int>(j.vec, simd::Vec<W, int>{});
+      auto m = simd::cmp::ge<W, int>(j.vec, simd::Vec<W, int>{});
       V xload = simd::gather(x.data(), i.mask & m, j.vec);
-      y.vec = simd::select<double>(m, off.vec,
-                                   scale.vec * sigmoid<W>(xload) + off.vec);
+      y.vec = simd::select<double>(m, scale.vec * sigmoid<W>(xload) + off.vec,
+                                   off.vec);
     } else {
       POLYMATHFULLUNROLL
       for (ptrdiff_t u = 0; u < U; ++u) {
-        auto m = simd::cmp::le<W, int>(j.data[u], simd::Vec<W, int>{});
+        auto m = simd::cmp::ge<W, int>(j.data[u], simd::Vec<W, int>{});
         V xload = simd::gather(x.data(), i.mask & m, j.data[u]);
         y.data[u] =
-          select(m, off.data[u], scale.data[u] * sigmoid(xload) + off.data[u]);
+          select(m, scale.data[u] * sigmoid(xload) + off.data[u], off.data[u]);
       }
     }
     return y;

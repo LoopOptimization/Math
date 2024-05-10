@@ -1,6 +1,8 @@
 #pragma once
 #include "Math/Exp.hpp"
 #include "SIMD/Intrin.hpp"
+#include "SIMD/Unroll.hpp"
+#include <cstddef>
 
 namespace poly::math {
 template <ptrdiff_t W>
@@ -56,7 +58,8 @@ constexpr auto exp_impl(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   V jU = simd::gather(J_TABLE, simd::mask::None<W>{},
                       N & simd::vbroadcast<W, int64_t>(255));
   V small = jU * expm1b_kernel<W>(base, r) + jU;
-  simd::Vec<W, int64_t> twopk = (N >> 8) << 52;
+  simd::Vec<W, int64_t> twopk = std::bit_cast<simd::Vec<W, int64_t>>(
+    (std::bit_cast<simd::Vec<W, int64_t>>(N) >> 8) << 52);
   V z = std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, int64_t>>(small));
   return simd::select<double>(altmask, alt, z);
 }
@@ -73,6 +76,34 @@ template <ptrdiff_t W>
 constexpr auto exp10(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return exp_impl<10, W>(x);
 }
+template <int B, ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+constexpr auto
+exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+  if constexpr (R * U == 1) {
+    return {exp_impl<B, W>(x.vec)};
+  } else {
+    simd::Unroll<R, U, W, double> ret;
+    for (ptrdiff_t i = 0; i < R * U; ++i)
+      ret.data[i] = exp_impl<B, W>(x.data[i]);
+    return ret;
+  }
+}
+template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+constexpr auto
+exp(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+  return exp_impl<3>(x);
+}
+template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+constexpr auto
+exp2(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+  return exp_impl<2>(x);
+}
+template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+constexpr auto
+exp10(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+  return exp_impl<10>(x);
+}
+
 template <ptrdiff_t W>
 constexpr auto sigmoid(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return 1.0 / (1.0 + exp<W>(-x));

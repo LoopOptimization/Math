@@ -53,9 +53,9 @@ constexpr auto minimizeIntSol(
     r << box.getLowerBounds();
   } else {
     // TODO: fix these
-    // r << box.transformed();
-    auto btf = box.transformed();
-    for (ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] = std::floor(btf[i]);
+    r << box.transformed();
+    // auto btf = box.transformed();
+    // for (ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] = std::floor(btf[i]);
   }
   return opt;
 }
