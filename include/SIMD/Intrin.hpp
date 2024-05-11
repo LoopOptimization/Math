@@ -60,7 +60,6 @@ template <ptrdiff_t W, typename T>
     }
   } else return x;
 }
-
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto load(const T *p,
                                                          mask::None<1>) -> T {
@@ -102,8 +101,6 @@ template <ptrdiff_t W, typename T> consteval auto mmzero() {
 }
 
 #ifdef __AVX512F__
-static constexpr ptrdiff_t REGISTERS = 32;
-static constexpr ptrdiff_t VECTORWIDTH = 64;
 // namespace hw {
 // typedef double __m512d_u __attribute__((__vector_size__(64),
 // __aligned__(8)));
@@ -388,15 +385,7 @@ constexpr auto select(mask::Bit<16> m, Vec<16, T> x,
   else static_assert(false);
 }
 
-#else // no AVX512F
-
-static constexpr ptrdiff_t REGISTERS = 16;
-#ifdef __AVX__
-static constexpr ptrdiff_t VECTORWIDTH = 32;
-#else  // no AVX
-static constexpr ptrdiff_t VECTORWIDTH = 16;
-#endif // no AVX
-#endif // no AVX512F
+#endif // AVX512F
 #ifdef __AVX__
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
@@ -844,13 +833,13 @@ scatter(T *p, mask::None<2>, Vec<2, T> x, Vec<2, int64_t> i) {
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<2> i, Vec<2, T> x, int32_t stride) {
+store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x, int32_t stride) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[stride] = x[1];
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-scatter(T *p, mask::Vector<2> i, Vec<2, T> x, Vec<2, int64_t> indv) {
+scatter(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x, Vec<2, int64_t> indv) {
   if (i.m[0] != 0) p[indv[0]] = x[0];
   if (i.m[1] != 0) p[indv[1]] = x[1];
 }
@@ -859,45 +848,43 @@ scatter(T *p, mask::Vector<2> i, Vec<2, T> x, Vec<2, int64_t> indv) {
 // masked gathers
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<4> m, Vec<4, int32_t> indv) -> Vec<4, T> {
+gather(const T *p, mask::Vector<4, sizeof(T)> m,
+       Vec<4, int32_t> indv) -> Vec<4, T> {
   auto x = std::bit_cast<__m128i>(indv);
-  __m256i mask = __m256i(m);
   static constexpr auto z = mmzero<4, T>();
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(
-      _mm256_mask_i32gather_pd(z, p, x, mask, 8));
+      _mm256_mask_i32gather_pd(z, p, x, m, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_mask_i32gather_epi64(z, p, x, mask, 8));
+    return std::bit_cast<Vec<4, T>>(_mm256_mask_i32gather_epi64(z, p, x, m, 8));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<4, float>>(
-      _mm_mask_i32gather_ps(z, p, x, mask, 4));
+    return std::bit_cast<Vec<4, float>>(_mm_mask_i32gather_ps(z, p, x, m, 4));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<4, T>>(_mm_mask_i32gather_epi32(z, p, x, mask, 4));
+    return std::bit_cast<Vec<4, T>>(_mm_mask_i32gather_epi32(z, p, x, m, 4));
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<4> m, Vec<4, int64_t> indv) -> Vec<4, T> {
+gather(const T *p, mask::Vector<4, sizeof(T)> m,
+       Vec<4, int64_t> indv) -> Vec<4, T> {
   auto x = std::bit_cast<__m256i>(indv);
-  __m256i mask = __m256i(m);
   static constexpr auto z = mmzero<4, T>();
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(
-      _mm256_mask_i64gather_pd(z, p, x, mask, 8));
+      _mm256_mask_i64gather_pd(z, p, x, m, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_mask_i64gather_epi64(z, p, x, mask, 8));
+    return std::bit_cast<Vec<4, T>>(_mm256_mask_i64gather_epi64(z, p, x, m, 8));
   else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<4> m, int32_t stride) -> Vec<4, T> {
+load(const T *p, mask::Vector<4, sizeof(T)> m, int32_t stride) -> Vec<4, T> {
   return gather(p, m, range<4>() * stride);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<2> m, Vec<2, int64_t> x) -> Vec<2, T> {
+gather(const T *p, mask::Vector<2, sizeof(T)> m,
+       Vec<2, int64_t> indv) -> Vec<2, T> {
   auto x = std::bit_cast<__m128i>(indv);
   __m128i mask = __m128i(m);
   static constexpr auto z = mmzero<2, T>();
@@ -910,7 +897,7 @@ gather(const T *p, mask::Vector<2> m, Vec<2, int64_t> x) -> Vec<2, T> {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<2> m, int32_t stride) -> Vec<2, T> {
+load(const T *p, mask::Vector<2, sizeof(T)> m, int32_t stride) -> Vec<2, T> {
   return gather(p, m, range<2>() * stride);
 }
 
@@ -929,12 +916,13 @@ gather(const T *p, mask::None<2>, Vec<2, int64_t> i) -> Vec<2, T> {
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<2> i, int32_t stride) -> Vec<2, T> {
+load(const T *p, mask::Vector<2, sizeof(T)> i, int32_t stride) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[stride] : T{}};
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<2> i, Vec<2, int64_t> indv) -> Vec<2, T> {
+gather(const T *p, mask::Vector<2, sizeof(T)> i,
+       Vec<2, int64_t> indv) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[indv[0]] : T{},
                    (i.m[1] != 0) ? p[indv[1]] : T{}};
 }
@@ -958,7 +946,7 @@ gather(const T *p, mask::None<4>, Vec<4, int64_t> i) -> Vec<4, T> {
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<4> i, int32_t stride) -> Vec<4, T> {
+load(const T *p, mask::Vector<4, sizeof(T)> i, int32_t stride) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[0] : T{},
     (i.m[1] != 0) ? p[stride] : T{},
@@ -968,7 +956,8 @@ load(const T *p, mask::Vector<4> i, int32_t stride) -> Vec<4, T> {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<4> i, Vec<4, int32_t> indv) -> Vec<4, T> {
+gather(const T *p, mask::Vector<4, sizeof(T)> i,
+       Vec<4, int32_t> indv) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[indv[0]] : T{},
     (i.m[1] != 0) ? p[indv[1]] : T{},
@@ -978,7 +967,8 @@ gather(const T *p, mask::Vector<4> i, Vec<4, int32_t> indv) -> Vec<4, T> {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<4> i, Vec<4, int64_t> indv) -> Vec<4, T> {
+gather(const T *p, mask::Vector<4, sizeof(T)> i,
+       Vec<4, int64_t> indv) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[indv[0]] : T{},
     (i.m[1] != 0) ? p[indv[1]] : T{},
@@ -992,7 +982,7 @@ gather(const T *p, mask::Vector<4> i, Vec<4, int64_t> indv) -> Vec<4, T> {
 #ifdef __AVX__
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<4> i) -> Vec<4, T> {
+load(const T *p, mask::Vector<4, sizeof(T)> i) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_maskload_pd(p, i));
   else if constexpr (sizeof(T) == 8)
@@ -1006,7 +996,7 @@ load(const T *p, mask::Vector<4> i) -> Vec<4, T> {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<8> i) -> Vec<8, T> {
+load(const T *p, mask::Vector<8, sizeof(T)> i) -> Vec<8, T> {
   if constexpr (std::same_as<T, float>)
     return std::bit_cast<Vec<8, float>>(_mm256_maskload_ps(p, i));
   else if constexpr (sizeof(T) == 4)
@@ -1015,7 +1005,7 @@ load(const T *p, mask::Vector<8> i) -> Vec<8, T> {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<4> i, Vec<4, T> x) {
+store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm256_maskstore_pd(p, i, std::bit_cast<__m256d>(x));
   else if constexpr (sizeof(T) == 8)
@@ -1028,7 +1018,7 @@ store(T *p, mask::Vector<4> i, Vec<4, T> x) {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<8> i, Vec<8, T> x) {
+store(T *p, mask::Vector<8, sizeof(T)> i, Vec<8, T> x) {
   if constexpr (std::same_as<T, float>)
     _mm256_maskstore_ps(p, i, std::bit_cast<__m256>(x));
   else if constexpr (sizeof(T) == 4)
@@ -1038,7 +1028,7 @@ store(T *p, mask::Vector<8> i, Vec<8, T> x) {
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<2> i) -> Vec<2, T> {
+load(const T *p, mask::Vector<2, sizeof(T)> i) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(_mm_maskload_pd(p, i));
   else if constexpr (sizeof(T) == 8)
@@ -1048,7 +1038,7 @@ load(const T *p, mask::Vector<2> i) -> Vec<2, T> {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<2> i, Vec<2, T> x) {
+store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm_maskstore_pd(p, i, std::bit_cast<__m128d>(x));
   else if constexpr (sizeof(T) == 8)
@@ -1075,7 +1065,7 @@ scatter(T *p, mask::None<4>, Vec<4, T> x, Vec<4, int32_t> i) {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<4> i, Vec<4, T> x, int32_t stride) {
+store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x, int32_t stride) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[stride] = x[1];
   if (i.m[2] != 0) p[2 * stride] = x[2];
@@ -1083,7 +1073,7 @@ store(T *p, mask::Vector<4> i, Vec<4, T> x, int32_t stride) {
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-scatter(T *p, mask::Vector<4> i, Vec<4, T> x, Vec<4, int32_t> indv) {
+scatter(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x, Vec<4, int32_t> indv) {
   if (i.m[0] != 0) p[indv[0]] = x[0];
   if (i.m[1] != 0) p[indv[1]] = x[1];
   if (i.m[2] != 0) p[indv[2]] = x[2];
@@ -1092,13 +1082,13 @@ scatter(T *p, mask::Vector<4> i, Vec<4, T> x, Vec<4, int32_t> indv) {
 #else // No AVX
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<2> i) -> Vec<2, T> {
+load(const T *p, mask::Vector<2, sizeof(T)> i) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[1] : T{}};
 }
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<2> i, Vec<2, T> x) {
+store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[1] = x[1];
 }
@@ -1210,8 +1200,6 @@ template <typename T>
 }
 
 #else // not __x86_64__
-static constexpr ptrdiff_t REGISTERS = 32;
-static constexpr ptrdiff_t VECTORWIDTH = 16;
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::None<W>) -> Vec<W, T> {
@@ -1317,7 +1305,7 @@ fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W> m) {
 #endif
 #ifndef __AVX512F__
 template <typename T, ptrdiff_t W>
-constexpr auto select(mask::Vector<W> m, Vec<W, T> x,
+constexpr auto select(mask::Vector<W, sizeof(T)> m, Vec<W, T> x,
                       Vec<W, T> y) -> Vec<W, T> {
   return m.m ? x : y;
 }
@@ -1373,7 +1361,6 @@ template <ptrdiff_t W, std::integral T> constexpr auto crz(Vec<W, T> v) {
 }
 
 #endif
-
 
 template <typename T>
 static constexpr ptrdiff_t Width =

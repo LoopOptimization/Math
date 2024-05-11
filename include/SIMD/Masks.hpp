@@ -8,11 +8,11 @@
 #endif
 namespace poly::simd {
 
-template <typename T>
-using IntegerOfSize = std::conditional_t<
-  sizeof(T) == 8, int64_t,
-  std::conditional_t<sizeof(T) == 4, int32_t,
-                     std::conditional_t<sizeof(T) == 2, int16_t, int8_t>>>;
+template <size_t Bytes>
+using IntegerOfBytes = std::conditional_t<
+  Bytes == 8, int64_t,
+  std::conditional_t<Bytes == 4, int32_t,
+                     std::conditional_t<Bytes == 2, int16_t, int8_t>>>;
 
 template <ptrdiff_t W,
           typename I = std::conditional_t<W == 2, int64_t, int32_t>>
@@ -29,6 +29,38 @@ consteval auto range() -> Vec<W, I> {
     return r;
   }
 }
+template <ptrdiff_t W, std::integral T>
+[[gnu::always_inline]] constexpr auto
+zextelts(Vec<W, T> v) -> Vec<W, IntegerOfBytes<2 * sizeof(T)>> {
+  using R = Vec<W, IntegerOfBytes<2 * sizeof(T)>>;
+  static constexpr Vec<W, T> z{};
+  if constexpr (W == 1) return static_cast<R>(v);
+  else if constexpr (W == 2)
+    return std::bit_cast<R>(__builtin_shufflevector(v, z, 0, 2, 1, 3));
+  else if constexpr (W == 4)
+    return std::bit_cast<R>(
+      __builtin_shufflevector(v, z, 0, 4, 1, 5, 2, 6, 3, 7));
+  else if constexpr (W == 8)
+    return std::bit_cast<R>(__builtin_shufflevector(
+      v, z, 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
+  else static_assert(false);
+}
+template <ptrdiff_t W, std::integral T>
+[[gnu::always_inline]] constexpr auto
+truncelts(Vec<W, T> v) -> Vec<W, IntegerOfBytes<sizeof(T) / 2>> {
+  using R = Vec<W, IntegerOfBytes<sizeof(T) / 2>>;
+  if constexpr (W == 1) return static_cast<R>(v);
+  else {
+    using S = IntegerOfBytes<sizeof(T) / 2>;
+    Vec<2 * W, S> x = std::bit_cast<Vec<2 * W, S>>(v);
+    if constexpr (W == 2) return __builtin_shufflevector(x, x, 0, 2);
+    else if constexpr (W == 4) return __builtin_shufflevector(x, x, 0, 2, 4, 6);
+    else if constexpr (W == 8)
+      return __builtin_shufflevector(x, x, 0, 2, 4, 6, 8, 10, 12, 14);
+    else static_assert(false);
+  }
+}
+
 namespace mask {
 template <ptrdiff_t W> struct None {
   static constexpr auto firstMasked() -> ptrdiff_t { return 0; }
@@ -100,10 +132,18 @@ template <ptrdiff_t W> using Mask = Bit<W>;
 
 #else // ifdef __AVX512VL__
 
-template <ptrdiff_t W, typename I = int64_t> struct Vector {
-  static_assert(sizeof(I) * W <= 32);
+template <ptrdiff_t W, size_t Bytes> struct Vector {
+  using I = IntegerOfBytes<Bytes>;
+  static_assert(sizeof(I) == Bytes);
+  // static_assert(sizeof(I) * W <= VECTORWIDTH);
   // TODO: add support for smaller mask types, we we can use smaller eltypes
   Vec<W, I> m;
+  template <size_t newBytes> constexpr operator Vector<W, newBytes>() {
+    if constexpr (newBytes == Bytes) return *this;
+    else if constexpr (newBytes == 2 * Bytes) return {zextelts<W, I>(m)};
+    else if constexpr (2 * newBytes == Bytes) return {truncelts<W, I>(m)};
+    else static_assert(false);
+  }
   [[nodiscard]] constexpr auto intmask() const -> int32_t {
     if constexpr (sizeof(I) == 8)
       if constexpr (W == 2) return _mm_movemask_pd(std::bit_cast<__m128d>(m));
@@ -123,38 +163,64 @@ template <ptrdiff_t W, typename I = int64_t> struct Vector {
     return 32 - std::countl_zero(uint32_t(intmask()));
   }
   constexpr operator __m128i()
-  requires(W == 2)
+  requires(sizeof(I) * W == 16)
   {
     return std::bit_cast<__m128i>(m);
   }
+  constexpr operator __m128d()
+  requires(sizeof(I) * W == 16)
+  {
+    return std::bit_cast<__m128d>(m);
+  }
+  constexpr operator __m128()
+  requires(sizeof(I) * W == 16)
+  {
+    return std::bit_cast<__m128>(m);
+  }
   constexpr operator __m256i()
-  requires(W == 4)
+  requires(sizeof(I) * W == 32)
   {
     return std::bit_cast<__m256i>(m);
   }
+  constexpr operator __m256d()
+  requires(sizeof(I) * W == 32)
+  {
+    return std::bit_cast<__m256d>(m);
+  }
+  constexpr operator __m256()
+  requires(sizeof(I) * W == 32)
+  {
+    return std::bit_cast<__m256>(m);
+  }
 };
-template <ptrdiff_t W>
-constexpr auto operator&(Vector<W> a, Vector<W> b) -> Vector<W> {
+static_assert(!std::convertible_to<Vector<2, 8>, Vector<4, 8>>);
+static_assert(!std::convertible_to<Vector<4, 4>, Vector<8, 4>>);
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator&(Vector<W, Bytes> a,
+                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
   return {a.m & b.m};
 }
-template <ptrdiff_t W>
-constexpr auto operator&(mask::None<W>, Vector<W> b) -> Vector<W> {
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator&(mask::None<W>,
+                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
   return b;
 }
-template <ptrdiff_t W>
-constexpr auto operator&(Vector<W> a, mask::None<W>) -> Vector<W> {
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator&(Vector<W, Bytes> a,
+                         mask::None<W>) -> Vector<W, Bytes> {
   return a;
 }
-template <ptrdiff_t W>
-constexpr auto operator|(Vector<W> a, Vector<W> b) -> Vector<W> {
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator|(Vector<W, Bytes> a,
+                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
   return {a.m | b.m};
 }
-template <ptrdiff_t W>
-constexpr auto operator|(mask::None<W>, Vector<W>) -> Vector<W> {
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator|(mask::None<W>, Vector<W, Bytes>) -> Vector<W, Bytes> {
   return None<W>{};
 }
-template <ptrdiff_t W>
-constexpr auto operator|(Vector<W>, mask::None<W>) -> Vector<W> {
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator|(Vector<W, Bytes>, mask::None<W>) -> Vector<W, Bytes> {
   return None<W>{};
 }
 #ifdef __AVX512F__
@@ -172,14 +238,19 @@ template <ptrdiff_t W> constexpr auto create(ptrdiff_t i, ptrdiff_t len) {
 template <ptrdiff_t W, typename I = int64_t>
 using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
 #else  // ifdef __AVX512F__
-template <ptrdiff_t W> constexpr auto create(ptrdiff_t i) -> Vector<W> {
-  return {range<W, int64_t>() < (i & (W - 1))};
+
+template <ptrdiff_t W>
+constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
+  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Vector<W> {
-  return {range<W, int64_t>() + i < len};
+constexpr auto create(ptrdiff_t i,
+                      ptrdiff_t len) -> Vector<W, VECTORWIDTH / W> {
+  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
-template <ptrdiff_t W, typename I = int64_t> using Mask = Vector<W, I>;
+template <ptrdiff_t W, typename I = int64_t> using Mask = Vector<W, sizeof(I)>;
 #endif // ifdef __AVX512F__; else
 
 #endif // ifdef __AVX512VL__; else
@@ -622,34 +693,34 @@ template <ptrdiff_t W, typename T>
 
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
+eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x == y};
 }
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
+ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x != y};
 }
 
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
+lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x < y};
 }
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
+gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x > y};
 }
 
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
+le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x <= y};
 }
 template <ptrdiff_t W, typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
-ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W> {
+ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x >= y};
 }
 #endif // ifdef __AVX512VL__; else

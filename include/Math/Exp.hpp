@@ -337,8 +337,8 @@ constexpr auto LogBo256L(std::integral_constant<int, 10>) -> double {
 }
 
 template <std::floating_point T>
-static constexpr double magic_round_const = 6.755399441055744e15;
-template <> static constexpr double magic_round_const<float> = 1.048576e7F;
+static inline constexpr double magic_round_const = 6.755399441055744e15;
+template <> inline constexpr float magic_round_const<float> = 1.048576e7F;
 
 constexpr auto trunclo(double x) -> double {
   return std::bit_cast<double>(std::bit_cast<uint64_t>(x) & 0xfffffffff8000000);

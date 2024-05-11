@@ -39,7 +39,12 @@ public:
     simd::Unroll<1, U, W, double> off = offs()[i], scale = scales()[i];
     simd::Unroll<1, U, W, T> y;
     if constexpr (U == 1) {
+#ifdef __AVX512F__
       auto m = simd::cmp::ge<W, int>(j.vec, simd::Vec<W, int>{});
+#else
+      decltype(i.mask) m = simd::cmp::ge<W, int64_t>(
+        simd::zextelts<W, int>(j.vec), simd::Vec<W, int64_t>{});
+#endif
       V xload = simd::gather(x.data(), i.mask & m, j.vec);
       y.vec = simd::select<double>(m, scale.vec * sigmoid<W>(xload) + off.vec,
                                    off.vec);

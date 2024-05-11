@@ -16,7 +16,7 @@ template <class T> struct UniformScaling {
   [[gnu::always_inline]] constexpr auto
   operator[](simd::index::Unroll<R> r,
              simd::index::Unroll<C, W, M> c) const -> simd::Unroll<R, C, W, T> {
-    using I = simd::IntegerOfSize<T>;
+    using I = simd::IntegerOfBytes<sizeof(T)>;
     using VI = simd::Vec<W, I>;
     simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value);
     if constexpr (R * C == 1) {

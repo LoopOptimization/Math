@@ -495,8 +495,12 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
 [[gnu::always_inline]] constexpr auto
 loadunroll(const T *ptr, math::RowStride<X> rowStride,
            std::array<MT, NM> masks) -> Unroll<R, C, N, T> {
-  if constexpr (R * C == 1) return {load(ptr, masks[0])};
-  else {
+  if constexpr (R * C == 1) {
+    MT msk = masks[0];
+    Vec<N, T> x = load<T>(ptr, msk);
+    return {x};
+    // return {load(ptr, masks[0])};
+  } else {
     constexpr auto W = ptrdiff_t(std::bit_ceil(size_t(N)));
     auto rs = ptrdiff_t(rowStride);
     Unroll<R, C, N, T> ret;
@@ -583,8 +587,11 @@ struct UnrollRef {
           store<T>(p + c * W, mask::None<W>{}, x[r, c]);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
-        for (ptrdiff_t c = 0; c < C; ++c)
-          store<T>(p + c * W, masks[c], x[r, c]);
+        for (ptrdiff_t c = 0; c < C; ++c) {
+          auto msk = masks[c];
+          store<T>(p + c * W, msk, x[r, c]);
+          // store<T>(p + c * W, masks[c], x[r, c]);
+        }
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (ptrdiff_t c = 0; c < C - 1; ++c)
