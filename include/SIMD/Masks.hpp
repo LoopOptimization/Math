@@ -30,7 +30,7 @@ consteval auto range() -> Vec<W, I> {
   }
 }
 
-#if defined(__x86_64__) && defined(__AVX2__)
+#if defined(__x86_64__) && defined(__AVX512VL__)
 template <ptrdiff_t W>
 [[gnu::always_inline]] constexpr auto
 sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
@@ -40,11 +40,9 @@ sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   } else if constexpr (W == 4) {
     return std::bit_cast<Vec<4, int64_t>>(
       _mm256_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
-#ifdef __AVX512F__
   } else if constexpr (W == 8) {
     return std::bit_cast<Vec<8, int64_t>>(
       _mm512_cvtepi32_epi64(std::bit_cast<__m256i>(v)));
-#endif
   } else static_assert(false);
 }
 template <ptrdiff_t W>
@@ -56,11 +54,9 @@ zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   } else if constexpr (W == 4) {
     return std::bit_cast<Vec<4, int64_t>>(
       _mm256_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
-#ifdef __AVX512F__
   } else if constexpr (W == 8) {
     return std::bit_cast<Vec<8, int64_t>>(
       _mm512_cvtepu32_epi64(std::bit_cast<__m256i>(v)));
-#endif
   } else static_assert(false);
 }
 template <ptrdiff_t W>
@@ -72,11 +68,9 @@ truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
   } else if constexpr (W == 4) {
     return std::bit_cast<Vec<4, int32_t>>(
       _mm256_cvtepi64_epi32(std::bit_cast<__m256i>(v)));
-#ifdef __AVX512F__
   } else if constexpr (W == 8) {
     return std::bit_cast<Vec<8, int32_t>>(
       _mm512_cvtepi64_epi32(std::bit_cast<__m512i>(v)));
-#endif
   } else static_assert(false);
 }
 #else
@@ -109,11 +103,11 @@ zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
 }
 template <ptrdiff_t W>
 [[gnu::always_inline]] constexpr auto
-truncelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
   using R = Vec<W, int64_t>;
   if constexpr (W == 1) return static_cast<R>(v);
   else {
-    Vec<2 * W, int64_t> x = std::bit_cast<Vec<2 * W, int64_t>>(v);
+    Vec<2 * W, int32_t> x = std::bit_cast<Vec<2 * W, int32_t>>(v);
     if constexpr (W == 2) return __builtin_shufflevector(x, x, 0, 2);
     else if constexpr (W == 4) return __builtin_shufflevector(x, x, 0, 2, 4, 6);
     else if constexpr (W == 8)
