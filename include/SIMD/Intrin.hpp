@@ -1217,7 +1217,15 @@ template <typename T, ptrdiff_t W>
 
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<W> i) -> Vec<W, T> {
+load(const T *p, mask::Vector<W, 4> i) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[w] : T{};
+  return ret;
+}
+template <typename T, ptrdiff_t W>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Vector<W, 8> i) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[w] : T{};
@@ -1225,7 +1233,14 @@ load(const T *p, mask::Vector<W> i) -> Vec<W, T> {
 }
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<W> i, Vec<W, T> x) {
+store(T *p, mask::Vector<W, 4> i, Vec<W, T> x) {
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w)
+    if (i.m[w] != 0) p[w] = x[w];
+}
+template <typename T, ptrdiff_t W>
+[[gnu::always_inline, gnu::artificial]] inline void
+store(T *p, mask::Vector<W, 8> i, Vec<W, T> x) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w] = x[w];
@@ -1239,9 +1254,17 @@ load(const T *p, mask::None<W>, int32_t stride) -> Vec<W, T> {
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[w * stride];
   return ret;
 }
-template <typename T, ptrdiff_t W, std::integral I>
+template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::None<W>, Vec<W, I> indv) -> Vec<W, T> {
+gather(const T *p, mask::None<W>, Vec<W, int32_t> indv) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[indv[w]];
+  return ret;
+}
+template <typename T, ptrdiff_t W>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<W>, Vec<W, int64_t> indv) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[indv[w]];
@@ -1262,16 +1285,35 @@ scatter(T *p, mask::None<W>, Vec<W, T> x, Vec<W, I> indv) {
 
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
-load(const T *p, mask::Vector<W> i, int32_t stride) -> Vec<W, T> {
+load(const T *p, mask::Vector<W, 4> i, int32_t stride) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     ret[w] = (i.m[w] != 0) ? p[w * stride] : T{};
   return ret;
 }
-template <typename T, ptrdiff_t W, std::integral I>
+template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
-gather(const T *p, mask::Vector<W> i, Vec<W, I> indv) -> Vec<W, T> {
+load(const T *p, mask::Vector<W, 8> i, int32_t stride) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w)
+    ret[w] = (i.m[w] != 0) ? p[w * stride] : T{};
+  return ret;
+}
+template <typename T, ptrdiff_t W>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<W, sizeof(T)> i,
+       Vec<W, int32_t> indv) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[indv[w]] : T{};
+  return ret;
+}
+template <typename T, ptrdiff_t W>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<W, sizeof(T)> i,
+       Vec<W, int64_t> indv) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[indv[w]] : T{};
@@ -1279,26 +1321,33 @@ gather(const T *p, mask::Vector<W> i, Vec<W, I> indv) -> Vec<W, T> {
 }
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline void
-store(T *p, mask::Vector<W> i, Vec<W, T> x, int32_t stride) {
+store(T *p, mask::Vector<W, 4> i, Vec<W, T> x, int32_t stride) {
+  POLYMATHFULLUNROLL
+  for (ptrdiff_t w = 0; w < W; ++w)
+    if (i.m[w] != 0) p[w * stride] = x[w];
+}
+template <typename T, ptrdiff_t W>
+[[gnu::always_inline, gnu::artificial]] inline void
+store(T *p, mask::Vector<W, 8> i, Vec<W, T> x, int32_t stride) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w * stride] = x[w];
 }
 template <typename T, ptrdiff_t W, std::integral I>
 [[gnu::always_inline, gnu::artificial]] inline void
-scatter(T *p, mask::Vector<W> i, Vec<W, T> x, Vec<W, I> indv) {
+scatter(T *p, mask::Vector<W, sizeof(T)> i, Vec<W, T> x, Vec<W, I> indv) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[indv[w]] = x[w];
 }
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
-fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W> m) {
+fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W, sizeof(T)> m) {
   return m.m ? (a * b + c) : c;
 }
 template <typename T, ptrdiff_t W>
 [[gnu::always_inline, gnu::artificial]] inline auto
-fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W> m) {
+fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W, sizeof(T)> m) {
   return m.m ? (c - a * b) : c;
 }
 

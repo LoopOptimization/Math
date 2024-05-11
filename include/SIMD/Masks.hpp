@@ -29,12 +29,74 @@ consteval auto range() -> Vec<W, I> {
     return r;
   }
 }
-template <ptrdiff_t W, std::integral T>
+
+#if defined(__x86_64__) && defined(__AVX2__)
+template <ptrdiff_t W>
 [[gnu::always_inline]] constexpr auto
-zextelts(Vec<W, T> v) -> Vec<W, IntegerOfBytes<2 * sizeof(T)>> {
-  using R = Vec<W, IntegerOfBytes<2 * sizeof(T)>>;
-  static constexpr Vec<W, T> z{};
-  if constexpr (W == 1) return static_cast<R>(v);
+sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+  if constexpr (W == 2) {
+    return std::bit_cast<Vec<2, int64_t>>(
+      _mm_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
+  } else if constexpr (W == 4) {
+    return std::bit_cast<Vec<4, int64_t>>(
+      _mm256_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
+#ifdef __AVX512F__
+  } else if constexpr (W == 8) {
+    return std::bit_cast<Vec<8, int64_t>>(
+      _mm512_cvtepi32_epi64(std::bit_cast<__m256i>(v)));
+#endif
+  } else static_assert(false);
+}
+template <ptrdiff_t W>
+[[gnu::always_inline]] constexpr auto
+zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+  if constexpr (W == 2) {
+    return std::bit_cast<Vec<2, int64_t>>(
+      _mm_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
+  } else if constexpr (W == 4) {
+    return std::bit_cast<Vec<4, int64_t>>(
+      _mm256_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
+#ifdef __AVX512F__
+  } else if constexpr (W == 8) {
+    return std::bit_cast<Vec<8, int64_t>>(
+      _mm512_cvtepu32_epi64(std::bit_cast<__m256i>(v)));
+#endif
+  } else static_assert(false);
+}
+template <ptrdiff_t W>
+[[gnu::always_inline]] constexpr auto
+truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
+  if constexpr (W == 2) {
+    return std::bit_cast<Vec<2, int32_t>>(
+      _mm_cvtepi64_epi32(std::bit_cast<__m128i>(v)));
+  } else if constexpr (W == 4) {
+    return std::bit_cast<Vec<4, int32_t>>(
+      _mm256_cvtepi64_epi32(std::bit_cast<__m256i>(v)));
+#ifdef __AVX512F__
+  } else if constexpr (W == 8) {
+    return std::bit_cast<Vec<8, int32_t>>(
+      _mm512_cvtepi64_epi32(std::bit_cast<__m512i>(v)));
+#endif
+  } else static_assert(false);
+}
+#else
+template <ptrdiff_t W>
+[[gnu::always_inline]] constexpr auto
+sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+  if constexpr (W != 1) {
+    Vec<W, int64_t> r;
+    for (ptrdiff_t w = 0; w < W; ++w) r[w] = static_cast<int64_t>(v[w]);
+    return r;
+  } else return static_cast<int64_t>(v);
+}
+template <ptrdiff_t W>
+[[gnu::always_inline]] constexpr auto
+zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+  using R = Vec<W, int64_t>;
+  static constexpr Vec<W, int32_t> z{};
+  if constexpr (W == 1)
+    return static_cast<int64_t>(
+      static_cast<uint64_t>(static_cast<uint32_t>(v)));
   else if constexpr (W == 2)
     return std::bit_cast<R>(__builtin_shufflevector(v, z, 0, 2, 1, 3));
   else if constexpr (W == 4)
@@ -45,14 +107,13 @@ zextelts(Vec<W, T> v) -> Vec<W, IntegerOfBytes<2 * sizeof(T)>> {
       v, z, 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
   else static_assert(false);
 }
-template <ptrdiff_t W, std::integral T>
+template <ptrdiff_t W>
 [[gnu::always_inline]] constexpr auto
-truncelts(Vec<W, T> v) -> Vec<W, IntegerOfBytes<sizeof(T) / 2>> {
-  using R = Vec<W, IntegerOfBytes<sizeof(T) / 2>>;
+truncelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+  using R = Vec<W, int64_t>;
   if constexpr (W == 1) return static_cast<R>(v);
   else {
-    using S = IntegerOfBytes<sizeof(T) / 2>;
-    Vec<2 * W, S> x = std::bit_cast<Vec<2 * W, S>>(v);
+    Vec<2 * W, int64_t> x = std::bit_cast<Vec<2 * W, int64_t>>(v);
     if constexpr (W == 2) return __builtin_shufflevector(x, x, 0, 2);
     else if constexpr (W == 4) return __builtin_shufflevector(x, x, 0, 2, 4, 6);
     else if constexpr (W == 8)
@@ -60,6 +121,7 @@ truncelts(Vec<W, T> v) -> Vec<W, IntegerOfBytes<sizeof(T) / 2>> {
     else static_assert(false);
   }
 }
+#endif
 
 namespace mask {
 template <ptrdiff_t W> struct None {
@@ -140,8 +202,8 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
   Vec<W, I> m;
   template <size_t newBytes> constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
-    else if constexpr (newBytes == 2 * Bytes) return {zextelts<W, I>(m)};
-    else if constexpr (2 * newBytes == Bytes) return {truncelts<W, I>(m)};
+    else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
+    else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
     else static_assert(false);
   }
   [[nodiscard]] constexpr auto intmask() const -> int32_t {
@@ -256,8 +318,16 @@ template <ptrdiff_t W, typename I = int64_t> using Mask = Vector<W, sizeof(I)>;
 #endif // ifdef __AVX512VL__; else
 #else  // ifdef __x86_64__
 
-template <ptrdiff_t W> struct Vector {
-  Vec<W, int64_t> m;
+template <ptrdiff_t W, size_t Bytes> struct Vector {
+  using I = IntegerOfBytes<Bytes>;
+  static_assert(sizeof(I) == Bytes);
+  Vec<W, I> m;
+  template <size_t newBytes> constexpr operator Vector<W, newBytes>() {
+    if constexpr (newBytes == Bytes) return *this;
+    else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
+    else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
+    else static_assert(false);
+  }
   explicit constexpr operator bool() {
     bool any{false};
     for (ptrdiff_t w = 0; w < W; ++w) any |= m[w];
@@ -284,13 +354,45 @@ template <ptrdiff_t W> struct Vector {
     }
   }
 };
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator&(Vector<W, Bytes> a,
+                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
+  return {a.m & b.m};
+}
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator&(mask::None<W>,
+                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
+  return b;
+}
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator&(Vector<W, Bytes> a,
+                         mask::None<W>) -> Vector<W, Bytes> {
+  return a;
+}
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator|(Vector<W, Bytes> a,
+                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
+  return {a.m | b.m};
+}
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator|(mask::None<W>, Vector<W, Bytes>) -> Vector<W, Bytes> {
+  return None<W>{};
+}
+template <ptrdiff_t W, size_t Bytes>
+constexpr auto operator|(Vector<W, Bytes>, mask::None<W>) -> Vector<W, Bytes> {
+  return None<W>{};
+}
 
-template <ptrdiff_t W> constexpr auto create(ptrdiff_t i) -> Vector<W> {
-  return {range<W, int64_t>() < (i & (W - 1))};
+template <ptrdiff_t W>
+constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
+  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Vector<W> {
-  return {range<W, int64_t>() + i < len};
+constexpr auto create(ptrdiff_t i,
+                      ptrdiff_t len) -> Vector<W, VECTORWIDTH / W> {
+  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
 #endif // ifdef __x86_64__; else
 } // namespace mask
