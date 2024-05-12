@@ -433,6 +433,7 @@ TEST(StringMat1x1, BasicAssertions) {
 TEST(StringVector, BasicAssertions) {
   static_assert(!poly::utils::Compressible<int64_t>);
   auto a = "[-5 3 7]"_mat;
+  auto along = "[-5 3 7 -15 17 -5 -4 -3 -2 1 0 0 1 2 0 3 4 5 6 7]"_mat;
   static_assert(
     std::convertible_to<poly::math::StaticDims<int64_t, 1, 3, false>,
                         Length<>>);
@@ -440,6 +441,9 @@ TEST(StringVector, BasicAssertions) {
     a;
   PtrVector<int64_t> ap = a;
   Vector<int64_t> b = a;
+  EXPECT_EQ("[-5 3]"_mat, a[_(0, 2)]);
+  const auto &ca = along;
+  EXPECT_EQ(a, ca[_(0, 3)]);
   poly::containers::Tuple{aps, ap, b}.apply([](const auto &x) {
     EXPECT_EQ(ptrdiff_t(x.size()), 3);
     EXPECT_EQ(x[0], -5);

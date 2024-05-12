@@ -383,11 +383,18 @@ struct StaticArray<T, M, N, false>
     }
     return ret;
   }
-  template <class R>
+  template <class R, class C>
   [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](R r, ptrdiff_t c) noexcept -> decltype(auto) {
-    if constexpr (std::integral<R>)
+  operator[](R r, C c) noexcept -> decltype(auto) {
+    if constexpr (std::integral<R> && std::integral<C>)
       return reinterpret_cast<T *>(memory_ + ptrdiff_t(r) * L)[c];
+    else return index<T>(data(), S{}, r, c);
+  }
+  template <class R, class C>
+  [[gnu::flatten, gnu::always_inline]] constexpr auto
+  operator[](R r, C c) const noexcept -> decltype(auto) {
+    if constexpr (std::integral<R> && std::integral<C>)
+      return reinterpret_cast<const T *>(memory_ + ptrdiff_t(r) * L)[c];
     else return index<T>(data(), S{}, r, c);
   }
   constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {
@@ -402,13 +409,6 @@ struct StaticArray<T, M, N, false>
       // v[c % W] = x;
       memory_[L * r + c / W] = v;
     }
-  }
-  template <class R>
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](R r, ptrdiff_t c) const noexcept -> decltype(auto) {
-    if constexpr (std::integral<R>)
-      return reinterpret_cast<const T *>(memory_ + ptrdiff_t(r) * L)[c];
-    else return index<T>(data(), S{}, r, c);
   }
   template <ptrdiff_t R, ptrdiff_t C> struct Ref {
     StaticArray *parent;
@@ -471,19 +471,19 @@ struct StaticArray<T, M, N, false>
   operator[](auto i) noexcept -> decltype(auto)
   requires((N == 1) || (M == 1))
   {
-    if constexpr (M == 1) return (*this)[0, i];
-    else return (*this)[i, 0];
+    if constexpr (M == 1) return (*this)[0z, i];
+    else return (*this)[i, 0z];
   }
   [[gnu::always_inline]] constexpr auto
   operator[](auto i) const noexcept -> decltype(auto)
   requires((N == 1) || (M == 1))
   {
-    if constexpr (M == 1) return (*this)[0, i];
-    else return (*this)[i, 0];
+    if constexpr (M == 1) return (*this)[0z, i];
+    else return (*this)[i, 0z];
   }
   constexpr auto operator==(const StaticArray &other) const -> bool {
     // masks return `true` if `any` are on
-    for (ptrdiff_t i = 0; i < M * L; ++i)
+    for (ptrdiff_t i = 0z; i < M * L; ++i)
       if (simd::cmp::ne<W, T>(memory_[i], other.memory_[i])) return false;
     return true;
   }
