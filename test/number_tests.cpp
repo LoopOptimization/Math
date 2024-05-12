@@ -3,15 +3,15 @@
 #include <gtest/gtest.h>
 #include <limits>
 
-using poly::numbers::Int8, poly::numbers::UInt8, poly::numbers::Flag8;
+using poly::numbers::i8, poly::numbers::u8, poly::numbers::Flag8;
 
 TEST(Int8Test, BasicAssertions) {
   for (uint8_t x = 0; x < std::numeric_limits<uint8_t>::max(); ++x) {
     for (uint8_t y = 0; y < std::numeric_limits<uint8_t>::max(); ++y) {
-      auto ux = static_cast<UInt8>(x), uy = static_cast<UInt8>(y);
+      auto ux = static_cast<u8>(x), uy = static_cast<u8>(y);
       EXPECT_EQ(ux <=> uy, x <=> y);
-      EXPECT_TRUE(ux + uy == static_cast<UInt8>(x + y));
-      EXPECT_FALSE(ux + uy != static_cast<UInt8>(x + y));
+      EXPECT_TRUE(ux + uy == static_cast<u8>(x + y));
+      EXPECT_FALSE(ux + uy != static_cast<u8>(x + y));
       bool b = (ux > uy) == (x > y);
       EXPECT_TRUE(b);
       EXPECT_TRUE((ux == uy) == (x == y));
@@ -35,17 +35,17 @@ TEST(Int8Test, BasicAssertions) {
 
       EXPECT_EQ(ux > uy, x > y);
 
-      EXPECT_EQ(ux + uy, static_cast<UInt8>(x + y));
+      EXPECT_EQ(ux + uy, static_cast<u8>(x + y));
       EXPECT_EQ(ux + y, x + y);
       EXPECT_EQ(x + uy, x + y);
-      EXPECT_EQ(ux * uy, static_cast<UInt8>(x * y));
+      EXPECT_EQ(ux * uy, static_cast<u8>(x * y));
       EXPECT_EQ(ux * y, x * y);
       EXPECT_EQ(x * uy, x * y);
-      EXPECT_EQ(ux - uy, static_cast<UInt8>(x - y));
+      EXPECT_EQ(ux - uy, static_cast<u8>(x - y));
       EXPECT_EQ(ux - y, x - y);
       EXPECT_EQ(x - uy, x - y);
       if (y) {
-        EXPECT_EQ(ux / uy, static_cast<UInt8>(x / y));
+        EXPECT_EQ(ux / uy, static_cast<u8>(x / y));
         EXPECT_EQ(ux / y, x / y);
         EXPECT_EQ(x / uy, x / y);
       }
@@ -85,20 +85,20 @@ TEST(Int8Test, BasicAssertions) {
        x < std::numeric_limits<int8_t>::max(); ++x) {
     for (int8_t y = std::numeric_limits<int8_t>::min();
          y < std::numeric_limits<int8_t>::max(); ++y) {
-      Int8 ix = static_cast<Int8>(x);
-      Int8 iy = static_cast<Int8>(y);
+      i8 ix = static_cast<i8>(x);
+      i8 iy = static_cast<i8>(y);
 
-      EXPECT_EQ(ix + iy, static_cast<Int8>(x + y));
+      EXPECT_EQ(ix + iy, static_cast<i8>(x + y));
       EXPECT_EQ(ix + y, x + y);
       EXPECT_EQ(x + iy, x + y);
-      EXPECT_EQ(ix * iy, static_cast<Int8>(x * y));
+      EXPECT_EQ(ix * iy, static_cast<i8>(x * y));
       EXPECT_EQ(ix * y, x * y);
       EXPECT_EQ(x * iy, x * y);
-      EXPECT_EQ(ix - iy, static_cast<Int8>(x - y));
+      EXPECT_EQ(ix - iy, static_cast<i8>(x - y));
       EXPECT_EQ(ix - y, x - y);
       EXPECT_EQ(x - iy, x - y);
       if (y) {
-        EXPECT_EQ(ix / iy, static_cast<Int8>(x / y));
+        EXPECT_EQ(ix / iy, static_cast<i8>(x / y));
         EXPECT_EQ(ix / y, x / y);
         EXPECT_EQ(x / iy, x / y);
       }
