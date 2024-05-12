@@ -10,7 +10,7 @@ namespace poly::simd {
 
 template <size_t Bytes>
 using IntegerOfBytes = std::conditional_t<
-  Bytes == 8, int64_t,
+  Bytes >= 8, int64_t,
   std::conditional_t<Bytes == 4, int32_t,
                      std::conditional_t<Bytes == 2, int16_t, int8_t>>>;
 
@@ -189,6 +189,7 @@ template <ptrdiff_t W> using Mask = Bit<W>;
 #else // ifdef __AVX512VL__
 
 template <ptrdiff_t W, size_t Bytes> struct Vector {
+  static_assert(Bytes <= 8, "Only at most 8 bytes per element supported.");
   using I = IntegerOfBytes<Bytes>;
   static_assert(sizeof(I) == Bytes);
   // static_assert(sizeof(I) * W <= VECTORWIDTH);
@@ -296,13 +297,13 @@ using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
 #else  // ifdef __AVX512F__
 
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
+constexpr auto create(ptrdiff_t i) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
   using I = IntegerOfBytes<VECTORWIDTH / W>;
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i,
-                      ptrdiff_t len) -> Vector<W, VECTORWIDTH / W> {
+constexpr auto
+create(ptrdiff_t i, ptrdiff_t len) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
   using I = IntegerOfBytes<VECTORWIDTH / W>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
