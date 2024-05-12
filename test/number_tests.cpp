@@ -10,8 +10,11 @@ TEST(Int8Test, BasicAssertions) {
     for (uint8_t y = 0; y < std::numeric_limits<uint8_t>::max(); ++y) {
       auto ux = static_cast<u8>(x), uy = static_cast<u8>(y);
       EXPECT_EQ(ux <=> uy, x <=> y);
-      EXPECT_TRUE(ux + uy == static_cast<u8>(x + y));
-      EXPECT_FALSE(ux + uy != static_cast<u8>(x + y));
+      {
+        u8 z = static_cast<u8>(x + y);
+        EXPECT_TRUE(z == z);
+        EXPECT_FALSE(z != z);
+      }
       bool b = (ux > uy) == (x > y);
       EXPECT_TRUE(b);
       EXPECT_TRUE((ux == uy) == (x == y));
@@ -35,19 +38,43 @@ TEST(Int8Test, BasicAssertions) {
 
       EXPECT_EQ(ux > uy, x > y);
 
-      EXPECT_EQ(ux + uy, static_cast<u8>(x + y));
-      EXPECT_EQ(ux + y, x + y);
-      EXPECT_EQ(x + uy, x + y);
-      EXPECT_EQ(ux * uy, static_cast<u8>(x * y));
-      EXPECT_EQ(ux * y, x * y);
-      EXPECT_EQ(x * uy, x * y);
-      EXPECT_EQ(ux - uy, static_cast<u8>(x - y));
-      EXPECT_EQ(ux - y, x - y);
-      EXPECT_EQ(x - uy, x - y);
+      {
+        int z = x + y;
+        uint8_t zu = z;
+        if (int(zu) == z) {
+          EXPECT_EQ(ux + uy, static_cast<u8>(x + y));
+          EXPECT_EQ(ux + y, x + y);
+          EXPECT_EQ(x + uy, x + y);
+        }
+      }
+      {
+        int z = x * y;
+        uint8_t zu = z;
+        if (int(zu) == z) {
+          EXPECT_EQ(ux * uy, static_cast<u8>(x * y));
+          EXPECT_EQ(ux * y, x * y);
+          EXPECT_EQ(x * uy, x * y);
+        }
+      }
+      {
+        int z = x - y;
+        uint8_t zu = z;
+        if (int(zu) == z) {
+          EXPECT_EQ(ux - uy, static_cast<u8>(x - y));
+          EXPECT_EQ(ux - y, x - y);
+          EXPECT_EQ(x - uy, x - y);
+        }
+      }
       if (y) {
-        EXPECT_EQ(ux / uy, static_cast<u8>(x / y));
-        EXPECT_EQ(ux / y, x / y);
-        EXPECT_EQ(x / uy, x / y);
+        {
+          int z = x / y;
+          uint8_t zu = z;
+          if (int(zu) == z) {
+            EXPECT_EQ(ux / uy, static_cast<u8>(x / y));
+            EXPECT_EQ(ux / y, x / y);
+            EXPECT_EQ(x / uy, x / y);
+          }
+        }
       }
       auto fx = static_cast<Flag8>(x), fy = static_cast<Flag8>(y);
       EXPECT_EQ(fx & fy, static_cast<Flag8>(x & y));

@@ -17,6 +17,7 @@
 #include "Utilities/Valid.hpp"
 #include <algorithm>
 #include <charconv>
+#include <compare>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -591,7 +592,8 @@ static_assert(
   std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
 
 template <class T, DenseLayout S>
-[[nodiscard]] constexpr auto operator<=>(Array<T, S> x, Array<T, S> y) {
+[[nodiscard]] constexpr auto
+operator<=>(Array<T, S> x, Array<T, S> y) -> std::strong_ordering {
   ptrdiff_t M = x.size();
   ptrdiff_t N = y.size();
   for (ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
@@ -959,12 +961,15 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
 
   template <class... Args>
-  constexpr auto emplace_back(Args &&...args) -> decltype(auto)
+  constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
-    invariant(ptrdiff_t(this->sz) < capacity_);
-    return *std::construct_at(this->data() + ptrdiff_t(this->sz++),
-                              std::forward<Args>(args)...);
+    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    invariant(s < c);
+    T &ret =
+      *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
+    this->sz = length(s + 1z);
+    return ret;
   }
   /// Allocates extra space if needed
   /// Has a different name to make sure we avoid ambiguities.
@@ -977,12 +982,13 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     return *std::construct_at(this->data() + ptrdiff_t(this->sz++),
                               std::forward<Args>(args)...);
   }
-  constexpr void push_back(T value)
+  constexpr void push_back_within_capacity(T value)
   requires(std::same_as<S, Length<>>)
   {
-    invariant(ptrdiff_t(this->sz) < capacity_);
-    std::construct_at<T>(this->data() + ptrdiff_t(this->sz++),
-                         std::move(value));
+    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    invariant(s < c);
+    std::construct_at<T>(this->data() + s, std::move(value));
+    this->sz = length(s + 1z);
   }
   constexpr void push_back(alloc::Arena<> *alloc, T value)
   requires(std::same_as<S, Length<>>)
@@ -1158,19 +1164,27 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     } else resizeForOverwrite(S{M, N});
   }
 
-  constexpr auto insert(T *p, T x)
-    -> T *requires(std::same_as<S, Length<>>) {
+  constexpr auto
+  insert_within_capacity(T *p, T x) -> T *requires(std::same_as<S, Length<>>) {
     invariant(p >= this->data());
     T *e = this->data() + ptrdiff_t(this->sz);
     invariant(p <= e);
     invariant(this->sz < capacity_);
-    if (p < e) std::copy_backward(p, e, e + 1);
-    *p = x;
+    if constexpr (BaseT::trivial) {
+      if (p < e) std::copy_backward(p, e, e + 1);
+      *p = std::move(x);
+    } else if (p < e) {
+      std::construct_at<T>(e, std::move(*(e - 1)));
+      for (; --e != p;) *e = std::move(*(e - 1));
+      *p = std::move(x);
+    } else std::construct_at<T>(e, std::move(x));
     ++this->sz;
     return p;
-  } template <size_t SlabSize, bool BumpUp>
-    constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
-                           ptrdiff_t newCapacity) {
+  }
+
+  template <size_t SlabSize, bool BumpUp>
+  constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
+                         ptrdiff_t newCapacity) {
     if (newCapacity <= capacity_) return;
     this->ptr = alloc->template reallocate<false, T>(
       const_cast<T *>(this->ptr), ptrdiff_t(capacity_), newCapacity,
@@ -1216,43 +1230,37 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
   constexpr ReallocView(storage_type *p, S s, U c, A alloc) noexcept
     : BaseT(p, s, c), allocator(alloc) {}
 
-  template <class... Args>
-  constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
+  constexpr void reserveForGrow1()
   requires(std::same_as<S, Length<>>)
   {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
-    invariant(s < c);
-    T &ret =
-      *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
-    this->sz = length(s + 1z);
-    return ret;
+    if (s == c) [[unlikely]]
+      reserve(length(newCapacity(c)));
+    invariant(s == ptrdiff_t(this->sz));
   }
-  constexpr void push_back_within_capacity(T value)
-  requires(std::same_as<S, Length<>>)
-  {
-    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
-    invariant(s < c);
-    std::construct_at<T>(this->data() + s, std::move(value));
-    this->sz = length(s + 1z);
-  }
+
   template <class... Args>
   constexpr auto emplace_back(Args &&...args) -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
-    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
-    if (s == c) [[unlikely]]
-      reserve(length(newCapacity(c)));
-    invariant(s == ptrdiff_t(this->sz));
-    return emplace_back_within_capacity(args...);
+    reserveForGrow1();
+    return this->emplace_back_within_capacity(args...);
   }
   constexpr void push_back(T value)
   requires(std::same_as<S, Length<>>)
   {
+    reserveForGrow1();
+    this->push_back_within_capacity(std::move(value));
+  }
+  constexpr auto insert(T *p, T x) -> T *requires(std::same_as<S, Length<>>) {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
-    if (s == c) [[unlikely]]
+    if (s == c) [[unlikely]] {
+      ptrdiff_t d = p - this->data();
       reserve(length(newCapacity(c)));
+      p = this->data() + d;
+    }
     invariant(s == ptrdiff_t(this->sz));
-    push_back_within_capacity(std::move(value));
+    return this->insert_within_capacity(p, std::move(x));
   }
   // behavior
   // if S is StridedDims, then we copy data.
@@ -1532,7 +1540,8 @@ protected:
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
       std::fill_n(this->data(), ptrdiff_t(M),
                   std::numeric_limits<T>::signaling_NaN());
-    else std::fill_n(this->data(), ptrdiff_t(M), std::numeric_limits<T>::min());
+    else if constexpr (std::integral<T>)
+      std::fill_n(this->data(), ptrdiff_t(M), std::numeric_limits<T>::min());
 #endif
   }
 };
@@ -1609,6 +1618,12 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   // ManagedArray(a){}; constexpr ManagedArray(std::type_identity<T>, S s, A
   // a) noexcept
   //   : ManagedArray(s, a){};
+  constexpr ManagedArray(T x) noexcept
+  requires(std::same_as<S, Length<>>)
+    : BaseT{memory.data(), S(length(1)), capacity(N), A{}} {
+    if constexpr (N == 0) this->growUndef(1);
+    this->push_back_within_capacity(std::move(x));
+  }
 
   template <class D>
   constexpr ManagedArray(const ManagedArray<T, D, N, A> &b) noexcept

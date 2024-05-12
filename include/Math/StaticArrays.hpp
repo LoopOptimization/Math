@@ -552,11 +552,11 @@ struct StaticArray<T, 1, N, false>
     return reinterpret_cast<const T *>(&data_);
   }
   constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) -> MutPtrVector<T> {
-    return {data() + r.b, r.size()};
+    return {data() + r.b, length(r.size())};
   }
   constexpr auto
   operator[](Range<ptrdiff_t, ptrdiff_t> r) const -> PtrVector<T> {
-    return {data() + r.b, r.size()};
+    return {data() + r.b, length(r.size())};
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
     (*this) << b;

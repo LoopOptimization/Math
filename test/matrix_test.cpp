@@ -279,7 +279,7 @@ TEST(VectorTest, BasicAssertions) {
   for (size_t i = 0; i < 100; ++i) {
     if (x.getCapacity() <= x.size())
       x.reserve(&alloc, std::max<ptrdiff_t>(8, 2 * x.size()));
-    x.emplace_back(i);
+    x.emplace_back_within_capacity(i);
   }
   EXPECT_EQ(x.size(), 100);
   EXPECT_EQ(x.sum(), 100 * 99 / 2);
@@ -389,7 +389,7 @@ TEST(TinyVectorTest, BasicAssertions) {
     v.push_back(21);
     EXPECT_EQ(v.back(), 21);
     int8_t s = 0;
-    for (auto x : v) s += x;
+    for (auto x : v) s = int8_t(s + x);
     EXPECT_EQ(s, 28);
   }
 }
@@ -399,8 +399,11 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
   Vector<int64_t> y{std::array<int64_t, 3>{204, 205, 206}};
   Vector<int64_t> z{std::array<int64_t, 3>{0, 1, 2}};
   Vector<Vector<int64_t, 0>, 0> x;
-  for (ptrdiff_t i = 0; i < 102; ++i)
+  for (ptrdiff_t i = 0; i < 102; i += 2)
     x.emplace_back(std::array<int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
+  for (ptrdiff_t i = 1; i < 102; i += 2)
+    x.insert(x.begin() + i,
+             std::array<int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
   for (ptrdiff_t i = 0; i < x.size(); ++i)
     for (ptrdiff_t j = 0; j < 3; ++j) EXPECT_EQ(x[i][j], 2 * (i + 1) + j);
   EXPECT_EQ(x.pop_back_val(), y);

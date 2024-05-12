@@ -3,6 +3,7 @@
 #include "Utilities/Invariant.hpp"
 #include "Utilities/TypePromotion.hpp"
 #include <bit>
+#include <compare>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -284,6 +285,26 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   }
   constexpr auto operator==(const BitSet &bs) const -> bool {
     return data == bs.data;
+  }
+  // Ranks higher elements as more important, thus iterating
+  // backwards.
+  constexpr auto
+  operator<=>(const BitSet &other) const -> std::strong_ordering {
+    ptrdiff_t ntd = data.size(), nod = other.data.size();
+    if (ntd != nod) {
+      bool larger = ntd > nod;
+      ptrdiff_t l = std::min(ntd, nod), L = std::max(ntd, nod);
+      const T &d = larger ? data : other.data;
+      // The other is effectively all `0`, thus we may as well iterate forwards.
+      for (ptrdiff_t i = l; i < L; ++i)
+        if (d[i])
+          return larger ? std::strong_ordering::greater
+                        : std::strong_ordering::less;
+      ntd = l;
+    }
+    for (ptrdiff_t i = ntd; i--;)
+      if (auto cmp = data[i] <=> other.data[i]; cmp != 0) return cmp;
+    return std::strong_ordering::equal;
   }
 
   friend inline auto operator<<(std::ostream &os,
