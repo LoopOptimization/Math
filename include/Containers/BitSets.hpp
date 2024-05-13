@@ -222,7 +222,7 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   public:
     constexpr explicit Reference(math::MutPtrVector<U> dd, ptrdiff_t ii)
       : data(dd), i(ii) {}
-    constexpr explicit operator bool() const { return contains(data, i); }
+    constexpr operator bool() const { return contains(data, i); }
     constexpr auto operator=(bool b) -> Reference & {
       BitSet::set(data, i, b);
       return *this;
