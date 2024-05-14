@@ -54,8 +54,11 @@ template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
   staticint() {
     return std::integral_constant<I, M>{};
   }
+
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Length<-1>() const;
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Length) -> bool {
     return x == M;
@@ -117,6 +120,7 @@ template <std::signed_integral I> struct Length<-1, I> {
   operator bool() const {
     return static_cast<ptrdiff_t>(M);
   }
+
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++() -> Length & {
     M = static_cast<len>(static_cast<ptrdiff_t>(M) + 1z);
@@ -139,6 +143,7 @@ template <std::signed_integral I> struct Length<-1, I> {
     M = static_cast<len>(static_cast<ptrdiff_t>(M) + 1z);
     return tmp;
   }
+
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Length<-1>() const
   requires(!std::same_as<I, ptrdiff_t>)
@@ -146,6 +151,8 @@ template <std::signed_integral I> struct Length<-1, I> {
     return Length<-1, ptrdiff_t>{
       static_cast<Length<-1, ptrdiff_t>::len>(ptrdiff_t(I(*this)))};
   }
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Length y) -> bool {
     return x == ptrdiff_t(y);
@@ -205,6 +212,8 @@ struct Capacity {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Capacity<-1, I>() const;
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Capacity) -> bool {
     return x == M;
@@ -273,6 +282,8 @@ template <std::integral I> struct Capacity<-1, I> {
     M = static_cast<cap>(static_cast<I>(M) + 1z);
     return tmp;
   }
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Capacity y) -> bool {
     return x == ptrdiff_t(y);
@@ -324,6 +335,8 @@ template <ptrdiff_t M = -1> struct Row {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Row<-1>() const;
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Row) -> bool {
     return x == M;
@@ -402,6 +415,8 @@ template <> struct Row<-1> {
     M = static_cast<row>(static_cast<ptrdiff_t>(M) + 1z);
     return tmp;
   }
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Row y) -> bool {
     return x == ptrdiff_t(y);
@@ -458,6 +473,8 @@ template <ptrdiff_t M = -1> struct Col {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Col<-1>() const;
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Col) -> bool {
     return x == M;
@@ -540,6 +557,8 @@ template <> struct Col<-1> {
     M = static_cast<col>(static_cast<ptrdiff_t>(M) - 1z);
     return tmp;
   }
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Col y) -> bool {
     return x == ptrdiff_t(y);
@@ -600,6 +619,8 @@ template <ptrdiff_t M = -1> struct RowStride {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator RowStride<-1>() const;
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, RowStride) -> bool {
     return x == M;
@@ -671,6 +692,8 @@ template <> struct RowStride<-1> {
     M = static_cast<stride>(static_cast<ptrdiff_t>(M) - 1z);
     return tmp;
   }
+
+private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, RowStride y) -> bool {
     return x == ptrdiff_t(y);

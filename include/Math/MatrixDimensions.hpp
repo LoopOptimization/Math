@@ -15,10 +15,6 @@ template <ptrdiff_t R = -1, ptrdiff_t C = -1> struct DenseDims;
 template <ptrdiff_t R = -1, ptrdiff_t C = -1, ptrdiff_t X = -1>
 struct StridedDims;
 
-// template <class From, class To>
-// concept ConvertibleToButNot =
-//   std::convertible_to<From, To> && (!std::same_as<From, To>);
-
 template <class R, class C> struct CartesianIndex {
   [[no_unique_address]] R rowIdx;
   [[no_unique_address]] C colIdx;

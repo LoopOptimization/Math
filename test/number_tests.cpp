@@ -40,40 +40,34 @@ TEST(Int8Test, BasicAssertions) {
 
       {
         int z = x + y;
-        uint8_t zu = z;
-        if (int(zu) == z) {
-          EXPECT_EQ(ux + uy, static_cast<u8>(x + y));
-          EXPECT_EQ(ux + y, x + y);
-          EXPECT_EQ(x + uy, x + y);
+        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          EXPECT_EQ(ux + uy, z);
+          EXPECT_EQ(ux + y, z);
+          EXPECT_EQ(x + uy, z);
         }
       }
       {
         int z = x * y;
-        uint8_t zu = z;
-        if (int(zu) == z) {
-          EXPECT_EQ(ux * uy, static_cast<u8>(x * y));
-          EXPECT_EQ(ux * y, x * y);
-          EXPECT_EQ(x * uy, x * y);
+        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          EXPECT_EQ(ux * uy, z);
+          EXPECT_EQ(ux * y, z);
+          EXPECT_EQ(x * uy, z);
         }
       }
       {
         int z = x - y;
-        uint8_t zu = z;
-        if (int(zu) == z) {
-          EXPECT_EQ(ux - uy, static_cast<u8>(x - y));
-          EXPECT_EQ(ux - y, x - y);
-          EXPECT_EQ(x - uy, x - y);
+        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          EXPECT_EQ(ux - uy, z);
+          EXPECT_EQ(ux - y, z);
+          EXPECT_EQ(x - uy, z);
         }
       }
       if (y) {
-        {
-          int z = x / y;
-          uint8_t zu = z;
-          if (int(zu) == z) {
-            EXPECT_EQ(ux / uy, static_cast<u8>(x / y));
-            EXPECT_EQ(ux / y, x / y);
-            EXPECT_EQ(x / uy, x / y);
-          }
+        int z = x / y;
+        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          EXPECT_EQ(ux / uy, z);
+          EXPECT_EQ(ux / y, z);
+          EXPECT_EQ(x / uy, z);
         }
       }
       auto fx = static_cast<Flag8>(x), fy = static_cast<Flag8>(y);
@@ -115,19 +109,41 @@ TEST(Int8Test, BasicAssertions) {
       i8 ix = static_cast<i8>(x);
       i8 iy = static_cast<i8>(y);
 
-      EXPECT_EQ(ix + iy, static_cast<i8>(x + y));
-      EXPECT_EQ(ix + y, x + y);
-      EXPECT_EQ(x + iy, x + y);
-      EXPECT_EQ(ix * iy, static_cast<i8>(x * y));
-      EXPECT_EQ(ix * y, x * y);
-      EXPECT_EQ(x * iy, x * y);
-      EXPECT_EQ(ix - iy, static_cast<i8>(x - y));
-      EXPECT_EQ(ix - y, x - y);
-      EXPECT_EQ(x - iy, x - y);
+      {
+        int z = x + y;
+        if ((z >= std::numeric_limits<int8_t>::min()) &&
+            (z <= std::numeric_limits<int8_t>::max())) {
+          EXPECT_EQ(ix + iy, z);
+          EXPECT_EQ(ix + y, z);
+          EXPECT_EQ(x + iy, z);
+        }
+      }
+      {
+        int z = x * y;
+        if ((z >= std::numeric_limits<int8_t>::min()) &&
+            (z <= std::numeric_limits<int8_t>::max())) {
+          EXPECT_EQ(ix * iy, z);
+          EXPECT_EQ(ix * y, z);
+          EXPECT_EQ(x * iy, z);
+        }
+      }
+      {
+        int z = x - y;
+        if ((z >= std::numeric_limits<int8_t>::min()) &&
+            (z <= std::numeric_limits<int8_t>::max())) {
+          EXPECT_EQ(ix - iy, z);
+          EXPECT_EQ(ix - y, z);
+          EXPECT_EQ(x - iy, z);
+        }
+      }
       if (y) {
-        EXPECT_EQ(ix / iy, static_cast<i8>(x / y));
-        EXPECT_EQ(ix / y, x / y);
-        EXPECT_EQ(x / iy, x / y);
+        int z = x / y;
+        if ((z >= std::numeric_limits<int8_t>::min()) &&
+            (z <= std::numeric_limits<int8_t>::max())) {
+          EXPECT_EQ(ix / iy, z);
+          EXPECT_EQ(ix / y, z);
+          EXPECT_EQ(x / iy, z);
+        }
       }
     }
   }

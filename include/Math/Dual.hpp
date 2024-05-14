@@ -312,6 +312,22 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   {
     return val >= other;
   }
+  [[gnu::always_inline]] constexpr void compress(compressed_type *p) const {
+    utils::compress(val, &(p->val));
+    partials.compress(&(p->partials));
+  }
+  [[gnu::always_inline]] static constexpr auto
+  decompress(const compressed_type *p) -> Dual {
+    return {utils::decompress<T>(&(p->val)),
+            SVector<T, N>::decompress(&(p->partials))};
+  }
+  [[gnu::always_inline]] constexpr operator compressed_type() const {
+    compressed_type ret;
+    compress(&ret);
+    return ret;
+  }
+
+private:
   [[gnu::always_inline]] friend constexpr auto operator>(double other,
                                                          Dual x) -> bool {
     return other > x.value();
@@ -335,28 +351,6 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   [[gnu::always_inline]] friend constexpr auto operator!=(double other,
                                                           Dual x) -> bool {
     return other != x.value();
-  }
-  [[gnu::always_inline]] constexpr void compress(compressed_type *p) const {
-    utils::compress(val, &(p->val));
-    partials.compress(&(p->partials));
-  }
-  [[gnu::always_inline]] static constexpr auto
-  decompress(const compressed_type *p) -> Dual {
-    return {utils::decompress<T>(&(p->val)),
-            SVector<T, N>::decompress(&(p->partials))};
-  }
-  // constexpr void compress(compressed_type *p) const {
-  //   utils::compress(val, &(p->data[0]));
-  //   p->gradient() << partials;
-  // }
-  // static constexpr auto decompress(const compressed_type *p) -> Dual {
-  //   return {utils::decompress<T>(&(p->data[0])), SVector<T,
-  //   N>(p->gradient())};
-  // }
-  [[gnu::always_inline]] constexpr operator compressed_type() const {
-    compressed_type ret;
-    compress(&ret);
-    return ret;
   }
   friend inline auto operator<<(std::ostream &os,
                                 const Dual &x) -> std::ostream & {
@@ -659,13 +653,25 @@ struct Dual<T, N, false> {
   operator>=(const Dual &other) const -> bool {
     return value() >= other.value();
   }
+  [[gnu::always_inline]] static constexpr auto
+  decompress(const compressed_type *p) -> Dual {
+    return {SVector<T, N + 1, false>{p->data}};
+  }
+  [[gnu::always_inline]] constexpr operator compressed_type() const {
+    compressed_type ret;
+    compress(&ret);
+    return ret;
+  }
+  [[gnu::always_inline]] constexpr void compress(compressed_type *p) const {
+    p->data << data;
+  }
 
+private:
   friend constexpr auto exp(Dual x) -> Dual {
     return {conditional(std::multiplies<>{},
                         elementwise_not_equal(_(0, N + 1), value_idx),
                         exp(x.value()), x.data)};
   }
-
   [[gnu::always_inline]] friend constexpr auto operator/(double a,
                                                          Dual b) -> Dual {
     Dual ret;
@@ -715,18 +721,6 @@ struct Dual<T, N, false> {
   [[gnu::always_inline]] friend constexpr auto operator!=(double other,
                                                           Dual x) -> bool {
     return other != x.value();
-  }
-  [[gnu::always_inline]] constexpr void compress(compressed_type *p) const {
-    p->data << data;
-  }
-  [[gnu::always_inline]] static constexpr auto
-  decompress(const compressed_type *p) -> Dual {
-    return {SVector<T, N + 1, false>{p->data}};
-  }
-  [[gnu::always_inline]] constexpr operator compressed_type() const {
-    compressed_type ret;
-    compress(&ret);
-    return ret;
   }
   friend inline auto operator<<(std::ostream &os,
                                 const Dual &x) -> std::ostream & {
