@@ -29,6 +29,9 @@ template <std::signed_integral A, std::signed_integral B>
 struct PromoteType<A, B> {
   using value_type = std::conditional_t<sizeof(A) >= sizeof(B), A, B>;
 };
+template <typename A, typename B> struct PromoteType<A *, B *> {
+  using value_type = std::common_type_t<A *, B *>;
+};
 template <std::unsigned_integral A, std::unsigned_integral B>
 struct PromoteType<A, B> {
   using value_type = std::conditional_t<sizeof(A) >= sizeof(B), A, B>;
