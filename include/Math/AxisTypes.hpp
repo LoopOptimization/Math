@@ -80,6 +80,21 @@ template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
   operator<=>(Length, Length) -> std::strong_ordering {
     return std::strong_ordering::equal;
   }
+  template <ptrdiff_t N>
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator+(Length, Length<N>) -> Length<M + N>
+  requires(N != -1)
+  {
+    return {};
+  }
+  template <ptrdiff_t N>
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator-(Length, Length<N>) -> Length<M - N>
+  requires(N != -1)
+  {
+    static_assert(M >= N);
+    return {};
+  }
 };
 template <std::signed_integral I> struct Length<-1, I> {
   enum class len : I {};
@@ -155,6 +170,16 @@ template <std::signed_integral I> struct Length<-1, I> {
   operator<=>(Length x, Length y) -> std::strong_ordering {
     return ptrdiff_t(x) <=> ptrdiff_t(y);
   }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator+(Length a, Length b) -> Length {
+    return {static_cast<Length<-1>::len>(ptrdiff_t(a) + ptrdiff_t(b))};
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator-(Length a, Length b) -> Length {
+    auto x = ptrdiff_t(a), y = ptrdiff_t(b);
+    invariant(x >= y);
+    return {static_cast<Length<-1>::len>(x - y)};
+  }
 };
 
 // by default, we promote to `ptrdiff_t`; smaller sizes
@@ -180,6 +205,38 @@ struct Capacity {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Capacity<-1, I>() const;
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Capacity) -> bool {
+    return x == M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Capacity, ptrdiff_t x) -> bool {
+    return M == x;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Capacity, Capacity) -> bool {
+    return true;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Capacity) -> std::strong_ordering {
+    return x <=> M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Capacity, ptrdiff_t y) -> std::strong_ordering {
+    return M <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Length<> x, Capacity) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Capacity, Length<> y) -> std::strong_ordering {
+    return M <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Capacity, Capacity) -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
 };
 template <std::integral I> struct Capacity<-1, I> {
   enum class cap : I {};
@@ -216,6 +273,38 @@ template <std::integral I> struct Capacity<-1, I> {
     M = static_cast<cap>(static_cast<I>(M) + 1z);
     return tmp;
   }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Capacity y) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Capacity y, ptrdiff_t x) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Capacity x, Capacity y) -> bool {
+    return ptrdiff_t(x) == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Capacity y) -> std::strong_ordering {
+    return x <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Capacity x, ptrdiff_t y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Length<> x, Capacity y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Capacity x, Length<> y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Capacity x, Capacity y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
 };
 template <ptrdiff_t M, std::signed_integral I>
 [[gnu::artificial, gnu::always_inline]] inline constexpr Capacity<
@@ -223,39 +312,6 @@ template <ptrdiff_t M, std::signed_integral I>
   static constexpr I cap = M;
   return {static_cast<Capacity<-1, I>::cap>(cap)};
 }
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(ptrdiff_t x, Capacity<> y) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Capacity<> y, ptrdiff_t x) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Capacity<> x, Capacity<> y) -> bool {
-  return ptrdiff_t(x) == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(ptrdiff_t x, Capacity<> y) -> std::strong_ordering {
-  return x <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Capacity<> x, ptrdiff_t y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> y;
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Length<> x, Capacity<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Capacity<> x, Length<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Capacity<> x, Capacity<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
-}
-
 template <ptrdiff_t M = -1> struct Row {
   static_assert(M >= 0);
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
@@ -268,6 +324,48 @@ template <ptrdiff_t M = -1> struct Row {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Row<-1>() const;
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Row) -> bool {
+    return x == M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Row, ptrdiff_t x) -> bool {
+    return M == x;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Row, Row) -> bool {
+    return true;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Row) -> std::strong_ordering {
+    return x <=> M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Row, ptrdiff_t y) -> std::strong_ordering {
+    return M <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Row, Row) -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  friend inline auto operator<<(std::ostream &os, Row) -> std::ostream & {
+    return os << "Row<>{" << M << "}";
+  }
+  template <ptrdiff_t N>
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator+(Row, Row<N>) -> Row<M + N>
+  requires(N != -1)
+  {
+    return {};
+  }
+  template <ptrdiff_t N>
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator-(Row, Row<N>) -> Row<M - N>
+  requires(N != -1)
+  {
+    static_assert(M >= N);
+    return {};
+  }
 };
 template <> struct Row<-1> {
   enum class row : ptrdiff_t {};
@@ -304,39 +402,49 @@ template <> struct Row<-1> {
     M = static_cast<row>(static_cast<ptrdiff_t>(M) + 1z);
     return tmp;
   }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Row y) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Row y, ptrdiff_t x) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Row x, Row y) -> bool {
+    return ptrdiff_t(x) == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Row y) -> std::strong_ordering {
+    return x <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Row x, ptrdiff_t y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Row x, Row y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
+  friend inline auto operator<<(std::ostream &os, Row<> x) -> std::ostream & {
+    return os << "Row<>{" << ptrdiff_t(x) << "}";
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator+(Row a, Row b) -> Row {
+    return {static_cast<Row<-1>::row>(ptrdiff_t(a) + ptrdiff_t(b))};
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator-(Row a, Row b) -> Row {
+    auto x = ptrdiff_t(a), y = ptrdiff_t(b);
+    invariant(x >= y);
+    return {static_cast<Row<-1>::row>(x - y)};
+  }
 };
 static_assert(sizeof(Row<>) == sizeof(ptrdiff_t));
 template <ptrdiff_t M>
 [[gnu::artificial,
   gnu::always_inline]] inline constexpr Row<M>::operator Row<-1>() const {
   return {static_cast<Row<-1>::row>(M)};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(ptrdiff_t x, Row<> y) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Row<> y, ptrdiff_t x) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Row<> x, Row<> y) -> bool {
-  return ptrdiff_t(x) == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(ptrdiff_t x, Row<> y) -> std::strong_ordering {
-  return x <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Row<> x, ptrdiff_t y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> y;
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Row<> x, Row<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
-}
-inline auto operator<<(std::ostream &os, Row<> x) -> std::ostream & {
-  return os << "Row<>{" << ptrdiff_t(x) << "}";
 }
 template <ptrdiff_t M = -1> struct Col {
   static_assert(M >= 0);
@@ -350,6 +458,52 @@ template <ptrdiff_t M = -1> struct Col {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Col<-1>() const;
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Col) -> bool {
+    return x == M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Col, ptrdiff_t x) -> bool {
+    return M == x;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Col, Col) -> bool {
+    return true;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Col) -> std::strong_ordering {
+    return x <=> M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Col, ptrdiff_t y) -> std::strong_ordering {
+    return M <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Col, Col) -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator*(Row<> r, Col) -> ptrdiff_t {
+    return ptrdiff_t(r) * M;
+  }
+  friend inline auto operator<<(std::ostream &os, Col) -> std::ostream & {
+    return os << "Col<>{" << M << "}";
+  }
+  template <ptrdiff_t N>
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator+(Col, Col<N>) -> Col<M + N>
+  requires(N != -1)
+  {
+    return {};
+  }
+  template <ptrdiff_t N>
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator-(Col, Col<N>) -> Col<M - N>
+  requires(N != -1)
+  {
+    static_assert(M >= N);
+    return {};
+  }
 };
 template <> struct Col<-1> {
   enum class col : ptrdiff_t {};
@@ -386,43 +540,53 @@ template <> struct Col<-1> {
     M = static_cast<col>(static_cast<ptrdiff_t>(M) - 1z);
     return tmp;
   }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Col y) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Col y, ptrdiff_t x) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Col x, Col y) -> bool {
+    return ptrdiff_t(x) == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Col y) -> std::strong_ordering {
+    return x <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Col x, ptrdiff_t y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Col x, Col y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator*(Row<> r, Col c) -> ptrdiff_t {
+    return ptrdiff_t(r) * ptrdiff_t(c);
+  }
+  friend inline auto operator<<(std::ostream &os, Col x) -> std::ostream & {
+    return os << "Col<>{" << ptrdiff_t(x) << "}";
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator+(Col a, Col b) -> Col {
+    return {static_cast<Col<-1>::col>(ptrdiff_t(a) + ptrdiff_t(b))};
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator-(Col a, Col b) -> Col {
+    auto x = ptrdiff_t(a), y = ptrdiff_t(b);
+    invariant(x >= y);
+    return {static_cast<Col<-1>::col>(x - y)};
+  }
 };
 static_assert(sizeof(Col<>) == sizeof(ptrdiff_t));
 template <ptrdiff_t M>
 [[gnu::artificial,
   gnu::always_inline]] inline constexpr Col<M>::operator Col<-1>() const {
   return {static_cast<Col<-1>::col>(M)};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(ptrdiff_t x, Col<> y) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Col<> y, ptrdiff_t x) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Col<> x, Col<> y) -> bool {
-  return ptrdiff_t(x) == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(ptrdiff_t x, Col<> y) -> std::strong_ordering {
-  return x <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Col<> x, ptrdiff_t y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> y;
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Col<> x, Col<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator*(Row<> r, Col<> c) -> ptrdiff_t {
-  return ptrdiff_t(r) * ptrdiff_t(c);
-}
-inline auto operator<<(std::ostream &os, Col<> x) -> std::ostream & {
-  return os << "Col<>{" << ptrdiff_t(x) << "}";
 }
 template <ptrdiff_t M = -1> struct RowStride {
   static_assert(M >= 0);
@@ -436,6 +600,41 @@ template <ptrdiff_t M = -1> struct RowStride {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator RowStride<-1>() const;
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, RowStride) -> bool {
+    return x == M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(RowStride, ptrdiff_t x) -> bool {
+    return M == x;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(RowStride, RowStride) -> bool {
+    return true;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, RowStride) -> std::strong_ordering {
+    return x <=> M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(RowStride, ptrdiff_t y) -> std::strong_ordering {
+    return M <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(RowStride, RowStride) -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  friend inline auto operator<<(std::ostream &os, RowStride) -> std::ostream & {
+    return os << "RowStride<>{" << M << "}";
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Col<> c, RowStride) -> bool {
+    return ptrdiff_t(c) == M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Col<> c, RowStride) -> std::strong_ordering {
+    return ptrdiff_t(c) <=> M;
+  }
 };
 template <> struct RowStride<-1> {
   enum class stride : ptrdiff_t {};
@@ -472,6 +671,42 @@ template <> struct RowStride<-1> {
     M = static_cast<stride>(static_cast<ptrdiff_t>(M) - 1z);
     return tmp;
   }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, RowStride y) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(RowStride y, ptrdiff_t x) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(RowStride x, RowStride y) -> bool {
+    return ptrdiff_t(x) == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, RowStride y) -> std::strong_ordering {
+    return x <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(RowStride x, ptrdiff_t y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(RowStride x, RowStride y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
+  friend inline auto operator<<(std::ostream &os,
+                                RowStride x) -> std::ostream & {
+    return os << "RowStride<>{" << ptrdiff_t(x) << "}";
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Col<> c, RowStride x) -> bool {
+    return ptrdiff_t(c) == ptrdiff_t(x);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Col<> c, RowStride x) -> std::strong_ordering {
+    return ptrdiff_t(c) <=> ptrdiff_t(x);
+  }
 };
 static_assert(sizeof(RowStride<>) == sizeof(ptrdiff_t));
 template <ptrdiff_t M>
@@ -479,33 +714,6 @@ template <ptrdiff_t M>
   gnu::always_inline]] inline constexpr RowStride<M>::operator RowStride<-1>()
   const {
   return {static_cast<RowStride<-1>::stride>(M)};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(ptrdiff_t x, RowStride<> y) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(RowStride<> y, ptrdiff_t x) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(RowStride<> x, RowStride<> y) -> bool {
-  return ptrdiff_t(x) == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(ptrdiff_t x, RowStride<> y) -> std::strong_ordering {
-  return x <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(RowStride<> x, ptrdiff_t y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> y;
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(RowStride<> x, RowStride<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
-}
-inline auto operator<<(std::ostream &os, RowStride<> x) -> std::ostream & {
-  return os << "RowStride<>{" << ptrdiff_t(x) << "}";
 }
 
 // constexpr auto max(Row M, Col N) -> ptrdiff_t {
@@ -563,17 +771,6 @@ unwrapCol(auto x) {
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 unwrapStride(auto x) {
   return x;
-}
-
-template <ptrdiff_t C, ptrdiff_t X>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Col<C> c, RowStride<X> x) -> bool {
-  return ptrdiff_t(c) == ptrdiff_t(x);
-}
-template <ptrdiff_t C, ptrdiff_t X>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Col<C> c, RowStride<X> x) -> std::strong_ordering {
-  return ptrdiff_t(c) <=> ptrdiff_t(x);
 }
 
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
@@ -638,32 +835,6 @@ template <std::integral I, I x>
 rowStride(std::integral_constant<I, x>) -> RowStride<ptrdiff_t(x)> {
   static_assert(x >= 0);
   return {};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator+(Row<> a, Row<> b) -> Row<> {
-  return {static_cast<Row<-1>::row>(ptrdiff_t(a) + ptrdiff_t(b))};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator+(Col<> a, Col<> b) -> Col<> {
-  return {static_cast<Col<-1>::col>(ptrdiff_t(a) + ptrdiff_t(b))};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator-(Length<> a, Length<> b) -> Length<> {
-  ptrdiff_t delta = ptrdiff_t(a) - ptrdiff_t(b);
-  invariant(delta >= 0);
-  return {static_cast<Length<-1>::len>(delta)};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator-(Row<> a, Row<> b) -> Row<> {
-  ptrdiff_t delta = ptrdiff_t(a) - ptrdiff_t(b);
-  invariant(delta >= 0);
-  return {static_cast<Row<-1>::row>(delta)};
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator-(Col<> a, Col<> b) -> Col<> {
-  ptrdiff_t delta = ptrdiff_t(a) - ptrdiff_t(b);
-  invariant(delta >= 0);
-  return {static_cast<Col<-1>::col>(delta)};
 }
 
 template <ptrdiff_t M>

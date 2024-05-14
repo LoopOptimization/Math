@@ -387,15 +387,15 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   }
   [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i.size(); }
+  [[nodiscard]] friend constexpr auto operator-(EndSentinel,
+                                                Iterator v) -> ptrdiff_t {
+    return EndSentinel{} - v.it;
+  }
+  [[nodiscard]] friend constexpr auto operator-(EndSentinel,
+                                                ConstIterator v) -> ptrdiff_t {
+    return EndSentinel{} - v.it;
+  }
 };
-[[nodiscard]] constexpr auto
-operator-(EndSentinel, BitSliceView<int64_t>::Iterator v) -> ptrdiff_t {
-  return EndSentinel{} - v.it;
-}
-[[nodiscard]] constexpr auto
-operator-(EndSentinel, BitSliceView<int64_t>::ConstIterator v) -> ptrdiff_t {
-  return EndSentinel{} - v.it;
-}
 template <typename T, typename B>
 BitSliceView(math::MutPtrVector<T>, const B &) -> BitSliceView<T, B>;
 

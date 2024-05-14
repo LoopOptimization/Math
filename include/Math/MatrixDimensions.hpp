@@ -8,7 +8,7 @@ namespace poly::math {
 
 using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
   axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
-  axis::asrow, axis::ascol, axis::aslength, utils::invariant;
+  axis::asrow, axis::ascol, axis::asrowStride, axis::aslength, utils::invariant;
 
 template <ptrdiff_t R = -1> struct SquareDims;
 template <ptrdiff_t R = -1, ptrdiff_t C = -1> struct DenseDims;
