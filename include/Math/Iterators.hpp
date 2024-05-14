@@ -4,6 +4,9 @@
 #include <cstddef>
 #include <type_traits>
 namespace poly::math {
+using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
+  axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
+  axis::asrow, axis::ascol, axis::aslength, utils::invariant;
 template <typename B, typename E> struct Range {
   [[no_unique_address]] B b;
   [[no_unique_address]] E e;

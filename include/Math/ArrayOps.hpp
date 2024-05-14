@@ -17,6 +17,7 @@
 #define CASTTOSCALARIZE
 
 namespace poly::math {
+using utils::invariant;
 // scalars broadcast
 template <typename S, typename T>
 [[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {

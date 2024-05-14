@@ -1,5 +1,6 @@
 #pragma once
 #include "Utilities/Invariant.hpp"
+#include <compare>
 #include <concepts>
 #include <cstddef>
 #include <iostream>
@@ -27,7 +28,7 @@
 /// All the PtrVector/PtrMatrix types are trivially destructible, copyable, etc
 /// Their lifetimes are governed by the Arena or RAII type used to back
 /// them.
-namespace poly::math {
+namespace poly::math::axis {
 
 using utils::invariant;
 
@@ -55,6 +56,30 @@ template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Length<-1>() const;
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Length) -> bool {
+    return x == M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Length, ptrdiff_t x) -> bool {
+    return M == x;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Length, Length) -> bool {
+    return true;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Length) -> std::strong_ordering {
+    return x <=> M;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Length, ptrdiff_t y) -> std::strong_ordering {
+    return M <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Length, Length) -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
 };
 template <std::signed_integral I> struct Length<-1, I> {
   enum class len : I {};
@@ -106,6 +131,30 @@ template <std::signed_integral I> struct Length<-1, I> {
     return Length<-1, ptrdiff_t>{
       static_cast<Length<-1, ptrdiff_t>::len>(ptrdiff_t(I(*this)))};
   }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(ptrdiff_t x, Length y) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Length y, ptrdiff_t x) -> bool {
+    return x == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator==(Length x, Length y) -> bool {
+    return ptrdiff_t(x) == ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(ptrdiff_t x, Length y) -> std::strong_ordering {
+    return x <=> ptrdiff_t(y);
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Length x, ptrdiff_t y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> y;
+  }
+  [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
+  operator<=>(Length x, Length y) -> std::strong_ordering {
+    return ptrdiff_t(x) <=> ptrdiff_t(y);
+  }
 };
 
 // by default, we promote to `ptrdiff_t`; smaller sizes
@@ -115,31 +164,6 @@ template <ptrdiff_t M, std::signed_integral I>
   gnu::always_inline]] inline constexpr Length<M, I>::operator Length<-1>()
   const {
   return {static_cast<Length<-1>::len>(M)};
-}
-template <ptrdiff_t M, std::signed_integral I>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(ptrdiff_t x, Length<> y) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Length<> y, ptrdiff_t x) -> bool {
-  return x == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator==(Length<> x, Length<> y) -> bool {
-  return ptrdiff_t(x) == ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(ptrdiff_t x, Length<> y) -> std::strong_ordering {
-  return x <=> ptrdiff_t(y);
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Length<> x, ptrdiff_t y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> y;
-}
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-operator<=>(Length<> x, Length<> y) -> std::strong_ordering {
-  return ptrdiff_t(x) <=> ptrdiff_t(y);
 }
 
 template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t>
@@ -679,4 +703,4 @@ asrowStride(Length<M> len) -> RowStride<M> {
   else return {static_cast<RowStride<-1>::stride>(ptrdiff_t(len))};
 }
 
-} // namespace poly::math
+} // namespace poly::math::axis

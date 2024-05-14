@@ -32,10 +32,10 @@ template <class T>
 concept SizeMultiple8 = (sizeof(T) % 8) == 0;
 
 template <class S> struct DefaultCapacityType {
-  using type = math::Capacity<-1, int>;
+  using type = math::axis::Capacity<-1, int>;
 };
 template <SizeMultiple8 S> struct DefaultCapacityType<S> {
-  using type = math::Capacity<-1, std::ptrdiff_t>;
+  using type = math::axis::Capacity<-1, std::ptrdiff_t>;
 };
 template <class S>
 using default_capacity_type_t = typename DefaultCapacityType<S>::type;

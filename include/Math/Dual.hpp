@@ -1,6 +1,7 @@
 #pragma once
 #include "Math/Exp.hpp"
 #include "Math/MatrixDimensions.hpp"
+#include "Utilities/LoopMacros.hpp"
 #include <Math/Array.hpp>
 #include <Math/Constructors.hpp>
 #include <Math/Math.hpp>
@@ -357,6 +358,53 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
     compress(&ret);
     return ret;
   }
+  friend inline auto operator<<(std::ostream &os,
+                                const Dual &x) -> std::ostream & {
+    os << "Dual<" << N << ">{" << x.value();
+    for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
+    os << "}";
+    return os;
+  };
+  [[gnu::always_inline]] friend constexpr auto operator+(T a, Dual b) -> Dual
+  requires(!std::same_as<T, double>)
+  {
+    return {a + b.val, b.partials};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(T a, Dual b) -> Dual
+  requires(!std::same_as<T, double>)
+  {
+    return {a - b.val, -b.partials};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(T a, Dual b) -> Dual
+  requires(!std::same_as<T, double>)
+  {
+    // Dual res;
+    // res.val = val * other.val;
+    // res.partials << val * other.partials + other.val * partials;
+    // return res;
+    return {a * b.val, a * b.partials};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(T a, Dual b) -> Dual
+  requires(!std::same_as<T, double>)
+  {
+    return {a / b.val, (-a * b.partials) / (b.val * b.val)};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator+(double other,
+                                                         Dual x) -> Dual {
+    return {x.value() + other, x.gradient()};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(double other,
+                                                         Dual x) -> Dual {
+    return {other - x.value(), -x.gradient()};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(double other,
+                                                         Dual x) -> Dual {
+    return {x.value() * other, other * x.gradient()};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(double other,
+                                                         Dual x) -> Dual {
+    return {other / x.value(), -other * x.gradient() / (x.value() * x.value())};
+  }
 };
 
 template <simd::SIMDSupported T, ptrdiff_t N>
@@ -618,18 +666,6 @@ struct Dual<T, N, false> {
                         exp(x.value()), x.data)};
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator+(double other,
-                                                         Dual x) -> Dual {
-    return {other + x.data};
-  }
-  [[gnu::always_inline]] friend constexpr auto operator-(double other,
-                                                         Dual x) -> Dual {
-    return {other - x.data};
-  }
-  [[gnu::always_inline]] friend constexpr auto operator*(double other,
-                                                         Dual x) -> Dual {
-    return {other * x.data};
-  }
   [[gnu::always_inline]] friend constexpr auto operator/(double a,
                                                          Dual b) -> Dual {
     Dual ret;
@@ -692,134 +728,114 @@ struct Dual<T, N, false> {
     compress(&ret);
     return ret;
   }
-};
+  friend inline auto operator<<(std::ostream &os,
+                                const Dual &x) -> std::ostream & {
+    os << "Dual<" << N << ">{" << x.value();
+    for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
+    os << "}";
+    return os;
+  };
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto
-operator+(Dual<T, N, false> x, Dual<T, N, false> y) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  return {x.data + y.data};
-}
+  [[gnu::always_inline]] friend constexpr auto operator+(Dual x,
+                                                         Dual y) -> Dual {
+    return {x.data + y.data};
+  }
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto
-operator-(Dual<T, N, false> x, Dual<T, N, false> y) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  return {x.data - y.data};
-}
+  [[gnu::always_inline]] friend constexpr auto operator-(Dual x,
+                                                         Dual y) -> Dual {
+    return {x.data - y.data};
+  }
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto
-operator*(Dual<T, N, false> a, Dual<T, N, false> b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  using D = Dual<T, N, false>;
-  using data_type = D::data_type;
-  using V = D::V;
-  if constexpr (data_type::L == 1) {
-    V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.data_;
-    return {
-      {simd::fmadd<T>(vo, a.data.data_, x, simd::firstoff<D::W, int64_t>())}};
-  } else {
-    Dual<T, N, false> ret;
-    V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.memory_[0];
-    ret.data.memory_[0] =
-      simd::fmadd<T>(vo, a.data.memory_[0], x, simd::firstoff<D::W, int64_t>());
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 1; i < data_type::L; ++i)
-      ret.data.memory_[i] = vt * b.data.memory_[i] + vo * a.data.memory_[i];
+  [[gnu::always_inline]] friend constexpr auto operator*(Dual a,
+                                                         Dual b) -> Dual {
+    using D = Dual<T, N, false>;
+    if constexpr (data_type::L == 1) {
+      V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.data_;
+      return {
+        {simd::fmadd<T>(vo, a.data.data_, x, simd::firstoff<D::W, int64_t>())}};
+    } else {
+      Dual<T, N, false> ret;
+      V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.memory_[0];
+      ret.data.memory_[0] = simd::fmadd<T>(vo, a.data.memory_[0], x,
+                                           simd::firstoff<D::W, int64_t>());
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+        ret.data.memory_[i] = vt * b.data.memory_[i] + vo * a.data.memory_[i];
+      return ret;
+    }
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(Dual a,
+                                                         Dual b) -> Dual {
+    Dual ret;
+    if constexpr (data_type::L == 1) {
+      V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
+        x = vo * a.data.data_;
+      ret.data.data_ =
+        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, int64_t>()) /
+        vo2;
+    } else {
+      V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
+        x = vo * a.data.memory_[0];
+      ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
+                                            simd::firstoff<W, int64_t>()) /
+                            vo2;
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+        ret.data.memory_[i] =
+          (vo * a.data.memory_[i] - vt * b.data.memory_[i]) / vo2;
+    }
     return ret;
   }
-}
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto
-operator/(Dual<T, N, false> a, Dual<T, N, false> b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  using D = Dual<T, N, false>;
-  using data_type = D::data_type;
-  using V = D::V;
-  Dual<T, N, false> ret;
-  if constexpr (data_type::L == 1) {
-    V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo, x = vo * a.data.data_;
-    ret.data.data_ =
-      simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<D::W, int64_t>()) /
-      vo2;
-  } else {
-    V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
-      x = vo * a.data.memory_[0];
-    ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
-                                          simd::firstoff<D::W, int64_t>()) /
-                          vo2;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 1; i < data_type::L; ++i)
-      ret.data.memory_[i] =
-        (vo * a.data.memory_[i] - vt * b.data.memory_[i]) / vo2;
+  [[gnu::always_inline]] friend constexpr auto operator+(Dual a,
+                                                         double b) -> Dual {
+    if constexpr (data_type::L == 1)
+      a.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{b};
+    else a.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{b};
+    return a;
   }
-  return ret;
-}
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator+(Dual<T, N, false> a,
-                                                double b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  using D = Dual<T, N, false>;
-  using data_type = D::data_type;
-  if constexpr (data_type::L == 1)
-    a.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{b};
-  else a.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{b};
-  return a;
-}
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto
-operator+(double a, Dual<T, N, false> b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  using D = Dual<T, N, false>;
-  using data_type = D::data_type;
-  if constexpr (data_type::L == 1)
-    b.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{a};
-  else b.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{a};
-  return b;
-}
+  [[gnu::always_inline]] friend constexpr auto operator+(double a,
+                                                         Dual b) -> Dual {
+    if constexpr (data_type::L == 1)
+      b.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{a};
+    else b.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{a};
+    return b;
+  }
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator-(Dual<T, N, false> a,
-                                                double b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  using D = Dual<T, N, false>;
-  using data_type = D::data_type;
-  if constexpr (data_type::L == 1)
-    a.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{b};
-  else a.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{b};
-  return a;
-}
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator*(Dual<T, N, false> a,
-                                                double b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  return {a.data * b};
-}
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto
-operator*(double a, Dual<T, N, false> b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  return {a * b.data};
-}
+  [[gnu::always_inline]] friend constexpr auto operator-(Dual a,
+                                                         double b) -> Dual {
+    if constexpr (data_type::L == 1)
+      a.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{b};
+    else a.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{b};
+    return a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(double a,
+                                                         Dual b) -> Dual {
+    if constexpr (data_type::L == 1)
+      b.data.data_ = simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data.data_;
+    else {
+      b.data.memory_[0] =
+        simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data.memory_[0];
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t l = 1; l < data_type::L; ++l)
+        b.data.memory_[l] = -b.data.memory_[l];
+    }
+    return b;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(Dual a,
+                                                         double b) -> Dual {
+    return {a.data * b};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(double a,
+                                                         Dual b) -> Dual {
+    return {a * b.data};
+  }
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator/(Dual<T, N, false> a,
-                                                double b) -> Dual<T, N, false>
-requires(std::popcount(size_t(N)) > 1)
-{
-  return {a.data / b};
-}
+  [[gnu::always_inline]] friend constexpr auto operator/(Dual a,
+                                                         double b) -> Dual {
+    return {a.data / b};
+  }
+};
 
 static_assert(!std::convertible_to<Array<Dual<double, 7, true>, Length<2>>,
                                    Dual<double, 7, false>>);
@@ -909,54 +925,6 @@ struct ScalarizeViaCast<ElementwiseBinaryOp<T, B, std::multiplies<>>> {
 template <class T, ptrdiff_t N> Dual(T, SVector<T, N>) -> Dual<T, N>;
 
 template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator+(T a, Dual<T, N> b) -> Dual<T, N>
-requires(!std::same_as<T, double>)
-{
-  return {a + b.val, b.partials};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator-(T a, Dual<T, N> b) -> Dual<T, N>
-requires(!std::same_as<T, double>)
-{
-  return {a - b.val, -b.partials};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator*(T a, Dual<T, N> b) -> Dual<T, N>
-requires(!std::same_as<T, double>)
-{
-  // Dual res;
-  // res.val = val * other.val;
-  // res.partials << val * other.partials + other.val * partials;
-  // return res;
-  return {a * b.val, a * b.partials};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator/(T a, Dual<T, N> b) -> Dual<T, N>
-requires(!std::same_as<T, double>)
-{
-  return {a / b.val, (-a * b.partials) / (b.val * b.val)};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator+(double other,
-                                                Dual<T, N> x) -> Dual<T, N> {
-  return {x.value() + other, x.gradient()};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator-(double other,
-                                                Dual<T, N> x) -> Dual<T, N> {
-  return {other - x.value(), -x.gradient()};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator*(double other,
-                                                Dual<T, N> x) -> Dual<T, N> {
-  return {x.value() * other, other * x.gradient()};
-}
-template <class T, ptrdiff_t N>
-[[gnu::always_inline]] constexpr auto operator/(double other,
-                                                Dual<T, N> x) -> Dual<T, N> {
-  return {other / x.value(), -other * x.gradient() / (x.value() * x.value())};
-}
-template <class T, ptrdiff_t N>
 constexpr auto exp(const Dual<T, N> &x) -> Dual<T, N> {
   T expx = exp(x.value());
   return {expx, expx * x.gradient()};
@@ -1013,14 +981,6 @@ template <typename T, ptrdiff_t N>
 constexpr auto dval(Dual<T, N> &x) -> double & {
   return dval(x.value());
 }
-
-template <typename T, ptrdiff_t N>
-auto operator<<(std::ostream &os, const Dual<T, N> &x) -> std::ostream & {
-  os << "Dual<" << N << ">{" << x.value();
-  for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
-  os << "}";
-  return os;
-};
 
 class GradientResult {
   double x;

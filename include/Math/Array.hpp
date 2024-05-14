@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Alloc/Arena.hpp"
-#include "Containers/Pair.hpp"
 #include "Containers/Storage.hpp"
 #include "Math/ArrayOps.hpp"
 #include "Math/AxisTypes.hpp"
@@ -52,6 +51,7 @@
 #endif
 
 namespace poly::math {
+using axis::unwrapRow, axis::unwrapCol;
 template <typename S>
 concept Dimension = VectorDimension<S> != MatrixDimension<S>;
 

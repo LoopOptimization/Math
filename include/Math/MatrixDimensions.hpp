@@ -5,6 +5,11 @@
 #include <type_traits>
 
 namespace poly::math {
+
+using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
+  axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
+  axis::asrow, axis::ascol, axis::aslength, utils::invariant;
+
 template <ptrdiff_t R = -1> struct SquareDims;
 template <ptrdiff_t R = -1, ptrdiff_t C = -1> struct DenseDims;
 template <ptrdiff_t R = -1, ptrdiff_t C = -1, ptrdiff_t X = -1>
@@ -330,6 +335,8 @@ template <ptrdiff_t R> struct SquareDims {
     return os << x.M << " x " << x.M;
   }
 };
+
+namespace axis {
 template <ptrdiff_t R> Row(SquareDims<R>) -> Row<R>;
 template <ptrdiff_t R> Col(SquareDims<R>) -> Col<R>;
 template <ptrdiff_t R> RowStride(SquareDims<R>) -> RowStride<R>;
@@ -342,6 +349,7 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 Col(StridedDims<R, C, X>) -> Col<C>;
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 RowStride(StridedDims<R, C, X>) -> RowStride<X>;
+} // namespace axis
 
 template <ptrdiff_t R> SquareDims(Row<R>) -> SquareDims<R>;
 template <ptrdiff_t R, ptrdiff_t C>
