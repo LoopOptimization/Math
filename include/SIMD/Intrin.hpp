@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Math/AxisTypes.hpp>
-#include <SIMD/Indexing.hpp>
 #include <SIMD/Masks.hpp>
 #include <SIMD/Vec.hpp>
 #include <Utilities/Invariant.hpp>

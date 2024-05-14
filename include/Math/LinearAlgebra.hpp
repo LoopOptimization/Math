@@ -10,12 +10,13 @@ namespace LU {
 [[nodiscard]] constexpr auto ldivrat(SquarePtrMatrix<Rational> F,
                                      PtrVector<unsigned> ipiv,
                                      MutPtrMatrix<Rational> rhs) -> bool {
+  using std::swap;
   auto [M, N] = shape(rhs);
   invariant(ptrdiff_t(F.numRow()), ptrdiff_t(M));
   // permute rhs
   for (ptrdiff_t i = 0; i < M; ++i)
     if (unsigned ip = ipiv[i]; i != ip)
-      for (ptrdiff_t j = 0; j < M; ++j) std::swap(rhs[ip, j], rhs[i, j]);
+      for (ptrdiff_t j = 0; j < M; ++j) swap(rhs[ip, j], rhs[i, j]);
 
   // LU x = rhs
   // L y = rhs // L is UnitLowerTriangular
@@ -42,13 +43,14 @@ namespace LU {
 template <class S>
 constexpr void ldiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
                     MutPtrMatrix<S> R) {
+  using std::swap;
   auto [M, N] = shape(R);
   invariant(ptrdiff_t(F.numRow()), M);
   invariant(M > 0);
   // permute rhs
   for (ptrdiff_t i = 0; i < M; ++i)
     if (unsigned ip = ipiv[i]; i != ip)
-      for (ptrdiff_t j = 0; j < M; ++j) std::swap(R[ip, j], R[i, j]);
+      for (ptrdiff_t j = 0; j < M; ++j) swap(R[ip, j], R[i, j]);
 
   // LU x = rhs
   // L y = rhs // L is UnitLowerTriangular
@@ -62,6 +64,7 @@ constexpr void ldiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
 [[nodiscard]] constexpr auto rdivrat(SquarePtrMatrix<Rational> F,
                                      PtrVector<unsigned> ipiv,
                                      MutPtrMatrix<Rational> rhs) -> bool {
+  using std::swap;
   auto [M, N] = shape(rhs);
   invariant(ptrdiff_t(F.numCol()), ptrdiff_t(N));
   // PA = LU
@@ -88,13 +91,14 @@ constexpr void ldiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
   // permute rhs
   for (auto j = ptrdiff_t(N); j--;)
     if (unsigned jp = ipiv[j]; j != jp)
-      for (ptrdiff_t i = 0; i < M; ++i) std::swap(rhs[i, jp], rhs[i, j]);
+      for (ptrdiff_t i = 0; i < M; ++i) swap(rhs[i, jp], rhs[i, j]);
 
   return false;
 }
 template <class S>
 constexpr void rdiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
                     MutPtrMatrix<S> rhs) {
+  using std::swap;
   auto [M, N] = shape(rhs);
   invariant(ptrdiff_t(F.numCol()), N);
   invariant(N > 0);
@@ -110,7 +114,7 @@ constexpr void rdiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
   // permute rhs
   for (auto j = ptrdiff_t(N); j--;)
     if (unsigned jp = ipiv[j]; j != jp)
-      for (ptrdiff_t i = 0; i < M; ++i) std::swap(rhs[i, jp], rhs[i, j]);
+      for (ptrdiff_t i = 0; i < M; ++i) swap(rhs[i, jp], rhs[i, j]);
 }
 
 template <class T, ptrdiff_t L> class Fact {
@@ -146,10 +150,11 @@ public:
     return d;
   }
   [[nodiscard]] constexpr auto perm() const -> Vector<unsigned> {
+    using std::swap;
     Col M = F.numCol();
     Vector<unsigned> perm{M};
     for (ptrdiff_t m = 0; m < M; ++m) perm[m] = m;
-    for (ptrdiff_t m = 0; m < M; ++m) std::swap(perm[m], perm[ipiv[m]]);
+    for (ptrdiff_t m = 0; m < M; ++m) swap(perm[m], perm[ipiv[m]]);
     return perm;
   }
   friend auto operator<<(std::ostream &os, const Fact &lu) -> std::ostream & {
@@ -159,6 +164,7 @@ public:
 template <ptrdiff_t L>
 [[nodiscard]] constexpr auto
 fact(const SquareMatrix<int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
+  using std::swap;
   Row M = B.numRow();
   SquareMatrix<Rational, L> A{B};
   // auto ipiv = Vector<unsigned>{.s = unsigned(M)};
@@ -174,7 +180,7 @@ fact(const SquareMatrix<int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
       break;
     }
     if (kp != k)
-      for (ptrdiff_t j = 0; j < M; ++j) std::swap(A[kp, j], A[k, j]);
+      for (ptrdiff_t j = 0; j < M; ++j) swap(A[kp, j], A[k, j]);
     if (k + 1 == M) break;
     Rational invAkk = A[k, k].inv();
     for (ptrdiff_t i = k + 1; i < M; ++i)
@@ -195,6 +201,7 @@ fact(const SquareMatrix<int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
   return Fact<Rational, L>{std::move(A), std::move(ipiv)};
 }
 template <typename S> constexpr auto factImpl(MutSquarePtrMatrix<S> A) {
+  using std::swap;
   using V = decltype(value(S{}));
   Row M = A.numRow();
   auto ipiv{vector(math::DefaultAlloc<unsigned>{}, ptrdiff_t(M))};
@@ -206,7 +213,7 @@ template <typename S> constexpr auto factImpl(MutSquarePtrMatrix<S> A) {
     invariant(mi.first >= 0); // TODO: return info?
     ipiv[k] = mi.first;
     if (mi.first != k)
-      for (ptrdiff_t j = 0; j < M; ++j) std::swap(A[mi.first, j], A[k, j]);
+      for (ptrdiff_t j = 0; j < M; ++j) swap(A[mi.first, j], A[k, j]);
     if (k + 1 == M) break;
     S invAkk = 1.0 / A[k, k];
     for (ptrdiff_t i = k + 1; i < M; ++i)

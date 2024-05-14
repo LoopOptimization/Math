@@ -2,7 +2,7 @@
 #include "Math/AxisTypes.hpp"
 #include "Math/Iterators.hpp"
 #include "Math/MatrixDimensions.hpp"
-#include "SIMD/Indexing.hpp"
+#include "SIMD/UnrollIndex.hpp"
 #include <cstddef>
 
 namespace poly::math {

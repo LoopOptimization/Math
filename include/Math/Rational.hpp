@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GreatestCommonDivisor.hpp"
+#include "Utilities/ArrayPrint.hpp"
 #include <cstdint>
 #include <optional>
 #include <ostream>
@@ -17,7 +18,7 @@ template <is_int_v<32> T> constexpr auto splitInt(T x) -> int64_t { return x; }
 struct Rational {
   [[no_unique_address]] int64_t numerator{0};
   [[no_unique_address]] int64_t denominator{1};
-
+  // should be invariant that denominator >= 0
   constexpr Rational() = default;
   constexpr Rational(int64_t coef) : numerator(coef){};
   constexpr Rational(int coef) : numerator(coef){};
@@ -229,10 +230,18 @@ struct Rational {
 #ifndef NDEBUG
   [[gnu::used]] void dump() const { std::cout << *this << "\n"; }
 #endif
+  friend constexpr auto operator==(int64_t x, Rational y) -> bool {
+    return y == x;
+  }
 };
 constexpr auto gcd(Rational x, Rational y) -> std::optional<Rational> {
   return Rational{gcd(x.numerator, y.numerator),
                   lcm(x.denominator, y.denominator)};
 }
-constexpr auto operator==(int64_t x, Rational y) -> bool { return y == x; }
+constexpr auto countDigits(Rational x) -> ptrdiff_t {
+  ptrdiff_t num = utils::countDigits(x.numerator);
+  return (x.denominator == 1) ? num
+                              : num + utils::countDigits(x.denominator) + 2;
+}
+static_assert(utils::Printable<Rational>);
 } // namespace poly::math

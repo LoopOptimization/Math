@@ -1,6 +1,5 @@
 #pragma once
-#ifndef POLY_SIMD_Unroll_hpp_INCLUDED
-#define POLY_SIMD_Unroll_hpp_INCLUDED
+#include "SIMD/Indexing.hpp"
 #include "SIMD/Intrin.hpp"
 #include <functional>
 namespace poly::simd {
@@ -108,6 +107,235 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
   {
     return (*this) /= vbroadcast<W, T>(a);
   }
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop(a, b, std::plus<>{});
+  }
+
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop(a, b, std::minus<>{});
+  }
+
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator*(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
+    return applyop(a, b, std::multiplies<>{});
+  }
+
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator/(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
+    return applyop(a, b, std::divides<>{});
+  }
+
+  [[gnu::always_inline]] friend constexpr auto operator+(Unroll a,
+                                                         VT b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] + b;
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(Unroll a,
+                                                         VT b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] - b;
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(Unroll a,
+                                                         VT b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] * b;
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(Unroll a,
+                                                         VT b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] / b;
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator+(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a + vbroadcast<W, T>(b);
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator-(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a - vbroadcast<W, T>(b);
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator*(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a * vbroadcast<W, T>(b);
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator/(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a / vbroadcast<W, T>(b);
+  }
+
+  [[gnu::always_inline]] friend constexpr auto operator+(VT a,
+                                                         Unroll b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a + b.data[i];
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(VT a,
+                                                         Unroll b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a - b.data[i];
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(VT a,
+                                                         Unroll b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a * b.data[i];
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(VT a,
+                                                         Unroll b) -> Unroll {
+    Unroll<R, C, W, T> c;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a / b.data[i];
+    return c;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator+(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) + a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) - a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) * a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) / a;
+  }
+
+private:
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1, typename Op>
+  [[gnu::always_inline]] friend constexpr auto
+  applyop(Unroll a, Unroll<R1, C1, W1, T1> b, Op op) {
+    // Possibilities:
+    // 1. All match
+    // 2. We had separate unrolls across rows and columns, and some arrays
+    // were indexed by one or two of them.
+    // In the latter case, we could have arrays indexed by rows, cols, or both.
+    if constexpr (!std::same_as<T, T1>) {
+      using PT = std::common_type_t<T, T1>;
+      return applyop(Unroll<R, C, W, PT>(a), Unroll<R1, C1, W1, PT>(b), op);
+    } else if constexpr (W == W1) {
+      // both were indexed by cols, and `C2`s should also match
+      // or neither were, and they should still match.
+      static_assert(C == C1);
+      if constexpr (R == R1) {
+        // Both have the same index across rows
+        Unroll<R, C, W, T> c;
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t i = 0; i < R * C; ++i)
+          c.data[i] = op(a.data[i], b.data[i]);
+        return c;
+      } else if constexpr (R == 1) { // R1 > 0
+        // `a` was indexed across cols only
+        Unroll<R1, C, W, T> z;
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t r = 0; r < R1; ++r) {
+          POLYMATHFULLUNROLL
+          for (ptrdiff_t c = 0; c < C; ++c) z[r, c] = op(a.data[c], b[r, c]);
+        }
+        return z;
+      } else {
+        static_assert(R1 == 1); // R > 0
+        // `b` was indexed across cols only
+        Unroll<R, C, W, T> z;
+        if constexpr (C == 1) {
+          POLYMATHFULLUNROLL
+          for (ptrdiff_t r = 0; r < R; ++r) z.data[r] = op(a.data[r], b.vec);
+        } else {
+          POLYMATHFULLUNROLL
+          for (ptrdiff_t r = 0; r < R; ++r) {
+            POLYMATHFULLUNROLL
+            for (ptrdiff_t c = 0; c < C; ++c) z[r, c] = op(a[r, c], b.data[c]);
+          }
+        }
+        return z;
+      }
+    } else if constexpr (W == 1) {
+      static_assert(R == 1 || C == 1);
+      constexpr ptrdiff_t R2 = R == 1 ? C : R;
+      // `a` was indexed by row only
+      Unroll<R2, C1, W1, T> z;
+      static_assert(R1 == R2 || R1 == 1);
+      if constexpr (R2 == 1) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C1; ++c) z.data[c] = op(a.vec, b.data[c]);
+      } else if constexpr (C1 == 1) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t r = 0; r < R2; ++r)
+          if constexpr (R2 == R1) z.data[r] = op(a.data[r], b.vec[r]);
+          else z.data[r] = op(a.data[r], b.vec);
+      } else {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t r = 0; r < R2; ++r) {
+          POLYMATHFULLUNROLL
+          for (ptrdiff_t c = 0; c < C1; ++c)
+            if constexpr (R2 == R1) z[r, c] = op(a.data[r], b[r, c]);
+            else z[r, c] = op(a.data[r], b.data[c]);
+        }
+      }
+      return z;
+    } else {
+      static_assert(W1 == 1);
+      static_assert(R1 == 1 || C1 == 1);
+      constexpr ptrdiff_t R2 = R1 == 1 ? C1 : R1;
+      // `b` was indexed by row only
+      Unroll<R2, C, W, T> z;
+      static_assert(R == R2 || R == 1);
+      if constexpr (R2 == 1) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C; ++c) z.data[c] = op(a.data[c], b.vec);
+      } else if constexpr (C == 1) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t r = 0; r < R2; ++r)
+          if constexpr (R == R2) z.data[r] = op(a.data[r], b.data[r]);
+          else z.data[r] = op(a.vec, b.data[r]);
+      } else {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t r = 0; r < R2; ++r) {
+          POLYMATHFULLUNROLL
+          for (ptrdiff_t c = 0; c < C; ++c)
+            if constexpr (R == R2) z[r, c] = op(a[r, c], b.data[r]);
+            else z[r, c] = op(a.data[c], b.data[r]);
+        }
+      }
+      return z;
+    }
+  }
 };
 template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   static constexpr ptrdiff_t W = ptrdiff_t(std::bit_ceil(size_t(N)));
@@ -190,305 +418,158 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     vec /= vbroadcast<W, T>(a);
     return *this;
   }
-};
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop(a, b, std::plus<>{});
+  }
 
-template <ptrdiff_t R0, ptrdiff_t C0, ptrdiff_t W0, typename T0, ptrdiff_t R1,
-          ptrdiff_t C1, ptrdiff_t W1, typename T1, typename Op>
-[[gnu::always_inline]] constexpr auto applyop(const Unroll<R0, C0, W0, T0> &a,
-                                              const Unroll<R1, C1, W1, T1> &b,
-                                              Op op) {
-  // Possibilities:
-  // 1. All match
-  // 2. We had separate unrolls across rows and columns, and some arrays
-  // were indexed by one or two of them.
-  // In the latter case, we could have arrays indexed by rows, cols, or both.
-  if constexpr (!std::same_as<T0, T1>) {
-    using T = std::common_type_t<T0, T1>;
-    return applyop(Unroll<R0, C0, W0, T>(a), Unroll<R1, C1, W1, T>(b), op);
-  } else if constexpr (W0 == W1) {
-    // both were indexed by cols, and `C`s should also match
-    // or neither were, and they should still match.
-    static_assert(C0 == C1);
-    if constexpr (R0 == R1) {
-      // Both have the same index across rows
-      Unroll<R0, C0, W0, T0> c;
-      if constexpr ((R0 == 1) && (C0 == 1)) {
-        c.vec = op(a.vec, b.vec);
-      } else {
-        POLYMATHFULLUNROLL
-        for (ptrdiff_t i = 0; i < R0 * C0; ++i)
-          c.data[i] = op(a.data[i], b.data[i]);
-      }
-      return c;
-    } else if constexpr (R0 == 1) { // R1 > 0
-      // `a` was indexed across cols only
-      Unroll<R1, C0, W0, T0> z;
-      if constexpr (C0 == 1) {
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop(a, b, std::minus<>{});
+  }
+
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator*(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
+    return applyop(a, b, std::multiplies<>{});
+  }
+
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator/(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
+    return applyop(a, b, std::divides<>{});
+  }
+
+  [[gnu::always_inline]] friend constexpr auto operator+(Unroll a,
+                                                         VT b) -> Unroll {
+    return {a.vec + b};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(Unroll a,
+                                                         VT b) -> Unroll {
+    return {a.vec - b};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(Unroll a,
+                                                         VT b) -> Unroll {
+    return {a.vec * b};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(Unroll a,
+                                                         VT b) -> Unroll {
+    return {a.vec / b};
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator+(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a + vbroadcast<W, T>(b);
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator-(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a - vbroadcast<W, T>(b);
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator*(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a * vbroadcast<W, T>(b);
+  }
+  [[gnu::always_inline]] friend constexpr auto
+  operator/(Unroll a, std::convertible_to<T> auto b) -> Unroll
+  requires(W != 1)
+  {
+    return a / vbroadcast<W, T>(b);
+  }
+
+  [[gnu::always_inline]] friend constexpr auto operator+(VT a,
+                                                         Unroll b) -> Unroll {
+    return {a + b.vec};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(VT a,
+                                                         Unroll b) -> Unroll {
+    return {a - b.vec};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(VT a,
+                                                         Unroll b) -> Unroll {
+    return {a * b.vec};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(VT a,
+                                                         Unroll b) -> Unroll {
+    return {a / b.vec};
+  }
+  [[gnu::always_inline]] friend constexpr auto operator+(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) + a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator-(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) - a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator*(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) * a;
+  }
+  [[gnu::always_inline]] friend constexpr auto operator/(T b,
+                                                         Unroll a) -> Unroll
+  requires(W != 1)
+  {
+    return vbroadcast<W, T>(b) / a;
+  }
+
+private:
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1, typename Op>
+  [[gnu::always_inline]] friend constexpr auto
+  applyop(Unroll a, Unroll<R1, C1, W1, T1> b, Op op) {
+    // Possibilities:
+    // 1. All match
+    // 2. We had separate unrolls across rows and columns, and some arrays
+    // were indexed by one or two of them.
+    // In the latter case, we could have arrays indexed by rows, cols, or both.
+    if constexpr (!std::same_as<T, T1>) {
+      using PT = std::common_type_t<T, T1>;
+      return applyop(Unroll<1, 1, W, PT>(a), Unroll<R1, C1, W1, PT>(b), op);
+    } else if constexpr (W == W1) {
+      // both were indexed by cols, and `C`s should also match
+      // or neither were, and they should still match.
+      static_assert(C1 == 1);
+      if constexpr (R1 != 1) {
+        // `a` was indexed across cols only
+        Unroll<R1, 1, W, T> z;
         POLYMATHFULLUNROLL
         for (ptrdiff_t r = 0; r < R1; ++r) z.data[r] = op(a.vec, b.data[r]);
-      } else {
+        return z;
+      } else return Unroll<1, 1, W, T>{op(a.vec, b.vec)};
+    } else if constexpr (W == 1) {
+      // `a` was indexed by row only
+      static_assert(R1 == 1);
+      if constexpr (C1 != 1) {
+        Unroll<1, C1, W1, T> z;
         POLYMATHFULLUNROLL
-        for (ptrdiff_t r = 0; r < R1; ++r) {
-          POLYMATHFULLUNROLL
-          for (ptrdiff_t c = 0; c < C0; ++c) z[r, c] = op(a.data[c], b[r, c]);
-        }
-      }
-      return z;
+        for (ptrdiff_t c = 0; c < C1; ++c) z.data[c] = op(a.vec, b.data[c]);
+        return z;
+      } else return Unroll<1, 1, W1, T>{op(a.vec, b.vec)};
     } else {
-      static_assert(R1 == 1); // R0 > 0
-      // `b` was indexed across cols only
-      Unroll<R0, C0, W0, T0> z;
-      if constexpr (C0 == 1) {
+      static_assert(W1 == 1);
+      static_assert(R1 == 1 || C1 == 1);
+      constexpr ptrdiff_t R = R1 == 1 ? C1 : R1;
+      // `b` was indexed by row only
+      if constexpr (R != 1) {
+        Unroll<R, 1, W, T> z;
         POLYMATHFULLUNROLL
-        for (ptrdiff_t r = 0; r < R0; ++r) z.data[r] = op(a.data[r], b.vec);
-      } else {
-        POLYMATHFULLUNROLL
-        for (ptrdiff_t r = 0; r < R0; ++r) {
-          POLYMATHFULLUNROLL
-          for (ptrdiff_t c = 0; c < C0; ++c) z[r, c] = op(a[r, c], b.data[c]);
-        }
-      }
-      return z;
+        for (ptrdiff_t r = 0; r < R; ++r) z.data[r] = op(a.vec, b.data[r]);
+        return z;
+      } else return Unroll{op(a.vec, b.vec)};
     }
-  } else if constexpr (W0 == 1) {
-    static_assert(R0 == 1 || C0 == 1);
-    constexpr ptrdiff_t R = R0 == 1 ? C0 : R0;
-    // `a` was indexed by row only
-    Unroll<R, C1, W1, T0> z;
-    static_assert(R1 == R || R1 == 1);
-    if constexpr ((R == 1) && (C1 == 1)) z.vec = op(a.vec, b.vec);
-    else if constexpr (R == 1) {
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t c = 0; c < C1; ++c) z.data[c] = op(a.vec, b.data[c]);
-    } else if constexpr (C1 == 1) {
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r)
-        if constexpr (R == R1) z.data[r] = op(a.data[r], b.vec[r]);
-        else z.data[r] = op(a.data[r], b.vec);
-    } else {
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r) {
-        POLYMATHFULLUNROLL
-        for (ptrdiff_t c = 0; c < C1; ++c)
-          if constexpr (R == R1) z[r, c] = op(a.data[r], b[r, c]);
-          else z[r, c] = op(a.data[r], b.data[c]);
-      }
-    }
-    return z;
-  } else {
-    static_assert(W1 == 1);
-    static_assert(R1 == 1 || C1 == 1);
-    constexpr ptrdiff_t R = R1 == 1 ? C1 : R1;
-    // `b` was indexed by row only
-    Unroll<R, C0, W0, T0> z;
-    static_assert(R0 == R || R0 == 1);
-    if constexpr ((R == 1) && (C0 == 1)) z.vec = op(a.vec, b.vec);
-    else if constexpr (R == 1) {
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t c = 0; c < C0; ++c) z.data[c] = op(a.data[c], b.vec);
-    } else if constexpr (C0 == 1) {
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r)
-        if constexpr (R0 == R) z.data[r] = op(a.data[r], b.data[r]);
-        else z.data[r] = op(a.vec, b.data[r]);
-    } else {
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r) {
-        POLYMATHFULLUNROLL
-        for (ptrdiff_t c = 0; c < C0; ++c)
-          if constexpr (R0 == R) z[r, c] = op(a[r, c], b.data[r]);
-          else z[r, c] = op(a.data[c], b.data[r]);
-      }
-    }
-    return z;
   }
-}
-
-template <ptrdiff_t R0, ptrdiff_t C0, ptrdiff_t W0, typename T0, ptrdiff_t R1,
-          ptrdiff_t C1, ptrdiff_t W1, typename T1>
-[[gnu::always_inline]] constexpr auto
-operator+(const Unroll<R0, C0, W0, T0> &a, const Unroll<R1, C1, W1, T1> &b) {
-  return applyop(a, b, std::plus<>{});
-}
-
-template <ptrdiff_t R0, ptrdiff_t C0, ptrdiff_t W0, typename T0, ptrdiff_t R1,
-          ptrdiff_t C1, ptrdiff_t W1, typename T1>
-[[gnu::always_inline]] constexpr auto
-operator-(const Unroll<R0, C0, W0, T0> &a, const Unroll<R1, C1, W1, T1> &b) {
-  return applyop(a, b, std::minus<>{});
-}
-
-template <ptrdiff_t R0, ptrdiff_t C0, ptrdiff_t W0, typename T0, ptrdiff_t R1,
-          ptrdiff_t C1, ptrdiff_t W1, typename T1>
-[[gnu::always_inline]] constexpr auto
-operator*(const Unroll<R0, C0, W0, T0> &a, const Unroll<R1, C1, W1, T1> &b) {
-  return applyop(a, b, std::multiplies<>{});
-}
-
-template <ptrdiff_t R0, ptrdiff_t C0, ptrdiff_t W0, typename T0, ptrdiff_t R1,
-          ptrdiff_t C1, ptrdiff_t W1, typename T1>
-[[gnu::always_inline]] constexpr auto
-operator/(const Unroll<R0, C0, W0, T0> &a, const Unroll<R1, C1, W1, T1> &b) {
-  return applyop(a, b, std::divides<>{});
-}
-
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator+(const Unroll<R, C, W, T> &a,
-          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a.vec + b};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] + b;
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator-(const Unroll<R, C, W, T> &a,
-          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a.vec - b};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] - b;
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator*(const Unroll<R, C, W, T> &a,
-          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a.vec * b};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] * b;
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator/(const Unroll<R, C, W, T> &a,
-          typename Unroll<R, C, W, T>::VT b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a.vec / b};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a.data[i] / b;
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator+(const Unroll<R, C, W, T> &a,
-          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return a + vbroadcast<W, T>(b);
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator-(const Unroll<R, C, W, T> &a,
-          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return a - vbroadcast<W, T>(b);
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator*(const Unroll<R, C, W, T> &a,
-          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return a * vbroadcast<W, T>(b);
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator/(const Unroll<R, C, W, T> &a,
-          std::convertible_to<T> auto b) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return a / vbroadcast<W, T>(b);
-}
-
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator+(typename Unroll<R, C, W, T>::VT a,
-          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a + b.vec};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a + b.data[i];
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator-(typename Unroll<R, C, W, T>::VT a,
-          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a - b.vec};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a - b.data[i];
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator*(typename Unroll<R, C, W, T>::VT a,
-          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a * b.vec};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a * b.data[i];
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator/(typename Unroll<R, C, W, T>::VT a,
-          const Unroll<R, C, W, T> &b) -> Unroll<R, C, W, T> {
-  if constexpr (R * C == 1) return {a / b.vec};
-  else {
-    Unroll<R, C, W, T> c;
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t i = 0; i < R * C; ++i) c.data[i] = a / b.data[i];
-    return c;
-  }
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator+(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return vbroadcast<W, T>(b) + a;
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator-(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return vbroadcast<W, T>(b) - a;
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator*(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return vbroadcast<W, T>(b) * a;
-}
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr auto
-operator/(T b, const Unroll<R, C, W, T> &a) -> Unroll<R, C, W, T>
-requires(W != 1)
-{
-  return vbroadcast<W, T>(b) / a;
-}
+};
 
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
           size_t NM, typename MT = mask::None<N>>
@@ -727,134 +808,5 @@ ref(T *p, index::UnrollDims<R, C, W, M, Transposed, X> i)
   -> UnrollRef<R, C, W, T, X, 1, M, Transposed> {
   return {p, i.rs, std::array<M, 1>{i.mask}};
 }
-namespace index {
-
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto operator==(Unroll<U, W, M> x, ptrdiff_t y) {
-  if constexpr (W == 1) {
-    if constexpr (U > 1) {
-      ::poly::simd::Unroll<U, 1, 1, int64_t> ret;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index + u) == y;
-      return ret;
-    } else return ::poly::simd::Unroll<1, 1, W, int64_t>{x.index == y};
-  } else if constexpr (U > 1) {
-    ::poly::simd::Unroll<1, U, W, int64_t> ret;
-    Vec<W, int64_t> v = vbroadcast<W, int64_t>(y - x.index);
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t u = 0; u < U; ++u)
-      ret.data[u] = range<W, int64_t>() == (v - u * W);
-    return ret;
-  } else
-    return ::poly::simd::Unroll<1, 1, W, int64_t>{
-      range<W, int64_t>() == vbroadcast<W, int64_t>(y - x.index)};
-}
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto operator!=(Unroll<U, W, M> x, ptrdiff_t y) {
-  if constexpr (W == 1) {
-    if constexpr (U > 1) {
-      ::poly::simd::Unroll<U, 1, 1, int64_t> ret;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index + u) != y;
-      return ret;
-    } else return ::poly::simd::Unroll<1, 1, W, int64_t>{x.index != y};
-  } else if constexpr (U > 1) {
-    ::poly::simd::Unroll<1, U, W, int64_t> ret;
-    Vec<W, int64_t> v = vbroadcast<W, int64_t>(y - x.index);
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t u = 0; u < U; ++u)
-      ret.data[u] = range<W, int64_t>() != (v - u * W);
-    return ret;
-  } else
-    return ::poly::simd::Unroll<1, 1, W, int64_t>{
-      range<W, int64_t>() != vbroadcast<W, int64_t>(y - x.index)};
-}
-
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto operator<(Unroll<U, W, M> x, ptrdiff_t y) {
-  if constexpr (W == 1) {
-    if constexpr (U > 1) {
-      ::poly::simd::Unroll<U, 1, 1, int64_t> ret;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index + u) < y;
-      return ret;
-    } else return ::poly::simd::Unroll<1, 1, W, int64_t>{x.index < y};
-  } else if constexpr (U > 1) {
-    ::poly::simd::Unroll<1, U, W, int64_t> ret;
-    Vec<W, int64_t> v = vbroadcast<W, int64_t>(y - x.index);
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t u = 0; u < U; ++u)
-      ret.data[u] = range<W, int64_t>() < (v - u * W);
-    return ret;
-  } else
-    return ::poly::simd::Unroll<1, 1, W, int64_t>{
-      range<W, int64_t>() < vbroadcast<W, int64_t>(y - x.index)};
-}
-
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto operator>(Unroll<U, W, M> x, ptrdiff_t y) {
-  if constexpr (W == 1) {
-    if constexpr (U > 1) {
-      ::poly::simd::Unroll<U, 1, 1, int64_t> ret;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index + u) > y;
-      return ret;
-    } else return ::poly::simd::Unroll<1, 1, W, int64_t>{x.index > y};
-  } else if constexpr (U > 1) {
-    ::poly::simd::Unroll<1, U, W, int64_t> ret;
-    Vec<W, int64_t> v = vbroadcast<W, int64_t>(y - x.index);
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t u = 0; u < U; ++u)
-      ret.data[u] = range<W, int64_t>() > (v - u * W);
-    return ret;
-  } else
-    return ::poly::simd::Unroll<1, 1, W, int64_t>{
-      range<W, int64_t>() > vbroadcast<W, int64_t>(y - x.index)};
-}
-
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto operator<=(Unroll<U, W, M> x, ptrdiff_t y) {
-  if constexpr (W == 1) {
-    if constexpr (U > 1) {
-      ::poly::simd::Unroll<U, 1, 1, int64_t> ret;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index + u) <= y;
-      return ret;
-    } else return ::poly::simd::Unroll<1, 1, W, int64_t>{x.index <= y};
-  } else if constexpr (U > 1) {
-    ::poly::simd::Unroll<1, U, W, int64_t> ret;
-    Vec<W, int64_t> v = vbroadcast<W, int64_t>(y - x.index);
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t u = 0; u < U; ++u)
-      ret.data[u] = range<W, int64_t>() <= (v - u * W);
-    return ret;
-  } else
-    return ::poly::simd::Unroll<1, 1, W, int64_t>{
-      range<W, int64_t>() <= vbroadcast<W, int64_t>(y - x.index)};
-}
-
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto operator>=(Unroll<U, W, M> x, ptrdiff_t y) {
-  if constexpr (W == 1) {
-    if constexpr (U > 1) {
-      ::poly::simd::Unroll<U, 1, 1, int64_t> ret;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index + u) >= y;
-      return ret;
-    } else return ::poly::simd::Unroll<1, 1, W, int64_t>{x.index >= y};
-  } else if constexpr (U > 1) {
-    ::poly::simd::Unroll<1, U, W, int64_t> ret;
-    Vec<W, int64_t> v = vbroadcast<W, int64_t>(y - x.index);
-    POLYMATHFULLUNROLL
-    for (ptrdiff_t u = 0; u < U; ++u)
-      ret.data[u] = range<W, int64_t>() >= (v - u * W);
-    return ret;
-  } else
-    return ::poly::simd::Unroll<1, 1, W, int64_t>{
-      range<W, int64_t>() >= vbroadcast<W, int64_t>(y - x.index)};
-}
-
-} // namespace index
 
 } // namespace poly::simd
-#endif // Unroll_hpp_INCLUDED

@@ -10,6 +10,7 @@
 #include "Math/Matrix.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/Rational.hpp"
+#include "Utilities/ArrayPrint.hpp"
 #include "Utilities/Optional.hpp"
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
@@ -76,67 +77,16 @@ template <class T, Dimension S,
           class A = DefaultAlloc<T>>
 struct ManagedArray;
 
-template <std::integral T> static constexpr auto maxPow10() -> size_t {
-  if constexpr (sizeof(T) == 1) return 3;
-  else if constexpr (sizeof(T) == 2) return 5;
-  else if constexpr (sizeof(T) == 4) return 10;
-  else if constexpr (std::signed_integral<T>) return 19;
-  else return 20;
-}
-
-template <std::unsigned_integral T> constexpr auto countDigits(T x) {
-  std::array<T, maxPow10<T>() + 1> powers;
-  powers[0] = 0;
-  powers[1] = 10;
-  for (ptrdiff_t i = 2; i < std::ssize(powers); i++)
-    powers[i] = powers[i - 1] * 10;
-  std::array<T, sizeof(T) * 8 + 1> bits;
-  if constexpr (sizeof(T) == 8) {
-    bits = {1,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,  4,  5,  5,  5,
-            6,  6,  6,  7,  7,  7,  7,  8,  8,  8,  9,  9,  9,  10, 10, 10, 10,
-            11, 11, 11, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 15, 15, 15, 16,
-            16, 16, 16, 17, 17, 17, 18, 18, 18, 19, 19, 19, 19, 20};
-  } else if constexpr (sizeof(T) == 4) {
-    bits = {1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4,  5,  5, 5,
-            6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10};
-  } else if constexpr (sizeof(T) == 2) {
-    bits = {1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5};
-  } else if constexpr (sizeof(T) == 1) {
-    bits = {1, 1, 1, 1, 2, 2, 2, 3, 3};
-  }
-  T digits;
-  if constexpr (std::same_as<T, char>)
-    digits =
-      bits[8 * sizeof(unsigned char) - std::countl_zero((unsigned char)x)];
-  else digits = bits[8 * sizeof(T) - std::countl_zero(x)];
-  return std::make_signed_t<T>(digits - (x < powers[digits - 1]));
-}
-template <std::signed_integral T> constexpr auto countDigits(T x) -> T {
-  using U = std::make_unsigned_t<T>;
-  if (x == std::numeric_limits<T>::min()) return T(sizeof(T) == 8 ? 20 : 11);
-  return countDigits<U>(U(std::abs(x))) + T{x < 0};
-}
-constexpr auto countDigits(Rational x) -> ptrdiff_t {
-  ptrdiff_t num = countDigits(x.numerator);
-  return (x.denominator == 1) ? num : num + countDigits(x.denominator) + 2;
-}
-template <typename T>
-concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
-  { os << x } -> std::convertible_to<std::ostream &>;
-  { countDigits(x) };
-};
-static_assert(Printable<int64_t>);
-void print_obj(std::ostream &os, Printable auto x) { os << x; };
-template <typename F, typename S>
-void print_obj(std::ostream &os, const containers::Pair<F, S> &x) {
-  os << "(" << x.first << ", " << x.second << ")";
-};
 using utils::Valid, utils::Optional;
 
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct Array;
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct MutArray;
+
+template <typename T>
+inline auto printMatrix(std::ostream &os,
+                        Array<T, StridedDims<>> A) -> std::ostream &;
 
 // Cases we need to consider:
 // 1. Slice-indexing
@@ -542,9 +492,38 @@ struct POLY_MATH_GSL_POINTER Array {
     }
   }
   friend inline void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
+  [[nodiscard]] friend constexpr auto
+  operator<=>(Array x, Array y) -> std::strong_ordering {
+    ptrdiff_t M = x.size();
+    ptrdiff_t N = y.size();
+    for (ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
+      if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
+    return M <=> N;
+  };
+  [[nodiscard]] constexpr auto eachRow() const -> SliceRange<const T, false>
+  requires(MatrixDimension<S>)
+  {
+    return {data(), length(ptrdiff_t(Col(this->sz))), RowStride(this->sz),
+            ptrdiff_t(Row(this->sz))};
+  }
+  [[nodiscard]] constexpr auto eachCol() const -> SliceRange<const T, true>
+  requires(MatrixDimension<S>)
+  {
+    return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
+            ptrdiff_t(Col(this->sz))};
+  }
+  friend inline auto operator<<(std::ostream &os, Array x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
+    if constexpr (MatrixDimension<S>)
+      return printMatrix(os, Array<T, StridedDims<>>{x});
+    else return utils::printVector(os, x.begin(), x.end());
+  }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
-    if constexpr (Printable<T>)
+    // we can't combine `gnu::used` with `requires(utils::Printable<T>)`
+    // requires(utils::Printable<T>)
+    if constexpr (utils::Printable<T>)
       std::cout << "Size: " << ptrdiff_t(sz) << " " << *this << "\n";
   }
   // [[gnu::used]] void dump(const char *filename) const {
@@ -568,18 +547,6 @@ struct POLY_MATH_GSL_POINTER Array {
   //     (void)std::fclose(f);
   //   }
   // }
-  [[nodiscard]] constexpr auto eachRow() const -> SliceRange<const T, false>
-  requires(MatrixDimension<S>)
-  {
-    return {data(), length(ptrdiff_t(Col(this->sz))), RowStride(this->sz),
-            ptrdiff_t(Row(this->sz))};
-  }
-  [[nodiscard]] constexpr auto eachCol() const -> SliceRange<const T, true>
-  requires(MatrixDimension<S>)
-  {
-    return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
-            ptrdiff_t(Col(this->sz))};
-  }
 #endif
 protected:
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
@@ -590,16 +557,6 @@ protected:
 
 static_assert(
   std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
-
-template <class T, DenseLayout S>
-[[nodiscard]] constexpr auto
-operator<=>(Array<T, S> x, Array<T, S> y) -> std::strong_ordering {
-  ptrdiff_t M = x.size();
-  ptrdiff_t N = y.size();
-  for (ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
-    if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
-  return M <=> N;
-};
 
 template <class T, Dimension S, bool Compress>
 struct POLY_MATH_GSL_POINTER MutArray
@@ -1821,7 +1778,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     return identity(ptrdiff_t(C));
   }
   friend inline void PrintTo(const ManagedArray &x, ::std::ostream *os)
-  requires(Printable<T>)
+  requires(utils::Printable<T>)
   {
     *os << x;
   }
@@ -1986,38 +1943,9 @@ static_assert(std::same_as<utils::eltype_t<Matrix<int64_t>>, int64_t>);
 static_assert(std::convertible_to<Array<int64_t, SquareDims<>>,
                                   Array<int64_t, StridedDims<>>>);
 
-inline auto printVectorImpl(std::ostream &os,
-                            const AbstractVector auto &a) -> std::ostream & {
-  os << "[ ";
-  if (ptrdiff_t M = a.size()) {
-    print_obj(os, a[0]);
-    for (ptrdiff_t m = 1; m < M; m++) print_obj(os << ", ", a[m]);
-  }
-  os << " ]";
-  return os;
-}
-template <typename T>
-inline auto printVector(std::ostream &os, PtrVector<T> a) -> std::ostream & {
-  return printVectorImpl(os, a);
-}
-template <typename T>
-inline auto printVector(std::ostream &os,
-                        StridedVector<T> a) -> std::ostream & {
-  return printVectorImpl(os, a);
-}
-
-template <typename T>
-inline auto operator<<(std::ostream &os,
-                       PtrVector<T> const &A) -> std::ostream & {
-  return printVector(os, A);
-}
-template <AbstractVector T>
-inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
-  Vector<utils::eltype_t<decltype(A)>> B(length(A.size()));
-  if constexpr (RowVector<T>) B << A;
-  else B << A.t();
-  return printVector(os, B);
-}
+static_assert(std::same_as<const int64_t &,
+                           decltype(std::declval<PtrMatrix<int64_t>>()[0, 0])>);
+static_assert(std::is_trivially_copyable_v<MutArray<int64_t, Length<>>>);
 /// \brief Returns the maximum number of digits per column of a matrix.
 constexpr auto getMaxDigits(PtrMatrix<Rational> A) -> Vector<ptrdiff_t> {
   ptrdiff_t M = ptrdiff_t(A.numRow());
@@ -2056,7 +1984,7 @@ constexpr auto getMaxDigits(PtrMatrix<T> A) -> Vector<T> {
   }
   // then, we count the digits of the maximum value per column
   for (ptrdiff_t j = 0; j < maxDigits.size(); j++)
-    maxDigits[j] = countDigits(maxDigits[j]);
+    maxDigits[j] = utils::countDigits(maxDigits[j]);
   return maxDigits;
 }
 
@@ -2147,25 +2075,5 @@ inline auto printMatrix(std::ostream &os,
   }
   return os << " ]";
 }
-
-template <typename T, ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
-inline auto operator<<(std::ostream &os,
-                       Array<T, StridedDims<R, C, X>> A) -> std::ostream & {
-  return printMatrix(os, A);
-}
-template <typename T, ptrdiff_t R>
-inline auto operator<<(std::ostream &os,
-                       Array<T, SquareDims<R>> A) -> std::ostream & {
-  return printMatrix(os, PtrMatrix<T>{A});
-}
-template <typename T, ptrdiff_t R, ptrdiff_t C>
-inline auto operator<<(std::ostream &os,
-                       Array<T, DenseDims<R, C>> A) -> std::ostream & {
-  return printMatrix(os, PtrMatrix<T>{A});
-}
-
-static_assert(std::same_as<const int64_t &,
-                           decltype(std::declval<PtrMatrix<int64_t>>()[0, 0])>);
-static_assert(std::is_trivially_copyable_v<MutArray<int64_t, Length<>>>);
 
 } // namespace poly::math
