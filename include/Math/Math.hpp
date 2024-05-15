@@ -309,9 +309,14 @@ template <TrivialTensor C, Trivial A, Trivial B> struct AbstractSelect {
   }
 };
 
-inline constexpr auto view(const Trivial auto &x) { return x; }
-inline constexpr auto view(const auto &x) { return x.view(); }
-template <class T, class S> constexpr auto view(const Array<T, S> &x) {
+[[gnu::always_inline]] inline constexpr auto view(const Trivial auto &x) {
+  return x;
+}
+[[gnu::always_inline]] inline constexpr auto view(const auto &x) {
+  return x.view();
+}
+template <class T, class S>
+[[gnu::always_inline]] constexpr auto view(Array<T, S> x) {
   return x;
 }
 
