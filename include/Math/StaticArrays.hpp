@@ -260,6 +260,16 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
   friend inline void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
+
+private:
+  friend inline auto operator<<(std::ostream &os,
+                                const StaticArray &x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
+    if constexpr (MatrixDimension<S>)
+      return printMatrix(os, Array<T, StridedDims<>>{x});
+    else return utils::printVector(os, x.begin(), x.end());
+  }
 };
 
 template <simd::SIMDSupported T, ptrdiff_t M, ptrdiff_t N>
@@ -293,7 +303,9 @@ struct StaticArray<T, M, N, false>
   static constexpr ptrdiff_t Align = alignof(simd::Vec<W, T>);
   using S = StaticDims<T, M, N, false>;
 
-  [[nodiscard]] constexpr auto view() const -> StaticArray { return *this; }
+  [[nodiscard, gnu::always_inline]] constexpr auto view() const -> StaticArray {
+    return *this;
+  }
   [[nodiscard]] static constexpr auto dim() noexcept -> S { return S{}; }
 
   static constexpr ptrdiff_t L = (N + W - 1) / W;
@@ -320,7 +332,23 @@ struct StaticArray<T, M, N, false>
   [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(memory_);
   }
-  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; }
+  [[nodiscard]] constexpr auto begin() -> T *requires(((M == 1) || (N == 1))) {
+    return data();
+  }
+
+  [[nodiscard]] constexpr auto end() -> T *requires(((M == 1) || (N == 1))) {
+    return data() + (M * N);
+  }
+
+  [[nodiscard]] constexpr auto begin() const
+    -> const T *requires(((M == 1) || (N == 1))) { return data(); }
+
+  [[nodiscard]] constexpr auto end() const
+    -> const T *requires(((M == 1) || (N == 1))) { return data() + (M * N); }
+
+  [[nodiscard]] constexpr auto t() const {
+    return Transpose{*this};
+  }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
     this->vcopyTo(b, utils::CopyAssign{});
   }
@@ -493,6 +521,16 @@ struct StaticArray<T, M, N, false>
   friend inline void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
+
+private:
+  friend inline auto operator<<(std::ostream &os,
+                                const StaticArray &x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
+    if constexpr (MatrixDimension<S>)
+      return printMatrix(os, Array<T, StridedDims<>>{x});
+    else return utils::printVector(os, x.begin(), x.end());
+  }
 };
 
 template <simd::SIMDSupported T, ptrdiff_t N>
@@ -528,7 +566,9 @@ struct StaticArray<T, 1, N, false>
   using S = Length<N>;
   [[nodiscard]] static constexpr auto dim() noexcept -> S { return S{}; }
 
-  [[nodiscard]] constexpr auto view() const -> StaticArray { return *this; }
+  [[nodiscard, gnu::always_inline]] constexpr auto view() const -> StaticArray {
+    return *this;
+  }
 
   using V = simd::Vec<W, T>;
   // simd::Vec<W, T> data[M][L];
@@ -669,6 +709,16 @@ struct StaticArray<T, 1, N, false>
                 ? simd::vbroadcast<W, T>(x)
                 : data_;
     }
+  }
+
+private:
+  friend inline auto operator<<(std::ostream &os,
+                                const StaticArray &x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
+    if constexpr (MatrixDimension<S>)
+      return printMatrix(os, Array<T, StridedDims<>>{x});
+    else return utils::printVector(os, x.begin(), x.end());
   }
 };
 
