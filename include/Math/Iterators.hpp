@@ -12,6 +12,24 @@ template <typename B, typename E> struct Range {
   [[no_unique_address]] E e;
   [[nodiscard]] constexpr auto begin() const -> B { return b; }
   [[nodiscard]] constexpr auto end() const -> E { return e; }
+
+private:
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(Range r, ptrdiff_t x) {
+    return Range{r.b + x, r.e + x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator-(Range r, ptrdiff_t x) {
+    return Range{r.b - x, r.e - x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(ptrdiff_t x, Range r) {
+    return Range{r.b + x, r.e + x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator-(ptrdiff_t x, Range r) {
+    return Range{x - r.b, x - r.e};
+  }
 };
 template <std::integral B, std::integral E> struct Range<B, E> {
   using value_type = std::common_type_t<B, E>;
@@ -55,6 +73,24 @@ template <std::integral B, std::integral E> struct Range<B, E> {
     return b + i;
   }
   [[nodiscard]] constexpr auto operator[](auto i) const { return i + b; }
+
+private:
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(Range r, ptrdiff_t x) {
+    return Range{r.b + x, r.e + x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator-(Range r, ptrdiff_t x) {
+    return Range{r.b - x, r.e - x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(ptrdiff_t x, Range r) {
+    return Range{r.b + x, r.e + x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator-(ptrdiff_t x, Range r) {
+    return Range{x - r.b, x - r.e};
+  }
 };
 constexpr auto standardizeRangeBound(auto x) { return x; }
 constexpr auto standardizeRangeBound(std::unsigned_integral auto x) {
@@ -67,23 +103,6 @@ constexpr auto standardizeRangeBound(std::signed_integral auto x) {
 template <typename B, typename E>
 Range(B b, E e) -> Range<decltype(standardizeRangeBound(b)),
                          decltype(standardizeRangeBound(e))>;
-
-template <typename B, typename E>
-constexpr auto operator+(Range<B, E> r, ptrdiff_t x) {
-  return Range{r.b + x, r.e + x};
-}
-template <typename B, typename E>
-constexpr auto operator-(Range<B, E> r, ptrdiff_t x) {
-  return Range{r.b - x, r.e - x};
-}
-template <typename B, typename E>
-constexpr auto operator+(ptrdiff_t x, Range<B, E> r) {
-  return Range{r.b + x, r.e + x};
-}
-template <typename B, typename E>
-constexpr auto operator-(ptrdiff_t x, Range<B, E> r) {
-  return Range{x - r.b, x - r.e};
-}
 
 constexpr auto skipFirst(const auto &x) {
   auto b = x.begin();

@@ -7,52 +7,68 @@
 
 namespace poly::math {
 
-[[maybe_unused]] static inline constexpr struct Begin {
-  friend inline auto operator<<(std::ostream &os, Begin) -> std::ostream & {
-    return os << 0;
-  }
-} begin;
-[[maybe_unused]] static inline constexpr struct End {
-  friend inline auto operator<<(std::ostream &os, End) -> std::ostream & {
-    return os << "end";
-  }
-} end;
 /// TODO: remove `OffsetBegin`
 /// We probably won't support non-zero-based indexing
 struct OffsetBegin {
   [[no_unique_address]] ptrdiff_t offset;
+
+private:
   friend inline auto operator<<(std::ostream &os,
                                 OffsetBegin r) -> std::ostream & {
     return os << r.offset;
   }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(ptrdiff_t x, OffsetBegin y) -> OffsetBegin {
+    return OffsetBegin{x + y.offset};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(OffsetBegin y, ptrdiff_t x) -> OffsetBegin {
+    return OffsetBegin{ptrdiff_t(x) + y.offset};
+  }
 };
+[[maybe_unused]] static inline constexpr struct Begin {
+private:
+  friend inline auto operator<<(std::ostream &os, Begin) -> std::ostream & {
+    return os << 0;
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(ptrdiff_t x, Begin) -> OffsetBegin {
+    return OffsetBegin{x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(Begin, ptrdiff_t x) -> OffsetBegin {
+    return OffsetBegin{x};
+  }
+} begin;
 
-constexpr auto operator+(ptrdiff_t x, Begin) -> OffsetBegin {
-  return OffsetBegin{x};
-}
-constexpr auto operator+(Begin, ptrdiff_t x) -> OffsetBegin {
-  return OffsetBegin{x};
-}
-constexpr auto operator+(ptrdiff_t x, OffsetBegin y) -> OffsetBegin {
-  return OffsetBegin{x + y.offset};
-}
-constexpr auto operator+(OffsetBegin y, ptrdiff_t x) -> OffsetBegin {
-  return OffsetBegin{ptrdiff_t(x) + y.offset};
-}
 [[maybe_unused]] static constexpr inline struct OffsetEnd {
   [[no_unique_address]] ptrdiff_t offset;
+
+private:
   friend inline auto operator<<(std::ostream &os,
                                 OffsetEnd r) -> std::ostream & {
     return os << "end - " << r.offset;
   }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator-(OffsetEnd y, ptrdiff_t x) -> OffsetEnd {
+    return OffsetEnd{y.offset + x};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator+(OffsetEnd y, ptrdiff_t x) -> OffsetEnd {
+    return OffsetEnd{y.offset - x};
+  }
+
 } last{1};
-constexpr auto operator-(End, ptrdiff_t x) -> OffsetEnd { return OffsetEnd{x}; }
-constexpr auto operator-(OffsetEnd y, ptrdiff_t x) -> OffsetEnd {
-  return OffsetEnd{y.offset + x};
-}
-constexpr auto operator+(OffsetEnd y, ptrdiff_t x) -> OffsetEnd {
-  return OffsetEnd{y.offset - x};
-}
+[[maybe_unused]] static inline constexpr struct End {
+private:
+  friend inline auto operator<<(std::ostream &os, End) -> std::ostream & {
+    return os << "end";
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator-(End, ptrdiff_t x) -> OffsetEnd {
+    return OffsetEnd{x};
+  }
+} end;
 
 // Union type
 template <typename T>

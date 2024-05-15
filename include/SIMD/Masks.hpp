@@ -145,25 +145,33 @@ template <ptrdiff_t W> struct Bit {
       return 64 - ptrdiff_t(std::countl_zero(m));
     } else return 64 - ptrdiff_t(std::countl_zero(mask));
   }
+
+private:
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator&(Bit<W> a, Bit<W> b) -> Bit<W> {
+    return {a.mask & b.mask};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator&(None<W>, Bit<W> b) -> Bit<W> {
+    return b;
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator&(Bit<W> a, None<W>) -> Bit<W> {
+    return a;
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator|(Bit<W> a, Bit<W> b) -> Bit<W> {
+    return {a.mask | b.mask};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator|(None<W>, Bit<W>) -> Bit<W> {
+    return None<W>{};
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator|(Bit<W>, None<W>) -> Bit<W> {
+    return None<W>{};
+  }
 };
-template <ptrdiff_t W> constexpr auto operator&(Bit<W> a, Bit<W> b) -> Bit<W> {
-  return {a.mask & b.mask};
-}
-template <ptrdiff_t W> constexpr auto operator&(None<W>, Bit<W> b) -> Bit<W> {
-  return b;
-}
-template <ptrdiff_t W> constexpr auto operator&(Bit<W> a, None<W>) -> Bit<W> {
-  return a;
-}
-template <ptrdiff_t W> constexpr auto operator|(Bit<W> a, Bit<W> b) -> Bit<W> {
-  return {a.mask | b.mask};
-}
-template <ptrdiff_t W> constexpr auto operator|(None<W>, Bit<W>) -> Bit<W> {
-  return None<W>{};
-}
-template <ptrdiff_t W> constexpr auto operator|(Bit<W>, None<W>) -> Bit<W> {
-  return None<W>{};
-}
 #endif // AVX512F
 #ifdef __AVX512VL__
 // In: iteration count `i.i` is the total length of the loop
@@ -249,37 +257,29 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
   {
     return std::bit_cast<__m256>(m);
   }
+
+private:
+  friend constexpr auto operator&(Vector a, Vector b) -> Vector {
+    return {a.m & b.m};
+  }
+  friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
+    return b;
+  }
+  friend constexpr auto operator&(Vector a, mask::None<W>) -> Vector {
+    return a;
+  }
+  friend constexpr auto operator|(Vector a, Vector b) -> Vector {
+    return {a.m | b.m};
+  }
+  friend constexpr auto operator|(mask::None<W>, Vector) -> None<W> {
+    return {};
+  }
+  friend constexpr auto operator|(Vector, mask::None<W>) -> None<W> {
+    return {};
+  }
 };
 static_assert(!std::convertible_to<Vector<2, 8>, Vector<4, 8>>);
 static_assert(!std::convertible_to<Vector<4, 4>, Vector<8, 4>>);
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator&(Vector<W, Bytes> a,
-                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
-  return {a.m & b.m};
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator&(mask::None<W>,
-                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
-  return b;
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator&(Vector<W, Bytes> a,
-                         mask::None<W>) -> Vector<W, Bytes> {
-  return a;
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator|(Vector<W, Bytes> a,
-                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
-  return {a.m | b.m};
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator|(mask::None<W>, Vector<W, Bytes>) -> Vector<W, Bytes> {
-  return None<W>{};
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator|(Vector<W, Bytes>, mask::None<W>) -> Vector<W, Bytes> {
-  return None<W>{};
-}
 #ifdef __AVX512F__
 // but no VL!!! xeon phi
 template <ptrdiff_t W> constexpr auto create(ptrdiff_t i) {
@@ -348,35 +348,27 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
       return false;
     }
   }
+
+private:
+  friend constexpr auto operator&(Vector a, Vector b) -> Vector {
+    return {a.m & b.m};
+  }
+  friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
+    return b;
+  }
+  friend constexpr auto operator&(Vector a, mask::None<W>) -> Vector {
+    return a;
+  }
+  friend constexpr auto operator|(Vector a, Vector b) -> Vector {
+    return {a.m | b.m};
+  }
+  friend constexpr auto operator|(mask::None<W>, Vector) -> None<W> {
+    return {};
+  }
+  friend constexpr auto operator|(Vector, mask::None<W>) -> None<W> {
+    return {};
+  }
 };
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator&(Vector<W, Bytes> a,
-                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
-  return {a.m & b.m};
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator&(mask::None<W>,
-                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
-  return b;
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator&(Vector<W, Bytes> a,
-                         mask::None<W>) -> Vector<W, Bytes> {
-  return a;
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator|(Vector<W, Bytes> a,
-                         Vector<W, Bytes> b) -> Vector<W, Bytes> {
-  return {a.m | b.m};
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator|(mask::None<W>, Vector<W, Bytes>) -> Vector<W, Bytes> {
-  return None<W>{};
-}
-template <ptrdiff_t W, size_t Bytes>
-constexpr auto operator|(Vector<W, Bytes>, mask::None<W>) -> Vector<W, Bytes> {
-  return None<W>{};
-}
 
 template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {

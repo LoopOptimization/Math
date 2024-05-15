@@ -80,18 +80,17 @@ template <class T> struct UniformScaling {
     return os << "UniformScaling(" << S.value << ")";
   }
   [[nodiscard]] constexpr auto t() const -> UniformScaling { return *this; }
+  friend constexpr auto operator==(const AbstractMatrix auto &A,
+                                   const UniformScaling &B) -> bool {
+    return B.isEqual(A);
+  }
+  template <class U>
+  friend constexpr auto operator*(const U &x, UniformScaling d) {
+    if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
+      return UniformScaling<U>{x};
+    else return UniformScaling<U>{d.value * x};
+  }
 };
-template <class T>
-constexpr auto operator==(const AbstractMatrix auto &A,
-                          const UniformScaling<T> &B) -> bool {
-  return B.isEqual(A);
-}
-template <class T, class U>
-constexpr auto operator*(const U &x, UniformScaling<T> d) {
-  if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
-    return UniformScaling<U>{x};
-  else return UniformScaling<U>{d.value * x};
-}
 
 [[maybe_unused]] static constexpr inline UniformScaling<std::true_type> I{
   std::true_type{}}; // identity
