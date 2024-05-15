@@ -145,6 +145,9 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
         p + CumSizeOf_v<I, T> * stride +
         sizeof(std::tuple_element_t<I, T>) * i) = x.template get<I>();
     }
+    constexpr Reference(char *p, ptrdiff_t s, ptrdiff_t idx)
+      : ptr{p}, stride{s}, i{idx} {}
+    constexpr Reference(const Reference &) = default;
     auto operator=(const T &x) -> Reference & {
       ((void)assign<II>(x), ...);
       // assign<II...>(x);
@@ -207,6 +210,14 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
     return {reinterpret_cast<const std::tuple_element_t<I, T> *>(
               data + CumSizeOf_v<I, T> * capacity(sz)),
             sz};
+  }
+  void destroy(ptrdiff_t i) {
+    char *p = std::assume_aligned<16>(data);
+    ptrdiff_t stride = capacity(sz);
+    (std::destroy_at(reinterpret_cast<std::tuple_element_t<II, T> *>(
+       p + CumSizeOf_v<II, T> * stride +
+       sizeof(std::tuple_element_t<II, T>) * i)),
+     ...);
   }
 };
 
@@ -305,6 +316,24 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     auto i = ptrdiff_t(osz);
     resize(ptrdiff_t(i) + 1z);
     (*this)[i] = arg;
+  }
+  void erase(ptrdiff_t pos)
+  requires(std::same_as<S, Length<>> &&
+           std::same_as<C, CapacityCalculators::Explicit>)
+  {
+    invariant(pos >= 0);
+    ptrdiff_t N = (this->size()) - 1;
+    invariant(pos <= N);
+    auto &self = *this;
+    for (ptrdiff_t i = pos; i < N;) {
+      ptrdiff_t j = i++;
+      self[j] = self[i];
+    }
+    if constexpr (!(std::is_trivially_default_constructible_v<T> &&
+                    std::is_trivially_destructible_v<T>)) {
+      this->destroy(N);
+    }
+    resize(N);
   }
 };
 template <typename T, typename S>
