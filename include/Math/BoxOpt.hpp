@@ -290,7 +290,7 @@ public:
       newOff = lb;
     } else {
       untrf[getInds()[idx]] = -EXTREME;
-      poly::containers::tie(newScale, newOff) = scaleOff(lb, ub);
+      containers::tie(newScale, newOff) = scaleOff(lb, ub);
     }
     scales()[idx] = newScale;
     offs()[idx] = newOff;
@@ -313,7 +313,7 @@ public:
       newOff = lb;
     } else {
       untrf[getInds()[idx]] = EXTREME;
-      poly::containers::tie(newScale, newOff) = scaleOff(lb, ub);
+      containers::tie(newScale, newOff) = scaleOff(lb, ub);
     }
     scales()[idx] = newScale;
     offs()[idx] = newOff;

@@ -591,6 +591,10 @@ struct StaticArray<T, 1, N, false>
   [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(&data_);
   }
+  constexpr auto begin() -> T * { return data(); }
+  constexpr auto end() -> T * { return data() + N; }
+  [[nodiscard]] constexpr auto begin() const -> const T * { return data(); }
+  [[nodiscard]] constexpr auto end() const -> const T * { return data() + N; }
   constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) -> MutPtrVector<T> {
     return {data() + r.b, length(r.size())};
   }
