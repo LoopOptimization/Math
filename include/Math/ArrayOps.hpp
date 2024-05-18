@@ -383,11 +383,11 @@ template <typename A, typename... As, typename B, typename... Bs>
 promote_shape(const Tuple<A, As...> &a, const Tuple<B, Bs...> &b)
 requires(sizeof...(As) == sizeof...(Bs))
 {
-  auto h = math::promote_shape(a.head, b.head);
+  auto h = math::promote_shape(a.head_, b.head_);
   if constexpr (sizeof...(As) == 0) return h;
   else {
     auto [Mh, Nh] = h;
-    auto [Mt, Nt] = promote_shape(a.tail, b.tail);
+    auto [Mt, Nt] = promote_shape(a.tail_, b.tail_);
     return math::CartesianIndex(math::check_sizes(Mh, Mt),
                                 math::check_sizes(Nh, Nt));
   }
