@@ -22,4 +22,3 @@ TEST(ElementarySIMD, BasicAssertions) {
   z << poly::math::Elementwise{[](auto a) { return poly::math::exp(a); }, x};
   for (ptrdiff_t i = 0; i < 15; ++i) EXPECT_DOUBLE_EQ(y[i], z[i]);
 }
-

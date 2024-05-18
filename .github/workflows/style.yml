@@ -19,17 +19,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - name: install-llvm
+        run: |
+          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+          sudo wget https://apt.llvm.org/llvm.sh
+          sudo chmod +x llvm.sh
+          sudo ./llvm.sh 18 all
       - uses: actions/cache@v4
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
       - name: Install format dependencies
-        run: pip3 install clang-format cmake_format==0.6.11 pyyaml
+        run: pip3 install cmake_format==0.6.13 pyyaml
 
       - name: configure
         run: cmake -Stest -Bbuild
+        env:
+          CXX: clang++-18
 
       - name: check style
         run: cmake --build build --target check-format

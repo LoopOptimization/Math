@@ -47,4 +47,3 @@ template <typename F, typename S>
 struct std::tuple_element<1, poly::containers::Pair<F, S>> {
   using type = S;
 };
-

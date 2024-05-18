@@ -148,4 +148,3 @@ TEST(Int8Test, BasicAssertions) {
     }
   }
 }
-

@@ -154,4 +154,3 @@ struct std::tuple_element<I, poly::containers::Tuple<T, Ts...>> {
   using type =
     typename std::tuple_element<I - 1, poly::containers::Tuple<Ts...>>::type;
 };
-

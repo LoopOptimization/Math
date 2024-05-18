@@ -239,4 +239,3 @@ template <Compressible T>
 }
 
 } // namespace poly::utils
-

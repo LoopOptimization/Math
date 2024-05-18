@@ -32,4 +32,3 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, bool Transposed,
           ptrdiff_t X>
 static constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
 } // namespace poly::simd::index
-

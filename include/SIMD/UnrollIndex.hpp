@@ -141,4 +141,3 @@ template <ptrdiff_t U, ptrdiff_t W>
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 static constexpr bool issimd<Unroll<U, W, M>> = true;
 } // namespace poly::simd::index
-
