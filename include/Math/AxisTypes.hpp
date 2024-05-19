@@ -57,6 +57,7 @@ template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
 
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Length<-1>() const;
+  static constexpr auto comptime() -> ptrdiff_t { return M; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -151,6 +152,7 @@ template <std::signed_integral I> struct Length<-1, I> {
     return Length<-1, ptrdiff_t>{
       static_cast<Length<-1, ptrdiff_t>::len>(ptrdiff_t(I(*this)))};
   }
+  static constexpr auto comptime() -> ptrdiff_t { return -1; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -212,6 +214,7 @@ struct Capacity {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Capacity<-1, I>() const;
+  static constexpr auto comptime() -> ptrdiff_t { return M; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -282,6 +285,7 @@ template <std::integral I> struct Capacity<-1, I> {
     M = static_cast<cap>(static_cast<I>(M) + 1z);
     return tmp;
   }
+  static constexpr auto comptime() -> ptrdiff_t { return -1; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -335,6 +339,7 @@ template <ptrdiff_t M = -1> struct Row {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Row<-1>() const;
+  static constexpr auto comptime() -> ptrdiff_t { return M; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -415,6 +420,7 @@ template <> struct Row<-1> {
     M = static_cast<row>(static_cast<ptrdiff_t>(M) + 1z);
     return tmp;
   }
+  static constexpr auto comptime() -> ptrdiff_t { return -1; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -473,6 +479,7 @@ template <ptrdiff_t M = -1> struct Col {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator Col<-1>() const;
+  static constexpr auto comptime() -> ptrdiff_t { return M; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -557,6 +564,7 @@ template <> struct Col<-1> {
     M = static_cast<col>(static_cast<ptrdiff_t>(M) - 1z);
     return tmp;
   }
+  static constexpr auto comptime() -> ptrdiff_t { return -1; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -619,6 +627,7 @@ template <ptrdiff_t M = -1> struct RowStride {
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr
   operator RowStride<-1>() const;
+  static constexpr auto comptime() -> ptrdiff_t { return M; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
@@ -692,6 +701,7 @@ template <> struct RowStride<-1> {
     M = static_cast<stride>(static_cast<ptrdiff_t>(M) - 1z);
     return tmp;
   }
+  static constexpr auto comptime() -> ptrdiff_t { return -1; }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto

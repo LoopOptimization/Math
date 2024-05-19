@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Containers/Tuple.hpp"
-#include "Math/AxisTypes.hpp"
 #include "Math/Indexing.hpp"
 #include "Math/Matrix.hpp"
 #include "Math/UniformScaling.hpp"
@@ -10,7 +9,6 @@
 #include "Utilities/TypePromotion.hpp"
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <type_traits>
 
@@ -158,14 +156,14 @@ template <class T, class S, class P> class ArrayOps {
 
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
   template <typename RHS, typename I, typename R, typename Op>
-  [[gnu::always_inline]] inline void vcopyToSIMD(P &self, const RHS &B, I L,
-                                                 R row, Op op) {
+  [[gnu::always_inline]] void vcopyToSIMD(P &self, const RHS &B, I L, R row,
+                                          Op op) {
     // TODO: if `R` is a row index, maybe don't fully unroll static `L`
     // We're going for very short SIMD vectors to focus on small sizes
     using PT = utils::promote_eltype_t<P, RHS>;
     if constexpr (StaticInt<I>) {
-      constexpr ptrdiff_t SL = ptrdiff_t(L);
-      constexpr std::array<ptrdiff_t, 3> vdr = simd::VectorDivRem<SL, PT>();
+      constexpr std::array<ptrdiff_t, 3> vdr =
+        simd::VectorDivRem<ptrdiff_t(L), PT>();
       constexpr ptrdiff_t W = vdr[0];
       constexpr ptrdiff_t fulliter = vdr[1];
       constexpr ptrdiff_t remainder = vdr[2];

@@ -692,9 +692,7 @@ struct StaticArray<T, 1, N, false>
   template <typename Mask>
   [[gnu::always_inline]] constexpr auto operator[](
     simd::index::Unroll<1, W, Mask>) const -> simd::Unroll<1, 1, W, T> {
-    simd::Unroll<1, 1, W, T> ret;
-    ret.vec = data_;
-    return ret;
+    return {data_};
   }
   constexpr auto operator==(const StaticArray &other) const -> bool {
     return bool(simd::cmp::eq<W, T>(data_, other.data_));

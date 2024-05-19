@@ -453,4 +453,7 @@ TEST(StringVector, BasicAssertions) {
     EXPECT_EQ(x[1], 3);
     EXPECT_EQ(x[2], 7);
   });
+  EXPECT_TRUE(anyNEZero(a));
+  EXPECT_TRUE(anyGTZero(a));
+  EXPECT_TRUE(anyLTZero(a));
 }

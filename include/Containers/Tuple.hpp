@@ -16,9 +16,9 @@ template <typename T, typename... Ts> struct Tuple {
   [[no_unique_address]] T head_;
   [[no_unique_address]] Tuple<Ts...> tail_;
   constexpr Tuple() = default;
-  template <std::convertible_to<T> U, std::convertible_to<Ts>... Us>
-  constexpr Tuple(U head, Us... tail)
-    : head_(std::forward<U>(head)), tail_(std::forward<Us>(tail)...){};
+  // template <std::convertible_to<T> U, std::convertible_to<Ts>... Us>
+  // constexpr Tuple(U head, Us... tail)
+  //   : head_(std::forward<U>(head)), tail_(std::forward<Us>(tail)...){};
   constexpr Tuple(T head, Ts... tail) : head_(head), tail_(tail...){};
   constexpr Tuple(T head, Tuple<Ts...> tail) : head_(head), tail_(tail){};
 
@@ -95,8 +95,8 @@ template <typename T> struct Tuple<T> {
   [[no_unique_address]] T head_;
   constexpr Tuple() = default;
   constexpr Tuple(T head) : head_(head){};
-  template <std::convertible_to<T> U>
-  constexpr Tuple(U &&head) : head_(std::forward<U>(head)){};
+  // template <std::convertible_to<T> U>
+  // constexpr Tuple(U &&head) : head_(std::forward<U>(head)){};
   constexpr Tuple(const Tuple &) = default;
   template <size_t I> auto get() -> T & {
     static_assert(I == 0);
