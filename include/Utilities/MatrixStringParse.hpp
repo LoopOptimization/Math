@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math/StaticArrays.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -27,37 +28,37 @@ namespace poly::utils {
 
 // static_assert(__cpp_nontype_template_args >= 201911);
 template <std::size_t N> struct String {
-  char data[N];
+  char data_[N];
 
   static constexpr auto size() -> size_t { return N; }
-  constexpr String(char const (&p)[N]) { std::copy_n(p, N, data); }
-  constexpr auto operator[](ptrdiff_t i) const -> char { return data[i]; }
+  constexpr String(char const (&p)[N]) { std::copy_n(p, N, data_); }
+  constexpr auto operator[](ptrdiff_t i) const -> char { return data_[i]; }
 };
 
 // returns an array {nrows, ncols}
 template <String S> consteval auto dims_eltype() -> std::array<ptrdiff_t, 2> {
-  ptrdiff_t numRows = 1, numCols = 0;
+  ptrdiff_t num_rows = 1, num_cols = 0;
   // count numCols
-  const char *s = S.data + 1; // skip `[`
+  const char *s = S.data_ + 1; // skip `[`
   // while (*s != ';'){
   while (true) {
     char c = *s;
     while (c == ' ') c = *(++s);
     if (c == ';') break;
-    if (c == ']') return {numRows, numCols};
+    if (c == ']') return {num_rows, num_cols};
     while (true) {
       c = *(++s);
       if (c == '-') continue;
       if (c >= '0' && c <= '9') continue;
       break;
     }
-    ++numCols;
+    ++num_cols;
   }
-  ++numRows;
+  ++num_rows;
   while (true) {
     char c = *(++s);
-    if (c == ']') return {numRows, numCols};
-    if (c == ';') ++numRows;
+    if (c == ']') return {num_rows, num_cols};
+    if (c == ';') ++num_rows;
   }
 }
 
@@ -77,7 +78,7 @@ template <String S> consteval auto matrix_from_string() {
   // #else
   math::StaticArray<int64_t, dims[0], dims[1], true> A(int64_t(0));
   // #endif
-  const char *s = S.data;
+  const char *s = S.data_;
   for (ptrdiff_t i = 0; i < dims[0]; ++i) {
     for (ptrdiff_t j = 0; j < dims[1]; ++j) {
       int64_t x = 0;
@@ -85,10 +86,10 @@ template <String S> consteval auto matrix_from_string() {
       while (c != '-' && (c < '0' || c > '9')) c = *(++s);
       bool neg = c == '-';
       if (neg) c = *(++s);
-      while (c >= '0' && c <= '9') {
+      do {
         x = x * 10 + (c - '0');
         c = *(++s);
-      }
+      } while (c >= '0' && c <= '9');
       if (neg) x = -x;
       A.set(x, i, j);
     }
