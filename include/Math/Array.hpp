@@ -14,7 +14,6 @@
 #include "Utilities/Optional.hpp"
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
-#include "Utilities/TypePromotion.hpp"
 #include "Utilities/Valid.hpp"
 #include <algorithm>
 #include <array>
@@ -29,7 +28,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <ranges>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <version>
@@ -1196,7 +1195,6 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
     auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
-    invariant(s == ptrdiff_t(this->sz));
   }
 
   template <class... Args>
@@ -1372,21 +1370,30 @@ struct POLY_MATH_GSL_POINTER ReallocView : ResizeableView<T, S> {
       return resizeForOverwrite(nz.set(c));
     }
   }
-  constexpr void reserve(S nz) {
+  static constexpr auto
+  reserveCore(S nz, storage_type *op, ptrdiff_t old_len, U oc,
+              bool was_allocated) -> containers::Pair<storage_type *, U> {
     auto newCapacity = ptrdiff_t(nz);
     invariant(newCapacity >= 0z);
-    if (newCapacity <= this->capacity_) return;
+    if (newCapacity <= oc) return {op, oc};
     // allocate new, copy, deallocate old
-    auto [newPtr, newCap] = alloc::alloc_at_least(allocator_, newCapacity);
-    auto nc = ptrdiff_t(newCap);
+    auto [new_ptr, new_cap] = alloc::alloc_at_least(A{}, newCapacity);
+    auto nc = ptrdiff_t(new_cap);
     invariant(nc >= newCapacity);
-    if (auto oldLen = ptrdiff_t(this->sz)) {
+    if (old_len) {
       if constexpr (std::is_trivially_move_constructible_v<T> &&
                     std::is_trivially_destructible_v<T>)
-        std::memcpy(newPtr, this->data(), oldLen * sizeof(storage_type));
-      else std::uninitialized_move_n(this->data(), oldLen, newPtr);
+        std::memcpy(new_ptr, op, old_len * sizeof(storage_type));
+      else std::uninitialized_move_n(op, old_len, new_ptr);
     }
-    maybeDeallocate(newPtr, nc);
+    maybeDeallocate(op, old_len, ptrdiff_t(oc), was_allocated);
+    return {new_ptr, math::capacity(nc)};
+  }
+  constexpr void reserve(S nz) {
+    auto [np, nc] = reserveCore(nz, this->data(), ptrdiff_t(this->sz),
+                                this->capacity_, wasAllocated());
+    this->ptr = np;
+    this->capacity_ = nc;
   }
   [[nodiscard]] constexpr auto get_allocator() const noexcept -> A {
     return allocator_;
@@ -1476,14 +1483,19 @@ protected:
   // this method should only be called from the destructor
   // (and the implementation taking the new ptr and capacity)
   void maybeDeallocate() noexcept {
-    if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_n(this->data(), this->size());
-    if (wasAllocated())
-      allocator_.deallocate(this->data(), ptrdiff_t(this->capacity_));
+    maybeDeallocate(this->data(), ptrdiff_t(this->sz),
+                    ptrdiff_t(this->capacity_), wasAllocated());
+  }
+  static void maybeDeallocate(storage_type *p, ptrdiff_t sz, ptrdiff_t cap,
+                              bool was_allocated) noexcept {
+    if constexpr (!std::is_trivially_destructible_v<storage_type>)
+      std::destroy_n(p, sz);
+    if (was_allocated) A{}.deallocate(p, cap);
   }
   // this method should be called whenever the buffer lives
   void maybeDeallocate(storage_type *newPtr, ptrdiff_t newCapacity) noexcept {
-    maybeDeallocate();
+    maybeDeallocate(this->data(), ptrdiff_t(this->sz),
+                    ptrdiff_t(this->capacity_), wasAllocated());
     this->ptr = newPtr;
     this->capacity_ = capacity(newCapacity);
   }
@@ -1593,17 +1605,20 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, N, AY> &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), capacity(N), b.get_allocator()} {
-    auto len = ptrdiff_t(this->sz);
+    : BaseT{memory.data(), S{}, capacity(N), b.get_allocator()} {
+    S d = b.dim();
+    auto len = ptrdiff_t(d);
     this->growUndef(len);
+    this->sz = d;
     (*this) << b;
   }
   template <std::convertible_to<T> Y, size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
-    : BaseT{memory.data(), S(length(std::ssize(il))), capacity(N)} {
-    auto len = ptrdiff_t(this->sz);
+    : BaseT{memory.data(), S{}, capacity(N)} {
+    auto len = ptrdiff_t(M);
     this->growUndef(len);
     std::copy_n(il.begin(), len, this->data());
+    this->sz = math::length(ptrdiff_t(M));
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, N, AY> &b, S s) noexcept
@@ -1743,16 +1758,21 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   constexpr auto operator=(ManagedArray &&b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     // here, we commandeer `b`'s memory
-    this->sz = b.dim();
+    S d = b.dim(), oz = this->sz;
+    this->sz = S{};
     this->allocator_ = std::move(b.get_allocator());
     if (b.isSmall()) {
       // if `b` is small, we need to copy memory
       // no need to shrink our capacity
-      std::copy_n(b.data(), ptrdiff_t(this->sz), this->data());
+      std::copy_n(b.data(), ptrdiff_t(d), this->data());
     } else { // otherwise, we take its pointer
-      this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
+      this->maybeDeallocate(this->data(), ptrdiff_t(oz),
+                            ptrdiff_t(this->capacity_), this->wasAllocated());
+      this->ptr = b.data();
+      this->capacity_ = b.getCapacity();
     }
     b.resetNoFree();
+    this->sz = d;
     return *this;
   }
   [[nodiscard]] constexpr auto isSmall() const -> bool {

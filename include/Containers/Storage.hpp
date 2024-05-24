@@ -1,6 +1,8 @@
 #pragma once
+#include "Math/AxisTypes.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>

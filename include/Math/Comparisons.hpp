@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cstdint>
 
 namespace poly::math {
 constexpr auto allZero(const auto &x) -> bool {

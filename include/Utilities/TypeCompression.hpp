@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+#include <type_traits>
 namespace poly::utils {
 
 /// The idea here is that some types may have a compression/decompression that

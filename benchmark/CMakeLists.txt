@@ -23,7 +23,7 @@ cpmaddpackage(
   GITHUB_REPOSITORY
   google/benchmark
   VERSION
-  1.8.3
+  1.8.4
   OPTIONS
   "BENCHMARK_ENABLE_TESTING Off"
   "BENCHMARK_ENABLE_LIBPFM On"
