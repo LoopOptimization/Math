@@ -1,16 +1,23 @@
 #pragma once
 #include "Math/Matrix.hpp"
-#include "SIMD/Indexing.hpp"
+#include "Math/MatrixDimensions.hpp"
 #include "SIMD/Masks.hpp"
 #include "SIMD/Unroll.hpp"
+#include "SIMD/UnrollIndex.hpp"
+#include "SIMD/Vec.hpp"
+#include "Utilities/LoopMacros.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <ostream>
+#include <type_traits>
 namespace poly::math {
 
 template <class T> struct UniformScaling {
   using value_type = T;
-  T value;
-  constexpr UniformScaling(T x) : value(x) {}
+  T value_;
+  constexpr UniformScaling(T x) : value_(x) {}
   constexpr auto operator[](ptrdiff_t r, ptrdiff_t c) const -> T {
-    return r == c ? value : T{};
+    return r == c ? value_ : T{};
   }
   template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
   [[gnu::always_inline]] constexpr auto
@@ -18,17 +25,18 @@ template <class T> struct UniformScaling {
              simd::index::Unroll<C, W, M> c) const -> simd::Unroll<R, C, W, T> {
     using I = simd::IntegerOfBytes<sizeof(T)>;
     using VI = simd::Vec<W, I>;
-    simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value);
+    simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value_);
     if constexpr (R * C == 1) {
-      return {(simd::vbroadcast<W, I>(r.index - c.index) == simd::range<W, I>())
-                ? vv
-                : vz};
+      return {
+        (simd::vbroadcast<W, I>(r.index_ - c.index_) == simd::range<W, I>())
+          ? vv
+          : vz};
     } else {
       simd::Unroll<R, C, W, T> ret;
       POLYMATHFULLUNROLL
       for (ptrdiff_t i = 0; i < R; ++i) {
-        VI vr = simd::vbroadcast<W, I>(i + r.index),
-           vc = simd::range<W, I>() + c.index;
+        VI vr = simd::vbroadcast<W, I>(i + r.index_),
+           vc = simd::range<W, I>() + c.index_;
         POLYMATHFULLUNROLL
         for (ptrdiff_t j = 0; j < C; ++j, vc += W)
           ret[i, j] = (vr == vc) ? vv : vz;
@@ -62,14 +70,14 @@ template <class T> struct UniformScaling {
   template <class U> constexpr auto operator*(const U &x) const {
     if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
       return UniformScaling<U>{x};
-    else return UniformScaling<U>{value * x};
+    else return UniformScaling<U>{value_ * x};
   }
   constexpr auto isEqual(const AbstractMatrix auto &A) const -> bool {
     auto R = ptrdiff_t(A.numRow());
     if (R != A.numCol()) return false;
     for (ptrdiff_t r = 0; r < R; ++r)
       for (ptrdiff_t c = 0; c < R; ++c)
-        if (A[r, c] != ((r == c) * value)) return false;
+        if (A[r, c] != ((r == c) * value_)) return false;
     return true;
   }
   constexpr auto operator==(const AbstractMatrix auto &A) const -> bool {
@@ -77,7 +85,7 @@ template <class T> struct UniformScaling {
   }
   friend inline auto operator<<(std::ostream &os,
                                 UniformScaling S) -> std::ostream & {
-    return os << "UniformScaling(" << S.value << ")";
+    return os << "UniformScaling(" << S.value_ << ")";
   }
   [[nodiscard]] constexpr auto t() const -> UniformScaling { return *this; }
   friend constexpr auto operator==(const AbstractMatrix auto &A,
@@ -88,7 +96,7 @@ template <class T> struct UniformScaling {
   friend constexpr auto operator*(const U &x, UniformScaling d) {
     if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
       return UniformScaling<U>{x};
-    else return UniformScaling<U>{d.value * x};
+    else return UniformScaling<U>{d.value_ * x};
   }
 };
 

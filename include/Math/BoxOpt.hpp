@@ -1,14 +1,31 @@
 #pragma once
 #include "Alloc/Arena.hpp"
 #include "Alloc/Mallocator.hpp"
+#include "Containers/Pair.hpp"
+#include "Containers/Tuple.hpp"
 #include "Math/Array.hpp"
+#include "Math/ArrayOps.hpp"
 #include "Math/Dual.hpp"
 #include "Math/ElementarySIMD.hpp"
 #include "Math/Exp.hpp"
+#include "Math/Iterators.hpp"
 #include "Math/LinearAlgebra.hpp"
 #include "Math/Math.hpp"
+#include "Math/Matrix.hpp"
+#include "SIMD/Unroll.hpp"
+#include "SIMD/UnrollIndex.hpp"
+#include "SIMD/Vec.hpp"
+#include "Utilities/LoopMacros.hpp"
+#include "Utilities/TypePromotion.hpp"
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <new>
+#include <type_traits>
+#include <utility>
 
 namespace poly::math {
 
@@ -40,19 +57,19 @@ public:
     simd::Unroll<1, U, W, T> y;
     if constexpr (U == 1) {
 #ifdef __AVX512F__
-      auto m = simd::cmp::ge<W, int>(j.vec, simd::Vec<W, int>{});
+      auto m = simd::cmp::ge<W, int>(j.vec_, simd::Vec<W, int>{});
 #else
-      decltype(i.mask) m = simd::cmp::ge<W, int64_t>(simd::zextelts<W>(j.vec),
-                                                     simd::Vec<W, int64_t>{});
+      decltype(i.mask_) m = simd::cmp::ge<W, int64_t>(simd::zextelts<W>(j.vec_),
+                                                      simd::Vec<W, int64_t>{});
 #endif
-      V xload = simd::gather(x.data(), i.mask & m, j.vec);
-      y.vec = simd::select<double>(m, scale.vec * sigmoid<W>(xload) + off.vec,
-                                   off.vec);
+      V xload = simd::gather(x.data(), i.mask_ & m, j.vec_);
+      y.vec_ = simd::select<double>(
+        m, scale.vec_ * sigmoid<W>(xload) + off.vec_, off.vec_);
     } else {
       POLYMATHFULLUNROLL
       for (ptrdiff_t u = 0; u < U; ++u) {
         auto m = simd::cmp::ge<W, int>(j.data[u], simd::Vec<W, int>{});
-        V xload = simd::gather(x.data(), i.mask & m, j.data[u]);
+        V xload = simd::gather(x.data(), i.mask_ & m, j.data[u]);
         y.data[u] =
           select(m, scale.data[u] * sigmoid(xload) + off.data[u], off.data[u]);
       }

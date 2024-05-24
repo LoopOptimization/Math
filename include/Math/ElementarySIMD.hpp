@@ -1,8 +1,13 @@
 #pragma once
 #include "Math/Exp.hpp"
 #include "SIMD/Intrin.hpp"
+#include "SIMD/Masks.hpp"
 #include "SIMD/Unroll.hpp"
+#include "SIMD/Vec.hpp"
 #include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <type_traits>
 
 namespace poly::math {
 template <ptrdiff_t W>
@@ -48,13 +53,13 @@ constexpr auto exp_impl(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   // #else
   // if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
   // #endif
-  V floatN = x * simd::vbroadcast<W, double>(LogBo256INV(base)) +
-             simd::vbroadcast<W, double>(magic_round_const<double>);
-  auto N = std::bit_cast<simd::Vec<W, int64_t>>(floatN);
-  floatN -= simd::vbroadcast<W, double>(magic_round_const<double>);
+  V float_n = x * simd::vbroadcast<W, double>(LogBo256INV(base)) +
+              simd::vbroadcast<W, double>(magic_round_const<double>);
+  auto N = std::bit_cast<simd::Vec<W, int64_t>>(float_n);
+  float_n -= simd::vbroadcast<W, double>(magic_round_const<double>);
 
-  V r = floatN * simd::vbroadcast<W, double>(LogBo256U(base)) + x;
-  r = floatN * simd::vbroadcast<W, double>(LogBo256L(base)) + r;
+  V r = float_n * simd::vbroadcast<W, double>(LogBo256U(base)) + x;
+  r = float_n * simd::vbroadcast<W, double>(LogBo256L(base)) + r;
   V jU = simd::gather(J_TABLE, simd::mask::None<W>{},
                       N & simd::vbroadcast<W, int64_t>(255));
   V small = jU * expm1b_kernel<W>(base, r) + jU;
@@ -80,7 +85,7 @@ template <int B, ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
 constexpr auto
 exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
   if constexpr (R * U == 1) {
-    return {exp_impl<B, W>(x.vec)};
+    return {exp_impl<B, W>(x.vec_)};
   } else {
     simd::Unroll<R, U, W, double> ret;
     for (ptrdiff_t i = 0; i < R * U; ++i)

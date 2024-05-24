@@ -2,6 +2,8 @@
 
 #include "Math/AxisTypes.hpp"
 #include "SIMD/Masks.hpp"
+#include <concepts>
+#include <cstddef>
 namespace poly::simd::index {
 
 // template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, ptrdiff_t X>
@@ -22,8 +24,8 @@ struct UnrollDims {
                 "Only mask vector dims");
   static_assert(W != 1 || !Transposed,
                 "Canonicalize scalar with Tranpose=false");
-  [[no_unique_address]] M mask;
-  [[no_unique_address]] math::RowStride<X> rs;
+  [[no_unique_address]] M mask_;
+  [[no_unique_address]] math::axis::RowStride<X> rs_;
 };
 
 template <typename T> static constexpr bool issimd = false;

@@ -1,17 +1,27 @@
 #pragma once
 
+#include "Containers/Pair.hpp"
 #include "Containers/Tuple.hpp"
 #include "Math/Array.hpp"
 #include "Math/Constructors.hpp"
 #include "Math/EmptyArrays.hpp"
 #include "Math/GreatestCommonDivisor.hpp"
+#include "Math/Indexing.hpp"
+#include "Math/Iterators.hpp"
 #include "Math/Math.hpp"
+#include "Math/Matrix.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/VectorGreatestCommonDivisor.hpp"
+#include "SIMD/Intrin.hpp"
+#include "SIMD/Masks.hpp"
+#include "SIMD/UnrollIndex.hpp"
+#include "SIMD/Vec.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <utility>
 
 namespace poly::math::NormalForm {
 using containers::Tuple, containers::tie;
@@ -399,7 +409,7 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
     for (;;) {
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
-      simd::Vec<W, int64_t> Ail = vAjk * B[i, u].vec - vAik * B[j, u].vec;
+      simd::Vec<W, int64_t> Ail = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
       A[i, u] = Ail;
       vg = gcd<W>(Ail, vg);
       l += W;
@@ -411,7 +421,7 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
     for (;; l += W) {
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
-      A[i, u] = vAjk * B[i, u].vec - vAik * B[j, u].vec;
+      A[i, u] = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
     }
   } else if (simd::cmp::gt<W, int64_t>(vg, one)) {
     // This was `le` before?

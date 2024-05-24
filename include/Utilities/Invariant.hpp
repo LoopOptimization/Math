@@ -15,7 +15,7 @@ namespace poly::utils {
   __builtin_trap();
 }
 template <typename T>
-[[gnu::noinline]] static void errorReport(const T &x, const T &y,
+[[gnu::noinline]] static void errorReport(T x, T y,
                                           std::source_location location) {
   std::cout << x << " != " << y << "\n";
   errorReport(location);
@@ -29,7 +29,7 @@ invariant(bool condition,
 }
 template <typename T>
 [[gnu::artificial, gnu::always_inline]] constexpr inline void
-invariant(const T &x, const T &y,
+invariant(T x, T y,
           std::source_location location = std::source_location::current()) {
   if (x != y) [[unlikely]]
     errorReport(x, y, location);
@@ -42,7 +42,8 @@ invariant(const T &x, const T &y,
 #include <utility>
 #endif
 namespace poly::utils {
-[[gnu::artificial]] constexpr inline void invariant(bool condition) {
+[[gnu::artificial, gnu::always_inline]] constexpr inline void
+invariant(bool condition) {
 
 #ifdef __has_cpp_attribute
 #if __has_cpp_attribute(assume)
@@ -62,7 +63,8 @@ namespace poly::utils {
   }
 }
 template <typename T>
-[[gnu::artificial]] constexpr inline void invariant(const T &x, const T &y) {
+[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T x,
+                                                                        T y) {
 #ifdef __has_cpp_attribute
 #if __has_cpp_attribute(assume)
   [[assume(x == y)]];

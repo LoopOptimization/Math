@@ -2,33 +2,38 @@
 #include "Math/AxisTypes.hpp"
 #include "Math/Iterators.hpp"
 #include "Math/MatrixDimensions.hpp"
+#include "SIMD/Indexing.hpp"
+#include "SIMD/Masks.hpp"
 #include "SIMD/UnrollIndex.hpp"
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <ostream>
+#include <type_traits>
 
 namespace poly::math {
 
 /// TODO: remove `OffsetBegin`
 /// We probably won't support non-zero-based indexing
 struct OffsetBegin {
-  [[no_unique_address]] ptrdiff_t offset;
+  [[no_unique_address]] ptrdiff_t offset_;
 
 private:
-  friend inline auto operator<<(std::ostream &os,
-                                OffsetBegin r) -> std::ostream & {
-    return os << r.offset;
+  friend auto operator<<(std::ostream &os, OffsetBegin r) -> std::ostream & {
+    return os << r.offset_;
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator+(ptrdiff_t x, OffsetBegin y) -> OffsetBegin {
-    return OffsetBegin{x + y.offset};
+    return OffsetBegin{x + y.offset_};
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator+(OffsetBegin y, ptrdiff_t x) -> OffsetBegin {
-    return OffsetBegin{ptrdiff_t(x) + y.offset};
+    return OffsetBegin{x + y.offset_};
   }
 };
 [[maybe_unused]] static inline constexpr struct Begin {
 private:
-  friend inline auto operator<<(std::ostream &os, Begin) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, Begin) -> std::ostream & {
     return os << 0;
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
@@ -42,20 +47,20 @@ private:
 } begin;
 
 [[maybe_unused]] static constexpr inline struct OffsetEnd {
-  [[no_unique_address]] ptrdiff_t offset;
+  [[no_unique_address]] ptrdiff_t offset_;
 
 private:
   friend inline auto operator<<(std::ostream &os,
                                 OffsetEnd r) -> std::ostream & {
-    return os << "end - " << r.offset;
+    return os << "end - " << r.offset_;
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator-(OffsetEnd y, ptrdiff_t x) -> OffsetEnd {
-    return OffsetEnd{y.offset + x};
+    return OffsetEnd{y.offset_ + x};
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator+(OffsetEnd y, ptrdiff_t x) -> OffsetEnd {
-    return OffsetEnd{y.offset - x};
+    return OffsetEnd{y.offset_ - x};
   }
 
 } last{1};
@@ -81,7 +86,8 @@ concept ScalarIndex =
   std::convertible_to<T, ptrdiff_t> || ScalarRelativeIndex<T>;
 
 [[maybe_unused]] static constexpr inline struct Colon {
-  [[nodiscard]] inline constexpr auto operator()(auto B, auto E) const {
+  [[nodiscard, gnu::always_inline]] constexpr auto operator()(auto B,
+                                                              auto E) const {
     return Range{standardizeRangeBound(B), standardizeRangeBound(E)};
   }
 } _;
@@ -89,11 +95,11 @@ concept ScalarIndex =
 constexpr auto canonicalize(ptrdiff_t e, ptrdiff_t) -> ptrdiff_t { return e; }
 constexpr auto canonicalize(Begin, ptrdiff_t) -> ptrdiff_t { return 0; }
 constexpr auto canonicalize(OffsetBegin b, ptrdiff_t) -> ptrdiff_t {
-  return b.offset;
+  return b.offset_;
 }
 constexpr auto canonicalize(End, ptrdiff_t M) -> ptrdiff_t { return M; }
 constexpr auto canonicalize(OffsetEnd e, ptrdiff_t M) -> ptrdiff_t {
-  return M - e.offset;
+  return M - e.offset_;
 }
 template <typename B, typename E>
 constexpr auto canonicalizeRange(Range<B, E> r,
@@ -115,52 +121,53 @@ concept AbstractSlice = requires(T t, ptrdiff_t M) {
 static_assert(AbstractSlice<Range<ptrdiff_t, ptrdiff_t>>);
 static_assert(AbstractSlice<Colon>);
 
-[[nodiscard]] inline constexpr auto calcOffset(Length<> len,
-                                               ptrdiff_t i) -> ptrdiff_t {
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcOffset(Length<> len, ptrdiff_t i) -> ptrdiff_t {
   invariant(i >= 0z);
   invariant(i < len);
   return i;
 }
-[[nodiscard]] inline constexpr auto calcOffset(Length<1>,
-                                               ptrdiff_t i) -> ptrdiff_t {
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcOffset(Length<1>, ptrdiff_t i) -> ptrdiff_t {
   invariant(i == 0z);
   return 0z;
 }
 // FIXME: probably not needed
-[[nodiscard]] inline constexpr auto
+[[nodiscard, gnu::always_inline]] constexpr auto
 calcOffset(std::integral_constant<ptrdiff_t, 1>, ptrdiff_t i) -> ptrdiff_t {
   invariant(i == 0z);
   return 0z;
 }
-[[nodiscard]] inline constexpr auto calcOffset(Length<>, Begin) -> ptrdiff_t {
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcOffset(Length<>, Begin) -> ptrdiff_t {
   return 0z;
 }
-[[nodiscard]] inline constexpr auto calcOffset(Length<> len,
-                                               OffsetBegin i) -> ptrdiff_t {
-  return calcOffset(len, i.offset);
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcOffset(Length<> len, OffsetBegin i) -> ptrdiff_t {
+  return calcOffset(len, i.offset_);
 }
-[[nodiscard]] inline constexpr auto calcOffset(Length<> len,
-                                               OffsetEnd i) -> ptrdiff_t {
-  invariant(i.offset <= len);
-  return ptrdiff_t(len) - i.offset;
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcOffset(Length<> len, OffsetEnd i) -> ptrdiff_t {
+  invariant(i.offset_ <= len);
+  return ptrdiff_t(len) - i.offset_;
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(Length<> len,
-                                                    ptrdiff_t i) -> ptrdiff_t {
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcRangeOffset(Length<> len, ptrdiff_t i) -> ptrdiff_t {
   invariant(i <= len);
   return i;
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(Length<>,
-                                                    Begin) -> ptrdiff_t {
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcRangeOffset(Length<>, Begin) -> ptrdiff_t {
   return 0z;
 }
-[[nodiscard]] inline constexpr auto
+[[nodiscard, gnu::always_inline]] constexpr auto
 calcRangeOffset(Length<> len, OffsetBegin i) -> ptrdiff_t {
-  return calcRangeOffset(len, i.offset);
+  return calcRangeOffset(len, i.offset_);
 }
-[[nodiscard]] inline constexpr auto calcRangeOffset(Length<> len,
-                                                    OffsetEnd i) -> ptrdiff_t {
-  invariant(i.offset <= len);
-  return ptrdiff_t(len) - i.offset;
+[[nodiscard, gnu::always_inline]] constexpr auto
+calcRangeOffset(Length<> len, OffsetEnd i) -> ptrdiff_t {
+  invariant(i.offset_ <= len);
+  return ptrdiff_t(len) - i.offset_;
 }
 // note that we don't check i.b < len because we want to allow
 // empty ranges, and r.b <= r.e <= len is checked in calcNewDim.
@@ -183,16 +190,16 @@ calcOffset(DenseDims<>, ptrdiff_t i) -> ptrdiff_t {
 }
 
 struct StridedRange {
-  Length<> len;
-  RowStride<> stride;
+  Length<> len_;
+  RowStride<> stride_;
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
   operator ptrdiff_t() const {
-    return ptrdiff_t(len);
+    return ptrdiff_t(len_);
   }
   friend inline auto operator<<(std::ostream &os,
                                 StridedRange x) -> std::ostream & {
-    return os << "Length: " << ptrdiff_t(x.len)
-              << " (stride: " << ptrdiff_t(x.stride) << ")";
+    return os << "Length: " << ptrdiff_t(x.len_)
+              << " (stride: " << ptrdiff_t(x.stride_) << ")";
   }
 };
 
@@ -200,15 +207,15 @@ template <ptrdiff_t U, ptrdiff_t W, typename M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 calcOffset(Length<> len, simd::index::Unroll<U, W, M> i) {
   if constexpr (std::same_as<M, simd::mask::None<W>>)
-    invariant((i.index + U * W - 1) < len);
-  else invariant(i.index + (U - 1) * W + i.mask.lastUnmasked() - 1 < len);
-  return i.index;
+    invariant((i.index_ + U * W - 1) < len);
+  else invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 < len);
+  return i.index_;
 }
 
 template <class I>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 calcOffset(StridedRange d, I i) -> ptrdiff_t {
-  return ptrdiff_t(d.stride) * calcOffset(d.len, i);
+  return ptrdiff_t(d.stride_) * calcOffset(d.len_, i);
 }
 
 template <class R, class C>
@@ -225,7 +232,7 @@ calcOffset(StridedDims<> d, R r, C c) -> ptrdiff_t {
 // }
 [[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
 row(StridedRange r) -> Row<> {
-  return row(ptrdiff_t(r.len));
+  return row(ptrdiff_t(r.len_));
 }
 [[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
 col(StridedRange) -> Col<1> {
@@ -233,7 +240,7 @@ col(StridedRange) -> Col<1> {
 }
 [[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
 stride(StridedRange r) -> RowStride<> {
-  return r.stride;
+  return r.stride_;
 }
 
 template <typename T>
@@ -331,11 +338,11 @@ constexpr auto calcNewDim(Length<> len, Range<B, E> r) -> Length<> {
 }
 constexpr auto calcNewDim(StridedRange len,
                           Range<ptrdiff_t, ptrdiff_t> r) -> StridedRange {
-  return StridedRange{calcNewDim(len.len, r), len.stride};
+  return StridedRange{calcNewDim(len.len_, r), len.stride_};
 }
 template <class B, class E>
 constexpr auto calcNewDim(StridedRange len, Range<B, E> r) -> StridedRange {
-  return StridedRange{calcNewDim(len.len, r), len.stride};
+  return StridedRange{calcNewDim(len.len_, r), len.stride_};
 }
 template <ScalarIndex R, ScalarIndex C>
 constexpr auto calcNewDim(StridedDims<>, R, C) -> Empty {
@@ -415,44 +422,44 @@ constexpr auto calcNewDim(SquareDims<> d, B r, Colon) {
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(StridedDims<> d, simd::index::Unroll<R>,
                           simd::index::Unroll<C, W, M> c) {
-  return simd::index::UnrollDims<R, C, W, M>{c.mask, RowStride(d)};
+  return simd::index::UnrollDims<R, C, W, M>{c.mask_, RowStride(d)};
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(StridedDims<> d, simd::index::Unroll<C, W, M> r,
                           simd::index::Unroll<R>) {
-  return simd::index::UnrollDims<R, C, W, M, true>{r.mask, RowStride(d)};
+  return simd::index::UnrollDims<R, C, W, M, true>{r.mask_, RowStride(d)};
 }
 
 template <ptrdiff_t C, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(StridedDims<> d, ptrdiff_t,
                           simd::index::Unroll<C, W, M> c) {
-  return simd::index::UnrollDims<1, C, W, M>{c.mask, RowStride(d)};
+  return simd::index::UnrollDims<1, C, W, M>{c.mask_, RowStride(d)};
 }
 template <ptrdiff_t R, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(StridedDims<> d, simd::index::Unroll<R, W, M> r,
                           ptrdiff_t) {
   if constexpr (W == 1)
-    return simd::index::UnrollDims<R, 1, 1, M>{r.mask, RowStride(d)};
-  else return simd::index::UnrollDims<1, R, W, M, true>{r.mask, RowStride(d)};
+    return simd::index::UnrollDims<R, 1, 1, M>{r.mask_, RowStride(d)};
+  else return simd::index::UnrollDims<1, R, W, M, true>{r.mask_, RowStride(d)};
 }
 
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(Length<>, simd::index::Unroll<U, W, M> i) {
-  return simd::index::UnrollDims<1, U, W, M, false, 1>{i.mask, RowStride<1>{}};
+  return simd::index::UnrollDims<1, U, W, M, false, 1>{i.mask_, RowStride<1>{}};
 }
 
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(StridedRange x, simd::index::Unroll<U, W, M> i) {
   if constexpr (W == 1)
-    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask, stride(x)};
-  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask, stride(x)};
+    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
+  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(ColVectorSMatDimension auto x,
                           simd::index::Unroll<U, W, M> i) {
   if constexpr (W == 1)
-    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask, stride(x)};
-  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask, stride(x)};
+    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
+  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
 
 } // namespace poly::math

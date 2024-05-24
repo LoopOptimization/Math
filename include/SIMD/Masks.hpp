@@ -1,8 +1,9 @@
 #pragma once
 #include "SIMD/Vec.hpp"
-#include "Utilities/Invariant.hpp"
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif

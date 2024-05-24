@@ -1,7 +1,11 @@
 #pragma once
 
 #include "Math/AxisTypes.hpp"
+#include "Utilities/Invariant.hpp"
+#include <concepts>
 #include <cstddef>
+#include <iterator>
+#include <ostream>
 #include <type_traits>
 namespace poly::math {
 using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
@@ -60,8 +64,7 @@ template <std::integral B, std::integral E> struct Range<B, E> {
     return std::reverse_iterator{begin()};
   }
   [[nodiscard]] constexpr auto size() const { return e - b; }
-  friend inline auto operator<<(std::ostream &os,
-                                Range<B, E> r) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, Range<B, E> r) -> std::ostream & {
     return os << "[" << r.b << ":" << r.e << ")";
   }
   template <std::integral BB, std::integral EE>

@@ -297,7 +297,7 @@ struct POLY_MATH_GSL_POINTER Array {
   requires(std::is_same_v<S, StridedRange>)
   {
     const storage_type *p = ptr;
-    return StridedIterator{p, sz.stride};
+    return StridedIterator{p, sz.stride_};
   }
   [[nodiscard]] constexpr auto begin() const noexcept
     -> const storage_type *requires(isdense) { return ptr; }
@@ -663,7 +663,7 @@ struct POLY_MATH_GSL_POINTER MutArray
   requires(std::is_same_v<S, StridedRange>)
   {
     return StridedIterator{const_cast<storage_type *>(this->ptr),
-                           this->sz.stride};
+                           this->sz.stride_};
   }
   [[nodiscard]] constexpr auto
   begin() noexcept -> storage_type *requires(!std::is_same_v<S, StridedRange>) {

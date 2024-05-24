@@ -1,17 +1,24 @@
 #include "Alloc/Arena.hpp"
 #include "Containers/TinyVector.hpp"
 #include "Math/Array.hpp"
+#include "Math/Indexing.hpp"
 #include "Math/Math.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/SmallSparseMatrix.hpp"
 #include "Math/StaticArrays.hpp"
 #include "Utilities/MatrixStringParse.hpp"
+#include "Utilities/TypeCompression.hpp"
+#include "Utilities/TypePromotion.hpp"
+#include <algorithm>
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <ostream>
 #include <sstream>
+#include <tuple>
+#include <type_traits>
 
 using namespace poly::math;
 using poly::utils::operator""_mat;
@@ -297,18 +304,19 @@ TEST(SVectorTest, BasicAssertions) {
   SVector<int64_t, 3> w = x + y;
   EXPECT_EQ(w, z);
   EXPECT_TRUE(w == z);
-  constexpr auto constCmp = [](auto const &a, auto const &b) {
+  constexpr auto const_cmp = [](auto const &a, auto const &b) {
     return std::make_pair(a == b, std::is_constant_evaluated());
   };
-  Vector<int64_t> v{std::array{1, 2, 3}};
-  EXPECT_TRUE(constCmp(v.size(), unsigned(3)).first);
-  EXPECT_FALSE(constCmp(v.size(), unsigned(3)).second);
-  EXPECT_TRUE(constCmp(x.size(), unsigned(3)).first);
+  Vector<int64_t> v{poly::math::length(3)};
+  v << _(1, 4);
+  EXPECT_TRUE(const_cmp(v.size(), 3).first);
+  EXPECT_FALSE(const_cmp(v.size(), 3).second);
+  EXPECT_TRUE(const_cmp(x.size(), 3).first);
   // EXPECT_TRUE(constCmp(v.size()).first);
   // EXPECT_FALSE(constCmp(v.size()).second);
   // EXPECT_TRUE(constCmp(x.size()).first);
-  static_assert(constCmp(decltype(x)::size(), unsigned(3)).second);
-  static_assert(constCmp(decltype(x)::size(), decltype(y)::size()).second);
+  static_assert(const_cmp(decltype(x)::size(), unsigned(3)).second);
+  static_assert(const_cmp(decltype(x)::size(), decltype(y)::size()).second);
   // EXPECT_TRUE(constCmp(x.size()).second);
   // EXPECT_TRUE(constCmp(x.size(), unsigned(3)).second);
   // EXPECT_TRUE(constCmp(x.size(), y.size()).second);

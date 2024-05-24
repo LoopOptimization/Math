@@ -1,12 +1,33 @@
 #pragma once
 
 #include "Math/Array.hpp"
+#include "Math/ArrayOps.hpp"
 #include "Math/Indexing.hpp"
+#include "Math/Iterators.hpp"
+#include "Math/Matrix.hpp"
+#include "Math/MatrixDimensions.hpp"
+#include "SIMD/Intrin.hpp"
+#include "SIMD/Unroll.hpp"
+#include "SIMD/UnrollIndex.hpp"
+#include "SIMD/Vec.hpp"
+#include "Utilities/ArrayPrint.hpp"
+#include "Utilities/Assign.hpp"
+#include "Utilities/LoopMacros.hpp"
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <initializer_list>
+#include <iterator>
+#include <ostream>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 
 namespace poly::math {
 
@@ -400,14 +421,14 @@ struct StaticArray<T, M, N, false>
   [[gnu::flatten, gnu::always_inline]] inline auto
   operator[](simd::index::Unroll<R> i, simd::index::Unroll<C, W, Mask> j) const
     -> simd::Unroll<R, C, W, T> {
-    checkinds<R>(i.index, j.index);
+    checkinds<R>(i.index_, j.index_);
     simd::Unroll<R, C, W, T> ret;
-    ptrdiff_t k = j.index / W;
+    ptrdiff_t k = j.index_ / W;
     POLYMATHFULLUNROLL
     for (ptrdiff_t r = 0; r < R; ++r) {
       POLYMATHFULLUNROLL
       for (ptrdiff_t u = 0; u < C; ++u)
-        ret[r, u] = memory_[(i.index + r) * L + k + u];
+        ret[r, u] = memory_[(i.index_ + r) * L + k + u];
     }
     return ret;
   }
@@ -487,13 +508,13 @@ struct StaticArray<T, M, N, false>
   template <ptrdiff_t U, typename Mask>
   [[gnu::always_inline]] inline auto
   operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) -> Ref<1, U> {
-    return Ref<1, U>{this, i, j.index};
+    return Ref<1, U>{this, i, j.index_};
   }
   template <ptrdiff_t R, ptrdiff_t C, typename Mask>
   [[gnu::always_inline]] inline auto
   operator[](simd::index::Unroll<R> i,
              simd::index::Unroll<C, W, Mask> j) -> Ref<R, C> {
-    return Ref<R, C>{this, i.index, j.index};
+    return Ref<R, C>{this, i.index_, j.index_};
   }
   [[gnu::always_inline]] constexpr auto
   operator[](auto i) noexcept -> decltype(auto)
@@ -640,7 +661,7 @@ struct StaticArray<T, 1, N, false>
   [[gnu::always_inline]] inline auto
   operator[](simd::index::Unroll<R>, simd::index::Unroll<1, W, Mask> j) const
     -> simd::Unroll<R, 1, W, T> {
-    checkinds<R>(j.index);
+    checkinds<R>(j.index_);
     simd::Unroll<R, 1, W, T> ret;
     POLYMATHFULLUNROLL
     for (ptrdiff_t r = 0; r < R; ++r) ret[r, 0] = data_;
@@ -649,7 +670,7 @@ struct StaticArray<T, 1, N, false>
   struct Ref {
     StaticArray *parent;
     constexpr auto operator=(simd::Unroll<1, 1, W, T> x) -> Ref & {
-      parent->data_ = x.vec;
+      parent->data_ = x.vec_;
       return *this;
     }
     constexpr auto operator=(simd::Vec<W, T> x) -> Ref & {
