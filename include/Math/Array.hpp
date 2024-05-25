@@ -1553,7 +1553,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif
   constexpr ManagedArray(A a) noexcept
-    : BaseT{memory.data(), S{}, capacity(N), a} {
+    : BaseT{memory_.data(), S{}, capacity(N), a} {
 #ifndef NDEBUG
     if (!N) return;
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
@@ -1563,7 +1563,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
 #endif
   }
   constexpr ManagedArray(S s, A a) noexcept
-    : BaseT{memory.data(), s, capacity(N), a} {
+    : BaseT{memory_.data(), s, capacity(N), a} {
     U len = U(capacity(ptrdiff_t(this->sz)));
     if (len > N) this->allocateAtLeast(len);
 #ifndef NDEBUG
@@ -1576,7 +1576,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
 #endif
   }
   constexpr ManagedArray(S s, T x, A a) noexcept
-    : BaseT{memory.data(), s, capacity(N), a} {
+    : BaseT{memory_.data(), s, capacity(N), a} {
     auto len = ptrdiff_t(this->sz);
     if (len > N) this->allocateAtLeast(capacity(len));
     if (len) std::fill_n(this->data(), len, x);
@@ -1598,21 +1598,21 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   //   : ManagedArray(s, a){};
   constexpr ManagedArray(T x) noexcept
   requires(std::same_as<S, Length<>>)
-    : BaseT{memory.data(), S(length(1)), capacity(N), A{}} {
+    : BaseT{memory_.data(), S(length(1)), capacity(N), A{}} {
     if constexpr (N == 0) this->growUndef(1);
     this->push_back_within_capacity(std::move(x));
   }
 
   template <class D>
   constexpr ManagedArray(const ManagedArray<T, D, N, A> &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), capacity(N), b.get_allocator()} {
+    : BaseT{memory_.data(), S(b.dim()), capacity(N), b.get_allocator()} {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, N, AY> &b) noexcept
-    : BaseT{memory.data(), S{}, capacity(N), b.get_allocator()} {
+    : BaseT{memory_.data(), S{}, capacity(N), b.get_allocator()} {
     S d = b.dim();
     auto len = ptrdiff_t(d);
     this->growUndef(len);
@@ -1621,7 +1621,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <std::convertible_to<T> Y, size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
-    : BaseT{memory.data(), S{}, capacity(N)} {
+    : BaseT{memory_.data(), S{}, capacity(N)} {
     auto len = ptrdiff_t(M);
     this->growUndef(len);
     std::copy_n(il.begin(), len, this->data());
@@ -1629,7 +1629,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, N, AY> &b, S s) noexcept
-    : BaseT{memory.data(), S(s), capacity(N), b.get_allocator()} {
+    : BaseT{memory_.data(), S(s), capacity(N), b.get_allocator()} {
     auto len = ptrdiff_t(this->sz);
     invariant(len == U(b.size()));
     this->growUndef(len);
@@ -1637,26 +1637,26 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     for (ptrdiff_t i = 0; i < len; ++i) p[i] = b[i];
   }
   constexpr ManagedArray(const ManagedArray &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), capacity(N), b.get_allocator()} {
+    : BaseT{memory_.data(), S(b.dim()), capacity(N), b.get_allocator()} {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const Array<T, S> &b) noexcept
-    : BaseT{memory.data(), S(b.dim()), capacity(N)} {
+    : BaseT{memory_.data(), S(b.dim()), capacity(N)} {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     std::copy_n(b.data(), len, this->data());
   }
   template <AbstractSimilar<S> V>
   constexpr ManagedArray(const V &b) noexcept
-    : BaseT{memory.data(), S(shape(b)), capacity(N)} {
+    : BaseT{memory_.data(), S(shape(b)), capacity(N)} {
     this->growUndef(ptrdiff_t(this->sz));
     (*this) << b;
   }
   template <class D>
   constexpr ManagedArray(ManagedArray<T, D, N, A> &&b) noexcept
-    : BaseT{memory.data(), b.dim(), U(capacity(N)), b.get_allocator()} {
+    : BaseT{memory_.data(), b.dim(), U(capacity(N)), b.get_allocator()} {
     if (b.isSmall()) { // copy
       std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else { // steal
@@ -1666,7 +1666,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     b.resetNoFree();
   }
   constexpr ManagedArray(ManagedArray &&b) noexcept
-    : BaseT{memory.data(), b.dim(), U(capacity(N)), b.get_allocator()} {
+    : BaseT{memory_.data(), b.dim(), U(capacity(N)), b.get_allocator()} {
     if constexpr (N > 0) {
       if (b.isSmall()) { // copy
         std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
@@ -1682,7 +1682,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <class D>
   constexpr ManagedArray(ManagedArray<T, D, N, A> &&b, S s) noexcept
-    : BaseT{memory.data(), s, U(capacity(N)), b.get_allocator()} {
+    : BaseT{memory_.data(), s, U(capacity(N)), b.get_allocator()} {
     if (b.isSmall()) { // copy
       std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else { // steal
@@ -1693,7 +1693,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   template <std::convertible_to<T> Y>
   constexpr ManagedArray(const SmallSparseMatrix<Y> &B)
-    : BaseT{memory.data(), B.dim(), capacity(N)} {
+    : BaseT{memory_.data(), B.dim(), capacity(N)} {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     this->fill(0);
@@ -1712,14 +1712,14 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
   }
   constexpr ManagedArray(const ColVector auto &v)
   requires(MatrixDimension<S>)
-    : BaseT{memory.data(), S(shape(v)), U(capacity(N))} {
+    : BaseT{memory_.data(), S(shape(v)), U(capacity(N))} {
     this->growUndef(ptrdiff_t(this->sz));
     MutArray<T, decltype(v.dim())>(this->data(), v.dim()) << v;
     // (*this) << v;
   }
   constexpr ManagedArray(const RowVector auto &v)
   requires(MatrixDimension<S>)
-    : BaseT{memory.data(), S(CartesianIndex(1, v.size())), U(capacity(N))} {
+    : BaseT{memory_.data(), S(CartesianIndex(1, v.size())), U(capacity(N))} {
     this->growUndef(ptrdiff_t(this->sz));
     (*this) << v;
   }
@@ -1783,10 +1783,10 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     return *this;
   }
   [[nodiscard]] constexpr auto isSmall() const -> bool {
-    return this->data() == memory.data();
+    return this->data() == memory_.data();
   }
   constexpr void resetNoFree() {
-    this->ptr = memory.data();
+    this->ptr = memory_.data();
     this->sz = S{};
     this->capacity_ = capacity(N);
   }
@@ -1806,14 +1806,14 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ReallocView<T, S, A> {
     static_assert(MatrixDimension<S>);
     return identity(ptrdiff_t(C));
   }
-  friend inline void PrintTo(const ManagedArray &x, ::std::ostream *os)
+  friend void PrintTo(const ManagedArray &x, ::std::ostream *os)
   requires(utils::Printable<T>)
   {
     *os << x;
   }
 
 private:
-  [[no_unique_address]] containers::Storage<storage_type, N> memory;
+  [[no_unique_address]] containers::Storage<storage_type, N> memory_;
 };
 
 static_assert(std::move_constructible<ManagedArray<intptr_t, Length<>>>);
