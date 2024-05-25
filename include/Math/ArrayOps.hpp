@@ -181,8 +181,10 @@ vcopyToSIMD(math::MutArray<T, S, Compress> self, const RHS &B, I L, R row,
     //   utils::assign(self, B, row, u, op);
     // }
     ptrdiff_t i = 0;
-    for (; i <= L - 64; i += 64) {
-      simd::index::Unroll<64 / W, W> u{i};
+    static constexpr ptrdiff_t vbody = std::min(4 * W, ptrdiff_t(64));
+    POLYMATHNOUNROLL
+    for (; i <= L - vbody; i += vbody) {
+      simd::index::Unroll<vbody / W, W> u{i};
       utils::assign(self, B, row, u, op);
     }
     if (i < L) {
@@ -209,12 +211,11 @@ vcopyToSIMD(math::MutArray<T, S, Compress> self, const RHS &B, I L, R row,
     // }
 #else
     ptrdiff_t i = 0;
-    for (ptrdiff_t j = W; j <= L; j += W) {
+    for (; i <= L - W; i += W) {
       simd::index::Unroll<1, W> u{i};
       utils::assign(self, B, row, u, op);
-      i = j;
     }
-    if (ptrdiff_t M = L % W) {
+    if (ptrdiff_t M = L - i) {
       auto u{simd::index::tailmask<W>(i, M)};
       utils::assign(self, B, row, u, op);
     }
