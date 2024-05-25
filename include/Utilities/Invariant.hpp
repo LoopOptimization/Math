@@ -8,14 +8,14 @@
 
 namespace poly::utils {
 
-[[gnu::noinline]] static void errorReport(std::source_location location) {
+[[gnu::noinline]] inline void errorReport(std::source_location location) {
   std::cout << "invariant violation\nfile: " << location.file_name() << ":"
             << location.line() << ":" << location.column() << " `"
             << location.function_name() << "`\n";
   __builtin_trap();
 }
 template <typename T>
-[[gnu::noinline]] static void errorReport(T x, T y,
+[[gnu::noinline]] inline void errorReport(T x, T y,
                                           std::source_location location) {
   std::cout << x << " != " << y << "\n";
   errorReport(location);
@@ -42,6 +42,12 @@ invariant(T x, T y,
 #include <utility>
 #endif
 namespace poly::utils {
+// [[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(bool)
+// {}
+
+// template <typename T>
+// [[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T, T)
+// {}
 [[gnu::artificial, gnu::always_inline]] constexpr inline void
 invariant(bool condition) {
 

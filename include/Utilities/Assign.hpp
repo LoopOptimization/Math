@@ -1,8 +1,7 @@
 #pragma once
-#ifndef POLY_UTILITIES_Assign_hpp_INCLUDED
-#define POLY_UTILITIES_Assign_hpp_INCLUDED
 #include <Math/Matrix.hpp>
 #include <Utilities/TypePromotion.hpp>
+#include <concepts>
 #include <functional>
 namespace poly::utils {
 
@@ -54,4 +53,3 @@ assign(D &d, const S &s, R r, C c, Op op) {
 
 } // namespace poly::utils
 
-#endif // Assign_hpp_INCLUDED

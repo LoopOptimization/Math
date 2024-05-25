@@ -696,6 +696,32 @@ struct UnrollRef {
     }
     return *this;
   }
+  constexpr auto operator=(Unroll<1, C, N, T> x) -> UnrollRef &
+  requires((!Transposed) && (R != 1))
+  {
+    auto rs = ptrdiff_t(row_stride_);
+    T *p = ptr_;
+    POLYMATHFULLUNROLL
+    for (ptrdiff_t r = 0; r < R; ++r, p += rs) {
+      if constexpr (NM == 0) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C; ++c)
+          store<T>(p + c * W, mask::None<W>{}, x[0, c]);
+      } else if constexpr (NM == C) {
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C; ++c) {
+          auto msk = masks_[c];
+          store<T>(p + c * W, msk, x[0, c]);
+        }
+      } else { // NM == 1
+        POLYMATHFULLUNROLL
+        for (ptrdiff_t c = 0; c < C - 1; ++c)
+          store<T>(p + c * W, mask::None<W>{}, x[0, c]);
+        store<T>(p + (C - 1) * W, masks_[0], x[0, C - 1]);
+      }
+    }
+    return *this;
+  }
   constexpr auto operator=(Unroll<R, C, 1, T> x)
     -> UnrollRef &requires(!Transposed && (N != 1)) {
     auto rs = ptrdiff_t(row_stride_);

@@ -89,7 +89,7 @@ exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
   } else {
     simd::Unroll<R, U, W, double> ret;
     for (ptrdiff_t i = 0; i < R * U; ++i)
-      ret.data[i] = exp_impl<B, W>(x.data[i]);
+      ret.data_[i] = exp_impl<B, W>(x.data_[i]);
     return ret;
   }
 }

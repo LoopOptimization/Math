@@ -278,13 +278,13 @@ struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
     return memory_[I];
   }
   constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) { memory_[r * N + c] = x; }
-  friend inline void PrintTo(const StaticArray &x, ::std::ostream *os) {
+  friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
 
 private:
-  friend inline auto operator<<(std::ostream &os,
-                                const StaticArray &x) -> std::ostream &
+  friend auto operator<<(std::ostream &os,
+                         const StaticArray &x) -> std::ostream &
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
@@ -403,7 +403,7 @@ struct StaticArray<T, M, N, false>
     return {data(), SHAPE(dim())};
   }
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] inline auto
+  [[gnu::always_inline]] auto
   operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const
     -> simd::Unroll<1, U, W, T> {
     return (*this)[simd::index::Unroll<1>{i}, j];
@@ -418,7 +418,7 @@ struct StaticArray<T, M, N, false>
     invariant((j % W) == 0);
   }
   template <ptrdiff_t R, ptrdiff_t C, typename Mask>
-  [[gnu::flatten, gnu::always_inline]] inline auto
+  [[gnu::flatten, gnu::always_inline]] auto
   operator[](simd::index::Unroll<R> i, simd::index::Unroll<C, W, Mask> j) const
     -> simd::Unroll<R, C, W, T> {
     checkinds<R>(i.index_, j.index_);
@@ -460,27 +460,27 @@ struct StaticArray<T, M, N, false>
     }
   }
   template <ptrdiff_t R, ptrdiff_t C> struct Ref {
-    StaticArray *parent;
-    ptrdiff_t i, j;
+    StaticArray *parent_;
+    ptrdiff_t i_, j_;
     constexpr auto operator=(simd::Unroll<R, C, W, T> x) -> Ref & {
-      checkinds<R>(i, j);
-      ptrdiff_t k = j / W;
+      checkinds<R>(i_, j_);
+      ptrdiff_t k = j_ / W;
       POLYMATHFULLUNROLL
       for (ptrdiff_t r = 0; r < R; ++r) {
         POLYMATHFULLUNROLL
         for (ptrdiff_t u = 0; u < C; ++u)
-          parent->memory_[(i + r) * L + k + u] = x[r, u];
+          parent_->memory_[(i_ + r) * L + k + u] = x[r, u];
       }
       return *this;
     }
     constexpr auto operator=(simd::Vec<W, T> x) -> Ref & {
-      checkinds<R>(i, j);
-      ptrdiff_t k = j / W;
+      checkinds<R>(i_, j_);
+      ptrdiff_t k = j_ / W;
       POLYMATHFULLUNROLL
       for (ptrdiff_t r = 0; r < R; ++r) {
         POLYMATHFULLUNROLL
         for (ptrdiff_t u = 0; u < C; ++u)
-          parent->memory_[(i + r) * L + k + u] = x;
+          parent_->memory_[(i_ + r) * L + k + u] = x;
       }
       return *this;
     }
@@ -490,7 +490,7 @@ struct StaticArray<T, M, N, false>
     }
     constexpr operator simd::Unroll<R, C, W, T>() {
       return (*const_cast<const StaticArray *>(
-        parent))[simd::index::Unroll<R>{i}, simd::index::Unroll<C, W>{j}];
+        parent_))[simd::index::Unroll<R>{i_}, simd::index::Unroll<C, W>{j_}];
     }
     constexpr auto operator+=(const auto &x) -> Ref & {
       return (*this) = simd::Unroll<R, C, W, T>(*this) + x;
@@ -506,12 +506,12 @@ struct StaticArray<T, M, N, false>
     }
   };
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] inline auto
+  [[gnu::always_inline]] auto
   operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) -> Ref<1, U> {
     return Ref<1, U>{this, i, j.index_};
   }
   template <ptrdiff_t R, ptrdiff_t C, typename Mask>
-  [[gnu::always_inline]] inline auto
+  [[gnu::always_inline]] auto
   operator[](simd::index::Unroll<R> i,
              simd::index::Unroll<C, W, Mask> j) -> Ref<R, C> {
     return Ref<R, C>{this, i.index_, j.index_};
@@ -539,13 +539,13 @@ struct StaticArray<T, M, N, false>
   template <std::size_t I> [[nodiscard]] constexpr auto get() const -> T {
     return memory_[I / W][I % W];
   }
-  friend inline void PrintTo(const StaticArray &x, ::std::ostream *os) {
+  friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
 
 private:
-  friend inline auto operator<<(std::ostream &os,
-                                const StaticArray &x) -> std::ostream &
+  friend auto operator<<(std::ostream &os,
+                         const StaticArray &x) -> std::ostream &
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
@@ -641,13 +641,13 @@ struct StaticArray<T, 1, N, false>
   size() noexcept -> std::integral_constant<ptrdiff_t, N> {
     return {};
   }
-  inline auto operator[](ptrdiff_t, ptrdiff_t j) -> T & { return data()[j]; }
-  inline auto operator[](ptrdiff_t, ptrdiff_t j) const -> T { return data_[j]; }
-  inline auto operator[](ptrdiff_t j) -> T & { return data()[j]; }
-  inline auto operator[](ptrdiff_t j) const -> T { return data_[j]; }
+  auto operator[](ptrdiff_t, ptrdiff_t j) -> T & { return data()[j]; }
+  auto operator[](ptrdiff_t, ptrdiff_t j) const -> T { return data_[j]; }
+  auto operator[](ptrdiff_t j) -> T & { return data()[j]; }
+  auto operator[](ptrdiff_t j) const -> T { return data_[j]; }
   template <typename Mask>
-  [[gnu::always_inline]] inline auto
-  operator[](ptrdiff_t, simd::index::Unroll<1, W, Mask>) const
+  [[gnu::always_inline]] auto operator[](ptrdiff_t,
+                                         simd::index::Unroll<1, W, Mask>) const
     -> simd::Unroll<1, 1, W, T> {
     return {data_};
   }
@@ -658,7 +658,7 @@ struct StaticArray<T, 1, N, false>
     invariant((j % W) == 0);
   }
   template <ptrdiff_t R, typename Mask>
-  [[gnu::always_inline]] inline auto
+  [[gnu::always_inline]] auto
   operator[](simd::index::Unroll<R>, simd::index::Unroll<1, W, Mask> j) const
     -> simd::Unroll<R, 1, W, T> {
     checkinds<R>(j.index_);
@@ -668,20 +668,20 @@ struct StaticArray<T, 1, N, false>
     return ret;
   }
   struct Ref {
-    StaticArray *parent;
+    StaticArray *parent_;
     constexpr auto operator=(simd::Unroll<1, 1, W, T> x) -> Ref & {
-      parent->data_ = x.vec_;
+      parent_->data_ = x.vec_;
       return *this;
     }
     constexpr auto operator=(simd::Vec<W, T> x) -> Ref & {
-      parent->data_ = x;
+      parent_->data_ = x;
       return *this;
     }
     constexpr auto operator=(std::convertible_to<T> auto x) -> Ref & {
       *this = simd::vbroadcast<W, T>(x);
       return *this;
     }
-    constexpr operator simd::Unroll<1, 1, W, T>() { return {parent->data_}; }
+    constexpr operator simd::Unroll<1, 1, W, T>() { return {parent_->data_}; }
     constexpr auto operator+=(const auto &x) -> Ref & {
       return (*this) = simd::Unroll<1, 1, W, T>(*this) + x;
     }
@@ -696,12 +696,12 @@ struct StaticArray<T, 1, N, false>
     }
   };
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] inline auto
+  [[gnu::always_inline]] auto
   operator[](ptrdiff_t, simd::index::Unroll<1, W, Mask>) -> Ref {
     return Ref{this};
   }
   template <ptrdiff_t R, typename Mask>
-  [[gnu::always_inline]] inline auto
+  [[gnu::always_inline]] auto
   operator[](simd::index::Unroll<R>, simd::index::Unroll<1, W, Mask>) -> Ref {
     return Ref{this};
   }
@@ -733,10 +733,22 @@ struct StaticArray<T, 1, N, false>
                 : data_;
     }
   }
+  template <typename SHAPE>
+  constexpr operator Array<T, SHAPE, false>() const
+  requires(std::convertible_to<S, SHAPE>)
+  {
+    return {const_cast<T *>(data()), SHAPE(dim())};
+  }
+  template <typename SHAPE>
+  constexpr operator MutArray<T, SHAPE, false>()
+  requires(std::convertible_to<S, SHAPE>)
+  {
+    return {data(), SHAPE(dim())};
+  }
 
 private:
-  friend inline auto operator<<(std::ostream &os,
-                                const StaticArray &x) -> std::ostream &
+  friend auto operator<<(std::ostream &os,
+                         const StaticArray &x) -> std::ostream &
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
@@ -761,7 +773,7 @@ static_assert(RowVector<StaticArray<int64_t, 1, 4, false>>);
 static_assert(RowVector<StaticArray<int64_t, 1, 4, true>>);
 
 template <class T, ptrdiff_t M, ptrdiff_t N>
-inline constexpr auto view(const StaticArray<T, M, N> &x) {
+constexpr auto view(const StaticArray<T, M, N> &x) {
   return x.view();
 }
 

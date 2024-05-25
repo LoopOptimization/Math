@@ -29,6 +29,17 @@ struct Unroll {
       return ret;
     } else return {::poly::simd::range<W, I>() + index_};
   }
+#ifdef __AVX512F__
+  template <ptrdiff_t S>
+  constexpr auto sub()
+  requires(std::same_as<M, mask::Bit<W>>)
+  {
+    static_assert((S <= W) && (U == 1));
+    Unroll<1, S, mask::Bit<S>> u{index_, mask_.template sub<S>()};
+    index_ += S;
+    return u;
+  }
+#endif
 
 private:
   friend constexpr auto operator+(Unroll a, ptrdiff_t b) -> Unroll {
@@ -161,6 +172,19 @@ template <ptrdiff_t U, ptrdiff_t W>
   auto m{mask::create<W>(i + (U - 1) * W, L)};
   return Unroll<U, W, decltype(m)>{i, m};
 };
+#ifdef __AVX512VL__
+template <ptrdiff_t W>
+[[gnu::always_inline]] constexpr auto
+tailmask(ptrdiff_t i, ptrdiff_t m) -> Unroll<1, W, mask::Bit<W>> {
+  return {i, mask::createSmallPositive<W>(m)};
+}
+#else
+template <ptrdiff_t W>
+[[gnu::always_inline]] constexpr auto tailmask(ptrdiff_t i, ptrdiff_t m) {
+  auto mask{mask::create<W>(i, i + m)};
+  return Unroll<1, W, decltype(mask)>{i, mask};
+}
+#endif
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 static constexpr bool issimd<Unroll<U, W, M>> = true;
 } // namespace poly::simd::index

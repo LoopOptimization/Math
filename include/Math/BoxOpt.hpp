@@ -59,8 +59,8 @@ public:
 #ifdef __AVX512F__
       auto m = simd::cmp::ge<W, int>(j.vec_, simd::Vec<W, int>{});
 #else
-      decltype(i.mask_) m = simd::cmp::ge<W, int64_t>(simd::zextelts<W>(j.vec_),
-                                                      simd::Vec<W, int64_t>{});
+      auto m = simd::cmp::ge<W, int64_t>(simd::zextelts<W>(j.vec_),
+                                         simd::Vec<W, int64_t>{});
 #endif
       V xload = simd::gather(x.data(), i.mask_ & m, j.vec_);
       y.vec_ = simd::select<double>(
@@ -68,10 +68,10 @@ public:
     } else {
       POLYMATHFULLUNROLL
       for (ptrdiff_t u = 0; u < U; ++u) {
-        auto m = simd::cmp::ge<W, int>(j.data[u], simd::Vec<W, int>{});
-        V xload = simd::gather(x.data(), i.mask_ & m, j.data[u]);
-        y.data[u] =
-          select(m, scale.data[u] * sigmoid(xload) + off.data[u], off.data[u]);
+        auto m = simd::cmp::ge<W, int>(j.data_[u], simd::Vec<W, int>{});
+        V xload = simd::gather(x.data(), i.mask_ & m, j.data_[u]);
+        y.data_[u] = simd::select<double>(
+          m, scale.data_[u] * sigmoid<W>(xload) + off.data_[u], off.data_[u]);
       }
     }
     return y;

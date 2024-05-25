@@ -1,6 +1,9 @@
 #pragma once
 #include "SIMD/Vec.hpp"
+#include "Utilities/Invariant.hpp"
+#include <algorithm>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -130,27 +133,33 @@ template <ptrdiff_t W> struct None {
 #ifdef __x86_64__
 #ifdef __AVX512F__
 template <ptrdiff_t W> struct Bit {
-  uint64_t mask;
+  uint64_t mask_;
   template <std::unsigned_integral U> explicit constexpr operator U() {
-    return U(mask);
+    return U(mask_);
   }
-  explicit constexpr operator bool() const { return mask; }
+  explicit constexpr operator bool() const { return mask_; }
   [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
-    return std::countr_zero(mask);
+    return std::countr_zero(mask_);
   }
   [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
     if constexpr (W < 64) {
       // could make this `countr_ones` if we decide to only
       // support leading masks
-      uint64_t m = mask & ((uint64_t(1) << W) - uint64_t(1));
+      uint64_t m = mask_ & ((uint64_t(1) << W) - uint64_t(1));
       return 64 - ptrdiff_t(std::countl_zero(m));
-    } else return 64 - ptrdiff_t(std::countl_zero(mask));
+    } else return 64 - ptrdiff_t(std::countl_zero(mask_));
+  }
+  template <ptrdiff_t S> [[nodiscard]] constexpr auto sub() -> Bit<S> {
+    static_assert(S <= W);
+    uint64_t s = mask_;
+    mask_ >>= S;
+    return {s};
   }
 
 private:
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator&(Bit<W> a, Bit<W> b) -> Bit<W> {
-    return {a.mask & b.mask};
+    return {a.mask_ & b.mask_};
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator&(None<W>, Bit<W> b) -> Bit<W> {
@@ -162,7 +171,7 @@ private:
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator|(Bit<W> a, Bit<W> b) -> Bit<W> {
-    return {a.mask | b.mask};
+    return {a.mask_ | b.mask_};
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator|(None<W>, Bit<W>) -> Bit<W> {
@@ -188,9 +197,17 @@ template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Bit<W> {
   static_assert(std::popcount(size_t(W)) == 1);
   uint64_t x;
-  if (__builtin_sub_overflow(len, i, &x)) x = 0;
-  else x = std::min(x, uint64_t(255));
+  if (__builtin_sub_overflow(len, i, &x)) return {0};
+  if (x >= 64) return {0xffffffffffffffff};
   return {_bzhi_u64(0xffffffffffffffff, x)};
+};
+// Requires: 0 <= m <= 255
+template <ptrdiff_t W>
+constexpr auto createSmallPositive(ptrdiff_t m) -> Bit<W> {
+  static_assert(std::popcount(size_t(W)) == 1);
+  utils::invariant(0 <= m);
+  utils::invariant(m <= 255);
+  return {_bzhi_u64(0xffffffffffffffff, uint64_t(m))};
 };
 
 template <ptrdiff_t W> using Mask = Bit<W>;

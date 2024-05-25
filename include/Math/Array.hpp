@@ -2,6 +2,7 @@
 
 #include "Alloc/Arena.hpp"
 #include "Alloc/Mallocator.hpp"
+#include "Containers/Pair.hpp"
 #include "Containers/Storage.hpp"
 #include "Math/ArrayOps.hpp"
 #include "Math/AxisTypes.hpp"
@@ -10,13 +11,19 @@
 #include "Math/Matrix.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/Rational.hpp"
+#include "SIMD/Intrin.hpp"
+#include "SIMD/UnrollIndex.hpp"
 #include "Utilities/ArrayPrint.hpp"
+#include "Utilities/Assign.hpp"
+#include "Utilities/LoopMacros.hpp"
 #include "Utilities/Optional.hpp"
 #include "Utilities/Reference.hpp"
 #include "Utilities/TypeCompression.hpp"
+#include "Utilities/TypePromotion.hpp"
 #include "Utilities/Valid.hpp"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <charconv>
 #include <compare>
 #include <concepts>
@@ -24,11 +31,15 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <string_view>
+#include <system_error>
 #include <type_traits>
 #include <utility>
 #include <version>
@@ -56,8 +67,6 @@
 
 namespace poly::math {
 using axis::unwrapRow, axis::unwrapCol;
-template <typename S>
-concept Dimension = VectorDimension<S> != MatrixDimension<S>;
 
 static_assert(Dimension<Length<>>);
 static_assert(Dimension<DenseDims<3, 2>>);
@@ -85,8 +94,6 @@ using utils::Valid, utils::Optional;
 
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct Array;
-template <class T, Dimension S, bool Compress = utils::Compressible<T>>
-struct MutArray;
 
 template <typename T>
 inline auto printMatrix(std::ostream &os,
@@ -2096,6 +2103,99 @@ inline auto printMatrix(std::ostream &os,
     }
   }
   return os << " ]";
+}
+
+template <class T, class S, class P>
+template <typename Op, typename RHS>
+void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
+  // static_assert(sizeof(utils::eltype_t<decltype(B)>) <= 8);
+  MutArray<T, S, !std::same_as<T *, decltype(data_())>> self{Self()};
+  // P &self{Self()};
+  auto [M, N] = promote_shape(self, B);
+  constexpr bool assign = std::same_as<Op, utils::CopyAssign>;
+  using PT = utils::promote_eltype_t<P, RHS>;
+#ifdef CASTTOSCALARIZE
+  using E = math::scalarize_via_cast_t<
+    std::remove_cvref_t<decltype(std::declval<P>().view())>>;
+  if constexpr (!std::same_as<E, void> &&
+                ((math::ScalarizeViaCastTo<E, decltype(B)>()) ||
+                 (std::same_as<std::remove_cvref_t<decltype(B)>, double> &&
+                  std::same_as<Op, std::multiplies<>>))) {
+    auto d{reinterpret<E>(Self())};
+    if constexpr (assign) d << reinterpret<E>(B);
+    else d << op(d, reinterpret<E>(B));
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
+  } else if constexpr (simd::SIMDSupported<PT>) {
+#else
+  } else if constexpr (AbstractVector<P>) {
+#endif
+#elifndef POLYMATHNOEXPLICITSIMDARRAY
+  if constexpr (simd::SIMDSupported<PT>) {
+#else
+  if constexpr (AbstractVector<P>) {
+#endif
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
+    if constexpr (IsOne<decltype(M)>)
+      vcopyToSIMD(self, B, N, utils::NoRowIndex{}, op);
+    else if constexpr (IsOne<decltype(N)>)
+      vcopyToSIMD(self, B, M, utils::NoRowIndex{}, op);
+    else if constexpr (StaticInt<decltype(M)>) {
+      constexpr std::array<ptrdiff_t, 2> UIR = unrollf<ptrdiff_t(M)>();
+      constexpr ptrdiff_t U = UIR[0];
+      if constexpr (U != 0)
+        for (ptrdiff_t r = 0; r < (M - U + 1); r += U)
+          vcopyToSIMD(self, B, N, simd::index::Unroll<U>{r}, op);
+      constexpr ptrdiff_t R = UIR[1];
+      if constexpr (R != 0)
+        vcopyToSIMD(self, B, N, simd::index::Unroll<R>{M - R}, op);
+    } else {
+      ptrdiff_t r = 0;
+      for (; r < (M - 3); r += 4)
+        vcopyToSIMD(self, B, N, simd::index::Unroll<4>{r}, op);
+      switch (M & 3) {
+      case 0: return;
+      case 1: return vcopyToSIMD(self, B, N, simd::index::Unroll<1>{r}, op);
+      case 2: return vcopyToSIMD(self, B, N, simd::index::Unroll<2>{r}, op);
+      default: return vcopyToSIMD(self, B, N, simd::index::Unroll<3>{r}, op);
+      }
+    }
+  } else if constexpr (AbstractVector<P>) {
+#endif
+    ptrdiff_t L = IsOne<decltype(N)> ? M : N;
+    constexpr bool isstatic =
+      IsOne<decltype(N)> ? StaticInt<decltype(M)> : StaticInt<decltype(N)>;
+    if constexpr (!std::is_copy_assignable_v<PT> && assign) {
+      POLYMATHIVDEP
+      for (ptrdiff_t j = 0; j < L; ++j)
+        if constexpr (std::convertible_to<decltype(B), PT>) self[j] = auto{B};
+        else self[j] = auto{B[j]};
+    } else if constexpr (isstatic) {
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t j = 0; j < L; ++j)
+        utils::assign(self, B, utils::NoRowIndex{}, j, op);
+    } else {
+      POLYMATHIVDEP
+      for (ptrdiff_t j = 0; j < L; ++j)
+        utils::assign(self, B, utils::NoRowIndex{}, j, op);
+    }
+  } else {
+    ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
+    POLYMATHNOVECTORIZE
+    for (ptrdiff_t i = 0; i < R; ++i) {
+      if constexpr (!std::is_copy_assignable_v<PT> && assign) {
+        POLYMATHIVDEP
+        for (ptrdiff_t j = 0; j < C; ++j)
+          if constexpr (std::convertible_to<decltype(B), PT>)
+            self[i, j] = auto{B};
+          else if constexpr (RowVector<decltype(B)>) self[i, j] = auto{B[j]};
+          else if constexpr (ColVector<decltype(B)>) self[i, j] = auto{B[i]};
+          else self[i, j] = auto{B[i, j]};
+      } else {
+        POLYMATHIVDEP
+        for (ptrdiff_t j = 0; j < C; ++j) utils::assign(self, B, i, j, op);
+      }
+    }
+  }
 }
 
 } // namespace poly::math
