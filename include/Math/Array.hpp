@@ -1251,7 +1251,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   //   : ManagedArray(s, a){};
   constexpr ManagedArray(T x) noexcept
   requires(std::same_as<S, Length<>>)
-    : BaseT{memory_.data(), S(length(1)), capacity(StackStorage)},
+    : BaseT{memory_.data(), S{}, capacity(StackStorage)},
       allocator_(A{}) {
     if constexpr (StackStorage == 0) this->growUndef(1);
     this->push_back_within_capacity(std::move(x));
@@ -1502,21 +1502,17 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     reallocForSize(nz);
     this->sz = nz;
   }
-  constexpr void resize(Row<> r) {
-    if constexpr (std::same_as<S, Length<>>) {
-      return resize(S(r));
-    } else if constexpr (MatrixDimension<S>) {
-      S nz = this->sz;
-      return resize(nz.set(r));
-    }
+  constexpr void resize(Row<> r)
+  requires(std::same_as<S, Length<>> || MatrixDimension<S>)
+  {
+    if constexpr (std::same_as<S, Length<>>) return resize(S(r));
+    else return resize(auto{this->sz}.set(r));
   }
-  constexpr void resize(Col<> c) {
-    if constexpr (std::same_as<S, Length<>>) {
-      return resize(S(c));
-    } else if constexpr (MatrixDimension<S>) {
-      S nz = this->sz;
-      return resize(nz.set(c));
-    }
+  constexpr void resize(Col<> c)
+  requires(std::same_as<S, Length<>> || MatrixDimension<S>)
+  {
+    if constexpr (std::same_as<S, Length<>>) return resize(S(c));
+    else if constexpr (MatrixDimension<S>) return resize(auto{this->sz}.set(c));
   }
   constexpr void resizeForOverwrite(S M) {
     auto nz = ptrdiff_t(M);

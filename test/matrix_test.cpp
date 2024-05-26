@@ -161,8 +161,7 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
     "-67 -174 -36 -69 -177]"_mat};
   EXPECT_EQ(m7EpAD, refADm7E);
 
-  Vector<int64_t> a;
-  a.push_back(-8);
+  Vector<int64_t> a{-8};
   a.push_back(7);
   a.push_back(3);
   Vector<int64_t> b = a * 2;
