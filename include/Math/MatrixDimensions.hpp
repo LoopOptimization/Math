@@ -1,7 +1,11 @@
 #pragma once
 
 #include "Math/AxisTypes.hpp"
+#include "Utilities/Invariant.hpp"
+#include <algorithm>
+#include <concepts>
 #include <cstddef>
+#include <ostream>
 #include <type_traits>
 
 namespace poly::math {

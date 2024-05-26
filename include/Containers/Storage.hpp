@@ -10,6 +10,7 @@
 namespace poly::containers {
 template <typename T, ptrdiff_t N> struct Storage {
   static_assert(N > 0);
+  // We can avoid `reinterpret_cast` if we have trivial/implicit lifetime types.
   static constexpr bool trivial =
     std::is_trivially_default_constructible_v<T> &&
     std::is_trivially_destructible_v<T>;
@@ -26,7 +27,7 @@ template <typename T, ptrdiff_t N> struct Storage {
   }
   constexpr Storage() {} // NOLINT (modernize-use-equals-default)
 };
-template <typename T> struct alignas(T) Storage<T, 0> {
+template <typename T> struct Storage<T, 0> {
   static constexpr auto data() -> T * { return nullptr; }
 };
 
