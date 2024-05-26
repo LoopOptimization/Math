@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.24)
 
 # # ---- Static Analyzers ---- find_program(CLANGTIDY clang-tidy) if(NOT
 # CLANGTIDY MATCHES CLANGTIDY-NOTFOUND) set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY})
@@ -35,21 +35,15 @@ if(((USE_SANITIZER MATCHES "([Aa]ddress)") OR (USE_SANITIZER MATCHES
   endif()
 endif()
 
-cpmaddpackage(
-  NAME
+include(FetchContent)
+FetchContent_Declare(
   googletest
-  GITHUB_REPOSITORY
-  google/googletest
-  GIT_TAG
-  v1.13.0
-  VERSION
-  1.13.0
-  SYSTEM
-  TRUE
-  OPTIONS
-  "INSTALL_GTEST OFF"
-  "BUILD_GMOCK OFF"
-  "gtest_hide_internal_symbols ON")
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        305e5a238b3c8d11266fbafd85520fb6b3184851 # May 24, 2024 main
+  FIND_PACKAGE_ARGS NAMES GTest
+)
+FetchContent_MakeAvailable(googletest)
+
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
