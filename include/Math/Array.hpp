@@ -502,7 +502,7 @@ struct POLY_MATH_GSL_POINTER Array {
       }
     }
   }
-  friend inline void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
+  friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
   [[nodiscard]] friend constexpr auto
   operator<=>(Array x, Array y) -> std::strong_ordering {
     ptrdiff_t M = x.size();
@@ -523,12 +523,19 @@ struct POLY_MATH_GSL_POINTER Array {
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  friend inline auto operator<<(std::ostream &os, Array x) -> std::ostream &
+  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
+  }
+  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+    -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
+  requires(VectorDimension<S>)
+  {
+    invariant(at <= size());
+    return {(*this)[_(0, at)], (*this)[_(at, math::end)]};
   }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
@@ -1251,8 +1258,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   //   : ManagedArray(s, a){};
   constexpr ManagedArray(T x) noexcept
   requires(std::same_as<S, Length<>>)
-    : BaseT{memory_.data(), S{}, capacity(StackStorage)},
-      allocator_(A{}) {
+    : BaseT{memory_.data(), S{}, capacity(StackStorage)}, allocator_(A{}) {
     if constexpr (StackStorage == 0) this->growUndef(1);
     this->push_back_within_capacity(std::move(x));
   }

@@ -404,6 +404,11 @@ TEST(TinyVectorTest, BasicAssertions) {
 TEST(NonTriviallyDestructible, BasicAssertions) {
   // 2 + 2*100, 3 + 2*100, 4 + 2*100
   Vector<int64_t> y{std::array<int64_t, 3>{204, 205, 206}};
+  for (ptrdiff_t i = 0; i < 4; ++i) {
+    auto [a, b] = y.split(i);
+    EXPECT_EQ(a, y[_(0, i)]);
+    EXPECT_EQ(b, y[_(i, end)]);
+  }
   Vector<int64_t> z{std::array<int64_t, 3>{0, 1, 2}};
   Vector<Vector<int64_t, 0>, 0> x;
   for (ptrdiff_t i = 0; i < 102; i += 2)
