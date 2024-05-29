@@ -409,6 +409,11 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
     EXPECT_EQ(a, y[_(0, i)]);
     EXPECT_EQ(b, y[_(i, end)]);
   }
+  {
+    auto [a, b] = y.popFront();
+    EXPECT_EQ(a, y[0]);
+    EXPECT_EQ(b, y[_(1, end)]);
+  }
   Vector<int64_t> z{std::array<int64_t, 3>{0, 1, 2}};
   Vector<Vector<int64_t, 0>, 0> x;
   for (ptrdiff_t i = 0; i < 102; i += 2)

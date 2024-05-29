@@ -537,6 +537,13 @@ struct POLY_MATH_GSL_POINTER Array {
     invariant(at <= size());
     return {(*this)[_(0, at)], (*this)[_(at, math::end)]};
   }
+  [[nodiscard]] constexpr auto
+  popFront() const -> containers::Pair<T, Array<T, Length<>>>
+  requires(VectorDimension<S>)
+  {
+    invariant(0 < size());
+    return {ptr[0], (*this)[_(1, math::end)]};
+  }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
     // we can't combine `gnu::used` with `requires(utils::Printable<T>)`
