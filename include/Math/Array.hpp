@@ -596,8 +596,8 @@ struct POLY_MATH_GSL_POINTER MutArray
   explicit constexpr MutArray() = default;
   constexpr MutArray(const MutArray &) = default;
   constexpr MutArray(MutArray &&) noexcept = default;
-  constexpr auto operator=(const MutArray &) -> MutArray & = delete;
-  // constexpr auto operator=(const MutArray &) -> MutArray & = default;
+  // constexpr auto operator=(const MutArray &) -> MutArray & = delete;
+  constexpr auto operator=(const MutArray &) -> MutArray & = default;
   constexpr auto operator=(MutArray &&) noexcept -> MutArray & = default;
   constexpr MutArray(storage_type *p, S s) : BaseT(p, s) {}
 
@@ -1183,7 +1183,7 @@ protected:
 };
 
 static_assert(std::is_copy_assignable_v<Array<void *, Length<>>>);
-static_assert(!std::is_copy_assignable_v<MutArray<void *, Length<>>>);
+static_assert(std::is_copy_assignable_v<MutArray<void *, Length<>>>);
 static_assert(std::is_trivially_copyable_v<MutArray<void *, Length<>>>);
 static_assert(std::is_trivially_move_assignable_v<MutArray<void *, Length<>>>);
 [[nodiscard]] constexpr auto newCapacity(ptrdiff_t c) -> ptrdiff_t {
