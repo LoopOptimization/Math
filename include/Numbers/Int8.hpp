@@ -24,8 +24,18 @@ private:
   }
 
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator++(strong &x) -> strong & {
+    x = static_cast<strong>(static_cast<T>(x) + T{1});
+    return x;
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator++(strong &&x) -> decltype(auto) {
     x = static_cast<strong>(static_cast<T>(x) + T{1});
+    return x;
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator--(strong &x) -> strong & {
+    x = static_cast<strong>(static_cast<T>(x) - T{1});
     return x;
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
@@ -33,6 +43,19 @@ private:
     x = static_cast<strong>(static_cast<T>(x) - T{1});
     return x;
   }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator++(strong &x, int) -> strong {
+    strong y = x;
+    x = static_cast<strong>(static_cast<T>(x) + T{1});
+    return y;
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator--(strong &x, int) -> strong {
+    strong y = x;
+    x = static_cast<strong>(static_cast<T>(x) - T{1});
+    return y;
+  }
+
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator++(strong &&x, int) -> strong {
     strong y = x;
