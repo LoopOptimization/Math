@@ -5,12 +5,14 @@
 #include "Utilities/Valid.hpp"
 #include <algorithm>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <memory>
 #include <new>
+#include <type_traits>
 #include <utility>
 #include <version>
 
@@ -60,18 +62,18 @@ using utils::invariant, utils::Valid;
 ///
 /// Use `allocate<T>` and `create<T>` methods for actually performing the
 /// allocations.
-/// Contains two fields: slab, sEnd.
+/// Contains two fields: slab_, s_end_.
 /// Optionally bumps either up or down.
 /// Memory layout when `BumpUp == true`:
-/// [end, first slab], region, [next slab, first slab]
-/// Here, first/next slab point to the start, while `sEnd` points to the end.
+/// [end, first slab_], region, [next slab_, first slab_]
+/// Here, first/next slab_ point to the start, while `s_end_` points to the end.
 /// Memory layout when `BumpUp == false`:
-/// [next slab, first slab], region, [start, first slab]
-/// Here, first/next slab point to the end, while `sEnd` points to the start.
+/// [next slab_, first slab_], region, [start, first slab_]
+/// Here, first/next slab_ point to the end, while `s_end_` points to the start.
 /// In both cases, the start/end references are to the region
 /// So, meta is indexed with negative/positive indices depending on size.
 template <size_t SlabSize = 16384, bool BumpUp = true> class Arena {
-  static constexpr size_t Alignment = alignof(std::max_align_t);
+  static constexpr size_t Alignment = alignof(int64_t); // std::max_align_t);
   static constexpr auto align(size_t x) -> size_t {
     return (x + Alignment - 1) & ~(Alignment - 1);
   }
@@ -99,15 +101,15 @@ public:
   }
 #endif
   constexpr void bigAlloc(size_t Size) {
-    void **oldMeta = getMetaEnd(sEnd);
-    void *next = oldMeta[0];
+    void **old_meta = getMetaEnd(s_end_);
+    void *next = old_meta[0];
     if (next && Size <= SlabSpace) return initSlab(next);
     initNewSlab(Size > SlabSpace ? align(Size) + SlabSize : SlabSize);
-    oldMeta[0] = slab;
-    void *firstSlab = oldMeta[1];
-    getMetaStart(slab)[1] = firstSlab;
-    getMetaEnd(sEnd)[0] = next;
-    getMetaEnd(sEnd)[1] = firstSlab;
+    old_meta[0] = slab_;
+    void *first_slab = old_meta[1];
+    getMetaStart(slab_)[1] = first_slab;
+    getMetaEnd(s_end_)[0] = next;
+    getMetaEnd(s_end_)[1] = first_slab;
   }
   [[using gnu: returns_nonnull, alloc_size(2), assume_aligned(Alignment),
     malloc]] constexpr auto
@@ -134,7 +136,7 @@ public:
     if constexpr (Align > Alignment) {
       size_t space = Size + Align - Alignment;
       void *p = allocate(space);
-      // TODO: rollback sEnd by the amount `space` decreased?
+      // TODO: rollback s_end_ by the amount `space` decreased?
       return std::assume_aligned<Align>(std::align(Align, Size, p, space));
     } else return std::assume_aligned<Alignment>(allocate(Size));
   }
@@ -160,9 +162,9 @@ public:
     __asan_poison_memory_region(Ptr, Size);
 #endif
     if constexpr (BumpUp) {
-      if (static_cast<char *>(Ptr) + align(Size) == slab) slab = Ptr;
-    } else if (Ptr == slab) {
-      slab = static_cast<char *>(slab) + align(Size);
+      if (static_cast<char *>(Ptr) + align(Size) == slab_) slab_ = Ptr;
+    } else if (Ptr == slab_) {
+      slab_ = static_cast<char *>(slab_) + align(Size);
       return;
     }
   }
@@ -186,8 +188,8 @@ public:
         return p;
       }
       if constexpr (BumpUp) {
-        if (Ptr == (char *)slab - align(capOld)) {
-          slab = cptr + align(capNew);
+        if (Ptr == static_cast<char *>(slab_) - align(capOld)) {
+          slab_ = cptr + align(capNew);
           if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
             __asan_unpoison_memory_region(cptr + capOld, capNew - capOld);
@@ -198,28 +200,30 @@ public:
             return Ptr;
           }
         }
-      } else if (Ptr == slab) {
-        size_t extraSize = align(capNew - capOld);
-        slab = static_cast<char *>(slab) - extraSize;
+      } else if (Ptr == slab_) {
+        size_t extra_size = align(capNew - capOld);
+        slab_ = static_cast<char *>(slab_) - extra_size;
         if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
-          __asan_unpoison_memory_region(slab, extraSize);
+          __asan_unpoison_memory_region(slab_, extra_size);
 #endif
 #if MATH_MEMORY_SANITIZER_BUILD
-          __msan_allocated_memory(SlabCur, extraSize);
+          __msan_allocated_memory(SlabCur, extra_size);
 #endif
-          if constexpr (!ForOverwrite) std::copy_n(cptr, capOld, (char *)slab);
-          return slab;
+          if constexpr (!ForOverwrite)
+            std::copy_n(cptr, capOld, static_cast<char *>(slab_));
+          return slab_;
         }
       }
     }
     // we need to allocate new memory
-    auto newPtr = allocate(capNew);
+    auto new_ptr = allocate(capNew);
     if (szOld && Ptr) {
-      if constexpr (!ForOverwrite) std::copy_n(cptr, szOld, (char *)newPtr);
+      if constexpr (!ForOverwrite)
+        std::copy_n(cptr, szOld, static_cast<char *>(new_ptr));
       deallocate(Ptr, capOld);
     }
-    return newPtr;
+    return new_ptr;
   }
 #if MATH_ADDRESS_SANITIZER_BUILD
   constexpr void poison_slabs(void *s0, void *e0) {
@@ -234,9 +238,9 @@ public:
 #endif
   /// free all memory, but the Arena holds onto it.
   constexpr void reset() {
-    initSlab(getFirstEnd(sEnd));
+    initSlab(getFirstEnd(s_end_));
 #if MATH_ADDRESS_SANITIZER_BUILD
-    poison_slabs(slab, sEnd);
+    poison_slabs(slab_, s_end_);
 #endif
   }
   template <bool ForOverwrite = false, typename T>
@@ -261,27 +265,27 @@ public:
     return new (p) T(std::forward<Args>(args)...);
   }
   struct CheckPoint {
-    void *const p;
-    void *const e;
+    void *const p_;
+    void *const e_;
   };
   [[nodiscard]] constexpr auto checkpoint() -> CheckPoint {
-    return {slab, sEnd};
+    return {slab_, s_end_};
   }
   constexpr void rollback(CheckPoint p) {
 #if MATH_ADDRESS_SANITIZER_BUILD
-    poison_slabs(p.p, p.e);
+    poison_slabs(p.p_, p.e_);
 #endif
-    slab = p.p;
-    sEnd = p.e;
+    slab_ = p.p_;
+    s_end_ = p.e_;
   }
   /// RAII version of CheckPoint
   class ScopeLifetime {
-    Arena &alloc;
-    CheckPoint p;
+    Arena &alloc_;
+    CheckPoint p_;
 
   public:
-    constexpr ScopeLifetime(Arena &a) : alloc(a), p(a.checkpoint()) {}
-    constexpr ~ScopeLifetime() { alloc.rollback(p); }
+    constexpr ScopeLifetime(Arena &a) : alloc_(a), p_(a.checkpoint()) {}
+    constexpr ~ScopeLifetime() { alloc_.rollback(p_); }
   };
   constexpr auto scope() -> ScopeLifetime { return *this; }
 
@@ -289,8 +293,8 @@ private:
   constexpr auto tryReallocate(void *Ptr, size_t capOld,
                                size_t capNew) -> void * {
     if constexpr (BumpUp) {
-      if (Ptr == (char *)slab - align(capOld)) {
-        slab = (char *)Ptr + align(capNew);
+      if (Ptr == (char *)slab_ - align(capOld)) {
+        slab_ = (char *)Ptr + align(capNew);
         if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
           __asan_unpoison_memory_region((char *)Ptr + capOld, capNew - capOld);
@@ -301,17 +305,17 @@ private:
           return Ptr;
         }
       }
-    } else if (Ptr == slab) {
-      size_t extraSize = align(capNew - capOld);
-      slab = (char *)slab - extraSize;
+    } else if (Ptr == slab_) {
+      size_t extra_size = align(capNew - capOld);
+      slab_ = (char *)slab_ - extra_size;
       if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
-        __asan_unpoison_memory_region(slab, extraSize);
+        __asan_unpoison_memory_region(slab_, extra_size);
 #endif
 #if MATH_MEMORY_SANITIZER_BUILD
-        __msan_allocated_memory(SlabCur, extraSize);
+        __msan_allocated_memory(SlabCur, extra_size);
 #endif
-        return slab;
+        return slab_;
       }
     }
     return nullptr;
@@ -329,32 +333,32 @@ private:
     if constexpr (BumpUp) return current >= last;
     else return current < last;
   }
-  constexpr auto outOfSlab() -> bool { return outOfSlab(slab, sEnd); }
+  constexpr auto outOfSlab() -> bool { return outOfSlab(slab_, s_end_); }
   constexpr void initSlab(void *p) {
-    slab = p;
-    sEnd = getEnd(p);
+    slab_ = p;
+    s_end_ = getEnd(p);
   }
   // updates SlabCur and returns the allocated pointer
   [[gnu::returns_nonnull]] constexpr auto allocCore(ptrdiff_t Size) -> void * {
     // we know we already have Alignment
     // and we need to preserve it.
     // Thus, we align `Size` and offset it.
-    invariant((reinterpret_cast<ptrdiff_t>(slab) % Alignment) == 0);
+    invariant((reinterpret_cast<ptrdiff_t>(slab_) % Alignment) == 0);
 #if MATH_ADDRESS_SANITIZER_BUILD
-    slab = bump(slab, Alignment); // poisoned zone
+    slab_ = bump(slab_, Alignment); // poisoned zone
 #endif
-    void *old = slab;
-    slab = bump(old, align(Size));
+    void *old = slab_;
+    slab_ = bump(old, align(Size));
     if constexpr (BumpUp) return old;
-    else return slab;
+    else return slab_;
   }
 
 protected:
-  void *slab{nullptr};
-  void *sEnd{nullptr};
+  void *slab_{nullptr};
+  void *s_end_{nullptr};
   /// meta layout:
   /// Either an array of length 2.
-  /// 0: sEnd
+  /// 0: s_end_
   /// 1: first slab
   static constexpr auto getMetaStart(void *p) -> void ** {
     if constexpr (BumpUp) return static_cast<void **>(p) - 2;
@@ -382,15 +386,15 @@ protected:
     char *c = static_cast<char *>(p) + MetaSize;
     char *q = static_cast<char *>(p) + sz - MetaSize;
     void **metac = static_cast<void **>(p);
-    void **metaq = static_cast<void **>(static_cast<void *>(q));
+    void **metaq = reinterpret_cast<void **>(q);
     if constexpr (BumpUp) {
       metac[0] = q;
-      slab = c;
-      sEnd = q;
+      slab_ = c;
+      s_end_ = q;
     } else {
       metaq[0] = c;
-      slab = q;
-      sEnd = c;
+      slab_ = q;
+      s_end_ = c;
     }
 #ifndef NDEBUG
     fillWithJunk(c, sz - 2 * MetaSize);
@@ -412,15 +416,15 @@ class OwningArena : public Arena<SlabSize, BumpUp> {
 public:
   constexpr explicit OwningArena() {
     this->initNewSlab(SlabSize);
-    this->getMetaStart(this->slab)[1] = this->slab;
-    this->getMetaEnd(this->sEnd)[0] = nullptr;
-    this->getMetaEnd(this->sEnd)[1] = this->slab;
+    this->getMetaStart(this->slab_)[1] = this->slab_;
+    this->getMetaEnd(this->s_end_)[0] = nullptr;
+    this->getMetaEnd(this->s_end_)[1] = this->slab_;
   }
 
   OwningArena(OwningArena &&other) = delete;
   OwningArena(const OwningArena &) = delete;
   constexpr ~OwningArena() {
-    char *p = static_cast<char *>(this->getFirstEnd(this->sEnd));
+    char *p = static_cast<char *>(this->getFirstEnd(this->s_end_));
     constexpr size_t m = Arena<SlabSize, BumpUp>::MetaSize;
     constexpr size_t mpad = 2 * m;
     while (p) {
@@ -442,31 +446,31 @@ static_assert(!std::is_trivially_destructible_v<OwningArena<>>);
 template <typename T, size_t SlabSize = 16384, bool BumpUp = true>
 class WArena {
   using Alloc = Arena<SlabSize, BumpUp>;
-  [[no_unique_address]] Valid<Alloc> A;
+  [[no_unique_address]] Valid<Alloc> alloc_;
 
 public:
   using value_type = T;
   template <typename U> struct rebind { // NOLINT(readability-identifier-naming)
     using other = WArena<U, SlabSize, BumpUp>;
   };
-  constexpr explicit WArena(Alloc *alloc) : A(alloc) {}
-  constexpr explicit WArena(Alloc &alloc) : A(&alloc) {}
-  constexpr explicit WArena(Valid<Alloc> alloc) : A(alloc) {}
+  constexpr explicit WArena(Alloc *alloc) : alloc_(alloc) {}
+  constexpr explicit WArena(Alloc &alloc) : alloc_(&alloc) {}
+  constexpr explicit WArena(Valid<Alloc> alloc) : alloc_(alloc) {}
   constexpr WArena(const WArena &other) = default;
   template <typename U>
-  constexpr WArena(WArena<U> other) : A(other.get_allocator()) {}
+  constexpr WArena(WArena<U> other) : alloc_(other.get_allocator()) {}
   [[nodiscard, gnu::returns_nonnull]] constexpr auto
   get_allocator() const -> Alloc * {
-    return A;
+    return alloc_;
   }
-  constexpr void deallocate(T *p, ptrdiff_t n) { A->deallocate(p, n); }
+  constexpr void deallocate(T *p, ptrdiff_t n) { alloc_->deallocate(p, n); }
   [[gnu::returns_nonnull]] constexpr auto allocate(ptrdiff_t n) -> T * {
-    return A->template allocate<T>(n);
+    return alloc_->template allocate<T>(n);
   }
   constexpr auto checkpoint() -> typename Alloc::CheckPoint {
-    return A->checkpoint();
+    return alloc_->checkpoint();
   }
-  constexpr void rollback(typename Alloc::CheckPoint p) { A->rollback(p); }
+  constexpr void rollback(typename Alloc::CheckPoint p) { alloc_->rollback(p); }
 };
 template <typename T, size_t SlabSize, bool BumpUp>
 constexpr auto
