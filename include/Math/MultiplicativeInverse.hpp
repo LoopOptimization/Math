@@ -42,6 +42,12 @@ constexpr auto widen(std::unsigned_integral auto x) {
 #define CLANGNOUBSAN
 #endif
 
+template <std::integral T> constexpr auto cld(T a, T b) -> T {
+  T d = a / b;
+  if constexpr (std::is_signed_v<T>)
+    return d + (((a > 0) == (b > 0)) & (d * b != a));
+  else return d + (d * b != a);
+}
 CLANGNOUBSAN constexpr auto _mul_high(__uint128_t a,
                                       __uint128_t b) -> __uint128_t {
   static constexpr auto shift = 16 * 4;
@@ -68,7 +74,36 @@ CLANGNOUBSAN constexpr auto _mul_high(T a, T b) -> T {
 }
 #undef CLANGNOUBSAN
 
-template <std::integral T> class MultiplicativeInverse {
+template <typename T> class MultiplicativeInverse;
+
+template <std::floating_point T> class MultiplicativeInverse<T> {
+  T inverse_;
+  friend constexpr auto operator/(T a, MultiplicativeInverse b) -> T {
+    T x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return std::trunc(std::numeric_limits<T>::epsilon() * x + x);
+  }
+  friend constexpr auto cld(T a, MultiplicativeInverse b) -> T {
+    T x = a * b.inverse_;
+    // push towards -infinity, before rounding up
+    // hacky attempt to accomodate rounding error
+    return std::ceil(x - std::numeric_limits<T>::epsilon() * std::abs(x));
+  }
+  friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
+    // TODO: store 1/b.inverse_, i.e. the original value?
+    return std::round(a - (a / b) / b.inverse_);
+  }
+
+public:
+  constexpr auto divrem(T a) -> std::array<T, 2> {
+    T d = a / (*this);
+    return {d, std::round(a - d / inverse_)};
+  }
+  constexpr MultiplicativeInverse(T d) : inverse_{T{1} / d} {}
+};
+
+template <std::integral T> class MultiplicativeInverse<T> {
   static constexpr bool issigned = std::is_signed_v<T>;
   using AMT = std::conditional_t<issigned, numbers::i8, bool>;
   T divisor_;
@@ -86,6 +121,12 @@ template <std::integral T> class MultiplicativeInverse {
       x = b.addmul_ ? ((((a - x) >> 1)) + x) : x;
       return b.divisor_ == 1 ? a : x >> T(b.shift_);
     }
+  }
+  friend constexpr auto cld(T a, MultiplicativeInverse b) -> T {
+    T d = a / b;
+    if constexpr (issigned)
+      return d + (((a > 0) == (b.divisor_ > 0)) & (d * b.divisor_ != a));
+    else return d + (d.divisor_ * b != a);
   }
   friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
     return a - (a / b) * b.divisor_;
@@ -179,8 +220,7 @@ public:
   }
 };
 
-template <std::integral T>
-MultiplicativeInverse(T d) -> MultiplicativeInverse<T>;
+template <typename T> MultiplicativeInverse(T d) -> MultiplicativeInverse<T>;
 
 } // namespace poly::math
 
