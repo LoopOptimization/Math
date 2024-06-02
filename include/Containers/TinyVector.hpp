@@ -1,13 +1,16 @@
 #pragma once
 
 #include "Containers/Storage.hpp"
-#include "Math/AxisTypes.hpp"
+#include "Math/MatrixDimensions.hpp"
 #include "Utilities/Invariant.hpp"
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <limits>
 #include <memory>
+#include <ostream>
 #include <type_traits>
 
 namespace poly::containers {
@@ -18,112 +21,114 @@ class TinyVector {
   static_assert(N > 0);
   static_assert(std::numeric_limits<ptrdiff_t>::max() >= N);
   using Length = math::Length<-1, L>;
-  Storage<T, N> data;
-  Length len{};
+  Storage<T, N> data_;
+  Length len_{};
 
 public:
   using value_type = T;
-  constexpr TinyVector(){}; // NOLINT (modernize-use-equals-default)
+  constexpr TinyVector() {}; // NOLINT (modernize-use-equals-default)
   constexpr TinyVector(const std::initializer_list<T> &list)
-    : len{math::length(L(list.size()))} {
+    : len_{math::length(L(list.size()))} {
     invariant(list.size() <= N);
     if constexpr (Storage<T, N>::trivial)
-      std::copy_n(list.begin(), size(), data.data());
-    else std::uninitialized_move_n(list.begin(), size(), data.data());
+      std::copy_n(list.begin(), size(), data_.data());
+    else std::uninitialized_move_n(list.begin(), size(), data_.data());
   }
-  constexpr TinyVector(T t) : len{math::length(L(1))} {
-    std::construct_at(data.data(), std::move(t));
+  constexpr TinyVector(T t) : len_{math::length(L(1))} {
+    std::construct_at(data_.data(), std::move(t));
   }
 
   constexpr auto
   operator=(const std::initializer_list<T> &list) -> TinyVector & {
     invariant(list.size() <= ptrdiff_t(N));
-    ptrdiff_t slen = std::ssize(list), oldLen = size();
-    len = math::length(L(slen));
+    ptrdiff_t slen = std::ssize(list), old_len = size();
+    len_ = math::length(L(slen));
     auto I = list.begin();
     if constexpr (Storage<T, N>::trivial) {
       // implicit lifetime type
-      std::copy_n(I, slen, data.data());
+      std::copy_n(I, slen, data_.data());
     } else {
-      ptrdiff_t J = std::min(slen, oldLen);
+      ptrdiff_t J = std::min(slen, old_len);
       // old values exist
-      std::move(I, I + J, data.data());
-      if (oldLen < len) {
-        std::uninitialized_move_n(I + oldLen, slen - oldLen,
-                                  data.data() + oldLen);
+      std::move(I, I + J, data_.data());
+      if (old_len < len_) {
+        std::uninitialized_move_n(I + old_len, slen - old_len,
+                                  data_.data() + old_len);
       } else if constexpr (!std::is_trivially_destructible_v<T>)
-        if (oldLen > len) std::destroy_n(data.data() + slen, oldLen - slen);
+        if (old_len > len_) std::destroy_n(data_.data() + slen, old_len - slen);
     }
     return *this;
   }
   constexpr auto operator[](ptrdiff_t i) -> T & {
-    invariant(i < len);
-    return data.data()[i];
+    invariant(i < len_);
+    return data_.data()[i];
   }
   constexpr auto operator[](ptrdiff_t i) const -> const T & {
-    invariant(i < len);
-    return data.data()[i];
+    invariant(i < len_);
+    return data_.data()[i];
   }
   constexpr auto back() -> T & {
-    invariant(len > 0z);
-    return data.data()[size() - 1z];
+    invariant(len_ > 0);
+    return data_.data()[size() - 1z];
   }
   constexpr auto back() const -> const T & {
-    invariant(len > 0z);
-    return data.data()[size() - 1z];
+    invariant(len_ > 0);
+    return data_.data()[size() - 1z];
   }
   constexpr auto front() -> T & {
-    invariant(len > 0z);
-    return data.data()[0z];
+    invariant(len_ > 0);
+    return data_.data()[0z];
   }
   constexpr auto front() const -> const T & {
-    invariant(len > 0z);
-    return data.data()[0z];
+    invariant(len_ > 0);
+    return data_.data()[0z];
   }
   constexpr void push_back(const T &t) {
-    invariant(len < ptrdiff_t(N));
-    std::construct_at(data.data() + ptrdiff_t(L(len++)), t);
+    invariant(len_ < ptrdiff_t(N));
+    std::construct_at(data_.data() + ptrdiff_t(L(len_++)), t);
   }
   constexpr void push_back(T &&t) {
-    invariant(len < ptrdiff_t(N));
-    std::construct_at(data.data() + ptrdiff_t(L(len++)), std::move(t));
+    invariant(len_ < ptrdiff_t(N));
+    std::construct_at(data_.data() + ptrdiff_t(L(len_++)), std::move(t));
   }
   template <class... Args> constexpr auto emplace_back(Args &&...args) -> T & {
-    invariant(len < ptrdiff_t(N));
-    return *std::construct_at(data.data() + ptrdiff_t(L(len++)),
+    invariant(len_ < ptrdiff_t(N));
+    return *std::construct_at(data_.data() + ptrdiff_t(L(len_++)),
                               std::forward<Args>(args)...);
   }
   constexpr void pop_back() {
-    invariant(len > 0z);
-    --len;
+    invariant(len_ > 0);
+    --len_;
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_at(data.data() + size());
+      std::destroy_at(data_.data() + size());
   }
   [[nodiscard]] constexpr auto pop_back_val() -> T {
-    invariant(len > 0z);
-    return std::move(data.data()[ptrdiff_t(L(--len))]);
+    invariant(len_ > 0);
+    return std::move(data_.data()[ptrdiff_t(L(--len_))]);
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    auto l = ptrdiff_t(L(len));
+    auto l = ptrdiff_t(L(len_));
     invariant(l <= ptrdiff_t(N));
     return l;
   }
-  [[nodiscard]] constexpr auto empty() const -> bool { return len == 0z; }
+  [[nodiscard]] constexpr auto empty() const -> bool { return len_ == 0z; }
   constexpr void clear() {
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_n(data.data(), size());
-    len = Length{};
+      std::destroy_n(data_.data(), size());
+    len_ = Length{};
   }
 
-  constexpr auto begin() -> T * { return data.data(); }
-  constexpr auto begin() const -> const T * { return data.data(); }
-  constexpr auto end() -> T * { return data.data() + size(); }
-  constexpr auto end() const -> const T * { return data.data() + size(); }
+  constexpr auto data() -> T * { return data_.data(); }
+  constexpr auto data() const -> const T * { return data_.data(); }
+  constexpr auto begin() -> T * { return data_.data(); }
+  constexpr auto begin() const -> const T * { return data_.data(); }
+  constexpr auto end() -> T * { return data_.data() + size(); }
+  constexpr auto end() const -> const T * { return data_.data() + size(); }
   constexpr void resize(L new_size) {
     // initialize new data
     for (ptrdiff_t i = size(); i < new_size; ++i)
-      std::construct_at(data.data() + i);
-    len = math::length(new_size);
+      std::construct_at(data_.data() + i);
+    len_ = math::length(new_size);
   }
   constexpr void reserve(L space) {
     invariant(space >= 0);
@@ -135,10 +140,10 @@ public:
   constexpr ~TinyVector()
   requires(!std::is_trivially_destructible_v<T>)
   {
-    std::destroy_n(data.data(), size());
+    std::destroy_n(data_.data(), size());
   }
-  friend inline auto operator<<(std::ostream &os,
-                                const TinyVector &x) -> std::ostream & {
+  friend auto operator<<(std::ostream &os,
+                         const TinyVector &x) -> std::ostream & {
     os << "[";
     if constexpr (std::same_as<T, int8_t> || std::same_as<T, uint8_t>) {
       if (!x.empty()) os << int(x[0]);

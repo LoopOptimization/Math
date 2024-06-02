@@ -102,6 +102,7 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
   }
 
 public:
+  explicit constexpr operator T() const { return divisor_; }
   constexpr auto divrem(T a) -> std::array<T, 2> {
     T d = a / (*this);
     return {d, std::round(a - d / inverse_)};
@@ -146,6 +147,7 @@ template <std::integral T> class MultiplicativeInverse<T> {
   }
 
 public:
+  explicit constexpr operator T() const { return divisor_; }
   constexpr auto divrem(T a) -> std::array<T, 2> {
     T d = a / (*this);
     return {d, a - d * divisor_};

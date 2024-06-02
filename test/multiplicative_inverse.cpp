@@ -67,5 +67,6 @@ TEST(MultiplicativeInverse, BasicAssertions) {
 #if __cpp_lib_constexpr_cmath >= 202202L
   static_assert(123456.0 / MultiplicativeInverse(5.0) == 123456 / 5);
 #endif
-  static_assert(123456 / MultiplicativeInverse(5) == 123456 / 5);
+  static_assert(123456 / MultiplicativeInverse(-5) == 123456 / -5);
+  static_assert(unsigned(123456) / MultiplicativeInverse(unsigned(5)) == 123456 / 5);
 }
