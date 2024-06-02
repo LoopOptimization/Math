@@ -345,7 +345,7 @@ constexpr auto trunclo(double x) -> double {
 }
 
 constexpr auto fma(double x, double y, double z) -> double {
-#ifdef __cpp_if_consteval
+#if __cpp_lib_constexpr_cmath < 202202L // no cmath constexpr support
   if consteval { // TODO drop when c++23 constexpr fma support is available
 #if defined(__linux__) && defined(__x86_64__)
     __float128 a = x, b = y, c = z;
@@ -359,9 +359,9 @@ constexpr auto fma(double x, double y, double z) -> double {
     return s + (((hxy - s) + z) + lxy);
 #endif
   } else {
-#endif
+#endif // end no cmath constexpr support
     return std::fma(x, y, z);
-#ifdef __cpp_if_consteval
+#if __cpp_lib_constexpr_cmath < 202202L // close the `if consteval` block
   }
 #endif
 }

@@ -77,7 +77,14 @@ CLANGNOUBSAN constexpr auto _mul_high(T a, T b) -> T {
 template <typename T> class MultiplicativeInverse;
 
 template <std::floating_point T> class MultiplicativeInverse<T> {
+  T divisor_;
   T inverse_;
+  friend constexpr auto operator*(T a, MultiplicativeInverse b) -> T {
+    return a * b.divisor_;
+  }
+  friend constexpr auto operator*(MultiplicativeInverse a, T b) -> T {
+    return a.divisor_ * b;
+  }
   friend constexpr auto operator/(T a, MultiplicativeInverse b) -> T {
     T x = a * b.inverse_;
     // push away from zero, before flooring to zero
@@ -91,8 +98,7 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     return std::ceil(x - std::numeric_limits<T>::epsilon() * std::abs(x));
   }
   friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
-    // TODO: store 1/b.inverse_, i.e. the original value?
-    return std::round(a - (a / b) / b.inverse_);
+    return std::round(a - (a / b) * b.divisor_);
   }
 
 public:
@@ -100,7 +106,7 @@ public:
     T d = a / (*this);
     return {d, std::round(a - d / inverse_)};
   }
-  constexpr MultiplicativeInverse(T d) : inverse_{T{1} / d} {}
+  constexpr MultiplicativeInverse(T d) : divisor_(d), inverse_{T{1} / d} {}
 };
 
 template <std::integral T> class MultiplicativeInverse<T> {
@@ -111,12 +117,19 @@ template <std::integral T> class MultiplicativeInverse<T> {
   AMT addmul_;
   numbers::u8 shift_;
 
+  friend constexpr auto operator*(T a, MultiplicativeInverse b) -> T {
+    return a * b.divisor_;
+  }
+  friend constexpr auto operator*(MultiplicativeInverse a, T b) -> T {
+    return a.divisor_ * b;
+  }
   friend constexpr auto operator/(T a, MultiplicativeInverse b) -> T {
     T x = _mul_high(a, b.multiplier_);
     if constexpr (issigned) {
       x += a * T(b.addmul_);
-      return std::abs(b.divisor_) == 1 ? (a * b.divisor_)
-                                       : (std::signbit(x) + (x >> T(b.shift_)));
+      return ((b.divisor_ == 1) || (b.divisor_ == -1))
+               ? (a * b.divisor_)
+               : (std::signbit(x) + (x >> T(b.shift_)));
     } else {
       x = b.addmul_ ? ((((a - x) >> 1)) + x) : x;
       return b.divisor_ == 1 ? a : x >> T(b.shift_);
@@ -126,7 +139,7 @@ template <std::integral T> class MultiplicativeInverse<T> {
     T d = a / b;
     if constexpr (issigned)
       return d + (((a > 0) == (b.divisor_ > 0)) & (d * b.divisor_ != a));
-    else return d + (d.divisor_ * b != a);
+    else return d + (d * b.divisor_ != a);
   }
   friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
     return a - (a / b) * b.divisor_;
@@ -145,7 +158,7 @@ public:
       UT signedmin = std::bit_cast<UT>(std::numeric_limits<T>::min());
 
       // Algorithm from Hacker's Delight, section 10-4
-      UT ad = static_cast<UT>(std::abs(d));
+      UT ad = d >= 0 ? d : -d; // static_cast<UT>(std::abs(d));
       UT t = signedmin + std::signbit(d);
       UT anc = t - UT{1} - (t % ad); // absolute value of nc
       UT p = sizeof(T) * 8 - 1;
