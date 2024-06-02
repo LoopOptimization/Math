@@ -41,6 +41,9 @@ TEST(Int8Test, BasicAssertions) {
       {
         int z = x + y;
         if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          u8 uz = ux;
+          uz += uy;
+          EXPECT_EQ(uz, z);
           EXPECT_EQ(ux + uy, z);
           EXPECT_EQ(ux + y, z);
           EXPECT_EQ(x + uy, z);
@@ -49,6 +52,9 @@ TEST(Int8Test, BasicAssertions) {
       {
         int z = x * y;
         if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          u8 uz = ux;
+          uz *= uy;
+          EXPECT_EQ(uz, z);
           EXPECT_EQ(ux * uy, z);
           EXPECT_EQ(ux * y, z);
           EXPECT_EQ(x * uy, z);
@@ -57,6 +63,9 @@ TEST(Int8Test, BasicAssertions) {
       {
         int z = x - y;
         if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          u8 uz = ux;
+          uz -= uy;
+          EXPECT_EQ(uz, z);
           EXPECT_EQ(ux - uy, z);
           EXPECT_EQ(ux - y, z);
           EXPECT_EQ(x - uy, z);
@@ -65,6 +74,9 @@ TEST(Int8Test, BasicAssertions) {
       if (y) {
         int z = x / y;
         if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+          u8 uz = ux;
+          uz /= uy;
+          EXPECT_EQ(uz, z);
           EXPECT_EQ(ux / uy, z);
           EXPECT_EQ(ux / y, z);
           EXPECT_EQ(x / uy, z);
@@ -113,6 +125,9 @@ TEST(Int8Test, BasicAssertions) {
         int z = x + y;
         if ((z >= std::numeric_limits<int8_t>::min()) &&
             (z <= std::numeric_limits<int8_t>::max())) {
+          i8 iz = ix;
+          iz += iy;
+          EXPECT_EQ(iz, z);
           EXPECT_EQ(ix + iy, z);
           EXPECT_EQ(ix + y, z);
           EXPECT_EQ(x + iy, z);
@@ -122,6 +137,9 @@ TEST(Int8Test, BasicAssertions) {
         int z = x * y;
         if ((z >= std::numeric_limits<int8_t>::min()) &&
             (z <= std::numeric_limits<int8_t>::max())) {
+          i8 iz = ix;
+          iz *= iy;
+          EXPECT_EQ(iz, z);
           EXPECT_EQ(ix * iy, z);
           EXPECT_EQ(ix * y, z);
           EXPECT_EQ(x * iy, z);
@@ -131,6 +149,9 @@ TEST(Int8Test, BasicAssertions) {
         int z = x - y;
         if ((z >= std::numeric_limits<int8_t>::min()) &&
             (z <= std::numeric_limits<int8_t>::max())) {
+          i8 iz = ix;
+          iz -= iy;
+          EXPECT_EQ(iz, z);
           EXPECT_EQ(ix - iy, z);
           EXPECT_EQ(ix - y, z);
           EXPECT_EQ(x - iy, z);
@@ -140,6 +161,9 @@ TEST(Int8Test, BasicAssertions) {
         int z = x / y;
         if ((z >= std::numeric_limits<int8_t>::min()) &&
             (z <= std::numeric_limits<int8_t>::max())) {
+          i8 iz = ix;
+          iz /= iy;
+          EXPECT_EQ(iz, z);
           EXPECT_EQ(ix / iy, z);
           EXPECT_EQ(ix / y, z);
           EXPECT_EQ(x / iy, z);
