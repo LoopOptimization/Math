@@ -3,6 +3,8 @@
 #include "Math/Iterators.hpp"
 #include "Utilities/Invariant.hpp"
 #include "Utilities/TypePromotion.hpp"
+#include <algorithm>
+#include <array>
 #include <bit>
 #include <compare>
 #include <concepts>
@@ -12,7 +14,9 @@
 #include <iterator>
 #include <limits>
 #include <ostream>
+#include <ranges>
 #include <string>
+#include <type_traits>
 
 namespace poly::containers {
 using utils::invariant;
@@ -173,8 +177,10 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     return contains(data_, i);
   }
   struct Contains {
-    const T &d;
-    constexpr auto operator()(ptrdiff_t i) const -> U { return contains(d, i); }
+    const T &d_;
+    constexpr auto operator()(ptrdiff_t i) const -> U {
+      return contains(d_, i);
+    }
   };
   [[nodiscard]] constexpr auto contains() const -> Contains {
     return Contains{data_};
@@ -217,15 +223,15 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   }
 
   class Reference {
-    [[no_unique_address]] math::MutPtrVector<U> data;
-    [[no_unique_address]] ptrdiff_t i;
+    [[no_unique_address]] math::MutPtrVector<U> data_;
+    [[no_unique_address]] ptrdiff_t i_;
 
   public:
     constexpr explicit Reference(math::MutPtrVector<U> dd, ptrdiff_t ii)
-      : data(dd), i(ii) {}
-    constexpr operator bool() const { return contains(data, i); }
+      : data_(dd), i_(ii) {}
+    constexpr operator bool() const { return contains(data_, i_); }
     constexpr auto operator=(bool b) -> Reference & {
-      BitSet::set(data, i, b);
+      BitSet::set(data_, i_, b);
       return *this;
     }
   };
@@ -313,8 +319,7 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     return std::strong_ordering::equal;
   }
 
-  friend inline auto operator<<(std::ostream &os,
-                                BitSet const &x) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, BitSet const &x) -> std::ostream & {
     os << "BitSet[";
     auto it = x.begin();
     constexpr EndSentinel e = BitSet::end();
