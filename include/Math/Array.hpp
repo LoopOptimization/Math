@@ -606,7 +606,13 @@ struct POLY_MATH_GSL_POINTER MutArray
     this->sz = nz;
     if constexpr (std::same_as<S, Length<>>) {
       invariant(ptrdiff_t(nz) <= ptrdiff_t(oz));
+      if constexpr (!std::is_trivially_destructible_v<T>)
+        if (nz < oz) std::destroy_n(this->data() + ptrdiff_t(nz), oz - nz);
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
+      static_assert(
+        std::is_trivially_destructible_v<T>,
+        "Truncating matrices holding non-is_trivially_destructible_v "
+        "objects is not yet supported.");
       auto new_x = ptrdiff_t{RowStride(nz)}, old_x = ptrdiff_t{RowStride(oz)},
            new_n = ptrdiff_t{Col(nz)}, old_n = ptrdiff_t{Col(oz)},
            new_m = ptrdiff_t{Row(nz)}, old_m = ptrdiff_t{Row(oz)};
@@ -631,6 +637,11 @@ struct POLY_MATH_GSL_POINTER MutArray
       invariant(nz.row() <= oz.row());
       invariant(nz.col() <= oz.col());
     }
+  }
+  constexpr void truncate(ptrdiff_t nz)
+  requires(std::same_as<S, Length<>>)
+  {
+    truncate(length(nz));
   }
 
   constexpr void truncate(Row<> r) {

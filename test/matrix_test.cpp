@@ -424,6 +424,7 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
   for (ptrdiff_t i = 0; i < x.size(); ++i)
     for (ptrdiff_t j = 0; j < 3; ++j) EXPECT_EQ(x[i][j], 2 * (i + 1) + j);
   EXPECT_EQ(x.pop_back_val(), y);
+  x.truncate(55);
   x.resize(45);
   z += 2 * x.size();
   EXPECT_EQ(x.pop_back_val(), z);
