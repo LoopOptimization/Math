@@ -3,18 +3,28 @@
 // nor an operator will be outside of the struct/class.
 
 #include "Math/Array.hpp"
+#include "Math/ArrayOps.hpp"
 #include "Math/AxisTypes.hpp"
 #include "Math/Indexing.hpp"
+#include "Math/Iterators.hpp"
 #include "Math/Matrix.hpp"
 #include "Math/MatrixDimensions.hpp"
+#include "Math/UniformScaling.hpp"
 #include "SIMD/Intrin.hpp"
+#include "SIMD/Unroll.hpp"
+#include "SIMD/UnrollIndex.hpp"
+#include "SIMD/Vec.hpp"
 #include "Utilities/LoopMacros.hpp"
 #include "Utilities/Parameters.hpp"
 #include "Utilities/TypePromotion.hpp"
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <ostream>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -478,17 +488,17 @@ template <AbstractTensor A, AbstractTensor B> struct MatMatMul {
   // RowVector * Matrix
   // Matrix * ColVector
   // Matrix * Matrix
-  [[no_unique_address]] A a;
-  [[no_unique_address]] B b;
+  [[no_unique_address]] A a_;
+  [[no_unique_address]] B b_;
   [[gnu::always_inline]] constexpr auto operator[](auto i, auto j) const
   requires(ismatrix)
   {
     static_assert(AbstractMatrix<B>, "B should be an AbstractMatrix");
-    invariant(ptrdiff_t(a.numCol()) > 0);
-    decltype(a[i, 0] * b[0, j] + a[i, 1] * b[1, j]) s{};
+    invariant(ptrdiff_t(a_.numCol()) > 0);
+    decltype(a_[i, 0] * b_[0, j] + a_[i, 1] * b_[1, j]) s{};
     POLYMATHNOVECTORIZE
-    for (ptrdiff_t k = 0; k < ptrdiff_t(a.numCol()); ++k)
-      s += a[i, k] * b[k, j];
+    for (ptrdiff_t k = 0; k < ptrdiff_t(a_.numCol()); ++k)
+      s += a_[i, k] * b_[k, j];
     return s;
   }
   // If `T isa Dual<Dual<double,7>,2>`, we would not want to construct
@@ -512,41 +522,41 @@ template <AbstractTensor A, AbstractTensor B> struct MatMatMul {
   requires(!ismatrix)
   {
     if constexpr (RowVector<A>) {
-      invariant(a.size() == b.numRow());
-      invariant(a.size() > 0);
-      decltype(a[0] * b[0, i] + a[1] * b[1, i]) s{};
+      invariant(a_.size() == b_.numRow());
+      invariant(a_.size() > 0);
+      decltype(a_[0] * b_[0, i] + a_[1] * b_[1, i]) s{};
       POLYMATHNOVECTORIZE
-      for (ptrdiff_t k = 0; k < a.numCol(); ++k) {
+      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
         POLYMATHFAST
-        s += a[k] * b[k, i];
+        s += a_[k] * b_[k, i];
       }
       return s;
     } else { // ColVector<B>
-      invariant(a.numCol() == b.size());
-      invariant(b.size() > 0);
-      decltype(a[i, 0] * b[0] + a[i, 1] * b[1]) s{};
-      for (ptrdiff_t k = 0; k < a.numCol(); ++k) {
+      invariant(a_.numCol() == b_.size());
+      invariant(b_.size() > 0);
+      decltype(a_[i, 0] * b_[0] + a_[i, 1] * b_[1]) s{};
+      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
         POLYMATHFAST
-        s += a[i, k] * b[k];
+        s += a_[i, k] * b_[k];
       }
       return s;
     }
   }
   [[nodiscard]] constexpr auto numRow() const {
-    if constexpr (AbstractMatrix<A>) return a.numRow();
+    if constexpr (AbstractMatrix<A>) return a_.numRow();
     else return Row<1>{};
   }
   [[nodiscard]] constexpr auto numCol() const {
-    if constexpr (AbstractMatrix<B>) return b.numCol();
+    if constexpr (AbstractMatrix<B>) return b_.numCol();
     else return Col<1>{};
   }
   [[nodiscard]] constexpr auto size() const {
     if constexpr (ismata)
       if constexpr (ismatb)
-        return unwrapRow(a.numRow()) * unwrapCol(b.numCol());
-      else return unwrapRow(a.numRow());
-    else if constexpr (RowVector<A>) return unwrapCol(b.numCol());
-    else a.size() * b.size();
+        return unwrapRow(a_.numRow()) * unwrapCol(b_.numCol());
+      else return unwrapRow(a_.numRow());
+    else if constexpr (RowVector<A>) return unwrapCol(b_.numCol());
+    else a_.size() * b_.size();
   }
   [[nodiscard]] constexpr auto view() const { return *this; };
   [[nodiscard]] constexpr auto t() const { return Transpose{*this}; };
@@ -777,7 +787,7 @@ constexpr auto operator*(const AbstractTensor auto &a,
   else if constexpr (AbstractVector<decltype(AA)> &&
                      AbstractVector<decltype(BB)>)
     return ElementwiseBinaryOp(std::multiplies<>{}, AA, BB);
-  else return MatMatMul<decltype(AA), decltype(BB)>{.a = AA, .b = BB};
+  else return MatMatMul<decltype(AA), decltype(BB)>{.a_ = AA, .b_ = BB};
 }
 template <AbstractVector M, utils::ElementOf<M> S>
 constexpr auto operator*(const M &b, S a) {

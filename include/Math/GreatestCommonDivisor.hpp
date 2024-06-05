@@ -1,17 +1,21 @@
 #pragma once
 #include "SIMD/Intrin.hpp"
+#include "SIMD/Vec.hpp"
 #include "Utilities/Invariant.hpp"
 #include <algorithm>
 #include <array>
+#include <bit>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 namespace poly::math {
 using utils::invariant;
-constexpr inline auto constexpr_abs(std::signed_integral auto x) noexcept {
+constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;
 }
 template <ptrdiff_t W, std::integral T>
-constexpr inline auto constexpr_abs(simd::Vec<W, T> x) noexcept {
+constexpr auto constexpr_abs(simd::Vec<W, T> x) noexcept {
   if constexpr (std::signed_integral<T>) return x < 0 ? -x : x;
   else return x;
 }
@@ -60,7 +64,7 @@ constexpr auto gcd(simd::Vec<W, int64_t> x,
     a >>= az;
     simd::Vec<W, int64_t> d = a - b;
     az = simd::crz<W, int64_t>(d);
-    b = on ? (a > b ? b : a) : b;
+    b = (on & (a <= b)) ? a : b;
     on = on ? (d != zero) : on;
     if (!bool(simd::cmp::ne<W, int64_t>(on, zero))) break;
     a = constexpr_abs<W, int64_t>(d);
@@ -107,23 +111,20 @@ template <std::integral I> constexpr auto copySign(I x, I s) -> I {
 template <std::integral T>
 constexpr auto dgcdx(T a, T b)
   -> std::array<T, 5> { // NOLINT(bugprone-easily-swappable-parameters)
-  T rOld = a, r = b;
-  T sOld = 1, s = 0;
-  T tOld = 0, t = 1;
+  T r_old = a, r = b;
+  T s_old = 1, s = 0;
+  T t_old = 0, t = 1;
   while (r) {
-    T quotient = rOld / r;
-    rOld -= quotient * r;
-    sOld -= quotient * s;
-    tOld -= quotient * t;
-    std::swap(r, rOld);
-    std::swap(s, sOld);
-    std::swap(t, tOld);
+    T quotient = r_old / r, r_next = r_old - quotient * r,
+      s_next = s_old - quotient * s, t_next = t_old - quotient * t;
+    r_old = r, s_old = s, t_old = t;
+    r = r_next, s = s_next, t = t_next;
   }
   // Solving for `t` at the end has 1 extra division, but lets us remove
   // the `t` updates in the loop:
   // T t = (b == 0) ? 0 : ((old_r - old_s * a) / b);
   // For now, I'll favor forgoing the division.
-  return {rOld, sOld, tOld, copySign(t, a), copySign(s, b)};
+  return {r_old, s_old, t_old, copySign(t, a), copySign(s, b)};
 }
 template <
   std::integral T> // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)

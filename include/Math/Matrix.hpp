@@ -1,7 +1,7 @@
 #pragma once
-#include "Math/AxisTypes.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Utilities/TypePromotion.hpp"
+#include <concepts>
 #include <cstddef>
 #include <type_traits>
 
@@ -114,48 +114,48 @@ template <typename A> struct Transpose {
 
   using value_type = utils::eltype_t<A>;
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
-  [[no_unique_address]] A a;
+  [[no_unique_address]] A a_;
   constexpr auto operator[](auto i) const
   requires(AbstractVector<A>)
   {
-    return a[i];
+    return a_[i];
   }
   constexpr auto operator[](auto i, auto j) const
   requires(AbstractMatrix<A>)
   {
-    return a[j, i];
+    return a_[j, i];
   }
   [[nodiscard]] constexpr auto numRow() const {
-    return transpose_dim(a.numCol());
+    return transpose_dim(a_.numCol());
   }
   [[nodiscard]] constexpr auto numCol() const {
-    return transpose_dim(a.numRow());
+    return transpose_dim(a_.numRow());
   }
   [[nodiscard]] constexpr auto view() const -> auto & { return *this; };
-  [[nodiscard]] constexpr auto size() const { return a.size(); }
+  [[nodiscard]] constexpr auto size() const { return a_.size(); }
   [[nodiscard]] constexpr auto dim() const {
     return DenseDims(numRow(), numCol());
   }
-  constexpr Transpose(A b) : a(b) {}
-  constexpr auto t() const -> A { return a; }
+  constexpr Transpose(A b) : a_(b) {}
+  constexpr auto t() const -> A { return a_; }
   constexpr auto operator<<(const auto &b) -> Transpose<A> & {
-    a << transpose(b);
+    a_ << transpose(b);
     return *this;
   }
   constexpr auto operator+=(const auto &b) -> Transpose<A> & {
-    a += transpose(b);
+    a_ += transpose(b);
     return *this;
   }
   constexpr auto operator-=(const auto &b) -> Transpose<A> & {
-    a -= transpose(b);
+    a_ -= transpose(b);
     return *this;
   }
   constexpr auto operator*=(const auto &b) -> Transpose<A> & {
-    a *= transpose(b);
+    a_ *= transpose(b);
     return *this;
   }
   constexpr auto operator/=(const auto &b) -> Transpose<A> & {
-    a /= transpose(b);
+    a_ /= transpose(b);
     return *this;
   }
 };

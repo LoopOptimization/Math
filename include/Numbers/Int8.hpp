@@ -378,4 +378,7 @@ using i8 = IntWrapper<signed char>::strong;
 using u8 = IntWrapper<unsigned char>::strong;
 using Flag8 = IntWrapper<unsigned char, false, 1>::strong;
 
+static_assert(!bool(i8{}));
+static_assert(!bool(u8{}));
+
 } // namespace poly::numbers

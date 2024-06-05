@@ -88,7 +88,7 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
     ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics
-                            -fstack-protector-strong)
+                            -fstack-protector-strong -ftime-trace)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(
     ${PROJECT_NAME}
