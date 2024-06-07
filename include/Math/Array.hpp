@@ -2182,3 +2182,11 @@ void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
 }
 
 } // namespace poly::math
+
+template <class T, poly::math::Dimension S, bool Compress>
+inline constexpr bool
+  std::ranges::enable_borrowed_range<poly::math::Array<T, S, Compress>> = true;
+template <class T, poly::math::Dimension S, bool Compress>
+inline constexpr bool
+  std::ranges::enable_borrowed_range<poly::math::MutArray<T, S, Compress>> =
+    true;

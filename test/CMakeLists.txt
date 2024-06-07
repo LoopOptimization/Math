@@ -39,9 +39,8 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        305e5a238b3c8d11266fbafd85520fb6b3184851 # May 24, 2024 main
-  FIND_PACKAGE_ARGS NAMES GTest
-)
+  GIT_TAG 305e5a238b3c8d11266fbafd85520fb6b3184851 # May 24, 2024 main
+  FIND_PACKAGE_ARGS NAMES GTest)
 FetchContent_MakeAvailable(googletest)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
@@ -122,8 +121,9 @@ target_precompile_headers(
   <iterator>
   <limits>
   <numeric>
+  <functional>
   <optional>
-  <ostream>
+  <iostream>
   <random>
   <string>
   <tuple>

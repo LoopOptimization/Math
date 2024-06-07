@@ -1,11 +1,13 @@
 #include "Alloc/Arena.hpp"
 #include "Containers/TinyVector.hpp"
+#include "Containers/Tuple.hpp"
 #include "Math/Array.hpp"
 #include "Math/Indexing.hpp"
 #include "Math/Math.hpp"
 #include "Math/MatrixDimensions.hpp"
 #include "Math/SmallSparseMatrix.hpp"
 #include "Math/StaticArrays.hpp"
+#include "Math/UniformScaling.hpp"
 #include "Utilities/MatrixStringParse.hpp"
 #include "Utilities/TypeCompression.hpp"
 #include "Utilities/TypePromotion.hpp"
@@ -14,8 +16,12 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <gtest/gtest.h>
+#include <iostream>
+#include <iterator>
 #include <ostream>
+#include <ranges>
 #include <sstream>
 #include <tuple>
 #include <type_traits>
@@ -311,6 +317,10 @@ TEST(SVectorTest, BasicAssertions) {
   EXPECT_TRUE(const_cmp(v.size(), 3).first);
   EXPECT_FALSE(const_cmp(v.size(), 3).second);
   EXPECT_TRUE(const_cmp(x.size(), 3).first);
+  EXPECT_EQ(std::distance(v.begin(), std::ranges::find_if(
+                                       v[_(1, end)],
+                                       std::bind_front(std::equal_to<>{}, 3))),
+            2);
   // EXPECT_TRUE(constCmp(v.size()).first);
   // EXPECT_FALSE(constCmp(v.size()).second);
   // EXPECT_TRUE(constCmp(x.size()).first);
