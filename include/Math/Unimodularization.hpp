@@ -1,7 +1,11 @@
 #pragma once
+#include "Containers/Pair.hpp"
 #include "Math/Array.hpp"
 #include "Math/NormalForm.hpp"
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <utility>
 
 namespace poly::math {
 // if `A` can be unimodularized, returns the inverse of the unimodularized `A`

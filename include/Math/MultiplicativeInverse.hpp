@@ -2,36 +2,15 @@
 
 #include "Numbers/Int8.hpp"
 #include "Utilities/Invariant.hpp"
+#include "Utilities/Widen.hpp"
 #include <array>
 #include <bit>
 #include <cmath>
 #include <concepts>
-#include <cstdint>
 #include <limits>
 #include <type_traits>
 namespace poly::math {
 using numbers::i8, numbers::u8;
-
-constexpr auto widen(std::signed_integral auto x) {
-  static constexpr auto sz = sizeof(decltype(x));
-  if constexpr (sz == 8) return __int128_t(x);
-  else if constexpr (sz == 4) return int64_t(x);
-  else if constexpr (sz == 2) return int32_t(x);
-  else {
-    static_assert(sz == 1);
-    return int16_t(x);
-  }
-}
-constexpr auto widen(std::unsigned_integral auto x) {
-  static constexpr auto sz = sizeof(decltype(x));
-  if constexpr (sz == 8) return __uint128_t(x);
-  else if constexpr (sz == 4) return uint64_t(x);
-  else if constexpr (sz == 2) return uint32_t(x);
-  else {
-    static_assert(sz == 1);
-    return uint16_t(x);
-  }
-}
 
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
@@ -70,7 +49,7 @@ CLANGNOUBSAN constexpr auto _mul_high(__int128_t a,
 }
 template <std::integral T>
 CLANGNOUBSAN constexpr auto _mul_high(T a, T b) -> T {
-  return T((widen(a) * widen(b)) >> (8 * sizeof(T)));
+  return T((utils::widen(a) * utils::widen(b)) >> (8 * sizeof(T)));
 }
 #undef CLANGNOUBSAN
 
