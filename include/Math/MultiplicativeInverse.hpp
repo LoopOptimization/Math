@@ -56,6 +56,8 @@ CLANGNOUBSAN constexpr auto _mul_high(T a, T b) -> T {
 template <typename T> class MultiplicativeInverse;
 
 template <std::floating_point T> class MultiplicativeInverse<T> {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  using U = utils::unsigned_integer_t<sizeof(T)>;
   T divisor_;
   T inverse_;
   friend constexpr auto operator*(T a, MultiplicativeInverse b) -> T {
@@ -82,6 +84,13 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
 
 public:
   explicit constexpr operator T() const { return divisor_; }
+  explicit constexpr operator I() const { return I(divisor_); }
+  // casts to unsigned by first going through a signed integer.
+  // This is because the signed->unsigned is a noop, our primary use is for
+  // `Unroll`s which are always positive, and x64 CPUs without AVX512 lack a
+  // `vcvtsd2usi` instruction, but may have `vcvtsd2si` from AVX, or at least
+  // `cvtsd2si` from SSE.
+  explicit constexpr operator U() const { return U(I(divisor_)); }
   constexpr auto divrem(T a) -> std::array<T, 2> {
     T d = a / (*this);
     return {d, std::round(a - d / inverse_)};

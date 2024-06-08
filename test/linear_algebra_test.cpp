@@ -1,7 +1,11 @@
+#include "Math/Array.hpp"
 #include "Math/LinearAlgebra.hpp"
 #include "Math/Math.hpp"
+#include "Utilities/Invariant.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <iostream>
 #include <ostream>
 #include <random>
 using namespace poly::math;
@@ -27,23 +31,23 @@ TEST(LinearAlgebraTest, BasicAssertions) {
   A[3, 2] = -2;
   A[3, 3] = 4;
 
-  auto optLUF = LU::fact(A);
-  EXPECT_TRUE(optLUF.has_value());
-  ASSERT(optLUF.has_value());
-  auto &LUF = *optLUF;
-  Matrix<Rational> B = A;
-  std::cout << "A = \n" << A << "\nB = \n" << B << "\n";
+  auto opt_luf = LU::fact(A);
+  EXPECT_TRUE(opt_luf.has_value());
+  ASSERT(opt_luf.has_value());
+  auto &LUF = *opt_luf;
+  Matrix<Rational> B0 = A;
+  std::cout << "A = \n" << A << "\nB = \n" << B0 << "\n";
   std::cout << LUF;
 
-  auto copyB = B;
-  EXPECT_FALSE(LUF.ldivrat(copyB));
-  std::cout << "LUF.ldiv(B) = \n" << copyB << "\n";
-  EXPECT_EQ(copyB, identity);
+  auto B1 = B0;
+  EXPECT_FALSE(LUF.ldivrat(B1));
+  std::cout << "LUF.ldiv(B) = \n" << B1 << "\n";
+  EXPECT_EQ(B1, identity);
   std::cout << "I = " << identity << "\n";
 
-  EXPECT_FALSE(LUF.rdivrat(B));
-  std::cout << "LUF.rdiv(B) = \n" << B << "\n";
-  EXPECT_EQ(B, identity);
+  EXPECT_FALSE(LUF.rdivrat(B0));
+  std::cout << "LUF.rdiv(B) = \n" << B0 << "\n";
+  EXPECT_EQ(B0, identity);
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

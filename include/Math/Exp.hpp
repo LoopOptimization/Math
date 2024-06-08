@@ -1,4 +1,5 @@
 #pragma once
+#include "Bit/Float.hpp"
 #include <bit>
 #include <cmath>
 #include <cstdint>
@@ -394,11 +395,11 @@ template <int B> constexpr auto exp_impl(double x) -> double {
   // if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
   // #endif
   if (x <= subnormal_exp(x, base)) return 0.0;
-  double floatN = fma(x, LogBo256INV(base), magic_round_const<double>);
-  auto N = std::bit_cast<uint64_t>(floatN);
-  floatN -= magic_round_const<double>;
-  double r = fma(floatN, LogBo256U(base), x);
-  r = fma(floatN, LogBo256L(base), r);
+  double float_n = fma(x, LogBo256INV(base), magic_round_const<double>);
+  auto N = std::bit_cast<uint64_t>(float_n);
+  float_n -= magic_round_const<double>;
+  double r = fma(float_n, LogBo256U(base), x);
+  r = fma(float_n, LogBo256L(base), r);
   double jU = J_TABLE[N & 255];
   double small = fma(jU, expm1b_kernel(base, r), jU);
   auto twopk = int64_t(N >> 8) << 52;
@@ -418,7 +419,7 @@ constexpr auto exp2(int64_t x) -> double {
 constexpr auto exp2(unsigned x) -> double {
   // if (x > 1023) return std::numeric_limits<double>::infinity();
   if (x > 1023) return std::numeric_limits<double>::max();
-  return std::bit_cast<double>((uint64_t(x) + 1023) << 52);
+  return bit::exp2unchecked(x);
 }
 constexpr auto log(double x) -> double { return std::log(x); }
 constexpr auto log2(double x) -> double { return std::log2(x); }
