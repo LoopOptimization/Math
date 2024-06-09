@@ -1393,6 +1393,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   template <std::convertible_to<T> Y>
   constexpr ManagedArray(const SmallSparseMatrix<Y> &B)
     : BaseT{memory_.data(), B.dim(), capacity(StackStorage)} {
+    static_assert(trivialelt);
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     this->fill(0);
@@ -1412,16 +1413,21 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   constexpr ManagedArray(const ColVector auto &v)
   requires(MatrixDimension<S>)
     : BaseT{memory_.data(), S(shape(v)), U(capacity(StackStorage))} {
-    this->growUndef(ptrdiff_t(this->sz));
+    ptrdiff_t M = ptrdiff_t(this->sz);
+    this->growUndef(M);
+    if constexpr (!trivialelt)
+      std::uninitialized_default_construct_n(this->data(), M);
     MutArray<T, decltype(v.dim())>(this->data(), v.dim()) << v;
-    // (*this) << v;
   }
   constexpr ManagedArray(const RowVector auto &v)
   requires(MatrixDimension<S>)
     : BaseT{memory_.data(), S(CartesianIndex(1, v.size())),
             U(capacity(StackStorage))} {
-    this->growUndef(ptrdiff_t(this->sz));
-    (*this) << v;
+    ptrdiff_t M = ptrdiff_t(this->sz);
+    this->growUndef(M);
+    if constexpr (!trivialelt)
+      std::uninitialized_default_construct_n(this->data(), M);
+    MutArray<T, decltype(v.dim())>(this->data(), v.dim()) << v;
   }
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic pop
@@ -1437,15 +1443,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   {
     // this condition implies `this->data() == nullptr`
     if (this->data() == b.data()) return *this;
-    S d = b.dim();
-    auto len = ptrdiff_t(d);
-    if constexpr (trivialelt) {
-      this->growUndef(len);
-      std::copy_n(b.data(), len, this->data());
-      this->sz = d;
-    } else {
-      std::copy_n(b.data(), std::min(len), this->data());
-    }
+    resizeCopyTo(b);
     return *this;
   }
   template <class D>
@@ -1468,11 +1466,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   constexpr auto operator=(const ManagedArray &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
-    S d = b.dim();
-    auto len = ptrdiff_t(d);
-    resize(b.dim());
-    std::copy_n(b.data(), len, this->data());
-    this->sz = d;
+    resizeCopyTo(b);
     return *this;
   }
   constexpr auto operator=(ManagedArray &&b) noexcept -> ManagedArray & {
@@ -1563,13 +1557,21 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   constexpr void resizeForOverwrite(S M) {
     auto nz = ptrdiff_t(M);
-    if (nz > ptrdiff_t(this->sz)) growUndef(nz);
-    if constexpr (!std::is_trivially_destructible_v<T>) {
+    if constexpr (!trivialelt) {
       ptrdiff_t oz = ptrdiff_t(this->sz);
-      if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
-      else if (nz > oz) // TODO: user should be in charge of initialization?
-        std::uninitialized_default_construct_n(this->data() + oz, nz - oz);
-    }
+      storage_type *old_ptr = this->data();
+      if (nz < oz) std::destroy_n(old_ptr + nz, oz - nz);
+      else if (nz > ptrdiff_t(this->capacity_)) {
+        auto [new_ptr, new_cap] = alloc::alloc_at_least(allocator_, nz);
+        invariant(ptrdiff_t(new_cap) >= nz);
+        std::uninitialized_move_n(old_ptr, oz, new_ptr);
+        std::uninitialized_default_construct_n(new_ptr + oz, nz - oz);
+        maybeDeallocate();
+        this->ptr = new_ptr;
+        this->capacity_ = capacity(new_cap);
+      } else if (nz > oz)
+        std::uninitialized_default_construct_n(old_ptr + oz, nz - oz);
+    } else if (nz > ptrdiff_t(this->sz)) growUndef(nz);
     this->sz = M;
   }
   constexpr void resizeForOverwrite(ptrdiff_t M)
@@ -1711,7 +1713,8 @@ private:
     this->ptr = newPtr;
     this->capacity_ = capacity(newCapacity);
   }
-  // grow, discarding old data
+  // reallocate, discarding old data
+  // This only performs the allocation!!
   void growUndef(ptrdiff_t M) {
     invariant(M >= 0);
     if (M <= this->capacity_) return;
@@ -1720,25 +1723,10 @@ private:
     // we can allocate after freeing, which may be faster
     this->ptr = this->allocator_.allocate(M);
     this->capacity_ = capacity(M);
+    // if constexpr (!trivialelt)
+    //   std::uninitialized_default_construct_n(this->data(), M);
 #ifndef NDEBUG
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
-      std::fill_n(this->data(), M, std::numeric_limits<T>::signaling_NaN());
-    else if constexpr (std::integral<T>)
-      std::fill_n(this->data(), M, std::numeric_limits<T>::min());
-#endif
-  }
-  void growDef(ptrdiff_t M) {
-    invariant(M >= 0);
-    if (M <= this->capacity_) return;
-    maybeDeallocate();
-    // because this doesn't care about the old data,
-    // we can allocate after freeing, which may be faster
-    this->ptr = this->allocator_.allocate(M);
-    this->capacity_ = capacity(M);
-    if constexpr (!trivialelt)
-      std::uninitialized_default_construct_n(this->data(), M);
-#ifndef NDEBUG
-    else if constexpr (std::numeric_limits<T>::has_signaling_NaN)
       std::fill_n(this->data(), M, std::numeric_limits<T>::signaling_NaN());
     else if constexpr (std::integral<T>)
       std::fill_n(this->data(), M, std::numeric_limits<T>::min());
@@ -1755,17 +1743,20 @@ private:
       }
       if (nz > this->capacity_) {
         auto ncu = size_t(nzs);
-        auto [newPtr, newCap] = alloc::alloc_at_least(allocator_, ncu);
-        invariant(newCap >= ncu);
-        auto ncs = ptrdiff_t(newCap);
+        auto [new_ptr, new_cap] = alloc::alloc_at_least(allocator_, ncu);
+        invariant(new_cap >= ncu);
+        auto ncs = ptrdiff_t(new_cap);
         invariant(ncs >= nzs);
-        if (oz) std::copy_n(this->data(), ozs, newPtr);
-        maybeDeallocate(newPtr, ncs);
+        storage_type *old_ptr = this->data();
+        if constexpr (trivialelt) {
+          if (oz) std::copy_n(old_ptr, ozs, new_ptr);
+          std::fill(new_ptr + ozs, new_ptr + nzs, T{});
+        } else {
+          if (oz) std::uninitialized_move_n(old_ptr, ozs, new_ptr);
+          std::uninitialized_default_construct(new_ptr + ozs, new_ptr + nzs);
+        }
+        maybeDeallocate(new_ptr, ncs);
       }
-      if constexpr (!std::is_trivially_destructible_v<T>)
-        for (ptrdiff_t i = ozs; i < nz; ++i)
-          std::construct_at(this->data() + i);
-      else std::fill(this->data() + ozs, this->data() + nzs, T{});
     } else {
       static_assert(std::is_trivially_destructible_v<T>,
                     "Resizing matrices holding non-is_trivially_destructible_v "
@@ -1828,6 +1819,34 @@ private:
         std::fill_n(npt + m * new_x, new_n, T{});
       if (new_alloc) maybeDeallocate(npt, len);
     }
+  }
+
+  // copies and resizes
+  void resizeCopyTo(const auto &b) {
+    S d = b.dim();
+    auto len = ptrdiff_t(d);
+    storage_type *old_ptr = this->data(), *bptr = b.data();
+    if constexpr (trivialelt) {
+      this->growUndef(len);
+      std::copy_n(bptr, len, old_ptr);
+    } else {
+      ptrdiff_t oz = ptrdiff_t(this->sz), nz = ptrdiff_t(d);
+      if (nz > ptrdiff_t(this->capacity_)) {
+        auto [new_ptr, new_cap] = alloc::alloc_at_least(allocator_, nz);
+        invariant(new_cap >= nz);
+        for (ptrdiff_t i = 0; i < oz; ++i)
+          *std::construct_at(new_ptr + i, std::move(old_ptr[i])) = bptr[i];
+        std::uninitialized_copy_n(bptr + oz, nz - oz, new_ptr);
+        maybeDeallocate();
+        this->ptr = new_ptr;
+        this->capacity_ = capacity(new_cap);
+      } else {
+        std::copy_n(bptr, std::min(nz, oz), old_ptr);
+        if (nz < oz) std::destroy_n(old_ptr + nz, oz - nz);
+        else std::uninitialized_copy_n(bptr + oz, nz - oz, old_ptr);
+      }
+    }
+    this->sz = d;
   }
 
   friend void PrintTo(const ManagedArray &x, ::std::ostream *os)
@@ -2001,17 +2020,17 @@ static_assert(std::is_trivially_copyable_v<MutArray<int64_t, Length<>>>);
 constexpr auto getMaxDigits(PtrMatrix<Rational> A) -> Vector<ptrdiff_t> {
   ptrdiff_t M = ptrdiff_t(A.numRow());
   ptrdiff_t N = ptrdiff_t(A.numCol());
-  Vector<ptrdiff_t> maxDigits{length(N), 0};
-  invariant(ptrdiff_t(maxDigits.size()), N);
+  Vector<ptrdiff_t> max_digits{length(N), 0};
+  invariant(max_digits.size(), N);
   // this is slow, because we count the digits of every element
   // we could optimize this by reducing the number of calls to countDigits
   for (ptrdiff_t i = 0; i < M; i++) {
     for (ptrdiff_t j = 0; j < N; j++) {
       ptrdiff_t c = countDigits(A[i, j]);
-      maxDigits[j] = std::max(maxDigits[j], c);
+      max_digits[j] = std::max(max_digits[j], c);
     }
   }
-  return maxDigits;
+  return max_digits;
 }
 
 /// Returns the number of digits of the largest number in the matrix.
@@ -2019,8 +2038,8 @@ template <std::integral T>
 constexpr auto getMaxDigits(PtrMatrix<T> A) -> Vector<T> {
   ptrdiff_t M = ptrdiff_t(A.numRow());
   ptrdiff_t N = ptrdiff_t(A.numCol());
-  Vector<T> maxDigits{length(N), T{}};
-  invariant(ptrdiff_t(maxDigits.size()), N);
+  Vector<T> max_digits{length(N), T{}};
+  invariant(ptrdiff_t(max_digits.size()), N);
   // first, we find the digits with the maximum value per column
   for (ptrdiff_t i = 0; i < M; i++) {
     for (ptrdiff_t j = 0; j < N; j++) {
@@ -2029,14 +2048,14 @@ constexpr auto getMaxDigits(PtrMatrix<T> A) -> Vector<T> {
       // dividing positive numbers by -10
       T Aij = A[i, j];
       if constexpr (std::signed_integral<T>)
-        maxDigits[j] = std::min(maxDigits[j], Aij > 0 ? Aij / -10 : Aij);
-      else maxDigits[j] = std::max(maxDigits[j], Aij);
+        max_digits[j] = std::min(max_digits[j], Aij > 0 ? Aij / -10 : Aij);
+      else max_digits[j] = std::max(max_digits[j], Aij);
     }
   }
   // then, we count the digits of the maximum value per column
-  for (ptrdiff_t j = 0; j < maxDigits.size(); j++)
-    maxDigits[j] = utils::countDigits(maxDigits[j]);
-  return maxDigits;
+  for (ptrdiff_t j = 0; j < max_digits.size(); j++)
+    max_digits[j] = utils::countDigits(max_digits[j]);
+  return max_digits;
 }
 
 template <typename T>
@@ -2045,14 +2064,14 @@ inline auto printMatrix(std::ostream &os, PtrMatrix<T> A) -> std::ostream & {
   auto [M, N] = shape(A);
   if ((!M) || (!N)) return os << "[ ]";
   // first, we determine the number of digits needed per column
-  auto maxDigits{getMaxDigits(A)};
+  auto max_digits{getMaxDigits(A)};
   using U = decltype(countDigits(std::declval<T>()));
   for (ptrdiff_t i = 0; i < M; i++) {
     if (i) os << "  ";
     else os << "\n[ ";
     for (ptrdiff_t j = 0; j < N; j++) {
       auto Aij = A[i, j];
-      for (U k = 0; k < U(maxDigits[j]) - countDigits(Aij); k++) os << " ";
+      for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); k++) os << " ";
       os << Aij;
       if (j != ptrdiff_t(N) - 1) os << " ";
       else if (i != ptrdiff_t(M) - 1) os << "\n";
@@ -2077,38 +2096,38 @@ inline auto printMatrix(std::ostream &os,
   Vector<char, 512> digits;
   digits.resizeForOverwrite(512);
   // we can't have more than 255 digits
-  DenseMatrix<uint8_t> numDigits{DenseDims<>{row(M), col(N)}};
+  DenseMatrix<uint8_t> num_digits{DenseDims<>{row(M), col(N)}};
   char *ptr = digits.begin();
-  char *pEnd = digits.end();
+  char *p_end = digits.end();
   for (ptrdiff_t m = 0; m < M; m++) {
     for (ptrdiff_t n = 0; n < N; n++) {
       auto Aij = A[m, n];
       while (true) {
-        auto [p, ec] = std::to_chars(ptr, pEnd, Aij);
+        auto [p, ec] = std::to_chars(ptr, p_end, Aij);
         if (ec == std::errc()) [[likely]] {
-          numDigits[m, n] = std::distance(ptr, p);
+          num_digits[m, n] = std::distance(ptr, p);
           ptr = p;
           break;
         }
         // we need more space
-        ptrdiff_t elemSoFar = m * ptrdiff_t(N) + n;
-        ptrdiff_t charSoFar = std::distance(digits.begin(), ptr);
+        ptrdiff_t elem_so_far = m * ptrdiff_t(N) + n;
+        ptrdiff_t char_so_far = std::distance(digits.begin(), ptr);
         // cld
-        ptrdiff_t charPerElem = (charSoFar + elemSoFar - 1) / elemSoFar;
-        ptrdiff_t newCapacity =
-          (1 + charPerElem) * M * N; // +1 for good measure
-        digits.resize(newCapacity);
-        ptr = digits.begin() + charSoFar;
-        pEnd = digits.end();
+        ptrdiff_t char_per_elem = (char_so_far + elem_so_far - 1) / elem_so_far;
+        ptrdiff_t new_capacity =
+          (1 + char_per_elem) * M * N; // +1 for good measure
+        digits.resize(new_capacity);
+        ptr = digits.begin() + char_so_far;
+        p_end = digits.end();
       }
     }
   }
-  Vector<uint8_t> maxDigits;
-  maxDigits.resizeForOverwrite(N);
-  maxDigits << numDigits[0, _];
+  Vector<uint8_t> max_digits;
+  max_digits.resizeForOverwrite(N);
+  max_digits << num_digits[0, _];
   for (ptrdiff_t m = 0; m < M; m++)
     for (ptrdiff_t n = 0; n < N; n++)
-      maxDigits[n] = std::max(maxDigits[n], numDigits[m, n]);
+      max_digits[n] = std::max(max_digits[n], num_digits[m, n]);
 
   ptr = digits.begin();
   // we will allocate 512 bytes at a time
@@ -2116,8 +2135,8 @@ inline auto printMatrix(std::ostream &os,
     if (i) os << "  ";
     else os << "\n[ ";
     for (ptrdiff_t j = 0; j < N; j++) {
-      ptrdiff_t nD = numDigits[i, j];
-      for (ptrdiff_t k = 0; k < maxDigits[j] - nD; k++) os << " ";
+      ptrdiff_t nD = num_digits[i, j];
+      for (ptrdiff_t k = 0; k < max_digits[j] - nD; k++) os << " ";
       os << std::string_view(ptr, nD);
       if (j != ptrdiff_t(N) - 1) os << " ";
       else if (i != ptrdiff_t(M) - 1) os << "\n";
