@@ -1,6 +1,10 @@
 #include "Containers/Pair.hpp"
 #include "Containers/Tuple.hpp"
+#include "Math/Array.hpp"
+#include "Math/Iterators.hpp"
 #include "Math/SOA.hpp"
+#include <concepts>
+#include <cstddef>
 #include <gtest/gtest.h>
 #include <type_traits>
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -18,7 +22,7 @@ TEST(SOATest, BasicAssertions) {
   static_assert(std::is_trivially_destructible_v<T>);
   poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{},
                              poly::math::length(5z));
-  EXPECT_EQ(soa.capacity.capacity, 8);
+  EXPECT_EQ(soa.capacity_.capacity_, 8);
   soa[0] = x;
   soa[1] = {5, 2.25, 5.5F};
   soa.template get<0>(2) = 7;
@@ -85,12 +89,12 @@ TEST(SOAPairTest, BasicAssertions) {
   static_assert(poly::math::CumSizeOf_v<1, decltype(x)> == 4);
   static_assert(poly::math::CumSizeOf_v<2, decltype(x)> == 12);
   // poly::math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
-  poly::math::ManagedSOA<decltype(x)> soa{};
+  poly::math::ManagedSOA<decltype(x)> soa;
   // poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{});
-  EXPECT_EQ(soa.capacity.capacity, 0);
+  EXPECT_EQ(soa.capacity_.capacity_, 0);
   soa.push_back(x);
   soa[0] = x;
-  EXPECT_EQ(soa.capacity.capacity, 8);
+  EXPECT_EQ(soa.capacity_.capacity_, 8);
   soa.resize(5);
   soa[1] = {5, 2.25};
   soa.template get<0>(2) = 7;

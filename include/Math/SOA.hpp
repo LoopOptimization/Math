@@ -3,9 +3,15 @@
 #include "Containers/Pair.hpp"
 #include "Containers/Tuple.hpp"
 #include "Math/Array.hpp"
+#include "Math/ArrayOps.hpp"
 #include "Math/MatrixDimensions.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <concepts>
 #include <cstddef>
 #include <memory>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 namespace poly::math {
@@ -49,7 +55,7 @@ struct Length {
     return static_cast<ptrdiff_t>(sz);
   }
   constexpr Length() = default;
-  constexpr Length(auto){};
+  constexpr Length(auto) {};
   /// args are old nz, new nz
   /// returns `0` if not growing
   constexpr auto oldnewcap(auto osz, auto nsz) -> std::array<ptrdiff_t, 2> {
@@ -66,7 +72,7 @@ struct NextPow2 {
     return i ? std::max(8z, nextpow2(i)) : 0z;
   }
   constexpr NextPow2() = default;
-  constexpr NextPow2(auto){};
+  constexpr NextPow2(auto) {};
   /// args are old nz, new nz
   /// returns `0` if not growing
   constexpr auto oldnewcap(auto osz, auto nsz) -> std::array<ptrdiff_t, 2> {
@@ -75,19 +81,20 @@ struct NextPow2 {
   constexpr auto operator=(ptrdiff_t) -> NextPow2 & { return *this; }
 };
 struct Explicit {
-  ptrdiff_t capacity{0z};
+  ptrdiff_t capacity_{0z};
   constexpr Explicit() = default;
   constexpr Explicit(ptrdiff_t sz)
-    : capacity{sz ? ((sz > 8z) ? nextpow2(sz) : 8z) : 0z} {}
-  constexpr auto operator()(auto) const -> ptrdiff_t { return capacity; }
+    : capacity_{((sz > 8z) ? nextpow2(sz) : 8z * (sz > 0))} {}
+  constexpr Explicit(math::Length<> sz) : Explicit(ptrdiff_t(sz)) {}
+  constexpr auto operator()(auto) const -> ptrdiff_t { return capacity_; }
   constexpr auto operator=(ptrdiff_t cap) -> Explicit & {
-    capacity = cap;
+    capacity_ = cap;
     return *this;
   }
   /// args are old nz, new nz
   /// returns `0` if not growing
   constexpr auto oldnewcap(auto, auto sz) -> std::array<ptrdiff_t, 2> {
-    return {capacity, nextpow2(sz)};
+    return {capacity_, nextpow2(sz)};
   }
 };
 
@@ -122,31 +129,31 @@ struct SOA {};
 template <typename T, typename S, typename C, typename... Elts, size_t... II>
 requires(CanConstructFromMembers<T>::value)
 struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
-  char *data;
-  [[no_unique_address]] S sz;
-  [[no_unique_address]] C capacity;
+  char *data_;
+  [[no_unique_address]] S sz_;
+  [[no_unique_address]] C capacity_;
   static constexpr bool trivial =
     std::is_trivially_default_constructible_v<T> &&
     std::is_trivially_destructible_v<T>;
   static_assert(trivial);
   struct Reference {
-    char *ptr;
-    ptrdiff_t stride;
-    ptrdiff_t i;
+    char *ptr_;
+    ptrdiff_t stride_;
+    ptrdiff_t i_;
     operator T() const {
-      char *p = std::assume_aligned<16>(ptr);
+      char *p = std::assume_aligned<16>(ptr_);
       return T(*reinterpret_cast<std::tuple_element_t<II, T> *>(
-        p + CumSizeOf_v<II, T> * stride +
-        sizeof(std::tuple_element_t<II, T>) * i)...);
+        p + CumSizeOf_v<II, T> * stride_ +
+        sizeof(std::tuple_element_t<II, T>) * i_)...);
     }
     template <size_t I> void assign(const T &x) {
-      char *p = std::assume_aligned<16>(ptr);
+      char *p = std::assume_aligned<16>(ptr_);
       *reinterpret_cast<std::tuple_element_t<I, T> *>(
-        p + CumSizeOf_v<I, T> * stride +
-        sizeof(std::tuple_element_t<I, T>) * i) = x.template get<I>();
+        p + CumSizeOf_v<I, T> * stride_ +
+        sizeof(std::tuple_element_t<I, T>) * i_) = x.template get<I>();
     }
     constexpr Reference(char *p, ptrdiff_t s, ptrdiff_t idx)
-      : ptr{p}, stride{s}, i{idx} {}
+      : ptr_{p}, stride_{s}, i_{idx} {}
     constexpr Reference(const Reference &) = default;
     auto operator=(const T &x) -> Reference & {
       ((void)assign<II>(x), ...);
@@ -158,37 +165,39 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
       return *this;
     }
     template <size_t I> auto get() -> std::tuple_element_t<I, T> & {
-      invariant(i >= 0);
+      invariant(i_ >= 0);
       return *reinterpret_cast<std::tuple_element_t<I, T> *>(
-        ptr + CumSizeOf_v<I, T> * stride +
-        sizeof(std::tuple_element_t<I, T>) * i);
+        ptr_ + CumSizeOf_v<I, T> * stride_ +
+        sizeof(std::tuple_element_t<I, T>) * i_);
     }
     template <size_t I> auto get() const -> const std::tuple_element_t<I, T> & {
-      invariant(i >= 0);
+      invariant(i_ >= 0);
       return *reinterpret_cast<const std::tuple_element_t<I, T> *>(
-        ptr + CumSizeOf_v<I, T> * stride +
-        sizeof(std::tuple_element_t<I, T>) * i);
+        ptr_ + CumSizeOf_v<I, T> * stride_ +
+        sizeof(std::tuple_element_t<I, T>) * i_);
     }
   };
   auto operator[](ptrdiff_t i) const -> T {
-    char *p = std::assume_aligned<16>(data);
-    ptrdiff_t stride = capacity(sz);
+    char *p = std::assume_aligned<16>(data_);
+    ptrdiff_t stride = capacity_(sz_);
     return T(*reinterpret_cast<std::tuple_element_t<II, T> *>(
       p + CumSizeOf_v<II, T> * stride +
       sizeof(std::tuple_element_t<II, T>) * i)...);
   }
-  auto operator[](ptrdiff_t i) -> Reference { return {data, capacity(sz), i}; }
+  auto operator[](ptrdiff_t i) -> Reference {
+    return {data_, capacity_(sz_), i};
+  }
   static constexpr auto totalSizePer() -> size_t {
     return CumSizeOf_v<sizeof...(II), T>;
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    return ptrdiff_t(sz);
+    return ptrdiff_t(sz_);
   }
   template <size_t I> auto get(ptrdiff_t i) -> std::tuple_element_t<I, T> & {
     invariant(i >= 0);
     invariant(i < size());
     return *reinterpret_cast<std::tuple_element_t<I, T> *>(
-      data + CumSizeOf_v<I, T> * capacity(sz) +
+      data_ + CumSizeOf_v<I, T> * capacity_(sz_) +
       sizeof(std::tuple_element_t<I, T>) * i);
   }
   template <size_t I>
@@ -196,24 +205,24 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
     invariant(i >= 0);
     invariant(i < size());
     return *reinterpret_cast<const std::tuple_element_t<I, T> *>(
-      data + CumSizeOf_v<I, T> * capacity(sz) +
+      data_ + CumSizeOf_v<I, T> * capacity_(sz_) +
       sizeof(std::tuple_element_t<I, T>) * i);
   }
   template <size_t I>
   auto get() -> math::MutArray<std::tuple_element_t<I, T>, S> {
     return {reinterpret_cast<std::tuple_element_t<I, T> *>(
-              data + CumSizeOf_v<I, T> * capacity(sz)),
-            sz};
+              data_ + CumSizeOf_v<I, T> * capacity_(sz_)),
+            sz_};
   }
   template <size_t I>
   auto get() const -> math::Array<std::tuple_element_t<I, T>, S> {
     return {reinterpret_cast<const std::tuple_element_t<I, T> *>(
-              data + CumSizeOf_v<I, T> * capacity(sz)),
-            sz};
+              data_ + CumSizeOf_v<I, T> * capacity_(sz_)),
+            sz_};
   }
   void destroy(ptrdiff_t i) {
-    char *p = std::assume_aligned<16>(data);
-    ptrdiff_t stride = capacity(sz);
+    char *p = std::assume_aligned<16>(data_);
+    ptrdiff_t stride = capacity_(sz_);
     (std::destroy_at(reinterpret_cast<std::tuple_element_t<II, T> *>(
        p + CumSizeOf_v<II, T> * stride +
        sizeof(std::tuple_element_t<II, T>) * i)),
@@ -229,74 +238,74 @@ template <typename T, typename S = Length<>,
 struct ManagedSOA : public SOA<T, S, C, TT, II> {
   using Base = SOA<T, S, C, TT, II>;
   /// uninitialized allocation
-  constexpr ManagedSOA() = default;
+  constexpr ManagedSOA() : Base{nullptr, S{}, C{}} {}
   ManagedSOA(S nsz) {
-    this->sz = nsz;
-    this->capacity = C{ptrdiff_t(nsz)};
-    ptrdiff_t stride = this->capacity(ptrdiff_t(this->sz));
-    this->data = alloc(stride);
-    // this->data =
-    //   A::allocate(stride * this->totalSizePer(), std::align_val_t{16});
+    this->sz_ = nsz;
+    this->capacity_ = C{ptrdiff_t(nsz)};
+    ptrdiff_t stride = this->capacity_(ptrdiff_t(this->sz_));
+    this->data_ = nsz ? alloc(stride) : nullptr;
   }
   constexpr ManagedSOA(std::type_identity<T>) : ManagedSOA() {}
   ManagedSOA(std::type_identity<T>, S nsz) : ManagedSOA(nsz) {}
   ManagedSOA(const ManagedSOA &other) {
-    this->sz = other.sz;
-    this->capacity = C{this->sz};
-    this->data = alloc(this->capacity(this->sz));
+    this->sz_ = other.sz_;
+    this->capacity_ = C{this->sz_};
+    if (ptrdiff_t L = ptrdiff_t(this->sz_)) {
+      this->data_ = alloc(this->capacity_(L));
+      for (ptrdiff_t i = 0z; i < L; ++i) (*this)[i] = other[i];
+    } else this->data_ = nullptr;
   }
 
   void free(ptrdiff_t stride) {
-    A::deallocate(this->data, stride * Base::totalSizePer());
+    if (this->data_) A::deallocate(this->data_, stride * Base::totalSizePer());
   }
   static auto alloc(ptrdiff_t stride) -> char * {
     return A::allocate(stride * Base::totalSizePer());
   }
-  ~ManagedSOA() {
-    if (this->data) free(this->capacity(this->sz));
-  }
+  ~ManagedSOA() { free(this->capacity_(this->sz_)); }
   constexpr ManagedSOA(ManagedSOA &&other)
-    : SOA<T, S, C, TT, II>{other.data, other.sz, other.capacity} {
-    other.data = nullptr;
-    other.sz = {};
-    other.capacity = {};
+    : SOA<T, S, C, TT, II>{other.data_, other.sz_, other.capacity_} {
+    other.data_ = nullptr;
+    other.sz_ = {};
+    other.capacity_ = {};
   }
   constexpr auto operator=(ManagedSOA &&other) -> ManagedSOA & {
-    std::swap(this->data, other.data);
-    std::swap(this->sz, other.sz);
-    std::swap(this->capacity, other.capacity);
+    std::swap(this->data_, other.data_);
+    std::swap(this->sz_, other.sz_);
+    std::swap(this->capacity_, other.capacity_);
     return *this;
   }
   constexpr auto operator=(const ManagedSOA &other) -> ManagedSOA & {
     if (this == &other) return *this;
-    auto L = static_cast<ptrdiff_t>(other.sz);
-    resizeForOverwrite(other.sz);
+    auto L = static_cast<ptrdiff_t>(other.sz_);
+    resizeForOverwrite(other.sz_);
     ManagedSOA &self{*this};
     for (ptrdiff_t i = 0z; i < L; ++i) self[i] = other[i];
     return *this;
   }
   void resizeForOverwrite(S nsz) {
-    auto [ocap, ncap] = this->capacity.oldnewcap(this->sz, nsz);
-    this->sz = nsz;
+    auto [ocap, ncap] = this->capacity_.oldnewcap(this->sz_, ptrdiff_t(nsz));
+    this->sz_ = nsz;
     if (ocap >= ncap) return;
-    if (this->data) free(ocap);
-    this->data = A::allocate(ncap * this->totalSizePer());
-    this->capacity = ncap;
+    free(ocap);
+    this->data_ = A::allocate(ncap * this->totalSizePer());
+    this->capacity_ = ncap;
   }
   void resize(S nsz) {
     auto [ocap, ncap] =
-      this->capacity.oldnewcap(ptrdiff_t(this->sz), ptrdiff_t(nsz));
+      this->capacity_.oldnewcap(ptrdiff_t(this->sz_), ptrdiff_t(nsz));
     if (ocap >= ncap) {
-      this->sz = nsz;
+      this->sz_ = nsz;
       return;
     }
     ManagedSOA other{nsz};
     ManagedSOA &self{*this};
-    std::swap(self.data, other.data);
-    std::swap(self.sz, other.sz);
-    std::swap(self.capacity, other.capacity);
+    std::swap(self.data_, other.data_);
+    std::swap(self.sz_, other.sz_);
+    std::swap(self.capacity_, other.capacity_);
     // FIXME: only accepts non-copyable
-    for (ptrdiff_t i = 0, L = std::min(ptrdiff_t(self.sz), ptrdiff_t(other.sz));
+    for (ptrdiff_t i = 0,
+                   L = std::min(ptrdiff_t(self.sz_), ptrdiff_t(other.sz_));
          i < L; ++i)
       self[i] = other[i];
   }
@@ -305,16 +314,16 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
   {
     resize(length(nsz));
   }
-  constexpr void clear() { this->sz = {}; }
+  constexpr void clear() { this->sz_ = {}; }
   template <typename... Args> void emplace_back(Args &&...args) {
     push_back(T(args...));
   }
   void push_back(T arg)
   requires(std::same_as<S, Length<>>)
   {
-    S osz = this->sz;
+    S osz = this->sz_;
     auto i = ptrdiff_t(osz);
-    resize(ptrdiff_t(i) + 1z);
+    resize(i + 1z);
     (*this)[i] = arg;
   }
   void erase(ptrdiff_t pos)

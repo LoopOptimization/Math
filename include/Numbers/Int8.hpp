@@ -3,6 +3,7 @@
 #include <compare>
 #include <concepts>
 #include <limits>
+#include <ostream>
 #include <type_traits>
 
 namespace poly::numbers {
@@ -370,6 +371,9 @@ private:
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator^=(strong &x, strong y) -> strong & {
     return x = x ^ y;
+  }
+  friend auto operator<<(std::ostream &os, strong x) -> std::ostream & {
+    return os << static_cast<I>(x);
   }
 };
 static_assert(++static_cast<IntWrapper<int>::strong>(3) == 4);

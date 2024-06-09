@@ -1220,6 +1220,10 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   using BaseT = ResizeableView<T, S>;
   using U = containers::default_capacity_type_t<S>;
   using storage_type = typename BaseT::storage_type;
+  static constexpr bool trivialelt =
+    std::is_trivially_default_constructible_v<T> &&
+    std::is_trivially_move_constructible_v<T> &&
+    std::is_trivially_destructible_v<T>;
   // We're deliberately not initializing storage.
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -1257,7 +1261,9 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     : BaseT{memory_.data(), s, capacity(StackStorage)}, allocator_{a} {
     auto len = ptrdiff_t(this->sz);
     if (len > StackStorage) this->allocateAtLeast(capacity(len));
-    if (len) std::fill_n(this->data(), len, x);
+    if (!len) return;
+    if constexpr (trivialelt) std::fill_n(this->data(), len, x);
+    else std::uninitialized_fill_n(this->data(), len, std::move(x));
   }
   constexpr ManagedArray() noexcept : ManagedArray(A{}) {};
   constexpr ManagedArray(S s) noexcept : ManagedArray(s, A{}) {};
@@ -1287,7 +1293,8 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       allocator_(b.get_allocator()) {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
-    std::copy_n(b.data(), len, this->data());
+    if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
+    else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, StackStorage, AY> &b) noexcept
@@ -1297,14 +1304,16 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     auto len = ptrdiff_t(d);
     this->growUndef(len);
     this->sz = d;
-    (*this) << b;
+    if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
+    else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   template <std::convertible_to<T> Y, size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
     : BaseT{memory_.data(), S{}, capacity(StackStorage)} {
     auto len = ptrdiff_t(M);
     this->growUndef(len);
-    std::copy_n(il.begin(), len, this->data());
+    if constexpr (trivialelt) std::copy_n(il.begin(), len, this->data());
+    else std::uninitialized_copy_n(il.begin(), len, this->data());
     this->sz = math::length(ptrdiff_t(M));
   }
   template <std::convertible_to<T> Y, class D, class AY>
@@ -1316,20 +1325,23 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     invariant(len == U(b.size()));
     this->growUndef(len);
     T *p = this->data();
-    std::copy_n(b.data(), len, this->data());
+    if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
+    else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const ManagedArray &b) noexcept
     : BaseT{memory_.data(), S(b.dim()), capacity(StackStorage)},
       allocator_(b.get_allocator()) {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
-    std::copy_n(b.data(), len, this->data());
+    if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
+    else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const Array<T, S> &b) noexcept
     : BaseT{memory_.data(), S(b.dim()), capacity(StackStorage)} {
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
-    std::copy_n(b.data(), len, this->data());
+    if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
+    else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   template <AbstractSimilar<S> V>
   constexpr ManagedArray(const V &b) noexcept
@@ -1344,7 +1356,9 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     if (!b.isSmall()) { // steal
       this->ptr = b.data();
       this->capacity_ = b.getCapacity();
-    } else std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    } else if constexpr (trivialelt)
+      std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    else std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     b.resetNoFree();
   }
   constexpr ManagedArray(ManagedArray &&b) noexcept
@@ -1354,7 +1368,10 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       if (!b.isSmall()) { // steal
         this->ptr = b.data();
         this->capacity_ = b.getCapacity();
-      } else std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+      } else if constexpr (trivialelt)
+        std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+      else
+        std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     } else {
       this->ptr = b.ptr;
       this->capacity_ = b.getCapacity();
@@ -1368,7 +1385,9 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     if (!b.isSmall()) { // steal
       this->ptr = b.data();
       this->capacity_ = b.getCapacity();
-    } else std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    } else if constexpr (trivialelt)
+      std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    else std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     b.resetNoFree();
   }
   template <std::convertible_to<T> Y>
@@ -1420,9 +1439,13 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     if (this->data() == b.data()) return *this;
     S d = b.dim();
     auto len = ptrdiff_t(d);
-    this->growUndef(len);
-    std::copy_n(b.data(), len, this->data());
-    this->sz = d;
+    if constexpr (trivialelt) {
+      this->growUndef(len);
+      std::copy_n(b.data(), len, this->data());
+      this->sz = d;
+    } else {
+      std::copy_n(b.data(), std::min(len), this->data());
+    }
     return *this;
   }
   template <class D>
@@ -1447,7 +1470,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     if (this == &b) return *this;
     S d = b.dim();
     auto len = ptrdiff_t(d);
-    this->growUndef(len);
+    resize(b.dim());
     std::copy_n(b.data(), len, this->data());
     this->sz = d;
     return *this;
@@ -1545,7 +1568,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       ptrdiff_t oz = ptrdiff_t(this->sz);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
       else if (nz > oz) // TODO: user should be in charge of initialization?
-        for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
+        std::uninitialized_default_construct_n(this->data() + oz, nz - oz);
     }
     this->sz = M;
   }
@@ -1591,8 +1614,7 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     auto nc = ptrdiff_t(new_cap);
     invariant(nc >= new_capacity);
     if (old_len) {
-      if constexpr (std::is_trivially_move_constructible_v<T> &&
-                    std::is_trivially_destructible_v<T>)
+      if constexpr (trivialelt)
         std::memcpy(new_ptr, op, old_len * sizeof(storage_type));
       else std::uninitialized_move_n(op, old_len, new_ptr);
     }
@@ -1700,6 +1722,23 @@ private:
     this->capacity_ = capacity(M);
 #ifndef NDEBUG
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
+      std::fill_n(this->data(), M, std::numeric_limits<T>::signaling_NaN());
+    else if constexpr (std::integral<T>)
+      std::fill_n(this->data(), M, std::numeric_limits<T>::min());
+#endif
+  }
+  void growDef(ptrdiff_t M) {
+    invariant(M >= 0);
+    if (M <= this->capacity_) return;
+    maybeDeallocate();
+    // because this doesn't care about the old data,
+    // we can allocate after freeing, which may be faster
+    this->ptr = this->allocator_.allocate(M);
+    this->capacity_ = capacity(M);
+    if constexpr (!trivialelt)
+      std::uninitialized_default_construct_n(this->data(), M);
+#ifndef NDEBUG
+    else if constexpr (std::numeric_limits<T>::has_signaling_NaN)
       std::fill_n(this->data(), M, std::numeric_limits<T>::signaling_NaN());
     else if constexpr (std::integral<T>)
       std::fill_n(this->data(), M, std::numeric_limits<T>::min());
