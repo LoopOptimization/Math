@@ -1736,9 +1736,10 @@ private:
     S oz = this->sz;
     if constexpr (std::same_as<S, Length<>>) {
       auto ozs = ptrdiff_t(oz), nzs = ptrdiff_t(nz);
+      storage_type *old_ptr = this->data();
       if (nz <= oz) {
         if constexpr (!std::is_trivially_destructible_v<T>)
-          if (nz < oz) std::destroy_n(this->data() + nzs, ozs - nzs);
+          if (nz < oz) std::destroy_n(old_ptr + nzs, ozs - nzs);
         return;
       }
       if (nz > this->capacity_) {
@@ -1747,7 +1748,6 @@ private:
         invariant(new_cap >= ncu);
         auto ncs = ptrdiff_t(new_cap);
         invariant(ncs >= nzs);
-        storage_type *old_ptr = this->data();
         if constexpr (trivialelt) {
           if (oz) std::copy_n(old_ptr, ozs, new_ptr);
           std::fill(new_ptr + ozs, new_ptr + nzs, T{});
@@ -1756,6 +1756,9 @@ private:
           std::uninitialized_default_construct(new_ptr + ozs, new_ptr + nzs);
         }
         maybeDeallocate(new_ptr, ncs);
+      } else if (nz > oz) {
+        if constexpr (trivialelt) std::fill(old_ptr + ozs, old_ptr + nzs, T{});
+        else std::uninitialized_default_construct(old_ptr + ozs, old_ptr + nzs);
       }
     } else {
       static_assert(std::is_trivially_destructible_v<T>,
