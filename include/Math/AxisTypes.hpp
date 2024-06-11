@@ -102,10 +102,10 @@ private:
 };
 template <std::signed_integral I> struct Length<-1, I> {
   enum class len : I {};
-  len M;
+  len value_;
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
   operator I() const {
-    auto m = static_cast<I>(M);
+    auto m = static_cast<I>(value_);
     invariant(m >= I(0));
     return m;
   }
@@ -113,35 +113,35 @@ template <std::signed_integral I> struct Length<-1, I> {
   operator ptrdiff_t() const
   requires(!std::same_as<I, ptrdiff_t>)
   {
-    auto m = static_cast<ptrdiff_t>(static_cast<I>(M));
+    auto m = static_cast<ptrdiff_t>(static_cast<I>(value_));
     invariant(m >= 0);
     return m;
   }
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
   operator bool() const {
-    return static_cast<ptrdiff_t>(M);
+    return static_cast<ptrdiff_t>(value_);
   }
 
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++() -> Length & {
-    M = static_cast<len>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<len>(static_cast<ptrdiff_t>(value_) + 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--() -> Length & {
-    M = static_cast<len>(static_cast<ptrdiff_t>(M) - 1z);
+    value_ = static_cast<len>(static_cast<ptrdiff_t>(value_) - 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++(int) -> Length {
     Length tmp{*this};
-    M = static_cast<len>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<len>(static_cast<ptrdiff_t>(value_) + 1z);
     return tmp;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--(int) -> Length {
     Length tmp{*this};
-    M = static_cast<len>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<len>(static_cast<ptrdiff_t>(value_) + 1z);
     return tmp;
   }
 
@@ -252,37 +252,37 @@ private:
 };
 template <std::integral I> struct Capacity<-1, I> {
   enum class cap : I {};
-  cap M;
+  cap value_;
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator I() const {
-    auto m = static_cast<I>(M);
+    auto m = static_cast<I>(value_);
     invariant(m >= 0);
     return m;
   }
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator bool() const {
-    return static_cast<I>(M);
+    return static_cast<I>(value_);
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++() -> Capacity & {
-    M = static_cast<cap>(static_cast<I>(M) + 1z);
+    value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--() -> Capacity & {
-    M = static_cast<cap>(static_cast<I>(M) - 1z);
+    value_ = static_cast<cap>(static_cast<I>(value_) - 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++(int) -> Capacity {
     Capacity tmp{*this};
-    M = static_cast<cap>(static_cast<I>(M) + 1z);
+    value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
     return tmp;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--(int) -> Capacity {
     Capacity tmp{*this};
-    M = static_cast<cap>(static_cast<I>(M) + 1z);
+    value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
     return tmp;
   }
   static constexpr auto comptime() -> ptrdiff_t { return -1; }
@@ -387,37 +387,37 @@ private:
 };
 template <> struct Row<-1> {
   enum class row : ptrdiff_t {};
-  row M;
+  row value_;
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator ptrdiff_t() const {
-    auto m = static_cast<ptrdiff_t>(M);
+    auto m = static_cast<ptrdiff_t>(value_);
     invariant(m >= 0);
     return m;
   }
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator bool() const {
-    return static_cast<ptrdiff_t>(M);
+    return static_cast<ptrdiff_t>(value_);
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++() -> Row & {
-    M = static_cast<row>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<row>(static_cast<ptrdiff_t>(value_) + 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--() -> Row & {
-    M = static_cast<row>(static_cast<ptrdiff_t>(M) - 1z);
+    value_ = static_cast<row>(static_cast<ptrdiff_t>(value_) - 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++(int) -> Row {
     Row tmp{*this};
-    M = static_cast<row>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<row>(static_cast<ptrdiff_t>(value_) + 1z);
     return tmp;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--(int) -> Row {
     Row tmp{*this};
-    M = static_cast<row>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<row>(static_cast<ptrdiff_t>(value_) + 1z);
     return tmp;
   }
   static constexpr auto comptime() -> ptrdiff_t { return -1; }
@@ -531,37 +531,37 @@ private:
 };
 template <> struct Col<-1> {
   enum class col : ptrdiff_t {};
-  col M;
+  col value_;
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator ptrdiff_t() const {
-    auto m = static_cast<ptrdiff_t>(M);
+    auto m = static_cast<ptrdiff_t>(value_);
     invariant(m >= 0);
     return m;
   }
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator bool() const {
-    return static_cast<ptrdiff_t>(M);
+    return static_cast<ptrdiff_t>(value_);
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++() -> Col & {
-    M = static_cast<col>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<col>(static_cast<ptrdiff_t>(value_) + 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--() -> Col & {
-    M = static_cast<col>(static_cast<ptrdiff_t>(M) - 1z);
+    value_ = static_cast<col>(static_cast<ptrdiff_t>(value_) - 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++(int) -> Col {
     Col tmp{*this};
-    M = static_cast<col>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<col>(static_cast<ptrdiff_t>(value_) + 1z);
     return tmp;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--(int) -> Col {
     Col tmp{*this};
-    M = static_cast<col>(static_cast<ptrdiff_t>(M) - 1z);
+    value_ = static_cast<col>(static_cast<ptrdiff_t>(value_) - 1z);
     return tmp;
   }
   static constexpr auto comptime() -> ptrdiff_t { return -1; }
@@ -668,37 +668,37 @@ private:
 };
 template <> struct RowStride<-1> {
   enum class stride : ptrdiff_t {};
-  stride M;
+  stride value_;
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator ptrdiff_t() const {
-    auto m = static_cast<ptrdiff_t>(M);
+    auto m = static_cast<ptrdiff_t>(value_);
     invariant(m >= 0);
     return m;
   }
   [[gnu::artificial, gnu::always_inline]] inline explicit constexpr
   operator bool() const {
-    return static_cast<ptrdiff_t>(M);
+    return static_cast<ptrdiff_t>(value_);
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++() -> RowStride & {
-    M = static_cast<stride>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<stride>(static_cast<ptrdiff_t>(value_) + 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--() -> RowStride & {
-    M = static_cast<stride>(static_cast<ptrdiff_t>(M) - 1z);
+    value_ = static_cast<stride>(static_cast<ptrdiff_t>(value_) - 1z);
     return *this;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator++(int) -> RowStride {
     RowStride tmp{*this};
-    M = static_cast<stride>(static_cast<ptrdiff_t>(M) + 1z);
+    value_ = static_cast<stride>(static_cast<ptrdiff_t>(value_) + 1z);
     return tmp;
   }
   [[gnu::artificial, gnu::always_inline]] inline constexpr auto
   operator--(int) -> RowStride {
     RowStride tmp{*this};
-    M = static_cast<stride>(static_cast<ptrdiff_t>(M) - 1z);
+    value_ = static_cast<stride>(static_cast<ptrdiff_t>(value_) - 1z);
     return tmp;
   }
   static constexpr auto comptime() -> ptrdiff_t { return -1; }

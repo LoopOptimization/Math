@@ -306,8 +306,8 @@ concept Index =
    (ScalarIndex<I> || AbstractSlice<I> || simd::index::issimd<I>)) ||
   (DenseLayout<D> && (ScalarIndex<I> || simd::index::issimd<I>)) ||
   (MatrixDimension<D> && requires(I i) {
-    { i.rowIdx };
-    { i.colIdx };
+    { i.row_idx_ };
+    { i.col_idx_ };
   });
 static_assert(Index<CartesianIndex<ptrdiff_t, ptrdiff_t>, DenseDims<>>);
 struct Empty {};

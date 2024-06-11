@@ -131,10 +131,10 @@ template <typename A, typename B>
         if constexpr (IsOne<decltype(N)>) return sa;
         else return CartesianIndex(sa.row, check_sizes(sa.col, N));
       else if constexpr (IsOne<decltype(N)>)
-        return CartesianIndex(check_sizes(sa.rowIdx, M), sa.col);
+        return CartesianIndex(check_sizes(sa.row_idx_, M), sa.col);
       else
-        return CartesianIndex(check_sizes(sa.rowIdx, M),
-                              check_sizes(sa.colIdx, N));
+        return CartesianIndex(check_sizes(sa.row_idx_, M),
+                              check_sizes(sa.col_idx_, N));
     } else return sa;
   }
 }
