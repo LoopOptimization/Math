@@ -1,38 +1,19 @@
 #pragma once
 
 #ifndef NDEBUG
-#include <iostream>
-#include <ostream>
-#include <source_location>
-#include <version>
 
 namespace poly::utils {
 
-[[gnu::noinline]] inline void errorReport(std::source_location location) {
-  std::cout << "invariant violation\nfile: " << location.file_name() << ":"
-            << location.line() << ":" << location.column() << " `"
-            << location.function_name() << "`\n";
-  __builtin_trap();
-}
-template <typename T>
-[[gnu::noinline]] inline void errorReport(T x, T y,
-                                          std::source_location location) {
-  std::cout << x << " != " << y << "\n";
-  errorReport(location);
-}
-
 [[gnu::artificial, gnu::always_inline]] constexpr inline void
-invariant(bool condition,
-          std::source_location location = std::source_location::current()) {
+invariant(bool condition) {
   if (!condition) [[unlikely]]
-    errorReport(location);
+    __builtin_trap();
 }
 template <typename T>
-[[gnu::artificial, gnu::always_inline]] constexpr inline void
-invariant(T x, T y,
-          std::source_location location = std::source_location::current()) {
+[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T x,
+                                                                        T y) {
   if (x != y) [[unlikely]]
-    errorReport(x, y, location);
+    __builtin_trap();
 }
 // we want gdb-friendly builtin trap
 #define ASSERT(condition) ::poly::utils::invariant(condition)
@@ -40,6 +21,7 @@ invariant(T x, T y,
 #else // ifdef NDEBUG
 #ifdef __cpp_lib_unreachable
 #include <utility>
+#include <version>
 #endif
 namespace poly::utils {
 // [[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(bool)

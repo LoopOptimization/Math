@@ -914,7 +914,7 @@ load(const T *p, mask::Vector<2, sizeof(T)> m, int32_t stride) -> Vec<2, T> {
   return gather(p, m, range<2>() * stride);
 }
 
-#else          // no AVX2
+#else // no AVX2
 // fallback 128-bit gather
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
@@ -939,6 +939,41 @@ gather(const T *p, mask::Vector<2, sizeof(T)> i,
   return Vec<2, T>{(i.m[0] != 0) ? p[indv[0]] : T{},
                    (i.m[1] != 0) ? p[indv[1]] : T{}};
 }
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<2, sizeof(T)> i,
+       Vec<2, int32_t> indv) -> Vec<2, T> {
+  return Vec<2, T>{(i.m[0] != 0) ? p[indv[0]] : T{},
+                   (i.m[1] != 0) ? p[indv[1]] : T{}};
+}
+
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::None<4>, int32_t stride) -> Vec<4, T> {
+  return Vec<4, T>{p[0], p[stride], p[2 * stride], p[3 * stride]};
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::None<4>, Vec<4, int32_t> i) -> Vec<4, T> {
+  return Vec<4, T>{p[i[0]], p[i[1]], p[i[2]], p[i[3]]};
+}
+
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Vector<4, sizeof(T)> i, int32_t stride) -> Vec<4, T> {
+  return Vec<4, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[stride] : T{},
+                   (i.m[2] != 0) ? p[2 * stride] : T{},
+                   (i.m[3] != 0) ? p[3 * stride] : T{}};
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+gather(const T *p, mask::Vector<4, sizeof(T)> i,
+       Vec<4, int> indv) -> Vec<4, T> {
+  return Vec<4, T>{
+    (i.m[0] != 0) ? p[indv[0]] : T{}, (i.m[1] != 0) ? p[indv[1]] : T{},
+    (i.m[2] != 0) ? p[indv[2]] : T{}, (i.m[3] != 0) ? p[indv[3]] : T{}};
+}
+
 #ifdef __AVX__ // no AVX2, but AVX
 // fallback 256-bit gather
 template <typename T>
@@ -1098,12 +1133,26 @@ template <typename T>
 load(const T *p, mask::Vector<2, sizeof(T)> i) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[1] : T{}};
 }
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::Vector<4, sizeof(T)> i) -> Vec<4, T> {
+  return Vec<4, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[1] : T{},
+                   (i.m[2] != 0) ? p[2] : T{}, (i.m[3] != 0) ? p[3] : T{}};
+}
 
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void
 store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[1] = x[1];
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void
+store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
+  if (i.m[0] != 0) p[0] = x[0];
+  if (i.m[1] != 0) p[1] = x[1];
+  if (i.m[2] != 0) p[2] = x[2];
+  if (i.m[3] != 0) p[3] = x[3];
 }
 
 #endif // No AVX
@@ -1182,6 +1231,27 @@ template <typename T>
 // store(T *p, index::Vector<N, M> i, Vec<W, T> x, int32_t stride) {
 //   store(p, fixupnonpow2(i), stride);
 // }
+#else // NO AVX:
+
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline auto
+load(const T *p, mask::None<4>) -> Vec<4, T> {
+  if constexpr (std::same_as<T, float>)
+    return std::bit_cast<Vec<4, float>>(_mm_loadu_ps(p));
+  else if constexpr (sizeof(T) == 4)
+    return std::bit_cast<Vec<4, T>>(_mm_loadu_si128((const __m128i *)p));
+  else static_assert(false);
+}
+template <typename T>
+[[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::None<4>,
+                                                          Vec<4, T> x) {
+  if constexpr (std::same_as<T, float>)
+    _mm_storeu_pd(p, std::bit_cast<__m128d>(x));
+  else if constexpr (sizeof(T) == 4)
+    _mm_storeu_si128((__m128i *)p, std::bit_cast<__m128i>(x));
+  else static_assert(false);
+}
+
 #endif // AVX
 
 template <typename T>
@@ -1195,7 +1265,8 @@ load(const T *p, mask::None<2>) -> Vec<2, T> {
 #else
     return std::bit_cast<Vec<2, T>>(_mm_loadu_si128((const __m128i *)p));
 #endif
-  else static_assert(false);
+  else return Vec<2, T>{p[0], p[1]};
+  // else static_assert(false);
 }
 
 template <typename T>
@@ -1209,7 +1280,11 @@ template <typename T>
 #else
     _mm_storeu_si128((__m128i *)p, std::bit_cast<__m128i>(x));
 #endif
-  else static_assert(false);
+  else {
+    p[0] = x[0];
+    p[1] = x[1];
+  }
+  // else static_assert(false);
 }
 
 #else // not __x86_64__
