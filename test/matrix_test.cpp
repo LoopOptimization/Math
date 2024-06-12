@@ -425,8 +425,10 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
     EXPECT_EQ(b, y[_(1, end)]);
   }
   Vector<int64_t> z{std::array<int64_t, 3>{0, 1, 2}};
-  Vector<Vector<int64_t, 0>, 0> x;
-  for (ptrdiff_t i = 0; i < 102; i += 2)
+  Vector<Vector<int64_t, 0>, 0> x{poly::math::length(5)};
+  for (ptrdiff_t i = 0; i < 10; i += 2)
+    x[i / 2] = std::array<int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i};
+  for (ptrdiff_t i = 10; i < 102; i += 2)
     x.emplace_back(std::array<int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
   for (ptrdiff_t i = 1; i < 102; i += 2)
     x.insert(x.begin() + i,

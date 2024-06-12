@@ -3,14 +3,12 @@ from __future__ import print_function
 import gdb.printing
 
 
-class VectorPrinter(Iterator):
+class BaseVectorPrinter(Iterator):
     """Print a Vector<>"""
 
-    def __init__(self, val):
-        self.val = val
-        t = val.type.template_argument(0).pointer()
-        self.begin = val["ptr"].cast(t)
-        self.size = val["sz"]["value_"].cast(gdb.lookup_type("long"))
+    def __init__(self, ptr, size):
+        self.begin = ptr
+        self.size = size
         self.i = 0
 
     def __next__(self):
@@ -26,6 +24,15 @@ class VectorPrinter(Iterator):
     def display_hint(self):
         return "array"
 
+class VectorPrinter(Iterator):
+    def __init__(self, val):
+        t = val.type.template_argument(0).pointer()
+        BaseVectorPrinter.__init__(self, val["ptr"].cast(t), val["sz"]["value_"].cast(gdb.lookup_type("long")))
+
+class TinyVectorPrinter(Iterator):
+    def __init__(self, val):
+        t = val.type.template_argument(0).pointer()
+        BaseVectorPrinter.__init__(self, val["data_"]["mem"][0].address.cast(t), val["len_"]["value_"].cast(gdb.lookup_type("long")))
 
 class BaseMatrixPrinter:
     """Print a StridedMatrix<>"""
@@ -103,68 +110,73 @@ class WrappedIntegerPrinter:
 pp = gdb.printing.RegexpCollectionPrettyPrinter("PolyMath")
 pp.add_printer(
     "poly::math::PtrVector",
-    "^poly::math::(Mut)?Array<.*, poly::math::axis::Length<-1l, long>,[^,]*?>$",
+    "^poly::math::(Mut)?Array<.*, poly::math::axis::Length<-1[l]?, long>,[^,]*?>$",
     VectorPrinter,
 )
 pp.add_printer(
     "poly::math::Vector",
-    "^poly::math::ManagedArray<.*, poly::math::axis::Length<-1l, long>,[^,]*?,[^,]*?>$",
+    "^poly::math::ManagedArray<.*, poly::math::axis::Length<-1[l]?, long>,[^,]*?,[^,]*?>$",
     VectorPrinter,
 )
 pp.add_printer(
+    "poly::containers::TinyVector",
+    "^poly::containers::TinyVector<.*, .*,[^,]*?>$",
+    TinyVectorPrinter,
+)
+pp.add_printer(
     "poly::math::SquarePtrMatrix",
-    "^poly::math::(Mut)?Array<.*, poly::math::SquareDims<-1l>,[^,]*?>$",
+    "^poly::math::(Mut)?Array<.*, poly::math::SquareDims<-1[l]?>,[^,]*?>$",
     SquareMatrixPrinter,
 )
 pp.add_printer(
     "poly::math::DensePtrMatrix",
-    "^poly::math::(Mut)?Array<.*, poly::math::DenseDims<-1l>,[^,]*?>$",
+    "^poly::math::(Mut)?Array<.*, poly::math::DenseDims<-1[l]?>,[^,]*?>$",
     DenseMatrixPrinter,
 )
 pp.add_printer(
     "poly::math::StridedPtrMatrix",
-    "^poly::math::(Mut)?Array<.*, poly::math::StridedDims<-1l>,[^,]*?>$",
+    "^poly::math::(Mut)?Array<.*, poly::math::StridedDims<-1[l]?>,[^,]*?>$",
     StridedMatrixPrinter,
 )
 pp.add_printer(
     "poly::math::SquareMatrix",
-    "^poly::math::ManagedArray<.*, poly::math::SquareDims<-1l>,[^,]*?,[^,]*?>$",
+    "^poly::math::ManagedArray<.*, poly::math::SquareDims<-1[l]?>,[^,]*?,[^,]*?>$",
     SquareMatrixPrinter,
 )
 pp.add_printer(
     "poly::math::DenseMatrix",
-    "^poly::math::ManagedArray<.*, poly::math::DenseDims<-1l, -1l>,[^,]*?,[^,]*?>$",
+    "^poly::math::ManagedArray<.*, poly::math::DenseDims<-1[l]?, -1[l]?>,[^,]*?,[^,]*?>$",
     DenseMatrixPrinter,
 )
 pp.add_printer(
     "poly::math::StridedMatrix",
-    "^poly::math::ManagedArray<.*, poly::math::StridedDims<-1l, -1l, -1l>,[^,]*?,[^,]*?>$",
+    "^poly::math::ManagedArray<.*, poly::math::StridedDims<-1[l]?, -1[l]?, -1[l]?>,[^,]*?,[^,]*?>$",
     StridedMatrixPrinter,
 )
 pp.add_printer(
     "poly::math::axis::Length",
-    "poly::math::axis::Length<-1l, long>",
+    "^poly::math::axis::Length<-1[l]?, long>$",
     WrappedIntegerPrinter,
 )
 pp.add_printer(
     "poly::math::axis::Capacity",
-    "poly::math::axis::Capacity<-1l, long>",
+    "^poly::math::axis::Capacity<-1[l]?, long>$",
     WrappedIntegerPrinter,
 )
 pp.add_printer(
-    "poly::math::axis::Row", "poly::math::axis::Row<-1l>", WrappedIntegerPrinter
+    "poly::math::axis::Row", "^poly::math::axis::Row<-1[l]?>$", WrappedIntegerPrinter
 )
 pp.add_printer(
-    "poly::math::axis::Col", "poly::math::axis::Col<-1l>", WrappedIntegerPrinter
+    "poly::math::axis::Col", "^poly::math::axis::Col<-1[l]?>$", WrappedIntegerPrinter
 )
 pp.add_printer(
     "poly::math::axis::RowStride",
-    "poly::math::axis::RowStride<-1l>",
+    "^poly::math::axis::RowStride<-1[l]?>$",
     WrappedIntegerPrinter,
 )
 pp.add_printer(
     "poly::math::axis::Capacity",
-    "poly::math::axis::Capacity<-1l>",
+    "^poly::math::axis::Capacity<-1[l]?>$",
     WrappedIntegerPrinter,
 )
 gdb.printing.register_pretty_printer(gdb.current_objfile(), pp)

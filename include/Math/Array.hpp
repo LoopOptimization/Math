@@ -1256,6 +1256,8 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     else if constexpr (std::numeric_limits<T>::is_specialized)
       std::fill_n(this->data(), l, std::numeric_limits<T>::min());
 #endif
+    if constexpr (!trivialelt)
+      std::uninitialized_default_construct_n(this->data(), len);
   }
   constexpr ManagedArray(S s, T x, A a) noexcept
     : BaseT{memory_.data(), s, capacity(StackStorage)}, allocator_{a} {
@@ -1487,18 +1489,21 @@ struct POLY_MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   constexpr ~ManagedArray() noexcept { this->maybeDeallocate(); }
 
-  [[nodiscard]] static constexpr auto identity(ptrdiff_t M) -> ManagedArray {
-    static_assert(MatrixDimension<S>);
+  [[nodiscard]] static constexpr auto identity(ptrdiff_t M) -> ManagedArray
+  requires(MatrixDimension<S>)
+  {
     ManagedArray B(SquareDims<>{row(M)}, T{0});
     B.diag() << 1;
     return B;
   }
-  [[nodiscard]] static constexpr auto identity(Row<> R) -> ManagedArray {
-    static_assert(MatrixDimension<S>);
+  [[nodiscard]] static constexpr auto identity(Row<> R) -> ManagedArray
+  requires(MatrixDimension<S>)
+  {
     return identity(ptrdiff_t(R));
   }
-  [[nodiscard]] static constexpr auto identity(Col<> C) -> ManagedArray {
-    static_assert(MatrixDimension<S>);
+  [[nodiscard]] static constexpr auto identity(Col<> C) -> ManagedArray
+  requires(MatrixDimension<S>)
+  {
     return identity(ptrdiff_t(C));
   }
 

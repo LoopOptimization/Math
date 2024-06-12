@@ -63,12 +63,12 @@ consteval auto bisectFindSquare(uint64_t l, uint64_t h,
   return bisectFindSquare(m + 1, h, N);
 }
 template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
-  constexpr ptrdiff_t totalBytes = 128;
+  static constexpr ptrdiff_t total_bytes = 128;
   // constexpr ptrdiff_t remainingBytes =
   //   totalBytes - sizeof(T *) - sizeof(S) -
   //   sizeof(default_capacity_type_t<S>);
   // constexpr ptrdiff_t N = remainingBytes / ptrdiff_t(sizeof(T));
-  constexpr ptrdiff_t N = totalBytes / ptrdiff_t(sizeof(T));
+  constexpr ptrdiff_t N = total_bytes / ptrdiff_t(sizeof(T));
   static_assert(N <= 128);
   if constexpr (N <= 0) return 0;
   // else if constexpr (!math::MatrixDimension<S>) return N;
