@@ -59,8 +59,7 @@ using StaticDims = std::conditional_t<
     StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
-struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
-                                     StaticArray<T, M, N, Compress>> {
+struct StaticArray : public ArrayOps {
   using storage_type = std::conditional_t<Compress, utils::compressed_t<T>, T>;
   static constexpr ptrdiff_t Align =
     Compress ? alignof(storage_type) : alignSIMD<T, N>();
@@ -295,14 +294,7 @@ private:
 
 template <simd::SIMDSupported T, ptrdiff_t M, ptrdiff_t N>
 requires((M * (N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) > 1)
-struct StaticArray<T, M, N, false>
-  : ArrayOps<T, StaticDims<T, M, N, false>, StaticArray<T, M, N, false>> {
-  // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
-  //   : ArrayOps<T, StaticDims<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
-  //   T>)>,
-  //              StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
-  //              T>)>> {
-
+struct StaticArray<T, M, N, false> : ArrayOps {
   using value_type = T;
   using reference = T &;
   using const_reference = const T &;
@@ -556,14 +548,7 @@ private:
 
 template <simd::SIMDSupported T, ptrdiff_t N>
 requires((N > 1) && ((N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) == 1)
-struct StaticArray<T, 1, N, false>
-  : ArrayOps<T, StaticDims<T, 1, N, false>, StaticArray<T, 1, N, false>> {
-  // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
-  //   : ArrayOps<T, StaticDims<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
-  //   T>)>,
-  //              StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
-  //              T>)>> {
-
+struct StaticArray<T, 1, N, false> : ArrayOps {
   using value_type = T;
   using reference = T &;
   using const_reference = const T &;
@@ -597,7 +582,7 @@ struct StaticArray<T, 1, N, false>
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
   // constexpr operator compressed_type() { return compressed_type{*this}; }
   constexpr StaticArray() = default;
-  constexpr StaticArray(V v) : data_(v){};
+  constexpr StaticArray(V v) : data_(v) {};
   constexpr StaticArray(StaticArray const &) = default;
   constexpr StaticArray(StaticArray &&) noexcept = default;
   constexpr explicit StaticArray(const std::initializer_list<T> &list) {

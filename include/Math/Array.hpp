@@ -584,9 +584,7 @@ static_assert(
   std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
 
 template <class T, Dimension S, bool Compress>
-struct POLY_MATH_GSL_POINTER MutArray
-  : Array<T, S, Compress>,
-    ArrayOps<T, S, MutArray<T, S, Compress>> {
+struct POLY_MATH_GSL_POINTER MutArray : Array<T, S, Compress>, ArrayOps {
   using BaseT = Array<T, S, Compress>;
   // using BaseT::BaseT;
   using BaseT::operator[], BaseT::data, BaseT::begin, BaseT::end, BaseT::rbegin,
@@ -2154,23 +2152,22 @@ inline auto printMatrix(std::ostream &os,
   return os << " ]";
 }
 
-template <class T, class S, class P>
-template <typename Op, typename RHS>
-void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
-  // static_assert(sizeof(utils::eltype_t<decltype(B)>) <= 8);
-  MutArray<T, S, !std::same_as<T *, decltype(data_())>> self{Self()};
-  // P &self{Self()};
+template <class T, class S, bool Compress, typename Op, typename RHS>
+inline void vcopy_to(MutArray<T, S, Compress> self, const RHS &B, Op op) {
+  static_assert(std::is_copy_assignable_v<T> ||
+                (std::is_trivially_copyable_v<T> &&
+                 std::is_trivially_move_assignable_v<T>));
+  using P = MutArray<T, S, Compress>;
   auto [M, N] = promote_shape(self, B);
   constexpr bool assign = std::same_as<Op, utils::CopyAssign>;
   using PT = utils::promote_eltype_t<P, RHS>;
 #ifdef CASTTOSCALARIZE
-  using E = math::scalarize_via_cast_t<
-    std::remove_cvref_t<decltype(std::declval<P>().view())>>;
+  using E = math::scalarize_via_cast_t<std::remove_cvref_t<P>>;
   if constexpr (!std::same_as<E, void> &&
-                ((math::ScalarizeViaCastTo<E, decltype(B)>()) ||
-                 (std::same_as<std::remove_cvref_t<decltype(B)>, double> &&
+                ((math::ScalarizeViaCastTo<E, RHS>()) ||
+                 (std::floating_point<std::remove_cvref_t<RHS>> &&
                   std::same_as<Op, std::multiplies<>>))) {
-    auto d{reinterpret<E>(Self())};
+    auto d{reinterpret<E>(self)};
     if constexpr (assign) d << reinterpret<E>(B);
     else d << op(d, reinterpret<E>(B));
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
@@ -2216,7 +2213,7 @@ void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
     if constexpr (!std::is_copy_assignable_v<PT> && assign) {
       POLYMATHIVDEP
       for (ptrdiff_t j = 0; j < L; ++j)
-        if constexpr (std::convertible_to<decltype(B), PT>) self[j] = auto{B};
+        if constexpr (std::convertible_to<RHS, PT>) self[j] = auto{B};
         else self[j] = auto{B[j]};
     } else if constexpr (isstatic) {
       POLYMATHFULLUNROLL
@@ -2234,10 +2231,9 @@ void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
       if constexpr (!std::is_copy_assignable_v<PT> && assign) {
         POLYMATHIVDEP
         for (ptrdiff_t j = 0; j < C; ++j)
-          if constexpr (std::convertible_to<decltype(B), PT>)
-            self[i, j] = auto{B};
-          else if constexpr (RowVector<decltype(B)>) self[i, j] = auto{B[j]};
-          else if constexpr (ColVector<decltype(B)>) self[i, j] = auto{B[i]};
+          if constexpr (std::convertible_to<RHS, PT>) self[i, j] = auto{B};
+          else if constexpr (RowVector<RHS>) self[i, j] = auto{B[j]};
+          else if constexpr (ColVector<RHS>) self[i, j] = auto{B[i]};
           else self[i, j] = auto{B[i, j]};
       } else {
         POLYMATHIVDEP
@@ -2247,6 +2243,13 @@ void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
   }
 }
 
+template <typename Self, typename Op, typename RHS>
+inline void ArrayOps::vcopyTo(this Self &&self, const RHS &B, Op op) {
+  using T = eltype_t<Self>;
+  using S = decltype(self.dim());
+  using MA = MutArray<T, S, !std::same_as<T *, decltype(self.data())>>;
+  vcopy_to(MA{self}, B, op);
+}
 } // namespace poly::math
 
 template <class T, poly::math::Dimension S, bool Compress>

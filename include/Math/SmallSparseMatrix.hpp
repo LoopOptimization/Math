@@ -3,6 +3,10 @@
 #include "Array.hpp"
 #include "Math/Array.hpp"
 #include "Math/ArrayOps.hpp"
+#include "Math/Iterators.hpp"
+#include "Math/Matrix.hpp"
+#include "Math/MatrixDimensions.hpp"
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 
@@ -84,31 +88,27 @@ public:
   constexpr auto operator[](ptrdiff_t i, ptrdiff_t j) -> Reference {
     return Reference{this, i, j};
   }
-};
 
-template <class T, class S, class P>
-[[gnu::flatten]] constexpr auto
-ArrayOps<T, S, P>::operator<<(const SmallSparseMatrix<T> &B) -> P & {
-  static_assert(MatrixDimension<S>);
-  ptrdiff_t M = ptrdiff_t(nr()), N = ptrdiff_t(nc()), k = 0;
-  invariant(M, ptrdiff_t(B.numRow()));
-  invariant(N, ptrdiff_t(B.numCol()));
-  T *mem = data_();
-  PtrVector<T> nz = B.getNonZeros();
-  PtrVector<uint32_t> rws = B.getRows();
-  for (ptrdiff_t i = 0; i < M; ++i) {
-    uint32_t m = rws[i] & 0x00ffffff;
-    ptrdiff_t j = 0, l = ptrdiff_t(rs()) * i;
-    while (m) {
-      uint32_t tz = std::countr_zero(m);
-      m >>= tz + 1;
-      for (; tz; --tz) mem[l + j++] = T{};
-      mem[l + j++] = nz[k++];
+  template <AbstractMatrix Dst> void copyTo(Dst &&dst) const {
+    ptrdiff_t M = ptrdiff_t(dst.numRow()), N = ptrdiff_t(dst.numCol()), k = 0;
+    invariant(M, ptrdiff_t(numRow()));
+    invariant(N, ptrdiff_t(numCol()));
+    auto *mem = dst.data();
+    PtrVector<T> nz = getNonZeros();
+    PtrVector<uint32_t> rws = getRows();
+    for (ptrdiff_t i = 0; i < M; ++i) {
+      uint32_t m = rws[i] & 0x00ffffff;
+      ptrdiff_t j = 0, l = ptrdiff_t(dst.rowStride()) * i;
+      while (m) {
+        uint32_t tz = std::countr_zero(m);
+        m >>= tz + 1;
+        for (; tz; --tz) mem[l + j++] = T{};
+        mem[l + j++] = nz[k++];
+      }
+      for (; j < N; ++j) mem[l + j] = T{};
     }
-    for (; j < N; ++j) mem[l + j] = T{};
+    invariant(k == nz.size());
   }
-  invariant(k == nz.size());
-  return *static_cast<P *>(this);
-}
+};
 
 }; // namespace poly::math
