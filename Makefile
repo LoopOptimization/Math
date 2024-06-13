@@ -1,4 +1,13 @@
+HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
+HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
+
+ifeq ($(HAVE_AVX512),0)
 all: clangnosan clangsan gccnosan gccsan gccavx2 clangavx512 clangnosimd
+else ifeq ($(HAVE_AVX2),0)
+all: clangnosan clangsan gccnosan gccsan gccavx2 clangnosimd
+else
+all: clangnosan clangsan gccnosan gccsan clangnosimd
+endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
 
