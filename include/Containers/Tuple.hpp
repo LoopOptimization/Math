@@ -19,8 +19,8 @@ template <typename T, typename... Ts> struct Tuple {
   // template <std::convertible_to<T> U, std::convertible_to<Ts>... Us>
   // constexpr Tuple(U head, Us... tail)
   //   : head_(std::forward<U>(head)), tail_(std::forward<Us>(tail)...){};
-  constexpr Tuple(T head, Ts... tail) : head_(head), tail_(tail...){};
-  constexpr Tuple(T head, Tuple<Ts...> tail) : head_(head), tail_(tail){};
+  constexpr Tuple(T head, Ts... tail) : head_(head), tail_(tail...) {};
+  constexpr Tuple(T head, Tuple<Ts...> tail) : head_(head), tail_(tail) {};
 
   constexpr Tuple(const Tuple &) = default;
   template <size_t I> auto get() -> auto & {
@@ -52,9 +52,6 @@ template <typename T, typename... Ts> struct Tuple {
     return cattuple(f(head_, x.head_), tail_.map(x.tail_, f));
   }
   template <typename U, typename... Us>
-  constexpr void operator<<(const Tuple<U, Us...> &)
-  requires(sizeof...(Ts) == sizeof...(Us));
-  template <typename U, typename... Us>
   constexpr void operator+=(const Tuple<U, Us...> &)
   requires(sizeof...(Ts) == sizeof...(Us));
   template <typename U, typename... Us>
@@ -85,6 +82,26 @@ template <typename T, typename... Ts> struct Tuple {
     tail_.head_ = x.second;
     return *this;
   }
+
+private:
+  template <typename U, typename... Us>
+  constexpr void copyFrom(const Tuple<U, Us...> &)
+  requires(sizeof...(Ts) == sizeof...(Us));
+
+  template <typename U, typename... Us>
+  friend constexpr void operator<<(Tuple<T, Ts...> &dst,
+                                   const Tuple<U, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    dst.copyFrom(src);
+  }
+  template <typename U, typename... Us>
+  friend constexpr void operator<<(Tuple<T, Ts...> &&dst,
+                                   const Tuple<U, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    dst.copyFrom(src);
+  }
 };
 template <typename T, typename... Ts>
 [[gnu::always_inline]] constexpr auto
@@ -94,7 +111,7 @@ cattuple(T x, Tuple<Ts...> y) -> Tuple<T, Ts...> {
 template <typename T> struct Tuple<T> {
   [[no_unique_address]] T head_;
   constexpr Tuple() = default;
-  constexpr Tuple(T head) : head_(head){};
+  constexpr Tuple(T head) : head_(head) {};
   // template <std::convertible_to<T> U>
   // constexpr Tuple(U &&head) : head_(std::forward<U>(head)){};
   constexpr Tuple(const Tuple &) = default;
@@ -119,7 +136,6 @@ template <typename T> struct Tuple<T> {
     -> Tuple<decltype(f(head_, x.head_))> {
     return {f(head_, x.head_)};
   }
-  template <typename U> constexpr void operator<<(const Tuple<U> &);
   template <typename U> constexpr void operator+=(const Tuple<U> &);
   template <typename U> constexpr void operator-=(const Tuple<U> &);
   template <typename U> constexpr void operator*=(const Tuple<U> &);
@@ -131,6 +147,18 @@ template <typename T> struct Tuple<T> {
   {
     head_ = x.head_;
     return *this;
+  }
+
+private:
+  template <typename U> constexpr void copyFrom(const Tuple<U> &);
+
+  template <typename U>
+  friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
+    dst << src;
+  }
+  template <typename U>
+  friend constexpr void operator<<(Tuple<T> &&dst, const Tuple<U> &src) {
+    dst << src;
   }
 };
 

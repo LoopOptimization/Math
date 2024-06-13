@@ -342,8 +342,8 @@ vcopyToSIMD(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src, I L, R row) {
 //   return math::promote_shape(a.head, b.head);
 // }
 template <typename A, typename... As, typename B, typename... Bs>
-[[gnu::always_inline]] inline constexpr auto
-promote_shape(const Tuple<A, As...> &a, const Tuple<B, Bs...> &b)
+[[gnu::always_inline]] constexpr auto promote_shape(const Tuple<A, As...> &a,
+                                                    const Tuple<B, Bs...> &b)
 requires(sizeof...(As) == sizeof...(Bs))
 {
   auto h = math::promote_shape(a.head_, b.head_);
@@ -356,8 +356,8 @@ requires(sizeof...(As) == sizeof...(Bs))
   }
 }
 template <typename A, typename... As, typename B, typename... Bs>
-[[gnu::always_inline]] inline constexpr void
-vcopyTo(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src) {
+[[gnu::always_inline]] constexpr void vcopyTo(Tuple<A, As...> &dst,
+                                              const Tuple<B, Bs...> &src) {
   using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
   // static_assert(sizeof(T) <= 8);
@@ -437,8 +437,8 @@ vcopyTo(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src) {
 // they can share pointers.
 template <typename A, typename... As>
 template <typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] inline constexpr void
-Tuple<A, As...>::operator<<(const Tuple<B, Bs...> &src)
+[[gnu::always_inline, gnu::flatten]] constexpr void
+Tuple<A, As...>::copyFrom(const Tuple<B, Bs...> &src)
 requires(sizeof...(As) == sizeof...(Bs))
 {
 #ifndef CASTTOSCALARIZE
@@ -452,16 +452,23 @@ requires(sizeof...(As) == sizeof...(Bs))
     using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                  utils::eltype_t<B>, utils::eltype_t<Bs>...>;
     if constexpr ((sizeof(T) % (sizeof(C) * simd::Width<C>)) != 0) {
-      auto dst{map([](auto &d) { return math::reinterpret<C>(d); })};
+      auto lval{map([](auto &d) { return math::reinterpret<C>(d); })};
       tupletensorops::vcopyTo(
-        dst, src.map([](const auto &s) { return math::reinterpret<C>(s); }));
+        lval, src.map([](const auto &s) { return math::reinterpret<C>(s); }));
     } else tupletensorops::vcopyTo(*this, src);
   } else tupletensorops::vcopyTo(*this, src);
 #endif
 }
+template <typename A, typename... As, typename B, typename... Bs>
+[[gnu::always_inline, gnu::flatten]] constexpr void
+operator<<(Tuple<A, As...> &&dst, const Tuple<B, Bs...> &src)
+requires(sizeof...(As) == sizeof...(Bs))
+{
+  dst << src;
+}
 template <typename A, typename... As>
 template <typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] inline constexpr void
+[[gnu::always_inline, gnu::flatten]] constexpr void
 Tuple<A, As...>::operator+=(const Tuple<B, Bs...> &src)
 requires(sizeof...(As) == sizeof...(Bs))
 {
@@ -469,7 +476,7 @@ requires(sizeof...(As) == sizeof...(Bs))
 }
 template <typename A, typename... As>
 template <typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] inline constexpr void
+[[gnu::always_inline, gnu::flatten]] constexpr void
 Tuple<A, As...>::operator-=(const Tuple<B, Bs...> &src)
 requires(sizeof...(As) == sizeof...(Bs))
 {
@@ -477,7 +484,7 @@ requires(sizeof...(As) == sizeof...(Bs))
 }
 template <typename A, typename... As>
 template <typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] inline constexpr void
+[[gnu::always_inline, gnu::flatten]] constexpr void
 Tuple<A, As...>::operator*=(const Tuple<B, Bs...> &src)
 requires(sizeof...(As) == sizeof...(Bs))
 {
@@ -485,7 +492,7 @@ requires(sizeof...(As) == sizeof...(Bs))
 }
 template <typename A, typename... As>
 template <typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] inline constexpr void
+[[gnu::always_inline, gnu::flatten]] constexpr void
 Tuple<A, As...>::operator/=(const Tuple<B, Bs...> &src)
 requires(sizeof...(As) == sizeof...(Bs))
 {

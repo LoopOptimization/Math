@@ -1,14 +1,29 @@
 #pragma once
+#include "Alloc/Arena.hpp"
+#include "Math/ArrayOps.hpp"
 #include "Math/Exp.hpp"
+#include "Math/Indexing.hpp"
+#include "Math/Iterators.hpp"
 #include "Math/MatrixDimensions.hpp"
+#include "SIMD/Intrin.hpp"
+#include "SIMD/Vec.hpp"
 #include "Utilities/LoopMacros.hpp"
+#include "Utilities/Reference.hpp"
+#include "Utilities/TypeCompression.hpp"
+#include "Utilities/TypePromotion.hpp"
 #include <Math/Array.hpp>
 #include <Math/Constructors.hpp>
 #include <Math/Math.hpp>
 #include <Math/Matrix.hpp>
 #include <Math/StaticArrays.hpp>
 #include <Utilities/Invariant.hpp>
+#include <bit>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <ostream>
+#include <type_traits>
 #include <utility>
 
 namespace poly::math {
@@ -352,8 +367,7 @@ private:
                                                           Dual x) -> bool {
     return other != x.value();
   }
-  friend inline auto operator<<(std::ostream &os,
-                                const Dual &x) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, const Dual &x) -> std::ostream & {
     os << "Dual<" << N << ">{" << x.value();
     for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
     os << "}";
@@ -722,8 +736,7 @@ private:
                                                           Dual x) -> bool {
     return other != x.value();
   }
-  friend inline auto operator<<(std::ostream &os,
-                                const Dual &x) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, const Dual &x) -> std::ostream & {
     os << "Dual<" << N << ">{" << x.value();
     for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
     os << "}";
