@@ -7,8 +7,9 @@ using poly::numbers::i8, poly::numbers::u8, poly::numbers::Flag8;
 
 TEST(Int8Test, BasicAssertions) {
   for (uint8_t x = 0; x < std::numeric_limits<uint8_t>::max(); ++x) {
+    auto ux = static_cast<u8>(x);
     for (uint8_t y = 0; y < std::numeric_limits<uint8_t>::max(); ++y) {
-      auto ux = static_cast<u8>(x), uy = static_cast<u8>(y);
+      auto uy = static_cast<u8>(y);
       EXPECT_EQ(ux <=> uy, x <=> y);
       {
         u8 z = static_cast<u8>(x + y);

@@ -24,12 +24,12 @@ class BaseVectorPrinter(Iterator):
     def display_hint(self):
         return "array"
 
-class VectorPrinter(Iterator):
+class VectorPrinter(BaseVectorPrinter):
     def __init__(self, val):
         t = val.type.template_argument(0).pointer()
         BaseVectorPrinter.__init__(self, val["ptr"].cast(t), val["sz"]["value_"].cast(gdb.lookup_type("long")))
 
-class TinyVectorPrinter(Iterator):
+class TinyVectorPrinter(BaseVectorPrinter):
     def __init__(self, val):
         t = val.type.template_argument(0).pointer()
         BaseVectorPrinter.__init__(self, val["data_"]["mem"][0].address.cast(t), val["len_"]["value_"].cast(gdb.lookup_type("long")))
@@ -106,7 +106,6 @@ class WrappedIntegerPrinter:
     def to_string(self):
         return str(self.val)
 
-
 pp = gdb.printing.RegexpCollectionPrettyPrinter("PolyMath")
 pp.add_printer(
     "poly::math::PtrVector",
@@ -174,9 +173,5 @@ pp.add_printer(
     "^poly::math::axis::RowStride<-1[l]?>$",
     WrappedIntegerPrinter,
 )
-pp.add_printer(
-    "poly::math::axis::Capacity",
-    "^poly::math::axis::Capacity<-1[l]?>$",
-    WrappedIntegerPrinter,
-)
+
 gdb.printing.register_pretty_printer(gdb.current_objfile(), pp)
