@@ -1,7 +1,12 @@
-#include "Math/LinearAlgebra.hpp"
+#include "Math/Array.hpp"
+#include "Math/Indexing.hpp"
+#include "Math/Iterators.hpp"
+#include "Math/MatrixDimensions.hpp"
 #include "Math/NormalForm.hpp"
 #include <Utilities/MatrixStringParse.hpp>
 #include <benchmark/benchmark.h>
+#include <cstddef>
+#include <cstdint>
 #include <random>
 
 using namespace poly;

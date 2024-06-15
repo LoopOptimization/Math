@@ -12,6 +12,7 @@ project(MathTests LANGUAGES CXX)
 
 option(ENABLE_TEST_COVERAGE "Enable test coverage" ON)
 option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
+option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 
 # --- Import tools ----
 
@@ -53,6 +54,11 @@ file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(${PROJECT_NAME} ${sources})
 target_link_libraries(${PROJECT_NAME} Math GTest::gtest_main)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
+
+# --- Maybe Use SIMD Array Ops ---
+if(POLYMATHNOEXPLICITSIMDARRAY)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC POLYMATHNOEXPLICITSIMDARRAY)
+endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES

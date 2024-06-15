@@ -1,6 +1,14 @@
+#include "Alloc/Arena.hpp"
+#include "Math/Array.hpp"
+#include "Math/Indexing.hpp"
+#include "Math/Iterators.hpp"
+#include "Utilities/Valid.hpp"
 #include <Math/Simplex.hpp>
 #include <Utilities/MatrixStringParse.hpp>
 #include <benchmark/benchmark.h>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
 
 using poly::utils::operator""_mat, poly::math::_;
 

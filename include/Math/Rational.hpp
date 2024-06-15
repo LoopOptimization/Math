@@ -2,7 +2,11 @@
 
 #include "GreatestCommonDivisor.hpp"
 #include "Utilities/ArrayPrint.hpp"
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
+#include <iostream>
+#include <limits>
 #include <optional>
 #include <ostream>
 
@@ -20,8 +24,8 @@ struct Rational {
   [[no_unique_address]] int64_t denominator{1};
   // should be invariant that denominator >= 0
   constexpr Rational() = default;
-  constexpr Rational(int64_t coef) : numerator(coef){};
-  constexpr Rational(int coef) : numerator(coef){};
+  constexpr Rational(int64_t coef) : numerator(coef) {};
+  constexpr Rational(int coef) : numerator(coef) {};
   constexpr Rational(int64_t n, int64_t d)
     : numerator(d > 0 ? n : -n), denominator(n ? (d > 0 ? d : -d) : 1) {}
   static constexpr auto create(int64_t n, int64_t d) -> Rational {
@@ -73,18 +77,6 @@ struct Rational {
     *this = *a;
     return *this;
   }
-  friend constexpr auto operator+(Rational x, int64_t y) -> Rational {
-    return Rational{x.numerator + y * x.denominator, x.denominator};
-  }
-  friend constexpr auto operator+(int64_t y, Rational x) -> Rational {
-    return x + y;
-  }
-  friend constexpr auto operator-(Rational x, int64_t y) -> Rational {
-    return Rational{x.numerator - y * x.denominator, x.denominator};
-  }
-  friend constexpr auto operator-(int64_t y, Rational x) -> Rational {
-    return Rational{y * x.denominator - x.numerator, x.denominator};
-  }
   [[nodiscard]] constexpr auto
   safeSub(Rational y) const -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator, y.denominator);
@@ -124,12 +116,6 @@ struct Rational {
     bool o2 = __builtin_mul_overflow(xd, yd, &d);
     if (o1 | o2) return {};
     return Rational{n, d};
-  }
-  friend constexpr auto operator*(Rational x, int64_t y) -> Rational {
-    return *x.safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
-  }
-  friend constexpr auto operator*(int64_t y, Rational x) -> Rational {
-    return x * y;
   }
   constexpr auto operator*(Rational y) const -> Rational {
     return *safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
@@ -221,17 +207,37 @@ struct Rational {
   constexpr void negate() { numerator = -numerator; }
   constexpr explicit operator bool() const { return numerator != 0; }
 
-  friend inline auto operator<<(std::ostream &os,
-                                const Rational &x) -> std::ostream & {
-    os << x.numerator;
-    if (x.denominator != 1) os << " // " << x.denominator;
-    return os;
-  }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const { std::cout << *this << "\n"; }
 #endif
+
+private:
+  friend constexpr auto operator+(Rational x, int64_t y) -> Rational {
+    return Rational{x.numerator + y * x.denominator, x.denominator};
+  }
+  friend constexpr auto operator+(int64_t y, Rational x) -> Rational {
+    return x + y;
+  }
+  friend constexpr auto operator-(Rational x, int64_t y) -> Rational {
+    return Rational{x.numerator - y * x.denominator, x.denominator};
+  }
+  friend constexpr auto operator-(int64_t y, Rational x) -> Rational {
+    return Rational{y * x.denominator - x.numerator, x.denominator};
+  }
+  friend constexpr auto operator*(Rational x, int64_t y) -> Rational {
+    return *x.safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
+  }
+  friend constexpr auto operator*(int64_t y, Rational x) -> Rational {
+    return x * y;
+  }
   friend constexpr auto operator==(int64_t x, Rational y) -> bool {
     return y == x;
+  }
+  friend auto operator<<(std::ostream &os,
+                         const Rational &x) -> std::ostream & {
+    os << x.numerator;
+    if (x.denominator != 1) os << " // " << x.denominator;
+    return os;
   }
 };
 constexpr auto gcd(Rational x, Rational y) -> std::optional<Rational> {

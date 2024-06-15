@@ -5,6 +5,7 @@ project(MathBenchmarks LANGUAGES C CXX)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(ENABLE_OPENMP "Use OpenMP for a multithreading benchmark" OFF)
+option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 
 # --- Import tools ----
 
@@ -47,8 +48,6 @@ add_executable(${PROJECT_NAME} ${benchmarks})
 
 message(STATUS "PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
-message(STATUS "LLVM_INCLUDE_DIRS: ${LLVM_INCLUDE_DIRS}")
-
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE ${PROJECT_SOURCE_DIR}/../include # ${PROJECT_SOURCE_DIR}/include
@@ -57,6 +56,17 @@ if(ENABLE_OPENMP)
   find_package(OpenMP)
   target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
 endif()
+
+# --- Maybe Use SIMD Array Ops ---
+if(POLYMATHNOEXPLICITSIMDARRAY)
+  target_compile_definitions(${PROJECT_NAME}
+                             PUBLIC POLYMATHNOEXPLICITSIMDARRAY)
+  message(STATUS "Do not use SIMD Array operations")
+else()
+  message(STATUS "Use SIMD Array operations")
+endif()
+
+
 target_link_libraries(${PROJECT_NAME} PRIVATE benchmark::benchmark_main)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES

@@ -1701,8 +1701,13 @@ private:
   // this method should only be called from the destructor
   // (and the implementation taking the new ptr and capacity)
   void maybeDeallocate() noexcept {
-    maybeDeallocate(this->data(), ptrdiff_t(this->sz),
-                    ptrdiff_t(this->capacity_), wasAllocated());
+    if constexpr (StackStorage > 0)
+      maybeDeallocate(this->data(), ptrdiff_t(this->sz),
+                      ptrdiff_t(this->capacity_), wasAllocated());
+    else
+      maybeDeallocate(const_cast<storage_type *>(this->ptr),
+                      ptrdiff_t(this->sz), ptrdiff_t(this->capacity_),
+                      wasAllocated());
   }
   static void maybeDeallocate(storage_type *p, ptrdiff_t sz, ptrdiff_t cap,
                               bool was_allocated) noexcept {
