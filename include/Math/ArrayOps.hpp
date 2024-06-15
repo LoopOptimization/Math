@@ -23,7 +23,7 @@
 #define CASTTOSCALARIZE
 
 namespace poly::math {
-using utils::invariant, utils::eltype_t;
+using utils::invariant;
 // scalars broadcast
 template <typename S, typename T>
 [[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {
@@ -230,52 +230,65 @@ vcopyToSIMD(math::MutArray<T, S, Compress> self, const RHS &B, I L, R row,
 #endif
 
 template <typename T> class SmallSparseMatrix;
-class ArrayOps {
+template <class T, class S, class P> class ArrayOps {
+  static_assert(std::is_copy_assignable_v<T> ||
+                (std::is_trivially_copyable_v<T> &&
+                 std::is_trivially_move_assignable_v<T>));
+  constexpr auto data_() { return static_cast<P *>(this)->data(); }
+  // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
+  //   return static_cast<const P *>(this)->data();
+  // }
+  constexpr auto size_() const { return static_cast<const P *>(this)->size(); }
+  constexpr auto Self() -> P & { return *static_cast<P *>(this); }
+  [[nodiscard]] constexpr auto nr() const -> ptrdiff_t {
+    return ptrdiff_t(static_cast<const P *>(this)->numRow());
+  }
+  [[nodiscard]] constexpr auto nc() const {
+    return unwrapCol(static_cast<const P *>(this)->numCol());
+  }
+  [[nodiscard]] constexpr auto rs() const {
+    return unwrapRow(static_cast<const P *>(this)->rowStride());
+  }
 
 protected:
-  template <typename Self, typename Op, typename RHS>
-  inline void vcopyTo(this Self &&self, const RHS &B, Op op);
+  template <typename Op, typename RHS> void vcopyTo(const RHS &B, Op op);
 
 public:
-  template <AbstractMatrix Self, std::convertible_to<eltype_t<Self>> Y>
+  template <std::convertible_to<T> Y>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(this Self &&self, const UniformScaling<Y> &B) -> auto && {
-    std::fill_n(self.data(), ptrdiff_t(self.dim()), eltype_t<Self>{});
-    self.diag() << B.value;
-    return self;
+  operator<<(const UniformScaling<Y> &B) -> P & {
+    static_assert(MatrixDimension<S>);
+    std::fill_n(data_(), ptrdiff_t(this->dim()), T{});
+    this->diag() << B.value;
+    return *static_cast<P *>(this);
   }
+  [[gnu::always_inline, gnu::flatten]] constexpr auto
+  operator<<(const SmallSparseMatrix<T> &B) -> P &;
 
-  template <typename Self, typename RHS>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(this Self &&self, const RHS &B) -> auto && {
-    if constexpr (std::same_as<RHS, SmallSparseMatrix<eltype_t<Self>>>)
-      B.copyTo(self);
-    else self.vcopyTo(B, utils::CopyAssign{});
-    return self;
+  operator<<(const auto &B) -> P & {
+    vcopyTo(B, utils::CopyAssign{});
+    return Self();
   }
-  template <typename Self>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator+=(this Self &&self, const auto &B) -> auto && {
-    self.vcopyTo(B, std::plus<>{});
-    return self;
+  operator+=(const auto &B) -> P & {
+    vcopyTo(B, std::plus<>{});
+    return Self();
   }
-  template <typename Self>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator-=(this Self &&self, const auto &B) -> auto && {
-    self.vcopyTo(B, std::minus<>{});
-    return self;
+  operator-=(const auto &B) -> P & {
+    vcopyTo(B, std::minus<>{});
+    return Self();
   }
-  template <typename Self>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator*=(this Self &&self, const auto &B) -> auto && {
-    self.vcopyTo(B, std::multiplies<>{});
-    return self;
+  operator*=(const auto &B) -> P & {
+    vcopyTo(B, std::multiplies<>{});
+    return Self();
   }
-  template <typename Self>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator/=(this Self &&self, const auto &B) -> auto && {
-    self.vcopyTo(B, std::divides<>{});
-    return self;
+  operator/=(const auto &B) -> P & {
+    vcopyTo(B, std::divides<>{});
+    return Self();
   }
 };
 

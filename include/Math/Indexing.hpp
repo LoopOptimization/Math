@@ -196,9 +196,8 @@ struct StridedRange {
   operator ptrdiff_t() const {
     return ptrdiff_t(len_);
   }
-
-private:
-  friend auto operator<<(std::ostream &os, StridedRange x) -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os,
+                                StridedRange x) -> std::ostream & {
     return os << "Length: " << ptrdiff_t(x.len_)
               << " (stride: " << ptrdiff_t(x.stride_) << ")";
   }
