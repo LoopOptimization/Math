@@ -2,11 +2,11 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clangnosan clangsan gccnosan gccsan gccavx2 clangavx512 clangnosimd
+all: clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2 clangavx512
 else ifeq ($(HAVE_AVX2),0)
-all: clangnosan clangsan gccnosan gccsan gccavx2 clangnosimd
+all: clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2
 else
-all: clangnosan clangsan gccnosan gccsan clangnosimd
+all: clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch
 endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
@@ -33,10 +33,13 @@ buildclang/test/:
 	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 	
 buildgcc/avx2/:
-	CXXFLAGS="-march=haswell" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+	CXXFLAGS="-march=x86-64-v3" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
-buildclang/sse/:
-	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/sse/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+buildclang/basearch/:
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/basearch/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+
+buildclang/avx512/:
+	CXXFLAGS="-march=x86-64-v4" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/avx512/ -DCMAKE_BUILD_TYPE=Debug
 
 buildclang/nosimdarrayop/:
 	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosimdarrayop/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
@@ -62,9 +65,13 @@ gccavx2: buildgcc/avx2/
 	cmake --build buildgcc/avx2/
 	cmake --build buildgcc/avx2/ --target test
 
-clangavx512: buildclang/sse/
-	cmake --build buildclang/sse/
-	cmake --build buildclang/sse/ --target test
+clangbasearch: buildclang/basearch/
+	cmake --build buildclang/basearch/
+	cmake --build buildclang/basearch/ --target test
+
+clangavx512: buildclang/avx512/
+	cmake --build buildclang/avx512/
+	cmake --build buildclang/avx512/ --target test
 
 clangnosimd: buildclang/nosimdarrayop/
 	cmake --build buildclang/nosimdarrayop/
