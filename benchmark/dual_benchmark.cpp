@@ -47,8 +47,8 @@ struct ManualDual<ManualDual<T, N, SIMDArray>, 2, false> {
     poly::containers::Tuple<V, V> &partials;
     auto operator[](ptrdiff_t i) -> V & {
       poly::utils::invariant(i == 0 || i == 1);
-      if (i == 0) return partials.head;
-      return partials.tail.head;
+      if (i == 0) return partials.head_;
+      return partials.tail_.head_;
     }
   };
   constexpr auto grad() -> Gradient { return {partials}; }
