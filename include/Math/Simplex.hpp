@@ -49,7 +49,7 @@ class Simplex {
   template <std::integral T>
   static constexpr auto alignOffset(ptrdiff_t x) -> ptrdiff_t {
     --x;
-    ptrdiff_t W = simd::Width<T>;
+    ptrdiff_t W = simd::VECTORWIDTH / sizeof(T); // simd::Width<T>;
     ptrdiff_t nW = -W;
     x += W;
     x &= nW;
