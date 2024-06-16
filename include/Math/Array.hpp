@@ -744,8 +744,13 @@ struct POLY_MATH_GSL_POINTER MutArray
   requires(std::same_as<S, Length<>>)
   {
     auto old_len = ptrdiff_t(this->sz--);
-    if (i < this->sz)
-      std::copy(this->data() + i + 1, data() + old_len, this->data() + i);
+    if (i < this->sz) std::copy(data() + i + 1, data() + old_len, data() + i);
+  }
+  constexpr void erase_swap_last(ptrdiff_t i)
+  requires(std::same_as<S, Length<>>)
+  {
+    --(this->sz);
+    if (i < this->sz) std::swap(data()[i], data()[ptrdiff_t(this->sz)]);
   }
   constexpr void erase(Row<> r) {
     if constexpr (std::same_as<S, Length<>>) {
@@ -944,6 +949,9 @@ struct POLY_MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr ResizeableView() noexcept : BaseT(nullptr, S{}), capacity_(U{}) {}
   constexpr ResizeableView(storage_type *p, S s, U c) noexcept
     : BaseT(p, s), capacity_(c) {}
+  constexpr ResizeableView(alloc::Arena<> *a, U c) noexcept
+    : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), S{}, c} {
+  }
   constexpr ResizeableView(alloc::Arena<> *a, S s, U c) noexcept
     : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), s, c} {}
 
