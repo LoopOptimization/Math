@@ -96,6 +96,7 @@ public:
     return {d, std::round(a - d / inverse_)};
   }
   constexpr MultiplicativeInverse(T d) : divisor_(d), inverse_{T{1} / d} {}
+  constexpr MultiplicativeInverse() = default;
 };
 
 template <std::integral T> class MultiplicativeInverse<T> {
@@ -141,6 +142,7 @@ public:
     return {d, a - d * divisor_};
   }
 
+  constexpr MultiplicativeInverse() = default;
   constexpr MultiplicativeInverse(T d) {
     utils::invariant(d != 0);
     if constexpr (issigned) {
@@ -224,6 +226,8 @@ public:
 };
 
 template <typename T> MultiplicativeInverse(T d) -> MultiplicativeInverse<T>;
+static_assert(
+  std::is_trivially_default_constructible_v<MultiplicativeInverse<double>>);
 
 } // namespace poly::math
 
