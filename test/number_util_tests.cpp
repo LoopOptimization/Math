@@ -5,7 +5,7 @@
 
 TEST(FactorLowerBound, BasicAssertions) {
 
-  for (int i = 0; i++ < 16;) {
+  for (int i = 0; i++ < 32;) {
     double di = i;
     for (int j = 0; j++ < i;) {
       double dj = j;
