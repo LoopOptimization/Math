@@ -50,8 +50,7 @@ private:
   [[no_unique_address]] ptrdiff_t offset_;
 
 private:
-  friend inline auto operator<<(std::ostream &os,
-                                OffsetEnd r) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, OffsetEnd r) -> std::ostream & {
     return os << "end - " << r.offset_;
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
@@ -66,7 +65,7 @@ private:
 } last{1};
 [[maybe_unused]] static inline constexpr struct End {
 private:
-  friend inline auto operator<<(std::ostream &os, End) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, End) -> std::ostream & {
     return os << "end";
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
