@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <type_traits>
 
 namespace poly::simd {
 template <ptrdiff_t W, typename T>

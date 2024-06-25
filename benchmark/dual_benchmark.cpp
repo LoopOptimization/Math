@@ -1,4 +1,6 @@
 
+#include "Math/Iterators.hpp"
+#include "SIMD/Vec.hpp"
 #include "include/randdual.hpp"
 #include <Containers/Tuple.hpp>
 #include <Math/Array.hpp>
@@ -7,13 +9,14 @@
 #include <Math/Matrix.hpp>
 #include <Math/StaticArrays.hpp>
 #include <Utilities/Invariant.hpp>
-#include <algorithm>
 #include <array>
 #include <benchmark/benchmark.h>
+#include <bit>
 #include <concepts>
-#include <cstdint>
+#include <cstddef>
 #include <random>
-#include <ranges>
+
+using poly::math::Vector;
 
 namespace {
 using benchmark::State;
@@ -187,3 +190,25 @@ BENCHMARK(BM_dualprod_manual_tuple<8, 2>);
 BENCHMARK(BM_dualprod_simdarray_tuple<6, 2>);
 BENCHMARK(BM_dualprod_simdarray_tuple<7, 2>);
 BENCHMARK(BM_dualprod_simdarray_tuple<8, 2>);
+
+template <ptrdiff_t M, ptrdiff_t N>
+void BM_dualdivsum(benchmark::State &state) {
+  std::mt19937_64 rng0;
+  using D = Dual<Dual<double, M>, N>;
+  ptrdiff_t len = state.range(0);
+  Vector<std::array<D, 4>> x{poly::math::length(len)};
+  for (ptrdiff_t i = 0; i < len; ++i) {
+    x[i] = {URand<D>{}(rng0), URand<D>{}(rng0), URand<D>{}(rng0),
+            URand<D>{}(rng0)};
+  }
+  for (auto _ : state) {
+    D s{};
+    for (auto a : x) s += (a[0] + a[1]) / (a[2] + a[3]);
+    benchmark::DoNotOptimize(s);
+  }
+}
+
+BENCHMARK(BM_dualdivsum<7, 2>)->RangeMultiplier(2)->Range(1, 1 << 10);
+BENCHMARK(BM_dualdivsum<8, 2>)->RangeMultiplier(2)->Range(1, 1 << 10);
+BENCHMARK(BM_dualdivsum<7, 4>)->RangeMultiplier(2)->Range(1, 1 << 10);
+BENCHMARK(BM_dualdivsum<8, 4>)->RangeMultiplier(2)->Range(1, 1 << 10);
