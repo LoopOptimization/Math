@@ -1,4 +1,5 @@
-#pragma once
+module;
+
 #include "Math/AxisTypes.hpp"
 #include "SIMD/Indexing.hpp"
 #include "SIMD/Intrin.hpp"
@@ -12,7 +13,10 @@
 #include <cstdint>
 #include <functional>
 #include <type_traits>
-namespace poly::simd {
+
+export module poly.simd;
+
+export namespace simd {
 // template <typename T, ptrdiff_t W, typename S>
 // [[gnu::always_inline]] constexpr auto vcvt(Vec<W, S> v) {
 //   if constexpr (std::same_as<T, S>) return v;

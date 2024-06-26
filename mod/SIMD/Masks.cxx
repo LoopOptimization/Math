@@ -1,6 +1,5 @@
-#pragma once
-#include "SIMD/Vec.hpp"
-#include "Utilities/Invariant.hpp"
+module;
+
 #include <algorithm>
 #include <bit>
 #include <concepts>
@@ -10,7 +9,13 @@
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
-namespace poly::simd {
+
+export module simd:mask;
+
+import :vec;
+import invariant;
+
+namespace simd {
 
 template <size_t Bytes>
 using IntegerOfBytes = std::conditional_t<

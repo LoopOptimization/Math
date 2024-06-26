@@ -1,19 +1,22 @@
-#pragma once
+module;
 
-#include <Math/AxisTypes.hpp>
-#include <SIMD/Masks.hpp>
-#include <SIMD/Vec.hpp>
-#include <Utilities/Invariant.hpp>
 #include <Utilities/LoopMacros.hpp>
 #include <array>
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
+
+module simd:intrin;
+
+import axis.types;
+import invariant;
+import :mask;
+import :vec;
+
 namespace poly::simd {
 
 // Supported means by this library currently; more types may be added in the

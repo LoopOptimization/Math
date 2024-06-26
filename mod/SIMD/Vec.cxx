@@ -1,8 +1,10 @@
-#pragma once
+module;
+
 #include <cstddef>
 #include <type_traits>
 
-namespace poly::simd {
+module simd:vec;
+
 template <ptrdiff_t W, typename T>
 using Vec_ [[gnu::vector_size(W * sizeof(T))]] = T;
 
@@ -25,4 +27,3 @@ static constexpr ptrdiff_t REGISTERS = 32;
 static constexpr ptrdiff_t VECTORWIDTH = 16;
 #endif // __x86_64__
 
-} // namespace poly::simd
