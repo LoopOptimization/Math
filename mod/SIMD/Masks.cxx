@@ -15,7 +15,6 @@ export module simd:mask;
 import :vec;
 import invariant;
 
-namespace simd {
 
 template <size_t Bytes>
 using IntegerOfBytes = std::conditional_t<
@@ -23,6 +22,7 @@ using IntegerOfBytes = std::conditional_t<
   std::conditional_t<Bytes == 4, int32_t,
                      std::conditional_t<Bytes == 2, int16_t, int8_t>>>;
 
+export namespace simd {
 template <ptrdiff_t W,
           typename I = std::conditional_t<W == 2, int64_t, int32_t>>
 consteval auto range() -> Vec<W, I> {
@@ -843,4 +843,4 @@ template <ptrdiff_t W,
   return cmp::ne<W, I>(range<W, I>(), Vec<W, I>{});
 }
 
-} // namespace poly::simd
+} // namespace simd

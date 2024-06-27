@@ -1,17 +1,18 @@
-#pragma once
-#include "Math/AxisTypes.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "SIMD/Indexing.hpp"
-#include "SIMD/Masks.hpp"
-#include "SIMD/UnrollIndex.hpp"
+module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <type_traits>
 
-namespace poly::math {
+export module Array:Indexing;
+
+import AxisTypes;
+import Range;
+import :MatDim;
+import SIMD;
+
+export namespace math {
 
 /// TODO: remove `OffsetBegin`
 /// We probably won't support non-zero-based indexing
@@ -461,4 +462,4 @@ constexpr auto calcNewDim(ColVectorSMatDimension auto x,
   else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
 
-} // namespace poly::math
+} // namespace math

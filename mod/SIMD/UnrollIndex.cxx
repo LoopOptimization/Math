@@ -1,15 +1,18 @@
-#pragma once
-#include "SIMD/Indexing.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Masks.hpp"
-#include "SIMD/Unroll.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/LoopMacros.hpp"
+module;
+#include "LoopMacros.hxx"
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 
-namespace poly::simd::index {
+export module SIMD:UnrollIndex;
+
+import :Index;
+import :Intrin;
+import :Mask;
+import :Unroll;
+import :Vec;
+
+export namespace simd::index {
 // Unroll rows by a factor of `R` and cols by `C`, vectorizing with width `W`
 template <ptrdiff_t U, ptrdiff_t W = 1, typename M = mask::None<W>>
 struct Unroll {
@@ -187,4 +190,4 @@ template <ptrdiff_t W>
 #endif
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 static constexpr bool issimd<Unroll<U, W, M>> = true;
-} // namespace poly::simd::index
+} // namespace simd::index

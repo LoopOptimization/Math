@@ -1,9 +1,13 @@
-#pragma once
+module;
 
-#include "Math/AxisTypes.hpp"
-#include "SIMD/Masks.hpp"
 #include <concepts>
 #include <cstddef>
+
+module SIMD:Index;
+
+import :Mask;
+import AxisTypes;
+
 namespace poly::simd::index {
 
 // template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, ptrdiff_t X>

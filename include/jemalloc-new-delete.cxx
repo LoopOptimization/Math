@@ -1,11 +1,9 @@
 #pragma once
-#ifndef jemalloc_new_delete_hpp_INCLUDED
-#define jemalloc_new_delete_hpp_INCLUDED
 
 // Based on the implementation from mimalloc
 // https://github.com/microsoft/mimalloc/blob/master/include/mimalloc-new-delete.h
 
-#if defined(__cplusplus)
+#include <cstddef>
 #include <jemalloc/jemalloc.h>
 #include <new>
 
@@ -93,6 +91,4 @@ operator new[](std::size_t n, std::align_val_t al,
   return mallocx(n, MALLOCX_ALIGN(static_cast<size_t>(al)));
 }
 #endif
-#endif
 
-#endif // jemalloc-new-delete_hpp_INCLUDED

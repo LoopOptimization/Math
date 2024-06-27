@@ -1,22 +1,8 @@
-#pragma once
+module;
 // We'll follow Julia style, so anything that's not a constructor, destructor,
 // nor an operator will be outside of the struct/class.
 
-#include "Math/Array.hpp"
-#include "Math/ArrayOps.hpp"
-#include "Math/AxisTypes.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/UniformScaling.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Unroll.hpp"
-#include "SIMD/UnrollIndex.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/LoopMacros.hpp"
-#include "Utilities/Parameters.hpp"
-#include "Utilities/TypePromotion.hpp"
+#include "LoopMacros.hxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -29,7 +15,15 @@
 #include <type_traits>
 #include <utility>
 
-namespace poly::math {
+module math:exprtemplates;
+
+import array;
+import axistypes;
+import simd;
+import param;
+import typeprmotion;
+
+namespace math {
 using utils::TriviallyCopyable;
 /// Extract the value of a `Dual` number
 constexpr auto value(std::floating_point auto x) { return x; }

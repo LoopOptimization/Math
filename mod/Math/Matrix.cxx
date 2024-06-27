@@ -1,11 +1,14 @@
-#pragma once
-#include "Math/MatrixDimensions.hpp"
-#include "Utilities/TypePromotion.hpp"
+module;
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 
-namespace poly::math {
+module Array:Concepts;
+
+import :MatDim;
+import TypePromotion;
+
+export namespace math {
 
 template <typename T, typename S = utils::eltype_t<T>>
 concept LinearlyIndexable = requires(T t, ptrdiff_t i) {

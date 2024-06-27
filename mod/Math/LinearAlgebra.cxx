@@ -1,11 +1,15 @@
-#pragma once
-#include "Containers/Pair.hpp"
-#include "Math/Array.hpp"
-#include "Math/Constructors.hpp"
-#include "Math/Math.hpp"
-#include "Math/Rational.hpp"
+module;
+#include <concepts>
 #include <cstddef>
-namespace poly::math {
+#include <ranges>
+
+export module LinearAlgebra;
+
+import Pair;
+import Array;
+import Rational;
+
+export namespace math {
 namespace LU {
 [[nodiscard]] constexpr auto ldivrat(SquarePtrMatrix<Rational> F,
                                      PtrVector<unsigned> ipiv,
@@ -336,4 +340,4 @@ constexpr void ldiv(MutSquarePtrMatrix<T> A, MutPtrVector<T> B,
 }
 
 } // namespace LDL
-} // namespace poly::math
+} // namespace math

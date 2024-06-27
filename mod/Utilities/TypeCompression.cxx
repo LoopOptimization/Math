@@ -1,8 +1,9 @@
-#pragma once
+module;
 
 #include <concepts>
 #include <type_traits>
-namespace poly::utils {
+
+module Array:Compression;
 
 /// The idea here is that some types may have a compression/decompression that
 /// is potentially costly. To work around this, temporaries can live in
@@ -68,4 +69,3 @@ constexpr auto decompress(const compressed_t<T> *p) -> decltype(auto) {
   else return *p;
 }
 
-} // namespace poly::utils

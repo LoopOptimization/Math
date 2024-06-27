@@ -1,13 +1,16 @@
-#pragma once
-#include "Containers/Pair.hpp"
-#include "Math/Array.hpp"
-#include "Math/NormalForm.hpp"
+module;
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>
 
-namespace poly::math {
+export module Unimodularization;
+
+import Array;
+import NormalForm;
+import Pair;
+
+export namespace math {
 // if `A` can be unimodularized, returns the inverse of the unimodularized `A`
 [[nodiscard]] inline auto
 unimodularize(IntMatrix<> A) -> std::optional<SquareMatrix<int64_t>> {
@@ -19,4 +22,4 @@ unimodularize(IntMatrix<> A) -> std::optional<SquareMatrix<int64_t>> {
     if (H[m, m] != 1) return {};
   return std::move(U);
 }
-} // namespace poly::math
+} // namespace math

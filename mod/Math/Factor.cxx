@@ -1,8 +1,11 @@
-#pragma once
+module;
 
 #include <array>
 #include <cmath>
-namespace poly::math {
+
+export module Factor;
+
+export namespace math {
 
 /// Tested from [1..32]
 /// returns integer valued `double`s such that
@@ -22,4 +25,4 @@ constexpr auto lower_bound_factor(double N, double x) -> std::array<double, 2> {
   return {x, y};
 }
 
-} // namespace poly::math
+} // namespace math

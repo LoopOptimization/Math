@@ -1,9 +1,13 @@
-#pragma once
-#include "Utilities/Invariant.hpp"
+module;
+
 #include <cstddef>
 #include <type_traits>
 
-namespace poly::utils {
+export module valid;
+
+import invariant;
+
+export namespace utils {
 // TODO: communicate not-null to the compiler somehow?
 template <typename T> class Valid {
   [[no_unique_address]] T *value;
@@ -132,4 +136,4 @@ template <typename T> Valid(T &) -> Valid<T>;
 template <typename T> Valid(T *) -> Valid<T *>;
 static_assert(std::is_trivially_destructible_v<Valid<ptrdiff_t>>);
 static_assert(std::is_trivially_copy_constructible_v<Valid<ptrdiff_t>>);
-} // namespace poly::utils
+} // namespace utils

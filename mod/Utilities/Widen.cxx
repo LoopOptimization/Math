@@ -1,10 +1,13 @@
-#pragma once
+module;
 
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-namespace poly::utils {
+
+export module Widen;
+
+export namespace utils {
 
 template <size_t Size>
 using signed_integer_t = std::conditional_t<
@@ -22,4 +25,4 @@ constexpr auto widen(std::signed_integral auto x) {
 constexpr auto widen(std::unsigned_integral auto x) {
   return unsigned_integer_t<2 * sizeof(decltype(x))>(x);
 }
-} // namespace poly::utils
+} // namespace utils

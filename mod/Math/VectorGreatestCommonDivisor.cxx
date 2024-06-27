@@ -1,11 +1,15 @@
-#pragma once
-#include "Containers/Pair.hpp"
-#include "Math/Array.hpp"
-#include "Math/GreatestCommonDivisor.hpp"
+module;
+
 #include <cstddef>
 #include <cstdint>
 
-namespace poly::math {
+export module VGCD;
+
+import export GCD;
+import Pair;
+import Array;
+
+namespace math {
 
 constexpr auto gcd(PtrVector<int64_t> x) -> int64_t {
   const ptrdiff_t N = x.size();

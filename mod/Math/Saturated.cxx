@@ -1,10 +1,13 @@
-#pragma once
+module;
 
-#include "Utilities/Widen.hpp"
 #include <concepts>
 #include <limits>
 
-namespace poly::math {
+export module Saturated;
+
+import Widen;
+
+export namespace math {
 template <std::unsigned_integral T> constexpr auto add_sat(T x, T y) -> T {
   T res = x + y;
   return res | -(res < x);

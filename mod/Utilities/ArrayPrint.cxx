@@ -1,9 +1,17 @@
-#pragma once
+module;
+
+#include <array>
+#include <bit>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <limits>
+#include <type_traits>
 
-namespace poly::utils {
-template <std::integral T> static constexpr auto maxPow10() -> size_t {
+export module arrayprint;
+
+template <std::integral T> consteval auto maxPow10() -> size_t {
   if constexpr (sizeof(T) == 1) return 3;
   else if constexpr (sizeof(T) == 2) return 5;
   else if constexpr (sizeof(T) == 4) return 10;
@@ -48,6 +56,7 @@ template <typename T> inline auto countDigits(T *x) -> int {
   return countDigits(std::bit_cast<uintptr_t>(x));
 }
 
+export namespace utils {
 template <typename T>
 concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
   { os << x } -> std::same_as<std::ostream &>;
@@ -66,12 +75,4 @@ inline auto printVector(std::ostream &os, auto B, auto E) -> std::ostream & {
   os << " ]";
   return os;
 }
-// template <AbstractVector T>
-// inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
-//   Vector<utils::eltype_t<decltype(A)>> B(length(A.size()));
-//   if constexpr (RowVector<T>) B << A;
-//   else B << A.t();
-//   return printVector(os, B);
-// }
-//
-} // namespace poly::utils
+} // namespace utils

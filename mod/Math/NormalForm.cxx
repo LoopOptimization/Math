@@ -1,21 +1,5 @@
-#pragma once
+module;
 
-#include "Containers/Pair.hpp"
-#include "Containers/Tuple.hpp"
-#include "Math/Array.hpp"
-#include "Math/Constructors.hpp"
-#include "Math/EmptyArrays.hpp"
-#include "Math/GreatestCommonDivisor.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/Math.hpp"
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/VectorGreatestCommonDivisor.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Masks.hpp"
-#include "SIMD/UnrollIndex.hpp"
-#include "SIMD/Vec.hpp"
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -23,7 +7,14 @@
 #include <limits>
 #include <utility>
 
-namespace poly::math::NormalForm {
+export module NormalForm;
+
+import Pair;
+import Tuple;
+import Array;
+import VGCD;
+import SIMD;
+
 using containers::Tuple, containers::tie;
 
 constexpr auto gcdxScale(int64_t a, int64_t b) -> std::array<int64_t, 4> {
@@ -183,12 +174,6 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   }
   return {std::move(K), std::move(included)};
 }
-
-constexpr auto orthogonalize(IntMatrix<> A)
-  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
-  return orthogonalizeBang(A);
-}
-
 constexpr void zeroSupDiagonal(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
   auto [M, N] = shape(A);
   for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
@@ -341,19 +326,6 @@ constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
       reduceColumn(A, col(c), row(r++));
   return numNonZeroRows(A);
 }
-constexpr void simplifySystem(EmptyMatrix<int64_t>, ptrdiff_t = 0) {}
-constexpr void simplifySystem(MutPtrMatrix<int64_t> &E, ptrdiff_t colInit = 0) {
-  E.truncate(simplifySystemImpl(E, colInit));
-}
-// TODO: `const IntMatrix &` can be copied to `MutPtrMatrix<int64_t>`
-// this happens via `const IntMatrix &` -> `const MutPtrMatrix<int64_t> &` ->
-// `MutPtrMatrix<int64_t>`.
-// Perhaps we should define `MutPtrMatrix(const MutPtrMatrix &) = delete;`?
-//
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
-constexpr auto rank(IntMatrix<> A) -> ptrdiff_t {
-  return ptrdiff_t(simplifySystemImpl(A, 0));
-}
 constexpr void reduceColumn(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
                             Row<> r) {
   zeroSupDiagonal(AB, c, r);
@@ -366,6 +338,167 @@ constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
     if (!pivotRowsPair(AB, col(c), row(M), row(r)))
       reduceColumn(AB, col(c), row(r++));
+}
+
+constexpr void zeroWithRowOperation(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
+                                    Col<> k, Range<ptrdiff_t, ptrdiff_t> skip) {
+  if (int64_t Aik = A[i, k]) {
+    int64_t Ajk = A[j, k];
+    int64_t g = gcd(Aik, Ajk);
+    Aik /= g;
+    Ajk /= g;
+    g = 0;
+    for (ptrdiff_t l = 0; l < skip.b; ++l) {
+      int64_t Ail = Ajk * A[i, l] - Aik * A[j, l];
+      A[i, l] = Ail;
+      g = gcd(Ail, g);
+    }
+    for (ptrdiff_t l = skip.e; l < A.numCol(); ++l) {
+      int64_t Ail = Ajk * A[i, l] - Aik * A[j, l];
+      A[i, l] = Ail;
+      g = gcd(Ail, g);
+    }
+    if (g > 1) {
+      for (ptrdiff_t l = 0; l < skip.b; ++l)
+        if (int64_t Ail = A[i, l]) A[i, l] = Ail / g;
+      for (ptrdiff_t l = skip.e; l < A.numCol(); ++l)
+        if (int64_t Ail = A[i, l]) A[i, l] = Ail / g;
+    }
+  }
+}
+
+// use row `r` to zero the remaining rows of column `c`
+constexpr void zeroColumnPair(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
+                              Row<> r) {
+  auto [A, B] = AB;
+  const Row M = A.numRow();
+  invariant(M, B.numRow());
+  for (ptrdiff_t j = 0; j < r; ++j) {
+    int64_t Arc = A[r, c], Ajc = A[j, c];
+    if (!Ajc) continue;
+    int64_t g = gcd(Arc, Ajc), x = Arc / g, y = Ajc / g;
+    // auto [x, y] = divgcd(Arc, Ajc);
+    // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
+    // Aj << x * Aj - y * Ar;
+    // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
+    // Bj << x * Bj - y * Br;
+    for (ptrdiff_t i = 0; i < 2; ++i) {
+      MutPtrVector<int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
+      Aj << x * Aj - y * Ar;
+    }
+  }
+  // greater rows in previous columns have been zeroed out
+  // therefore it is safe to use them for row operations with this row
+  for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
+    int64_t Arc = A[r, c], Ajc = A[j, c];
+    if (!Ajc) continue;
+    const auto [p, q, Arcr, Ajcr] = gcdxScale(Arc, Ajc);
+    // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
+    // tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+    // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
+    // tie(Br, Bj) << Tuple(q * Bj + p * Br, Arcr * Bj - Ajcr * Br);
+    for (ptrdiff_t i = 0; i < 2; ++i) {
+      MutPtrVector<int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
+      tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+    }
+  }
+}
+// use row `r` to zero the remaining rows of column `c`
+constexpr void zeroColumn(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
+  const Row M = A.numRow();
+  for (ptrdiff_t j = 0; j < r; ++j) {
+    int64_t Arc = A[r, c], Ajc = A[j, c];
+    invariant(Arc != std::numeric_limits<int64_t>::min());
+    invariant(Ajc != std::numeric_limits<int64_t>::min());
+    if (!Ajc) continue;
+    int64_t g = gcd(Arc, Ajc);
+    A[j, _] << (Arc / g) * A[j, _] - (Ajc / g) * A[r, _];
+  }
+  // greater rows in previous columns have been zeroed out
+  // therefore it is safe to use them for row operations with this row
+  for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
+    int64_t Arc = A[r, c], Ajc = A[j, c];
+    if (!Ajc) continue;
+    const auto [p, q, Arcr, Ajcr] = gcdxScale(Arc, Ajc);
+    MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
+    tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+  }
+}
+
+constexpr auto pivotRowsBareiss(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M,
+                                Row<> piv) -> Optional<ptrdiff_t> {
+  Row j = piv;
+  while (A[piv, i] == 0)
+    if (++piv == M) return {};
+  if (j != piv) swap(A, j, piv);
+  return ptrdiff_t(piv);
+}
+// update a reduced matrix for a new row
+// doesn't reduce last row (assumes you're solving for it)
+constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
+  // use existing rows to reduce
+  ptrdiff_t M = ptrdiff_t(A.numRow()), N = ptrdiff_t(A.numCol()), MM = M - 1,
+            NN = N - 1, n = 0, i, j = std::numeric_limits<ptrdiff_t>::max();
+  for (ptrdiff_t m = 0; m < MM; ++m) {
+#ifndef NDEBUG
+    if (!allZero(A[m, _(0, n)])) __builtin_trap();
+#endif
+    while (A[m, n] == 0) {
+      if ((j > NN) && (A[MM, n] != 0)) {
+        i = m;
+        j = n;
+      }
+      invariant((++n) < NN);
+    }
+    if (int64_t Aln = A[MM, n]) {
+      // use this to reduce last row
+      auto [x, y] = divgcd(Aln, A[m, n]);
+      A[MM, _] << A[MM, _] * y - A[m, _] * x;
+      invariant(A[MM, n] == 0);
+    }
+    ++n;
+  }
+  // we've reduced the new row, now to use it...
+  // swap A(i,_(j,end)) with A(MM,_(j,end))
+  if (j <= NN) { // we could do with a lot less copying...
+    for (ptrdiff_t l = i; l < MM; ++l)
+      for (ptrdiff_t k = j; k < N; ++k) std::swap(A[l, k], A[MM, k]);
+  } else {
+    // maybe there is a non-zero value
+    j = n;
+    for (; j < NN; ++j)
+      if (A[MM, j] != 0) break;
+    if (j == NN) return MM;
+    i = MM;
+  }
+  // zero out A(_(0,i),j) using A(i,j)
+  for (ptrdiff_t k = 0; k < i; ++k) {
+    if (int64_t Akj = A[k, j]) {
+      auto [x, y] = divgcd(Akj, A[i, j]);
+      A[k, _] << A[k, _] * y - A[i, _] * x;
+    }
+  }
+  return M;
+}
+
+export namespace math::NormalForm {
+constexpr auto orthogonalize(IntMatrix<> A)
+  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
+  return orthogonalizeBang(A);
+}
+
+constexpr void simplifySystem(EmptyMatrix<int64_t>, ptrdiff_t = 0) {}
+constexpr void simplifySystem(MutPtrMatrix<int64_t> &E, ptrdiff_t colInit = 0) {
+  E.truncate(simplifySystemImpl(E, colInit));
+}
+// TODO: `const IntMatrix &` can be copied to `MutPtrMatrix<int64_t>`
+// this happens via `const IntMatrix &` -> `const MutPtrMatrix<int64_t> &` ->
+// `MutPtrMatrix<int64_t>`.
+// Perhaps we should define `MutPtrMatrix(const MutPtrMatrix &) = delete;`?
+//
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+constexpr auto rank(IntMatrix<> A) -> ptrdiff_t {
+  return ptrdiff_t(simplifySystemImpl(A, 0));
 }
 template <MatrixDimension S0, MatrixDimension S1>
 constexpr void simplifySystem(MutArray<int64_t, S0> &A,
@@ -465,99 +598,6 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   return ret;
 }
 #endif
-constexpr void zeroWithRowOperation(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
-                                    Col<> k, Range<ptrdiff_t, ptrdiff_t> skip) {
-  if (int64_t Aik = A[i, k]) {
-    int64_t Ajk = A[j, k];
-    int64_t g = gcd(Aik, Ajk);
-    Aik /= g;
-    Ajk /= g;
-    g = 0;
-    for (ptrdiff_t l = 0; l < skip.b; ++l) {
-      int64_t Ail = Ajk * A[i, l] - Aik * A[j, l];
-      A[i, l] = Ail;
-      g = gcd(Ail, g);
-    }
-    for (ptrdiff_t l = skip.e; l < A.numCol(); ++l) {
-      int64_t Ail = Ajk * A[i, l] - Aik * A[j, l];
-      A[i, l] = Ail;
-      g = gcd(Ail, g);
-    }
-    if (g > 1) {
-      for (ptrdiff_t l = 0; l < skip.b; ++l)
-        if (int64_t Ail = A[i, l]) A[i, l] = Ail / g;
-      for (ptrdiff_t l = skip.e; l < A.numCol(); ++l)
-        if (int64_t Ail = A[i, l]) A[i, l] = Ail / g;
-    }
-  }
-}
-
-// use row `r` to zero the remaining rows of column `c`
-constexpr void zeroColumnPair(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
-                              Row<> r) {
-  auto [A, B] = AB;
-  const Row M = A.numRow();
-  invariant(M, B.numRow());
-  for (ptrdiff_t j = 0; j < r; ++j) {
-    int64_t Arc = A[r, c], Ajc = A[j, c];
-    if (!Ajc) continue;
-    int64_t g = gcd(Arc, Ajc), x = Arc / g, y = Ajc / g;
-    // auto [x, y] = divgcd(Arc, Ajc);
-    // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
-    // Aj << x * Aj - y * Ar;
-    // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
-    // Bj << x * Bj - y * Br;
-    for (ptrdiff_t i = 0; i < 2; ++i) {
-      MutPtrVector<int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
-      Aj << x * Aj - y * Ar;
-    }
-  }
-  // greater rows in previous columns have been zeroed out
-  // therefore it is safe to use them for row operations with this row
-  for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
-    int64_t Arc = A[r, c], Ajc = A[j, c];
-    if (!Ajc) continue;
-    const auto [p, q, Arcr, Ajcr] = gcdxScale(Arc, Ajc);
-    // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
-    // tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
-    // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
-    // tie(Br, Bj) << Tuple(q * Bj + p * Br, Arcr * Bj - Ajcr * Br);
-    for (ptrdiff_t i = 0; i < 2; ++i) {
-      MutPtrVector<int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
-      tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
-    }
-  }
-}
-// use row `r` to zero the remaining rows of column `c`
-constexpr void zeroColumn(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
-  const Row M = A.numRow();
-  for (ptrdiff_t j = 0; j < r; ++j) {
-    int64_t Arc = A[r, c], Ajc = A[j, c];
-    invariant(Arc != std::numeric_limits<int64_t>::min());
-    invariant(Ajc != std::numeric_limits<int64_t>::min());
-    if (!Ajc) continue;
-    int64_t g = gcd(Arc, Ajc);
-    A[j, _] << (Arc / g) * A[j, _] - (Ajc / g) * A[r, _];
-  }
-  // greater rows in previous columns have been zeroed out
-  // therefore it is safe to use them for row operations with this row
-  for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
-    int64_t Arc = A[r, c], Ajc = A[j, c];
-    if (!Ajc) continue;
-    const auto [p, q, Arcr, Ajcr] = gcdxScale(Arc, Ajc);
-    MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
-    tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
-  }
-}
-
-constexpr auto pivotRowsBareiss(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M,
-                                Row<> piv) -> Optional<ptrdiff_t> {
-  Row j = piv;
-  while (A[piv, i] == 0)
-    if (++piv == M) return {};
-  if (j != piv) swap(A, j, piv);
-  return ptrdiff_t(piv);
-}
 constexpr void bareiss(MutPtrMatrix<int64_t> A,
                        MutPtrVector<ptrdiff_t> pivots) {
   const auto [M, N] = shape(A);
@@ -580,54 +620,6 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
   Vector<ptrdiff_t> pivots(length(A.minRowCol()));
   bareiss(A, pivots);
   return pivots;
-}
-
-// update a reduced matrix for a new row
-// doesn't reduce last row (assumes you're solving for it)
-constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
-  // use existing rows to reduce
-  ptrdiff_t M = ptrdiff_t(A.numRow()), N = ptrdiff_t(A.numCol()), MM = M - 1,
-            NN = N - 1, n = 0, i, j = std::numeric_limits<ptrdiff_t>::max();
-  for (ptrdiff_t m = 0; m < MM; ++m) {
-#ifndef NDEBUG
-    if (!allZero(A[m, _(0, n)])) __builtin_trap();
-#endif
-    while (A[m, n] == 0) {
-      if ((j > NN) && (A[MM, n] != 0)) {
-        i = m;
-        j = n;
-      }
-      invariant((++n) < NN);
-    }
-    if (int64_t Aln = A[MM, n]) {
-      // use this to reduce last row
-      auto [x, y] = divgcd(Aln, A[m, n]);
-      A[MM, _] << A[MM, _] * y - A[m, _] * x;
-      invariant(A[MM, n] == 0);
-    }
-    ++n;
-  }
-  // we've reduced the new row, now to use it...
-  // swap A(i,_(j,end)) with A(MM,_(j,end))
-  if (j <= NN) { // we could do with a lot less copying...
-    for (ptrdiff_t l = i; l < MM; ++l)
-      for (ptrdiff_t k = j; k < N; ++k) std::swap(A[l, k], A[MM, k]);
-  } else {
-    // maybe there is a non-zero value
-    j = n;
-    for (; j < NN; ++j)
-      if (A[MM, j] != 0) break;
-    if (j == NN) return MM;
-    i = MM;
-  }
-  // zero out A(_(0,i),j) using A(i,j)
-  for (ptrdiff_t k = 0; k < i; ++k) {
-    if (int64_t Akj = A[k, j]) {
-      auto [x, y] = divgcd(Akj, A[i, j]);
-      A[k, _] << A[k, _] * y - A[i, _] * x;
-    }
-  }
-  return M;
 }
 
 /// void solveSystem(IntMatrix &A, IntMatrix &B)
@@ -721,4 +713,4 @@ nullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   return B;
 }
 
-} // namespace poly::math::NormalForm
+} // namespace math::NormalForm

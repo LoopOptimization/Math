@@ -1,8 +1,5 @@
-#pragma once
+module;
 
-#include "Containers/Storage.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Utilities/Invariant.hpp"
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -13,7 +10,14 @@
 #include <ostream>
 #include <type_traits>
 
-namespace poly::containers {
+export module Array:Tiny;
+
+import :MatDim;
+import :Storage;
+import Invariant;
+
+
+export namespace containers {
 using utils::invariant;
 
 template <class T, size_t N, std::signed_integral L = ptrdiff_t>

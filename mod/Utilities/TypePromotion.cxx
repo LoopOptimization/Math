@@ -1,8 +1,9 @@
-#pragma once
+module;
 
+#include <concepts>
 #include <type_traits>
 
-namespace poly::utils {
+export module typeprmotion;
 
 template <typename T>
 concept HasEltype = requires(T) {
@@ -15,12 +16,6 @@ template <typename A> struct GetEltype {
 template <HasEltype A> struct GetEltype<A> {
   using value_type = typename A::value_type;
 };
-
-template <typename T>
-using eltype_t = typename GetEltype<std::remove_reference_t<T>>::value_type;
-
-template <class T, class C>
-concept ElementOf = std::convertible_to<T, eltype_t<C>>;
 
 template <typename A, typename B> struct PromoteType {
   using value_type = decltype(std::declval<A>() + std::declval<B>());
@@ -62,38 +57,37 @@ template <std::floating_point A, std::floating_point B>
 struct PromoteType<A, B> {
   using value_type = decltype(A() + B());
 };
+
+export namespace utils {
+
+template <typename T>
+using eltype_t = typename GetEltype<std::remove_reference_t<T>>::value_type;
+template <class T, class C>
+concept ElementOf = std::convertible_to<T, eltype_t<C>>;
+
 template <typename A, typename B>
 using promote_type_t = typename PromoteType<A, B>::value_type;
+} // namespace utils
 
 template <typename A, typename B> struct PromoteEltype {
 
   // using value_type = promote_type_t<eltype_t<A>, eltype_t<B>>;
-  using elta = eltype_t<A>;
-  using eltb = eltype_t<B>;
+  using elta = utils::eltype_t<A>;
+  using eltb = utils::eltype_t<B>;
   using value_type = std::conditional_t<std::convertible_to<A, eltb>, eltb,
-                                        promote_type_t<elta, eltb>>;
+                                        utils::promote_type_t<elta, eltb>>;
 };
-template <typename A, ElementOf<A> B> struct PromoteEltype<A, B> {
-  using value_type = eltype_t<A>;
+template <typename A, utils::ElementOf<A> B> struct PromoteEltype<A, B> {
+  using value_type = utils::eltype_t<A>;
 };
 // template <typename B, ElementOf<B> A> struct PromoteEltype<A, B> {
 //   using value_type = eltype_t<B>;
 // };
+
+export namespace utils {
+
 template <typename A, typename B>
 using promote_eltype_t =
   std::remove_cvref_t<typename PromoteEltype<A, B>::value_type>;
 
-struct Rational;
-template <> struct GetEltype<Rational> {
-  using value_type = Rational;
-};
-template <> struct PromoteType<Rational, Rational> {
-  using value_type = Rational;
-};
-template <std::integral I> struct PromoteType<I, Rational> {
-  using value_type = Rational;
-};
-template <std::integral I> struct PromoteType<Rational, I> {
-  using value_type = Rational;
-};
-} // namespace poly::utils
+} // namespace utils

@@ -3,7 +3,7 @@ module;
 #include <cstddef>
 #include <type_traits>
 
-module simd:vec;
+module SIMD:Vec;
 
 template <ptrdiff_t W, typename T>
 using Vec_ [[gnu::vector_size(W * sizeof(T))]] = T;

@@ -1,17 +1,17 @@
-#pragma once
+module;
 
-#include "Containers/BitSets.hpp"
-#include "Math/Array.hpp"
-#include "Math/AxisTypes.hpp"
-#include "Math/EmptyArrays.hpp"
-#include "Math/GreatestCommonDivisor.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Math.hpp"
-#include "Math/NormalForm.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <ostream>
 
-namespace poly::math {
+export module Constraints;
+import AxisTypes;
+import Array;
+import BitSet;
+import GCD;
+import NormalForm;
+
+export namespace math {
 inline auto printConstraint(std::ostream &os, PtrVector<int64_t> a,
                             ptrdiff_t numSyms, bool inequality) {
   ptrdiff_t numVar = a.size();
@@ -443,4 +443,4 @@ constexpr void deleteBounds(MutDensePtrMatrix<int64_t> &A, ptrdiff_t i) {
   for (Row j = A.numRow(); j != 0;)
     if (A[--j, i]) eraseConstraint(A, j);
 }
-} // namespace poly::math
+} // namespace math

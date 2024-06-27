@@ -1,9 +1,12 @@
-#pragma once
+module;
 
 #include <cstddef>
 #include <ranges>
 #include <type_traits>
-namespace poly::utils {
+
+export module ListRange;
+
+export namespace utils {
 
 class GetNext {
 public:
@@ -319,7 +322,7 @@ public:
 template <std::ranges::forward_range O, class F>
 NestedList(O, F) -> NestedList<O, F>;
 
-} // namespace poly::utils
+} // namespace utils
 
 template <typename T, class Op, class Proj>
 inline constexpr bool

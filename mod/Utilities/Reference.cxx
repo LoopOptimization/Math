@@ -1,7 +1,8 @@
-#pragma once
-#include "Utilities/TypeCompression.hpp"
+module;
+#include <cstddef>
+module Array:Reference;
 
-namespace poly::utils {
+import :Compression;
 template <typename T> struct Reference {
   using C = utils::compressed_t<T>;
   static_assert(!std::same_as<C, T>);
@@ -238,4 +239,3 @@ template <Compressible T>
   return T::decompress(p + i);
 }
 
-} // namespace poly::utils

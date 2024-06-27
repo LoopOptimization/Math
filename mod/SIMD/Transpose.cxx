@@ -1,9 +1,10 @@
-#pragma once
-#ifndef POLY_SIMD_Transpose_hpp_INCLUDED
-#define POLY_SIMD_Transpose_hpp_INCLUDED
+module;
+#include <cstddef>
+module SIMD:Tranpose;
 
-#include "SIMD/Unroll.hpp"
-namespace poly::simd {
+import :Unroll;
+
+export namespace simd {
 
 template <ptrdiff_t C, typename T>
 constexpr auto transpose(Unroll<1, C, 1, T> u) -> Unroll<C, 1, 1, T> {
@@ -76,5 +77,4 @@ constexpr auto transpose(Unroll<8, C, 8, T> u) -> Unroll<8 * C, 1, 8, T> {
   return z;
 }
 
-} // namespace poly::simd
-#endif // Transpose_hpp_INCLUDED
+} // namespace simd

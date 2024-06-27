@@ -1,7 +1,10 @@
-#pragma once
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
+module;
 #include <cstddef>
+
+export module Array:Emptry;
+
+import :Concepts;
+import :MatDim;
 
 namespace poly::math {
 

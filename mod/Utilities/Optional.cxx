@@ -1,9 +1,13 @@
-#pragma once
-#include "Utilities/Valid.hpp"
+module;
+#include <concepts>
 #include <limits>
 #include <optional>
 #include <utility>
-namespace poly::utils {
+
+export module Optional;
+import Valid;
+
+export namespace utils {
 /// Optional<T>
 /// This type uses sentinels to indicate empty-optionals as an optimization for
 /// certain types, oterhwise it falls back to `std::optional<T>`. Users may
@@ -122,6 +126,6 @@ template <typename T> struct Optional<T *> {
   constexpr Optional() = default;
   constexpr Optional(T *v) : value{v} {}
   constexpr Optional(Valid<T> v) : value{v} {} // why would anyone want this?
-  constexpr Optional(std::nullopt_t){};
+  constexpr Optional(std::nullopt_t) {};
 };
-} // namespace poly::utils
+} // namespace utils

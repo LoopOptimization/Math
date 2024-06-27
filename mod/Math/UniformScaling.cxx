@@ -1,16 +1,17 @@
-#pragma once
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "SIMD/Masks.hpp"
-#include "SIMD/Unroll.hpp"
-#include "SIMD/UnrollIndex.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/LoopMacros.hpp"
+module;
+
+#include "LoopMacros.hxx"
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <type_traits>
-namespace poly::math {
+
+export module Arrays:Empty;
+
+import :MatDim;
+import SIMD;
+
+export namespace math {
 
 template <class T> struct UniformScaling {
   using value_type = T;
@@ -106,4 +107,4 @@ template <class T> struct UniformScaling {
 template <class T> UniformScaling(T) -> UniformScaling<T>;
 static_assert(AbstractMatrix<UniformScaling<int64_t>>);
 
-} // namespace poly::math
+} // namespace math

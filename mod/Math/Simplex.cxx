@@ -1,4 +1,4 @@
-#pragma once
+module;
 #include "Alloc/Arena.hpp"
 #include "Alloc/Mallocator.hpp"
 #include "Math/Array.hpp"
@@ -29,7 +29,18 @@
 #include <new>
 #include <ostream>
 
-namespace poly::math {
+export module Simplex;
+
+import Allocator;
+import Arena;
+import Array;
+import AxisTypes;
+import Constraints;
+import GCD;
+import Rational;
+
+
+namespace math {
 // #define VERBOSESIMPLEX
 
 /// Tableau for the Simplex algorithm.

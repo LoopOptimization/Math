@@ -1,12 +1,16 @@
-#pragma once
-#include "Utilities/Invariant.hpp"
+module;
+
 #include <compare>
 #include <concepts>
 #include <limits>
 #include <ostream>
 #include <type_traits>
 
-namespace poly::numbers {
+export module Int8;
+
+import Invariant;
+
+export namespace numbers {
 
 template <std::integral I, bool nowrap = false, int alias = 0>
 struct IntWrapper {

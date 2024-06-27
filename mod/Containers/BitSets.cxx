@@ -1,8 +1,4 @@
-#pragma once
-#include "Math/Array.hpp"
-#include "Math/Iterators.hpp"
-#include "Utilities/Invariant.hpp"
-#include "Utilities/TypePromotion.hpp"
+module;
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -18,7 +14,13 @@
 #include <string>
 #include <type_traits>
 
-namespace poly::containers {
+export module BitSet;
+import Array;
+import Invariant;
+import Iterators;
+import TypePromotion;
+
+export namespace containers {
 using utils::invariant;
 
 struct EndSentinel {

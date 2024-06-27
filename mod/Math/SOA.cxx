@@ -1,10 +1,5 @@
-#pragma once
-#include "Alloc/Mallocator.hpp"
-#include "Containers/Pair.hpp"
-#include "Containers/Tuple.hpp"
-#include "Math/Array.hpp"
-#include "Math/ArrayOps.hpp"
-#include "Math/MatrixDimensions.hpp"
+module;
+
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -14,7 +9,15 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-namespace poly::math {
+
+export module soa;
+
+import allocator;
+import axistypes;
+import pair;
+import tuple;
+
+namespace math {
 
 template <typename... T> struct Types {};
 
@@ -348,4 +351,4 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
 template <typename T, typename S>
 ManagedSOA(std::type_identity<T>, S) -> ManagedSOA<T, S>;
 
-} // namespace poly::math
+} // namespace math

@@ -1,6 +1,5 @@
-#pragma once
+module;
 
-#include "Utilities/Invariant.hpp"
 #include <concepts>
 #include <cstddef>
 #include <new>
@@ -36,7 +35,12 @@
 #ifdef __cpp_lib_allocate_at_least
 #include <memory>
 #endif
-namespace poly::alloc {
+
+export module Allocator;
+
+import Invariant;
+
+export namespace poly::alloc {
 
 #ifdef __cpp_lib_allocate_at_least
 template <class Pointer> using AllocResult = std::allocation_result<Pointer *>;

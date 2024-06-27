@@ -1,13 +1,17 @@
-#pragma once
+module;
 
-#include "Math/AxisTypes.hpp"
-#include "Utilities/Invariant.hpp"
 #include <concepts>
 #include <cstddef>
 #include <iterator>
 #include <ostream>
 #include <type_traits>
-namespace poly::math {
+
+export module Ranges;
+
+import AxisTypes;
+import Invariant;
+
+export namespace math {
 using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
   axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
   axis::asrow, axis::ascol, axis::aslength, utils::invariant;

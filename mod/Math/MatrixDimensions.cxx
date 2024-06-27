@@ -1,14 +1,17 @@
-#pragma once
+module;
 
-#include "Math/AxisTypes.hpp"
-#include "Utilities/Invariant.hpp"
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <ostream>
 #include <type_traits>
 
-namespace poly::math {
+export module Array:MatDim;
+
+import AxisTypes;
+import Invariant;
+
+namespace math {
 
 using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
   axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
@@ -436,4 +439,4 @@ constexpr auto stride(MatrixDimension auto s) { return RowStride(s); }
 template <typename T>
 concept HasInnerReduction = bool(T::has_reduction_loop);
 
-} // namespace poly::math
+} // namespace math

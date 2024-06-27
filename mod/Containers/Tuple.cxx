@@ -1,11 +1,14 @@
-#pragma once
-#include "Containers/Pair.hpp"
+module;
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
 
-namespace poly::containers {
+export module Tuple;
+
+import Pair;
+
+export namespace containers {
 
 template <typename T, typename... Ts> struct Tuple;
 template <typename T, typename... Ts>

@@ -1,8 +1,10 @@
-#pragma once
+module;
 #include <algorithm>
 #include <cstdint>
 
-namespace poly::math {
+export module Comparisons;
+
+export namespace math {
 constexpr auto allZero(const auto &x) -> bool {
   return std::all_of(x.begin(), x.end(), [](auto a) { return a == 0; });
   // return std::ranges::all_of(x, [](auto x) { return x == 0; });
@@ -20,4 +22,4 @@ constexpr auto anyNEZero(const auto &x) -> bool {
   return std::any_of(x.begin(), x.end(), [](int64_t y) { return y != 0; });
 }
 
-} // namespace poly::math
+} // namespace math

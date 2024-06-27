@@ -1,9 +1,13 @@
-#pragma once
-#include <Math/Matrix.hpp>
-#include <Utilities/TypePromotion.hpp>
+module;
 #include <concepts>
+
+include <concepts>
 #include <functional>
-namespace poly::utils {
+
+module Array:Assign;
+
+import TypePromotion;
+import :Concepts;
 
 struct CopyAssign {};
 struct NoRowIndex {};
@@ -51,5 +55,4 @@ assign(D &d, const S &s, R r, C c, Op op) {
   else d[r, c] = op(const_cast<const D &>(d)[r, c], s[r, c]);
 }
 
-} // namespace poly::utils
 

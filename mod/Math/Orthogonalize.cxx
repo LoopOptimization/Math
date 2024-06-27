@@ -1,9 +1,12 @@
-#pragma once
-#include "./NormalForm.hpp"
-#include "./Rational.hpp"
-#include "./VectorGreatestCommonDivisor.hpp"
-#include "Math/Math.hpp"
+module;
+
+#include <cstddef>
 #include <cstdint>
+
+export module Orthogonalize;
+
+import NormalForm;
+import Rational import VGCD;
 
 namespace poly::math {
 [[nodiscard]] constexpr auto

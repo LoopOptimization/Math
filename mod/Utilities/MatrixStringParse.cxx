@@ -1,32 +1,16 @@
-#pragma once
+module;
 
-#include "Math/StaticArrays.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
+export module Array:StringParse;
+
+import :Static;
+
 // #if !defined(__clang__)
 #define CONSTEVAL_LITERAL_ARRAYS
 // #endif
-
-namespace poly::utils {
-
-// constexpr auto cstoll(const char *s, ptrdiff_t &cur) -> int64_t {
-//   int64_t res = 0;
-//   bool neg = false;
-//   while (s[cur] == ' ') ++cur;
-//   if (s[cur] == '-') {
-//     neg = true;
-//     ++cur;
-//   }
-//   while (s[cur] >= '0' && s[cur] <= '9') {
-//     res = res * 10 + (s[cur] - '0');
-//     ++cur;
-//   }
-//   return neg ? -res : res;
-// }
-
-// static_assert(__cpp_nontype_template_args >= 201911);
 template <std::size_t N> struct String {
   char data_[N];
 
@@ -97,6 +81,25 @@ template <String S> consteval auto matrix_from_string() {
   return A;
 }
 
+export namespace utils {
+
+// constexpr auto cstoll(const char *s, ptrdiff_t &cur) -> int64_t {
+//   int64_t res = 0;
+//   bool neg = false;
+//   while (s[cur] == ' ') ++cur;
+//   if (s[cur] == '-') {
+//     neg = true;
+//     ++cur;
+//   }
+//   while (s[cur] >= '0' && s[cur] <= '9') {
+//     res = res * 10 + (s[cur] - '0');
+//     ++cur;
+//   }
+//   return neg ? -res : res;
+// }
+
+// static_assert(__cpp_nontype_template_args >= 201911);
+
 #ifndef CONSTEVAL_LITERAL_ARRAYS
 template <String S> [[nodiscard]] constexpr auto operator"" _mat() {
 #else
@@ -105,4 +108,4 @@ template <String S> [[nodiscard]] consteval auto operator"" _mat() {
   return matrix_from_string<S>();
 }
 
-} // namespace poly::utils
+} // namespace utils

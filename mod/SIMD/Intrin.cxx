@@ -1,6 +1,6 @@
 module;
 
-#include <Utilities/LoopMacros.hpp>
+#include "LoopMacros.hxx"
 #include <array>
 #include <bit>
 #include <concepts>
@@ -10,12 +10,12 @@ module;
 #include <immintrin.h>
 #endif
 
-module simd:intrin;
+module SIMD:Intrin;
 
-import axis.types;
-import invariant;
-import :mask;
-import :vec;
+import AxisTypes;
+import Invariant;
+import :Mask;
+import :Vec;
 
 namespace poly::simd {
 

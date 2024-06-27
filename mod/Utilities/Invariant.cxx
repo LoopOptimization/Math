@@ -7,7 +7,7 @@ module;
 #endif
 #endif
 
-export module invariant;
+export module Invariant;
 
 export namespace utils {
 

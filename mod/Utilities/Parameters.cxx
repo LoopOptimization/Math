@@ -1,17 +1,23 @@
-#pragma once
+module;
 
 #include <type_traits>
 
-namespace poly::utils {
+export module Param;
+
+export namespace utils {
 template <typename T>
 concept TriviallyCopyable =
   std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
+} // namespace utils
+
 template <typename T> struct InParameter {
   using type = const T &;
 };
-template <TriviallyCopyable T> struct InParameter<T> {
+template <utils::TriviallyCopyable T> struct InParameter<T> {
   using type = T;
 };
+
+export namespace utils {
 
 /// This can be used like
 /// auto foo_impl(inparam_t<T> x, ...);
@@ -21,4 +27,4 @@ template <TriviallyCopyable T> struct InParameter<T> {
 /// }
 template <typename T> using inparam_t = typename InParameter<T>::type;
 
-} // namespace poly::utils
+} // namespace utils

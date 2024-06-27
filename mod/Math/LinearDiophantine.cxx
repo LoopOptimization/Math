@@ -1,9 +1,13 @@
-#pragma once
-#include "./GreatestCommonDivisor.hpp"
+module;
 #include <array>
 #include <cstdint>
 #include <optional>
-namespace poly::math {
+
+export module LinearDiophantine;
+
+import GCD;
+
+export namespace math {
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 inline auto linearDiophantine(int64_t c, int64_t a, int64_t b)
   -> std::optional<std::array<int64_t, 2>> {
@@ -63,4 +67,4 @@ inline auto linearDiophantine(int64_t d, std::array<int64_t, N> a)
   std::copy(t.begin() + 1, t.end(), a.begin() + 2);
   return a;
 }
-} // namespace poly::math
+} // namespace math

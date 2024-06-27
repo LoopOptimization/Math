@@ -1,10 +1,12 @@
-#pragma once
+module;
 #include <cstddef>
 #include <ostream>
 #include <type_traits>
 #include <utility>
 
-namespace poly::containers {
+export module Pairs;
+
+export namespace containers {
 
 template <typename To, typename From>
 concept ConvertibleFrom = std::is_convertible_v<From, To>;

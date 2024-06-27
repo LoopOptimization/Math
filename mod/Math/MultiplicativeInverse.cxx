@@ -1,16 +1,17 @@
-#pragma once
+module;
 
-#include "Numbers/Int8.hpp"
-#include "Utilities/Invariant.hpp"
-#include "Utilities/Widen.hpp"
 #include <array>
 #include <bit>
 #include <cmath>
 #include <concepts>
 #include <limits>
 #include <type_traits>
-namespace poly::math {
-using numbers::i8, numbers::u8;
+
+export module MultiplicativeInverse;
+
+import Int8;
+import Invariant;
+import Widen;
 
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
@@ -20,13 +21,6 @@ using numbers::i8, numbers::u8;
 #else
 #define CLANGNOUBSAN
 #endif
-
-template <std::integral T> constexpr auto cld(T a, T b) -> T {
-  T d = a / b;
-  if constexpr (std::is_signed_v<T>)
-    return d + (((a > 0) == (b > 0)) & (d * b != a));
-  else return d + (d * b != a);
-}
 CLANGNOUBSAN constexpr auto _mul_high(__uint128_t a,
                                       __uint128_t b) -> __uint128_t {
   static constexpr auto shift = 16 * 4;
@@ -52,6 +46,15 @@ CLANGNOUBSAN constexpr auto _mul_high(T a, T b) -> T {
   return T((utils::widen(a) * utils::widen(b)) >> (8 * sizeof(T)));
 }
 #undef CLANGNOUBSAN
+
+export namespace math {
+using numbers::i8, numbers::u8;
+template <std::integral T> constexpr auto cld(T a, T b) -> T {
+  T d = a / b;
+  if constexpr (std::is_signed_v<T>)
+    return d + (((a > 0) == (b > 0)) & (d * b != a));
+  else return d + (d * b != a);
+}
 
 template <typename T> class MultiplicativeInverse;
 
@@ -229,5 +232,5 @@ template <typename T> MultiplicativeInverse(T d) -> MultiplicativeInverse<T>;
 static_assert(
   std::is_trivially_default_constructible_v<MultiplicativeInverse<double>>);
 
-} // namespace poly::math
+} // namespace math
 

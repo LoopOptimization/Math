@@ -1,7 +1,5 @@
-#pragma once
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/Invariant.hpp"
+module;
+
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -9,7 +7,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-namespace poly::math {
+
+export module GCD;
+
+import Invariant;
+import SIMD;
+
+namespace math {
 using utils::invariant;
 constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;
@@ -41,6 +45,7 @@ constexpr auto gcd(int64_t x, int64_t y) -> int64_t {
   }
   return b << k;
 }
+// TODO: add `Unroll` method, use in vectorized GCD?
 template <ptrdiff_t W>
 constexpr auto gcd(simd::Vec<W, int64_t> x,
                    simd::Vec<W, int64_t> y) -> simd::Vec<W, int64_t> {

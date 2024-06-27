@@ -1,11 +1,14 @@
-#pragma once
-#include "Utilities/Invariant.hpp"
+module;
 #include <compare>
 #include <concepts>
 #include <cstddef>
 #include <iostream>
 #include <limits>
 #include <type_traits>
+
+export module axistypes;
+
+import invariant;
 
 /// LinAlg
 ///
@@ -28,7 +31,7 @@
 /// All the PtrVector/PtrMatrix types are trivially destructible, copyable, etc
 /// Their lifetimes are governed by the Arena or RAII type used to back
 /// them.
-namespace poly::math::axis {
+namespace math::axis {
 
 using utils::invariant;
 

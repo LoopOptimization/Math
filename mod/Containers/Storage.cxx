@@ -1,13 +1,16 @@
-#pragma once
-#include "Math/AxisTypes.hpp"
-#include "Math/MatrixDimensions.hpp"
+module;
+
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
-namespace poly::containers {
+module Array:Storage;
+
+import :MatDim;
+import AxisTypes;
+
 template <typename T, ptrdiff_t N> struct Storage {
   static_assert(N > 0);
   // We can avoid `reinterpret_cast` if we have trivial/implicit lifetime types.
@@ -84,4 +87,3 @@ template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
     return ptrdiff_t(bisectFindSquare(L, H, UN));
   }
 }
-} // namespace poly::containers

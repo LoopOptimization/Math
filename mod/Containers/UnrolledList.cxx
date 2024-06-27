@@ -1,10 +1,13 @@
-#pragma once
-#include "Alloc/Arena.hpp"
-#include "Utilities/Invariant.hpp"
+module;
 #include <cstddef>
 #include <memory>
 
-namespace poly::containers {
+export module UnrolledList;
+
+import Arena;
+import Invariant;
+
+export namespace containers {
 using utils::invariant;
 template <typename T> class UList {
   T data[6]; // NOLINT(modernize-avoid-c-arrays)
@@ -282,4 +285,4 @@ public:
   constexpr auto dend() -> T * { return data + count; }
 };
 
-} // namespace poly::containers
+} // namespace containers

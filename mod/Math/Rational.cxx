@@ -1,7 +1,5 @@
-#pragma once
+module;
 
-#include "GreatestCommonDivisor.hpp"
-#include "Utilities/ArrayPrint.hpp"
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -10,7 +8,12 @@
 #include <optional>
 #include <ostream>
 
-namespace poly::math {
+export module Rational;
+
+import ArrayPrint;
+import GCD;
+
+namespace math {
 
 template <class T, int Bits>
 concept is_int_v = std::signed_integral<T> && sizeof(T) == (Bits / 8);

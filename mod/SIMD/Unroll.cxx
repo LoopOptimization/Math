@@ -1,11 +1,6 @@
 module;
 
-#include "Math/AxisTypes.hpp"
-#include "SIMD/Indexing.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Masks.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/LoopMacros.hpp"
+#include "LoopMacros.hxx"
 #include <array>
 #include <bit>
 #include <concepts>
@@ -14,7 +9,13 @@ module;
 #include <functional>
 #include <type_traits>
 
-export module poly.simd;
+export module SIMD:Unroll;
+
+import :Vec;
+import :Intrin;
+import :Index;
+import :Mask;
+import AxisTypes;
 
 export namespace simd {
 // template <typename T, ptrdiff_t W, typename S>

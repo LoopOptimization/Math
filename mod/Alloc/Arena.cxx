@@ -1,8 +1,5 @@
-#pragma once
+module;
 
-#include "Alloc/Mallocator.hpp"
-#include "Utilities/Invariant.hpp"
-#include "Utilities/Valid.hpp"
 #include <algorithm>
 #include <bit>
 #include <concepts>
@@ -23,15 +20,8 @@
 #define MATH_ADDRESS_SANITIZER_BUILD 1
 #if __has_include(<sanitizer/asan_interface.h>)
 #include <sanitizer/asan_interface.h>
-#else
-// These declarations exist to support ASan with MSVC. If MSVC eventually ships
-// asan_interface.h in their headers, then we can remove this.
-extern "C" {
-void __asan_poison_memory_region(void const volatile *addr, size_t size);
-void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
-} // extern "C"
-#endif
-#else
+#endif // has asan include
+#else // no asan
 #define MATH_ADDRESS_SANITIZER_BUILD 0
 #endif
 
@@ -44,7 +34,25 @@ void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
 #define MATH_NO_SANITIZE_MEMORY_ATTRIBUTE
 #endif
 
-namespace poly::alloc {
+export module Arena;
+
+import Allocator;
+import Invariant;
+import Valid;
+
+
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if !__has_include(<sanitizer/asan_interface.h>)
+// These declarations exist to support ASan with MSVC. If MSVC eventually ships
+// asan_interface.h in their headers, then we can remove this.
+extern "C" {
+void __asan_poison_memory_region(void const volatile *addr, size_t size);
+void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+} // extern "C"
+#endif
+#endif
+
+export namespace alloc {
 
 using utils::invariant, utils::Valid;
 
