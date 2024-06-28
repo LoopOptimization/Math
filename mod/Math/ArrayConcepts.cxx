@@ -3,9 +3,9 @@ module;
 #include <cstddef>
 #include <type_traits>
 
-module Array:Concepts;
+module ArrayConcepts;
 
-import :MatDim;
+import MatDim;
 import TypePromotion;
 
 export namespace math {

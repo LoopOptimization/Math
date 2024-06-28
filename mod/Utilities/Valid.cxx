@@ -9,7 +9,7 @@ import invariant;
 
 export namespace utils {
 // TODO: communicate not-null to the compiler somehow?
-template <typename T> class Valid {
+template <typename T> [[gsl::Pointer(T)]] class Valid {
   [[no_unique_address]] T *value;
 
 public:

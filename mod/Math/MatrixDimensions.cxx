@@ -6,7 +6,7 @@ module;
 #include <ostream>
 #include <type_traits>
 
-export module Array:MatDim;
+export module MatDim;
 
 import AxisTypes;
 import Invariant;

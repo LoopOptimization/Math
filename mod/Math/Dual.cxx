@@ -1,22 +1,5 @@
-#pragma once
-#include "Alloc/Arena.hpp"
-#include "Math/ArrayOps.hpp"
-#include "Math/Exp.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/LoopMacros.hpp"
-#include "Utilities/Reference.hpp"
-#include "Utilities/TypeCompression.hpp"
-#include "Utilities/TypePromotion.hpp"
-#include <Math/Array.hpp>
-#include <Math/Constructors.hpp>
-#include <Math/Math.hpp>
-#include <Math/Matrix.hpp>
-#include <Math/StaticArrays.hpp>
-#include <Utilities/Invariant.hpp>
+module;
+#include "LoopMacros.hxx"
 #include <bit>
 #include <concepts>
 #include <cstddef>
@@ -26,7 +9,16 @@
 #include <type_traits>
 #include <utility>
 
-namespace poly::math {
+
+export module ForwardDiff:Dual;
+
+import Arena;
+import Array;
+import Invariant;
+import TypePromotion;
+import SIMD;
+
+export namespace math {
 
 template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
   static_assert(Compress);

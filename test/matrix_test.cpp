@@ -26,6 +26,15 @@
 #include <tuple>
 #include <type_traits>
 
+import Arena;
+import TinyVector;
+import Tuple;
+import Array;
+import MatDim;
+import SmallSparseMatrix;
+import StaticArray;
+import UniformScaling;
+
 using namespace poly::math;
 using poly::utils::operator""_mat;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

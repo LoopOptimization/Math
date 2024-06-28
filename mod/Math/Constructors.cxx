@@ -1,10 +1,13 @@
-#pragma once
+module;
+#include <cstddef>
 
-#include "Alloc/Arena.hpp"
-#include "Math/Array.hpp"
-#include "Math/MatrixDimensions.hpp"
+export module ArrayConstructors;
 
-namespace poly::math {
+import Arena;
+import Array;
+import MatDim;
+
+export namespace math {
 using alloc::Arena, alloc::WArena, alloc::OwningArena, utils::eltype_t;
 template <alloc::FreeAllocator A>
 constexpr auto vector(A a, ptrdiff_t M)

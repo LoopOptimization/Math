@@ -1,4 +1,5 @@
-#pragma once
+module;
+
 #include "Math/Dual.hpp"
 #include "Math/Exp.hpp"
 #include <cstddef>

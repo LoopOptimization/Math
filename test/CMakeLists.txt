@@ -37,6 +37,7 @@ if(((USE_SANITIZER MATCHES "([Aa]ddress)") OR (USE_SANITIZER MATCHES
 endif()
 
 include(FetchContent)
+# using `FIND_PACKAGE_ARGS` causes it to try `find_package`
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
@@ -117,20 +118,18 @@ target_precompile_headers(
   PRIVATE
   <algorithm>
   <cmath>
+  <concepts>
   <cstddef>
   <cstdint>
-  <limits>
-  <ranges>
-  <utility>
-  <concepts>
+  <functional>
   <gtest/gtest.h>
+  <iostream>
   <iterator>
   <limits>
   <numeric>
-  <functional>
   <optional>
-  <iostream>
   <random>
+  <ranges>
   <string>
   <tuple>
   <type_traits>

@@ -36,7 +36,10 @@ cpmaddpackage("gh:TheLartians/PackageProject.cmake@1.8.0")
 # not detect new files automatically. Keep that in mind when changing files, or
 # explicitly mention them here.
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
+file(GLOB_RECURSE modules CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
+target_sources(${PROJECT_NAME} PUBLIC FILE_SET CXX_MODULES FILES ${modules})
 
 # ---- Create library ----
 
@@ -53,7 +56,6 @@ target_include_directories(
   ${PROJECT_NAME}
   INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
-
 
 # --- Allocator override ----
 set(SEARCH_JE_MALLOC USE_JE_MALLOC)

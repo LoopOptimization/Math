@@ -6,10 +6,10 @@ module;
 #include <limits>
 #include <type_traits>
 
-export module elementary:exp;
+export module Elementary;
 
-import simd;
-import bithack;
+import SIMD;
+import BitHack;
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 constexpr double J_TABLE[256] = {1.0,

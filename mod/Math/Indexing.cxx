@@ -9,7 +9,7 @@ export module Array:Indexing;
 
 import AxisTypes;
 import Range;
-import :MatDim;
+import MatDim;
 import SIMD;
 
 export namespace math {

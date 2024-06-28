@@ -3,10 +3,10 @@ module;
 
 export module Array:Emptry;
 
-import :Concepts;
-import :MatDim;
+import ArrayConcepts;
+import MatDim;
 
-namespace poly::math {
+export namespace math {
 
 template <typename T> struct EmptyMatrix {
   using value_type = T;
@@ -43,4 +43,4 @@ template <typename T> struct EmptyVector {
   static constexpr auto begin() -> T * { return nullptr; }
   static constexpr auto end() -> T * { return nullptr; }
 };
-} // namespace poly::math
+} // namespace math

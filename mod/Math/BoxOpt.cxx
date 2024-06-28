@@ -1,22 +1,5 @@
-#pragma once
-#include "Alloc/Arena.hpp"
-#include "Alloc/Mallocator.hpp"
-#include "Containers/Pair.hpp"
-#include "Containers/Tuple.hpp"
-#include "Math/Array.hpp"
-#include "Math/ArrayOps.hpp"
-#include "Math/Dual.hpp"
-#include "Math/ElementarySIMD.hpp"
-#include "Math/Exp.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/LinearAlgebra.hpp"
-#include "Math/Math.hpp"
-#include "Math/Matrix.hpp"
-#include "SIMD/Unroll.hpp"
-#include "SIMD/UnrollIndex.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/LoopMacros.hpp"
-#include "Utilities/TypePromotion.hpp"
+module;
+#include "LoopMacros.hxx"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -27,7 +10,20 @@
 #include <type_traits>
 #include <utility>
 
-namespace poly::math {
+export module BoxOpt;
+
+import Aerna;
+import Array;
+impot Allocator;
+import Pair;
+import Tuple;
+import Dual;
+import Elementary;
+import LinearAlgebra;
+impot SIMD;
+import TypePromotion;
+
+export namespace math {
 
 constexpr double EXTREME = 8.0;
 
@@ -489,4 +485,4 @@ constexpr auto minimize(alloc::Arena<> *alloc, BoxTransformView trf,
   return minimize(alloc, trf.getRaw(), BoxCall<decltype(f)>{f, trf});
 }
 
-} // namespace poly::math
+} // namespace math

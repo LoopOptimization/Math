@@ -1,20 +1,6 @@
-#pragma once
+module;
 
-#include "Math/Array.hpp"
-#include "Math/ArrayOps.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Unroll.hpp"
-#include "SIMD/UnrollIndex.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/ArrayPrint.hpp"
-#include "Utilities/Assign.hpp"
-#include "Utilities/LoopMacros.hpp"
-#include "Utilities/Reference.hpp"
-#include "Utilities/TypeCompression.hpp"
+#include "LoopMacros.hxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -29,9 +15,13 @@
 #include <type_traits>
 #include <utility>
 
-namespace poly::math {
+export module StaticArray;
 
-static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
+import Array;
+import ArrayPrint;
+import MatDim;
+import SIMD;
+import TypeCompression;
 
 template <typename T, ptrdiff_t L>
 consteval auto paddedSize() -> std::array<ptrdiff_t, 2> {
@@ -57,10 +47,14 @@ using StaticDims = std::conditional_t<
   std::conditional_t<
     Compress || ((N % simd::VecLen<N, T>) == 0), DenseDims<M, N>,
     StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
+export namespace math {
+
+static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
-struct StaticArray : public ArrayOps<T, StaticDims<T, M, N, Compress>,
-                                     StaticArray<T, M, N, Compress>> {
+[[gsl::Owner(T)]] struct StaticArray
+  : public ArrayOps<T, StaticDims<T, M, N, Compress>,
+                    StaticArray<T, M, N, Compress>> {
   using storage_type = std::conditional_t<Compress, utils::compressed_t<T>, T>;
   static constexpr ptrdiff_t Align =
     Compress ? alignof(storage_type) : alignSIMD<T, N>();
@@ -597,7 +591,7 @@ struct StaticArray<T, 1, N, false>
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
   // constexpr operator compressed_type() { return compressed_type{*this}; }
   constexpr StaticArray() = default;
-  constexpr StaticArray(V v) : data_(v){};
+  constexpr StaticArray(V v) : data_(v) {};
   constexpr StaticArray(StaticArray const &) = default;
   constexpr StaticArray(StaticArray &&) noexcept = default;
   constexpr explicit StaticArray(const std::initializer_list<T> &list) {
@@ -783,7 +777,7 @@ StaticArray(T, U...) -> StaticArray<T, 1, 1 + sizeof...(U)>;
 static_assert(utils::Compressible<SVector<int64_t, 3>>);
 static_assert(utils::Compressible<SVector<int64_t, 7>>);
 
-} // namespace poly::math
+} // namespace math
 
 template <class T, ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_size<::poly::math::SVector<T, N>>

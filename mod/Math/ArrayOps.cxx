@@ -1,17 +1,5 @@
-#pragma once
-
-#include "Containers/Tuple.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/UniformScaling.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/UnrollIndex.hpp"
-#include "Utilities/Assign.hpp"
-#include "Utilities/Invariant.hpp"
-#include "Utilities/LoopMacros.hpp"
-#include "Utilities/TypeCompression.hpp"
-#include "Utilities/TypePromotion.hpp"
+module;
+#include "Utilities/LoopMacros.hxx"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -20,281 +8,297 @@
 #include <functional>
 #include <type_traits>
 
+export module Array:Ops;
+import Tuple;
+import :Indexing;
+import Invariant;
+import ArrayConcepts;
+import MatDim;
+import :Assign;
+import UniformScaling;
+import :Compression;
+import SIMD;
+import TypePromotion;
+
 #define CASTTOSCALARIZE
 
-namespace poly::math {
-using utils::invariant;
-// scalars broadcast
-template <typename S, typename T>
-[[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {
-  return std::forward<T>(s);
-}
-template <typename S, typename T>
-[[gnu::always_inline]] constexpr auto get(T &&s, auto, auto) -> decltype(auto) {
-  return std::forward<T>(s);
-}
-template <typename S, LinearlyIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v,
-                                          auto i) -> decltype(auto) {
-  return v[i];
-}
-template <typename S, CartesianIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i,
-                                          auto j) -> decltype(auto) {
-  return v[i, j];
-}
-template <typename T, typename S>
-concept OnlyLinearlyIndexable = LinearlyIndexable<S> && !CartesianIndexable<S>;
-template <typename S, OnlyLinearlyIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i,
-                                          auto j) -> decltype(auto) {
-  static_assert(AbstractVector<V>);
-  if constexpr (RowVector<V>) return v[j];
-  else return v[i];
-}
+extern namespace math {
+  using utils::invariant;
+  // scalars broadcast
+  template <typename S, typename T>
+  [[gnu::always_inline]] constexpr auto get(T && s, auto) -> decltype(auto) {
+    return std::forward<T>(s);
+  }
+  template <typename S, typename T>
+  [[gnu::always_inline]] constexpr auto get(T && s, auto,
+                                            auto) -> decltype(auto) {
+    return std::forward<T>(s);
+  }
+  template <typename S, LinearlyIndexable<S> V>
+  [[gnu::always_inline]] constexpr auto get(const V &v,
+                                            auto i) -> decltype(auto) {
+    return v[i];
+  }
+  template <typename S, CartesianIndexable<S> V>
+  [[gnu::always_inline]] constexpr auto get(const V &v, auto i,
+                                            auto j) -> decltype(auto) {
+    return v[i, j];
+  }
+  template <typename T, typename S>
+  concept OnlyLinearlyIndexable =
+    LinearlyIndexable<S> && !CartesianIndexable<S>;
+  template <typename S, OnlyLinearlyIndexable<S> V>
+  [[gnu::always_inline]] constexpr auto get(const V &v, auto i,
+                                            auto j) -> decltype(auto) {
+    static_assert(AbstractVector<V>);
+    if constexpr (RowVector<V>) return v[j];
+    else return v[i];
+  }
 
-template <typename T> struct ScalarizeViaCast {
-  using type = void;
-};
-template <typename T>
-using scalarize_via_cast_t = typename ScalarizeViaCast<T>::type;
-template <typename To, typename From>
-constexpr bool ScalarizeViaCastToImpl =
-  std::same_as<To, scalarize_via_cast_t<std::remove_cvref_t<From>>>;
-template <typename To, typename... U>
-consteval auto ScalarizeViaCastTo() -> bool {
-  return (... && ScalarizeViaCastToImpl<To, U>);
-}
+  template <typename T> struct ScalarizeViaCast {
+    using type = void;
+  };
+  template <typename T>
+  using scalarize_via_cast_t = typename ScalarizeViaCast<T>::type;
+  template <typename To, typename From>
+  constexpr bool ScalarizeViaCastToImpl =
+    std::same_as<To, scalarize_via_cast_t<std::remove_cvref_t<From>>>;
+  template <typename To, typename... U>
+  consteval auto ScalarizeViaCastTo() -> bool {
+    return (... && ScalarizeViaCastToImpl<To, U>);
+  }
 
-template <typename T, typename U> constexpr auto reinterpret(U x) {
-  if constexpr (std::same_as<T, U>) return x;
-  else return x.template reinterpret<T>();
-}
+  template <typename T, typename U> constexpr auto reinterpret(U x) {
+    if constexpr (std::same_as<T, U>) return x;
+    else return x.template reinterpret<T>();
+  }
 
-// returns Unroll, Iters, Remainder
-template <ptrdiff_t R> consteval auto unrollf() -> std::array<ptrdiff_t, 2> {
-  if (R <= 5) return {0, R};
-  if (R == 7) return {0, 7};
-  if ((R % 4) == 0) return {4, 0};
-  if ((R % 3) == 0) return {3, 0};
-  if ((R % 5) == 0) return {5, 0};
-  if ((R % 7) == 0) return {7, 0};
-  return {4, R % 4};
-}
+  // returns Unroll, Iters, Remainder
+  template <ptrdiff_t R> consteval auto unrollf() -> std::array<ptrdiff_t, 2> {
+    if (R <= 5) return {0, R};
+    if (R == 7) return {0, 7};
+    if ((R % 4) == 0) return {4, 0};
+    if ((R % 3) == 0) return {3, 0};
+    if ((R % 5) == 0) return {5, 0};
+    if ((R % 7) == 0) return {7, 0};
+    return {4, R % 4};
+  }
 
-template <typename D, typename S>
-constexpr void fastCopy(D *d, const S *s, size_t N) {
-  if (!N) return;
-  // if constexpr (std::same_as<D, S> && std::is_trivially_copyable_v<D>)
-  //   std::memcpy(d, s, N * sizeof(D));
-  // else
-  std::copy_n(s, N, d);
-}
+  template <typename D, typename S>
+  constexpr void fastCopy(D * d, const S *s, size_t N) {
+    if (!N) return;
+    // if constexpr (std::same_as<D, S> && std::is_trivially_copyable_v<D>)
+    //   std::memcpy(d, s, N * sizeof(D));
+    // else
+    std::copy_n(s, N, d);
+  }
 
-// inputs must be `ptrdiff_t` or `std::integral_constant<ptrdiff_t,value>`
-template <typename X, typename Y>
-[[gnu::always_inline]] constexpr auto check_sizes(X x, Y y) {
-  if constexpr (std::same_as<ptrdiff_t, X>) {
-    if constexpr (std::same_as<ptrdiff_t, Y>) {
-      invariant(x, y);
-      return x;
-    } else if constexpr (y > 1) {
-      constexpr ptrdiff_t L = y;
-      invariant(x, L);
+  // inputs must be `ptrdiff_t` or `std::integral_constant<ptrdiff_t,value>`
+  template <typename X, typename Y>
+  [[gnu::always_inline]] constexpr auto check_sizes(X x, Y y) {
+    if constexpr (std::same_as<ptrdiff_t, X>) {
+      if constexpr (std::same_as<ptrdiff_t, Y>) {
+        invariant(x, y);
+        return x;
+      } else if constexpr (y > 1) {
+        constexpr ptrdiff_t L = y;
+        invariant(x, L);
+        return std::integral_constant<ptrdiff_t, L>{};
+      } else return x;
+    } else if constexpr (x <= 1) return y;
+    else if constexpr (std::same_as<ptrdiff_t, Y>) {
+      constexpr ptrdiff_t L = x;
+      invariant(L, y);
       return std::integral_constant<ptrdiff_t, L>{};
-    } else return x;
-  } else if constexpr (x <= 1) return y;
-  else if constexpr (std::same_as<ptrdiff_t, Y>) {
-    constexpr ptrdiff_t L = x;
-    invariant(L, y);
-    return std::integral_constant<ptrdiff_t, L>{};
-  } else if constexpr (y <= 1) return x;
-  else {
-    static_assert(x == y);
-    return std::integral_constant<ptrdiff_t, ptrdiff_t(x)>{};
+    } else if constexpr (y <= 1) return x;
+    else {
+      static_assert(x == y);
+      return std::integral_constant<ptrdiff_t, ptrdiff_t(x)>{};
+    }
   }
-}
-template <typename A, typename B>
-[[gnu::always_inline]] constexpr auto promote_shape(const A &a, const B &b) {
-  if constexpr (AbstractVector<A> && AbstractVector<B>) {
-    return CartesianIndex(std::integral_constant<ptrdiff_t, 1>{},
-                          check_sizes(a.size(), b.size()));
-  } else {
-    auto sa = shape(a);
-    // broadcasting static sizes is awkward, as it can prevent propogating
-    // static size information for copying an `StaticArray` to an `Array` of the
-    // same size, when the `StaticArray` has static size of `1`.
-    if constexpr (!std::convertible_to<B, utils::eltype_t<A>>) {
-      auto M = unwrapRow(numRows(b));
-      auto N = unwrapCol(numCols(b));
-      if constexpr (IsOne<decltype(M)>)
-        if constexpr (IsOne<decltype(N)>) return sa;
-        else return CartesianIndex(sa.row, check_sizes(sa.col, N));
-      else if constexpr (IsOne<decltype(N)>)
-        return CartesianIndex(check_sizes(sa.row_idx_, M), sa.col);
-      else
-        return CartesianIndex(check_sizes(sa.row_idx_, M),
-                              check_sizes(sa.col_idx_, N));
-    } else return sa;
+  template <typename A, typename B>
+  [[gnu::always_inline]] constexpr auto promote_shape(const A &a, const B &b) {
+    if constexpr (AbstractVector<A> && AbstractVector<B>) {
+      return CartesianIndex(std::integral_constant<ptrdiff_t, 1>{},
+                            check_sizes(a.size(), b.size()));
+    } else {
+      auto sa = shape(a);
+      // broadcasting static sizes is awkward, as it can prevent propogating
+      // static size information for copying an `StaticArray` to an `Array` of
+      // the same size, when the `StaticArray` has static size of `1`.
+      if constexpr (!std::convertible_to<B, utils::eltype_t<A>>) {
+        auto M = unwrapRow(numRows(b));
+        auto N = unwrapCol(numCols(b));
+        if constexpr (IsOne<decltype(M)>)
+          if constexpr (IsOne<decltype(N)>) return sa;
+          else return CartesianIndex(sa.row, check_sizes(sa.col, N));
+        else if constexpr (IsOne<decltype(N)>)
+          return CartesianIndex(check_sizes(sa.row_idx_, M), sa.col);
+        else
+          return CartesianIndex(check_sizes(sa.row_idx_, M),
+                                check_sizes(sa.col_idx_, N));
+      } else return sa;
+    }
   }
-}
 
-template <typename S>
-concept Dimension = VectorDimension<S> != MatrixDimension<S>;
-template <typename T, Dimension S, bool Compress = utils::Compressible<T>>
-struct MutArray;
+  template <typename S>
+  concept Dimension = VectorDimension<S> != MatrixDimension<S>;
+  template <typename T, Dimension S, bool Compress = utils::Compressible<T>>
+  struct MutArray;
 
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
-template <typename T, Dimension S, bool Compress, typename RHS, typename I,
-          typename R, typename Op>
-[[gnu::always_inline]] inline void
-vcopyToSIMD(math::MutArray<T, S, Compress> self, const RHS &B, I L, R row,
-            Op op) {
-  // TODO: if `R` is a row index, maybe don't fully unroll static `L`
-  // We're going for very short SIMD vectors to focus on small sizes
-  using PT = utils::promote_eltype_t<math::MutArray<T, S>, RHS>;
-  invariant(L >= 0);
-  if constexpr (StaticInt<I>) {
-    constexpr std::array<ptrdiff_t, 3> vdr =
-      simd::VectorDivRem<ptrdiff_t(L), PT>();
-    constexpr ptrdiff_t W = vdr[0];
-    constexpr ptrdiff_t fulliter = vdr[1];
-    constexpr ptrdiff_t remainder = vdr[2];
-    if constexpr (remainder > 0) {
-      auto u{simd::index::unrollmask<fulliter + 1, W>(L, 0)};
-      utils::assign(self, B, row, u, op);
-    } else {
-      simd::index::Unroll<fulliter, W> u{0};
-      utils::assign(self, B, row, u, op);
-    }
-  } else {
-    constexpr ptrdiff_t W = simd::Width<PT>;
-#ifdef __AVX512VL__
-    // ptrdiff_t i = 0;
-    // for (ptrdiff_t j = W; j <= L; j += W) {
-    //   simd::index::Unroll<1, W> u{i};
-    //   utils::assign(self, B, row, u, op);
-    //   i = j;
-    // }
-    // if (ptrdiff_t M = L % W) {
-    //   auto u{simd::index::tailmask<W>(i, M)};
-    //   utils::assign(self, B, row, u, op);
-    // }
-    ptrdiff_t i = 0;
-    static constexpr ptrdiff_t vbody = std::min(4 * W, ptrdiff_t(64));
-    POLYMATHNOUNROLL
-    for (; i <= L - vbody; i += vbody) {
-      simd::index::Unroll<vbody / W, W> u{i};
-      utils::assign(self, B, row, u, op);
-    }
-    if (i < L) {
-      auto ufull{simd::index::tailmask<W>(i, L - i)};
-      // auto ufull{simd::index::unrollmask<1, 64>(L, i)};
-      for (;;) {
-        auto u{ufull.template sub<W>()};
+  template <typename T, Dimension S, bool Compress, typename RHS, typename I,
+            typename R, typename Op>
+  [[gnu::always_inline]] inline void vcopyToSIMD(
+    math::MutArray<T, S, Compress> self, const RHS &B, I L, R row, Op op) {
+    // TODO: if `R` is a row index, maybe don't fully unroll static `L`
+    // We're going for very short SIMD vectors to focus on small sizes
+    using PT = utils::promote_eltype_t<math::MutArray<T, S>, RHS>;
+    invariant(L >= 0);
+    if constexpr (StaticInt<I>) {
+      constexpr std::array<ptrdiff_t, 3> vdr =
+        simd::VectorDivRem<ptrdiff_t(L), PT>();
+      constexpr ptrdiff_t W = vdr[0];
+      constexpr ptrdiff_t fulliter = vdr[1];
+      constexpr ptrdiff_t remainder = vdr[2];
+      if constexpr (remainder > 0) {
+        auto u{simd::index::unrollmask<fulliter + 1, W>(L, 0)};
         utils::assign(self, B, row, u, op);
-        if (!ufull) break;
-        // if (L <= ufull.index_) return;
-        // if (!ufull) ufull = simd::index::unrollmask<1, 64>(L,
-        // ufull.index_);
+      } else {
+        simd::index::Unroll<fulliter, W> u{0};
+        utils::assign(self, B, row, u, op);
       }
-    }
-    // for (ptrdiff_t i = 0;;) {
-    //   auto ufull{simd::index::unrollmask<1, 64>(L, i)};
-    //   POLYMATHIVDEP
-    //   for (ptrdiff_t j = 0; (j < (64 / W)); ++j) {
-    //     if (!ufull) return;
-    //     auto u{ufull.template sub<W>()};
-    //     utils::assign(self, B, row, u, op);
-    //   }
-    //   i = ufull.index_;
-    // }
+    } else {
+      constexpr ptrdiff_t W = simd::Width<PT>;
+#ifdef __AVX512VL__
+      // ptrdiff_t i = 0;
+      // for (ptrdiff_t j = W; j <= L; j += W) {
+      //   simd::index::Unroll<1, W> u{i};
+      //   utils::assign(self, B, row, u, op);
+      //   i = j;
+      // }
+      // if (ptrdiff_t M = L % W) {
+      //   auto u{simd::index::tailmask<W>(i, M)};
+      //   utils::assign(self, B, row, u, op);
+      // }
+      ptrdiff_t i = 0;
+      static constexpr ptrdiff_t vbody = std::min(4 * W, ptrdiff_t(64));
+      POLYMATHNOUNROLL
+      for (; i <= L - vbody; i += vbody) {
+        simd::index::Unroll<vbody / W, W> u{i};
+        utils::assign(self, B, row, u, op);
+      }
+      if (i < L) {
+        auto ufull{simd::index::tailmask<W>(i, L - i)};
+        // auto ufull{simd::index::unrollmask<1, 64>(L, i)};
+        for (;;) {
+          auto u{ufull.template sub<W>()};
+          utils::assign(self, B, row, u, op);
+          if (!ufull) break;
+          // if (L <= ufull.index_) return;
+          // if (!ufull) ufull = simd::index::unrollmask<1, 64>(L,
+          // ufull.index_);
+        }
+      }
+      // for (ptrdiff_t i = 0;;) {
+      //   auto ufull{simd::index::unrollmask<1, 64>(L, i)};
+      //   POLYMATHIVDEP
+      //   for (ptrdiff_t j = 0; (j < (64 / W)); ++j) {
+      //     if (!ufull) return;
+      //     auto u{ufull.template sub<W>()};
+      //     utils::assign(self, B, row, u, op);
+      //   }
+      //   i = ufull.index_;
+      // }
 #else
-    ptrdiff_t i = 0;
-    for (; i <= L - W; i += W) {
-      simd::index::Unroll<1, W> u{i};
-      utils::assign(self, B, row, u, op);
+      ptrdiff_t i = 0;
+      for (; i <= L - W; i += W) {
+        simd::index::Unroll<1, W> u{i};
+        utils::assign(self, B, row, u, op);
+      }
+      if (ptrdiff_t M = L - i) {
+        auto u{simd::index::tailmask<W>(i, M)};
+        utils::assign(self, B, row, u, op);
+      }
+      // for (ptrdiff_t i = 0;; i += W) {
+      //   auto u{simd::index::unrollmask<1, W>(L, i)};
+      //   if (!u) break;
+      //   utils::assign(self, B, row, u, op);
+      // }
+#endif
     }
-    if (ptrdiff_t M = L - i) {
-      auto u{simd::index::tailmask<W>(i, M)};
-      utils::assign(self, B, row, u, op);
-    }
-    // for (ptrdiff_t i = 0;; i += W) {
-    //   auto u{simd::index::unrollmask<1, W>(L, i)};
-    //   if (!u) break;
-    //   utils::assign(self, B, row, u, op);
+  }
+#endif
+
+  template <typename T> class SmallSparseMatrix;
+  template <class T, class S, class P> class ArrayOps {
+    static_assert(std::is_copy_assignable_v<T> ||
+                  (std::is_trivially_copyable_v<T> &&
+                   std::is_trivially_move_assignable_v<T>));
+    constexpr auto data_() { return static_cast<P *>(this)->data(); }
+    // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
+    //   return static_cast<const P *>(this)->data();
     // }
-#endif
-  }
-}
-#endif
+    constexpr auto size_() const {
+      return static_cast<const P *>(this)->size();
+    }
+    constexpr auto Self() -> P & { return *static_cast<P *>(this); }
+    [[nodiscard]] constexpr auto nr() const -> ptrdiff_t {
+      return ptrdiff_t(static_cast<const P *>(this)->numRow());
+    }
+    [[nodiscard]] constexpr auto nc() const {
+      return unwrapCol(static_cast<const P *>(this)->numCol());
+    }
+    [[nodiscard]] constexpr auto rs() const {
+      return unwrapRow(static_cast<const P *>(this)->rowStride());
+    }
 
-template <typename T> class SmallSparseMatrix;
-template <class T, class S, class P> class ArrayOps {
-  static_assert(std::is_copy_assignable_v<T> ||
-                (std::is_trivially_copyable_v<T> &&
-                 std::is_trivially_move_assignable_v<T>));
-  constexpr auto data_() { return static_cast<P *>(this)->data(); }
-  // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
-  //   return static_cast<const P *>(this)->data();
-  // }
-  constexpr auto size_() const { return static_cast<const P *>(this)->size(); }
-  constexpr auto Self() -> P & { return *static_cast<P *>(this); }
-  [[nodiscard]] constexpr auto nr() const -> ptrdiff_t {
-    return ptrdiff_t(static_cast<const P *>(this)->numRow());
-  }
-  [[nodiscard]] constexpr auto nc() const {
-    return unwrapCol(static_cast<const P *>(this)->numCol());
-  }
-  [[nodiscard]] constexpr auto rs() const {
-    return unwrapRow(static_cast<const P *>(this)->rowStride());
-  }
+  protected:
+    template <typename Op, typename RHS> void vcopyTo(const RHS &B, Op op);
 
-protected:
-  template <typename Op, typename RHS> void vcopyTo(const RHS &B, Op op);
+  public:
+    template <std::convertible_to<T> Y>
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator<<(const UniformScaling<Y> &B) -> P & {
+      static_assert(MatrixDimension<S>);
+      std::fill_n(data_(), ptrdiff_t(this->dim()), T{});
+      this->diag() << B.value;
+      return *static_cast<P *>(this);
+    }
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator<<(const SmallSparseMatrix<T> &B) -> P &;
 
-public:
-  template <std::convertible_to<T> Y>
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(const UniformScaling<Y> &B) -> P & {
-    static_assert(MatrixDimension<S>);
-    std::fill_n(data_(), ptrdiff_t(this->dim()), T{});
-    this->diag() << B.value;
-    return *static_cast<P *>(this);
-  }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(const SmallSparseMatrix<T> &B) -> P &;
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator<<(const auto &B) -> P & {
+      vcopyTo(B, utils::CopyAssign{});
+      return Self();
+    }
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator+=(const auto &B) -> P & {
+      vcopyTo(B, std::plus<>{});
+      return Self();
+    }
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator-=(const auto &B) -> P & {
+      vcopyTo(B, std::minus<>{});
+      return Self();
+    }
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator*=(const auto &B) -> P & {
+      vcopyTo(B, std::multiplies<>{});
+      return Self();
+    }
+    [[gnu::always_inline, gnu::flatten]] constexpr auto
+    operator/=(const auto &B) -> P & {
+      vcopyTo(B, std::divides<>{});
+      return Self();
+    }
+  };
 
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(const auto &B) -> P & {
-    vcopyTo(B, utils::CopyAssign{});
-    return Self();
-  }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator+=(const auto &B) -> P & {
-    vcopyTo(B, std::plus<>{});
-    return Self();
-  }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator-=(const auto &B) -> P & {
-    vcopyTo(B, std::minus<>{});
-    return Self();
-  }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator*=(const auto &B) -> P & {
-    vcopyTo(B, std::multiplies<>{});
-    return Self();
-  }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator/=(const auto &B) -> P & {
-    vcopyTo(B, std::divides<>{});
-    return Self();
-  }
-};
+} // namespace math
 
-} // namespace poly::math
-
-namespace poly::containers {
+namespace containers {
+import SIMD;
 
 namespace tupletensorops {
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
@@ -512,4 +516,4 @@ requires(sizeof...(As) == sizeof...(Bs))
   (*this) << map(src, [](const auto &d, const auto &s) { return d / s; });
 }
 
-} // namespace poly::containers
+} // namespace containers

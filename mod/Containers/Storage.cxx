@@ -6,33 +6,10 @@ module;
 #include <cstdint>
 #include <type_traits>
 
-module Array:Storage;
+module Storage;
 
-import :MatDim;
+import MatDim;
 import AxisTypes;
-
-template <typename T, ptrdiff_t N> struct Storage {
-  static_assert(N > 0);
-  // We can avoid `reinterpret_cast` if we have trivial/implicit lifetime types.
-  static constexpr bool trivial =
-    std::is_trivially_default_constructible_v<T> &&
-    std::is_trivially_destructible_v<T>;
-  static constexpr ptrdiff_t NumElt = trivial ? N : N * sizeof(T);
-  using DataElt = std::conditional_t<trivial, T, char>;
-  alignas(T) DataElt mem[NumElt]; // NOLINT (modernize-avoid-c-style-arrays)
-  constexpr auto data() -> T * {
-    if constexpr (trivial) return mem;
-    else return reinterpret_cast<T *>(mem);
-  }
-  constexpr auto data() const -> const T * {
-    if constexpr (trivial) return mem;
-    else return reinterpret_cast<const T *>(mem);
-  }
-  constexpr Storage() {} // NOLINT (modernize-use-equals-default)
-};
-template <typename T> struct Storage<T, 0> {
-  static constexpr auto data() -> T * { return nullptr; }
-};
 
 template <class T>
 concept SizeMultiple8 = (sizeof(T) % 8) == 0;
@@ -65,6 +42,31 @@ consteval auto bisectFindSquare(uint64_t l, uint64_t h,
   if (m * m >= N) return bisectFindSquare(l, m, N);
   return bisectFindSquare(m + 1, h, N);
 }
+
+export namespace containers {
+template <typename T, ptrdiff_t N> struct Storage {
+  static_assert(N > 0);
+  // We can avoid `reinterpret_cast` if we have trivial/implicit lifetime types.
+  static constexpr bool trivial =
+    std::is_trivially_default_constructible_v<T> &&
+    std::is_trivially_destructible_v<T>;
+  static constexpr ptrdiff_t NumElt = trivial ? N : N * sizeof(T);
+  using DataElt = std::conditional_t<trivial, T, char>;
+  alignas(T) DataElt mem[NumElt]; // NOLINT (modernize-avoid-c-style-arrays)
+  constexpr auto data() -> T * {
+    if constexpr (trivial) return mem;
+    else return reinterpret_cast<T *>(mem);
+  }
+  constexpr auto data() const -> const T * {
+    if constexpr (trivial) return mem;
+    else return reinterpret_cast<const T *>(mem);
+  }
+  constexpr Storage() {} // NOLINT (modernize-use-equals-default)
+};
+template <typename T> struct Storage<T, 0> {
+  static constexpr auto data() -> T * { return nullptr; }
+};
+
 template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
   static constexpr ptrdiff_t total_bytes = 128;
   // constexpr ptrdiff_t remainingBytes =
@@ -75,8 +77,7 @@ template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
   static_assert(N <= 128);
   if constexpr (N <= 0) return 0;
   // else if constexpr (!math::MatrixDimension<S>) return N;
-  else if constexpr (!std::convertible_to<S, math::SquareDims<>>) return N;
-  else {
+  else if constexpr (std::convertible_to<S, math::SquareDims<>>) {
     constexpr auto UN = uint64_t(N);
     // a fairly naive algorirthm for computing the next square `N`
     // sqrt(x) = x^(1/2) = exp2(log2(x)/2)
@@ -85,5 +86,6 @@ template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
     constexpr uint64_t L = uint64_t(1) << R;
     constexpr uint64_t H = uint64_t(1) << ((log2Ceil(N) + 1) / 2);
     return ptrdiff_t(bisectFindSquare(L, H, UN));
-  }
+  } else return N;
 }
+} // namespace containers

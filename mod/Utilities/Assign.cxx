@@ -1,13 +1,11 @@
 module;
 #include <concepts>
-
-include <concepts>
 #include <functional>
 
 module Array:Assign;
 
 import TypePromotion;
-import :Concepts;
+import ArrayConcepts;
 
 struct CopyAssign {};
 struct NoRowIndex {};

@@ -1,3 +1,4 @@
+#include <algorithm>
 module;
 
 #include <array>
@@ -9,7 +10,9 @@ module;
 #include <limits>
 #include <type_traits>
 
-export module arrayprint;
+export module ArrayPrint;
+
+import Flat;
 
 template <std::integral T> consteval auto maxPow10() -> size_t {
   if constexpr (sizeof(T) == 1) return 3;
@@ -64,7 +67,7 @@ concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
 };
 
 static_assert(Printable<int64_t>);
-void print_obj(std::ostream &os, Printable auto x) { os << x; };
+inline void print_obj(std::ostream &os, Printable auto x) { os << x; };
 
 inline auto printVector(std::ostream &os, auto B, auto E) -> std::ostream & {
   os << "[ ";
@@ -74,5 +77,131 @@ inline auto printVector(std::ostream &os, auto B, auto E) -> std::ostream & {
   }
   os << " ]";
   return os;
+}
+
+/// \brief Returns the maximum number of digits per column of a matrix.
+constexpr auto getMaxDigits(Rational *A, ptrdiff_t M,
+                            ptrdiff_t N) -> containers::Flat<ptrdiff_t> {
+  Flat<ptrdiff_t> max_digits(N);
+  // this is slow, because we count the digits of every element
+  // we could optimize this by reducing the number of calls to countDigits
+  for (ptrdiff_t i = 0; i < M; i++) {
+    for (ptrdiff_t j = 0; j < N; j++) {
+      ptrdiff_t c = countDigits(A[i, j]);
+      max_digits[j] = std::max(max_digits[j], c);
+    }
+  }
+  return max_digits;
+}
+
+/// Returns the number of digits of the largest number in the matrix.
+template <std::integral T>
+constexpr auto getMaxDigits(T *A, ptrdiff_t M,
+                            ptrdiff_t N) -> conainters::Flat<T> {
+  Flat<T> max_digits(N);
+  // first, we find the digits with the maximum value per column
+  for (ptrdiff_t i = 0; i < M; i++) {
+    for (ptrdiff_t j = 0; j < N; j++) {
+      // negative numbers need one more digit
+      // first, we find the maximum value per column,
+      // dividing positive numbers by -10
+      T Aij = A[i, j];
+      if constexpr (std::signed_integral<T>)
+        max_digits[j] = std::min(max_digits[j], Aij > 0 ? Aij / -10 : Aij);
+      else max_digits[j] = std::max(max_digits[j], Aij);
+    }
+  }
+  // then, we count the digits of the maximum value per column
+  for (ptrdiff_t j = 0; j < max_digits.size(); j++)
+    max_digits[j] = utils::countDigits(max_digits[j]);
+  return max_digits;
+}
+
+template <typename T>
+inline auto printMatrix(std::ostream &os, PtrMatrix<T> A) -> std::ostream & {
+  // std::ostream &printMatrix(std::ostream &os, T const &A) {
+  auto [M, N] = shape(A);
+  if ((!M) || (!N)) return os << "[ ]";
+  // first, we determine the number of digits needed per column
+  auto max_digits{getMaxDigits(A)};
+  using U = decltype(countDigits(std::declval<T>()));
+  for (ptrdiff_t i = 0; i < M; i++) {
+    if (i) os << "  ";
+    else os << "\n[ ";
+    for (ptrdiff_t j = 0; j < N; j++) {
+      auto Aij = A[i, j];
+      for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); k++) os << " ";
+      os << Aij;
+      if (j != ptrdiff_t(N) - 1) os << " ";
+      else if (i != ptrdiff_t(M) - 1) os << "\n";
+    }
+  }
+  return os << " ]";
+}
+// We mirror `A` with a matrix of integers indicating sizes, and a vectors of
+// chars. We fill the matrix with the number of digits of each element, and
+// the vector with the characters of each element. We could use a vector of
+// vectors of chars to avoid needing to copy memory on reallocation, but this
+// would yield more complicated management. We should also generally be able
+// to avoid allocations. We can use a Vector with a lot of initial capacity,
+// and then resize based on a conservative estimate of the number of chars per
+// elements.
+inline auto printMatrix(std::ostream &os,
+                        PtrMatrix<double> A) -> std::ostream & {
+  // std::ostream &printMatrix(std::ostream &os, T const &A) {
+  auto [M, N] = shape(A);
+  if ((!M) || (!N)) return os << "[ ]";
+  // first, we determine the number of digits needed per column
+  Vector<char, 512> digits;
+  digits.resizeForOverwrite(512);
+  // we can't have more than 255 digits
+  DenseMatrix<uint8_t> num_digits{DenseDims<>{row(M), col(N)}};
+  char *ptr = digits.begin();
+  char *p_end = digits.end();
+  for (ptrdiff_t m = 0; m < M; m++) {
+    for (ptrdiff_t n = 0; n < N; n++) {
+      auto Aij = A[m, n];
+      while (true) {
+        auto [p, ec] = std::to_chars(ptr, p_end, Aij);
+        if (ec == std::errc()) [[likely]] {
+          num_digits[m, n] = std::distance(ptr, p);
+          ptr = p;
+          break;
+        }
+        // we need more space
+        ptrdiff_t elem_so_far = m * ptrdiff_t(N) + n;
+        ptrdiff_t char_so_far = std::distance(digits.begin(), ptr);
+        // cld
+        ptrdiff_t char_per_elem = (char_so_far + elem_so_far - 1) / elem_so_far;
+        ptrdiff_t new_capacity =
+          (1 + char_per_elem) * M * N; // +1 for good measure
+        digits.resize(new_capacity);
+        ptr = digits.begin() + char_so_far;
+        p_end = digits.end();
+      }
+    }
+  }
+  Vector<uint8_t> max_digits;
+  max_digits.resizeForOverwrite(N);
+  max_digits << num_digits[0, _];
+  for (ptrdiff_t m = 0; m < M; m++)
+    for (ptrdiff_t n = 0; n < N; n++)
+      max_digits[n] = std::max(max_digits[n], num_digits[m, n]);
+
+  ptr = digits.begin();
+  // we will allocate 512 bytes at a time
+  for (ptrdiff_t i = 0; i < M; i++) {
+    if (i) os << "  ";
+    else os << "\n[ ";
+    for (ptrdiff_t j = 0; j < N; j++) {
+      ptrdiff_t nD = num_digits[i, j];
+      for (ptrdiff_t k = 0; k < max_digits[j] - nD; k++) os << " ";
+      os << std::string_view(ptr, nD);
+      if (j != ptrdiff_t(N) - 1) os << " ";
+      else if (i != ptrdiff_t(M) - 1) os << "\n";
+      ptr += nD;
+    }
+  }
+  return os << " ]";
 }
 } // namespace utils

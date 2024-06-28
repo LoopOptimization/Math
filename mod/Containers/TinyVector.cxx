@@ -10,18 +10,17 @@ module;
 #include <ostream>
 #include <type_traits>
 
-export module Array:Tiny;
+export module TinyVector;
 
-import :MatDim;
-import :Storage;
 import Invariant;
-
+import MatDim;
+import Storage;
 
 export namespace containers {
 using utils::invariant;
 
 template <class T, size_t N, std::signed_integral L = ptrdiff_t>
-class TinyVector {
+[[gsl::Owner(T)]] class TinyVector {
   static_assert(N > 0);
   static_assert(std::numeric_limits<ptrdiff_t>::max() >= N);
   using Length = math::Length<-1, L>;
@@ -159,4 +158,4 @@ public:
     return os << "]";
   }
 };
-} // namespace poly::containers
+} // namespace containers

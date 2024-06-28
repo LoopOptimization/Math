@@ -4,7 +4,7 @@ module;
 #include <concepts>
 #include <cstdint>
 
-export module bithack;
+export module BitHack;
 
 namespace bit {
 

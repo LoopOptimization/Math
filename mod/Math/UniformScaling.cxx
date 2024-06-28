@@ -6,9 +6,10 @@ module;
 #include <ostream>
 #include <type_traits>
 
-export module Arrays:Empty;
+export module UniformScaling;
 
-import :MatDim;
+import Concepts;
+import MatDim;
 import SIMD;
 
 export namespace math {

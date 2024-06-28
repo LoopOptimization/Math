@@ -1,12 +1,13 @@
-#pragma once
+module;
 
-#include "Array.hpp"
-#include "Math/Array.hpp"
-#include "Math/ArrayOps.hpp"
 #include <cstddef>
 #include <cstdint>
 
-namespace poly::math {
+export module SmallSparseMatrix;
+
+import ManagedArray;
+
+export namespace math {
 // this file is not used at the moment
 template <typename T> class SmallSparseMatrix {
   // non-zeros
@@ -111,4 +112,4 @@ ArrayOps<T, S, P>::operator<<(const SmallSparseMatrix<T> &B) -> P & {
   return *static_cast<P *>(this);
 }
 
-}; // namespace poly::math
+}; // namespace math

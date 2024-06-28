@@ -1,10 +1,13 @@
-#pragma once
-#include "Math/Array.hpp"
-#include "Math/BoxOpt.hpp"
+module;
 #include <cstddef>
 #include <cstdint>
 
-namespace poly::math {
+export module BoxOptInt;
+
+import Array;
+import BoxOpt;
+
+export namespace math {
 
 // recursive branch and bound
 constexpr auto branch(alloc::Arena<> *alloc, BoxTransform &box, double upper,
@@ -72,4 +75,4 @@ constexpr auto minimizeIntSol(
   return minimizeIntSol(alloc, r, box, f, globalupper);
 }
 
-} // namespace poly::math
+} // namespace math

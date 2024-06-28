@@ -31,11 +31,12 @@ template <class F, class S> struct Pair {
   //   -> Pair &requires(std::assignable_from<F, T> &&std::assignable_from<S,
   //   U>) { first = x.first; second = x.second; return *this;
   // }
+private:
   friend void print_obj(std::ostream &os, const containers::Pair<F, S> &x) {
     os << "(" << x.first << ", " << x.second << ")";
   };
 };
-} // namespace poly::containers
+} // namespace containers
 
 template <typename F, typename S>
 struct std::tuple_size<poly::containers::Pair<F, S>>
