@@ -32,7 +32,7 @@ private:
     return OffsetBegin{x + y.offset_};
   }
 };
-[[maybe_unused]] static inline constexpr struct Begin {
+[[maybe_unused]] inline constexpr struct Begin {
 private:
   friend auto operator<<(std::ostream &os, Begin) -> std::ostream & {
     return os << 0;
@@ -47,7 +47,7 @@ private:
   }
 } begin;
 
-[[maybe_unused]] static constexpr inline struct OffsetEnd {
+[[maybe_unused]] constexpr inline struct OffsetEnd {
   [[no_unique_address]] ptrdiff_t offset_;
 
 private:
@@ -64,7 +64,7 @@ private:
   }
 
 } last{1};
-[[maybe_unused]] static inline constexpr struct End {
+[[maybe_unused]] inline constexpr struct End {
 private:
   friend auto operator<<(std::ostream &os, End) -> std::ostream & {
     return os << "end";
@@ -85,7 +85,7 @@ template <typename T>
 concept ScalarIndex =
   std::convertible_to<T, ptrdiff_t> || ScalarRelativeIndex<T>;
 
-[[maybe_unused]] static constexpr inline struct Colon {
+[[maybe_unused]] constexpr inline struct Colon {
   [[nodiscard, gnu::always_inline]] constexpr auto operator()(auto B,
                                                               auto E) const {
     return Range{standardizeRangeBound(B), standardizeRangeBound(E)};
@@ -189,19 +189,32 @@ calcOffset(DenseDims<>, ptrdiff_t i) -> ptrdiff_t {
   return i;
 }
 
-struct StridedRange {
-  Length<> len_;
-  RowStride<> stride_;
+template <ptrdiff_t L = -1, ptrdiff_t X = -1> struct StridedRange {
+  Length<L> len_;
+  RowStride<X> stride_;
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
   operator ptrdiff_t() const {
     return ptrdiff_t(len_);
   }
+  constexpr explicit operator Row<L>() const { return asrow(len_); }
+  constexpr explicit operator Col<1>() const { return {}; }
+  constexpr explicit operator RowStride<X>() const { return stride_; }
+
+private:
   friend inline auto operator<<(std::ostream &os,
                                 StridedRange x) -> std::ostream & {
     return os << "Length: " << ptrdiff_t(x.len_)
               << " (stride: " << ptrdiff_t(x.stride_) << ")";
   }
 };
+template <ptrdiff_t L, ptrdiff_t X> Row(StridedRange<L, X>) -> Row<L>;
+template <ptrdiff_t L, ptrdiff_t X> Col(StridedRange<L, X>) -> Col<1z>;
+template <ptrdiff_t L, ptrdiff_t X>
+RowStride(StridedRange<L, X>) -> RowStride<X>;
+
+static_assert(
+  std::same_as<Col<1>, decltype(Col(std::declval<StridedRange<>>()))>);
+static_assert(ColVectorDimension<StridedRange<>>);
 
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
@@ -214,7 +227,7 @@ calcOffset(Length<> len, simd::index::Unroll<U, W, M> i) {
 
 template <class I>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
-calcOffset(StridedRange d, I i) -> ptrdiff_t {
+calcOffset(StridedRange<> d, I i) -> ptrdiff_t {
   return ptrdiff_t(d.stride_) * calcOffset(d.len_, i);
 }
 
@@ -231,15 +244,15 @@ calcOffset(StridedDims<> d, R r, C c) -> ptrdiff_t {
 //   return true;
 // }
 [[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
-row(StridedRange r) -> Row<> {
+row(StridedRange<> r) -> Row<> {
   return row(ptrdiff_t(r.len_));
 }
 [[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
-col(StridedRange) -> Col<1> {
+col(StridedRange<>) -> Col<1> {
   return {};
 }
 [[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
-stride(StridedRange r) -> RowStride<> {
+stride(StridedRange<> r) -> RowStride<> {
   return r.stride_;
 }
 
@@ -265,40 +278,21 @@ concept IsOne =
   std::same_as<std::remove_cvref_t<T>, std::integral_constant<ptrdiff_t, 1>>;
 
 template <typename T>
-concept RowVectorDimension = requires(T t) {
-  { Length(t) } -> std::same_as<T>;
-};
-static_assert(RowVectorDimension<Length<3>>);
-static_assert(RowVectorDimension<Length<>>);
-static_assert(!RowVectorDimension<ptrdiff_t>);
-
-template <typename T>
 concept DenseLayout =
   RowVectorDimension<T> || std::is_convertible_v<T, DenseDims<>>;
 
 template <typename T>
 concept StaticLength = RowVectorDimension<T> && !std::same_as<T, Length<>>;
 
-template <typename D>
-concept ColVectorSMatDimension =
-  std::same_as<decltype(Col(std::declval<D>())), Col<1>>;
-template <typename D>
-concept ColVectorDimension =
-  std::same_as<D, StridedRange> || ColVectorSMatDimension<D>;
-
 // constexpr auto row(RowVectorDimension auto) -> Row<1> { return {}; }
-constexpr auto row(ColVectorSMatDimension auto s) { return Row(s); }
-constexpr auto col(ColVectorSMatDimension auto) -> Col<1> { return {}; }
-constexpr auto stride(ColVectorSMatDimension auto) -> RowStride<1> {
-  return {};
-}
+constexpr auto row(ColVectorDimension auto s) { return Row(s); }
+constexpr auto col(ColVectorDimension auto) -> Col<1> { return {}; }
+constexpr auto stride(ColVectorDimension auto) -> RowStride<1> { return {}; }
 template <class I>
-constexpr auto calcOffset(ColVectorSMatDimension auto d, I i) -> ptrdiff_t {
+constexpr auto calcOffset(ColVectorDimension auto d, I i) -> ptrdiff_t {
   return unwrapStride(stride(d)) * calcOffset(length(unwrapRow(Row(d))), i);
 }
 
-template <typename D>
-concept VectorDimension = RowVectorDimension<D> || ColVectorDimension<D>;
 // Concept for aligning array dimensions with indices.
 template <class I, class D>
 concept Index =
@@ -336,13 +330,13 @@ template <class B, class E>
 constexpr auto calcNewDim(Length<> len, Range<B, E> r) -> Length<> {
   return calcNewDim(len, canonicalizeRange(r, ptrdiff_t(len)));
 }
-constexpr auto calcNewDim(StridedRange len,
-                          Range<ptrdiff_t, ptrdiff_t> r) -> StridedRange {
-  return StridedRange{calcNewDim(len.len_, r), len.stride_};
+constexpr auto calcNewDim(StridedRange<> len,
+                          Range<ptrdiff_t, ptrdiff_t> r) -> StridedRange<> {
+  return StridedRange<>{calcNewDim(len.len_, r), len.stride_};
 }
 template <class B, class E>
-constexpr auto calcNewDim(StridedRange len, Range<B, E> r) -> StridedRange {
-  return StridedRange{calcNewDim(len.len_, r), len.stride_};
+constexpr auto calcNewDim(StridedRange<> len, Range<B, E> r) -> StridedRange<> {
+  return StridedRange<>{calcNewDim(len.len_, r), len.stride_};
 }
 template <ScalarIndex R, ScalarIndex C>
 constexpr auto calcNewDim(StridedDims<>, R, C) -> Empty {
@@ -350,14 +344,14 @@ constexpr auto calcNewDim(StridedDims<>, R, C) -> Empty {
 }
 constexpr auto calcNewDim(Length<> len, Colon) -> Length<> { return len; };
 constexpr auto calcNewDim(StaticInt auto len, Colon) { return len; };
-constexpr auto calcNewDim(StridedRange len, Colon) -> StridedRange {
+constexpr auto calcNewDim(StridedRange<> len, Colon) -> StridedRange<> {
   return len;
 };
 
 template <AbstractSlice B, ScalarIndex C>
-constexpr auto calcNewDim(StridedDims<> d, B b, C) -> StridedRange {
+constexpr auto calcNewDim(StridedDims<> d, B b, C) -> StridedRange<> {
   Length<> rowDims = calcNewDim(length(ptrdiff_t(Row(d))), b);
-  return StridedRange{rowDims, RowStride(d)};
+  return StridedRange<>{rowDims, RowStride(d)};
 }
 
 template <ScalarIndex R, AbstractSlice C>
@@ -449,13 +443,7 @@ constexpr auto calcNewDim(Length<>, simd::index::Unroll<U, W, M> i) {
 }
 
 template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto calcNewDim(StridedRange x, simd::index::Unroll<U, W, M> i) {
-  if constexpr (W == 1)
-    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
-  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
-}
-template <ptrdiff_t U, ptrdiff_t W, typename M>
-constexpr auto calcNewDim(ColVectorSMatDimension auto x,
+constexpr auto calcNewDim(ColVectorDimension auto x,
                           simd::index::Unroll<U, W, M> i) {
   if constexpr (W == 1)
     return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};

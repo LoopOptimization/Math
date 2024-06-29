@@ -591,7 +591,7 @@ private:
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
           size_t NM, typename MT = mask::None<N>>
 [[gnu::always_inline]] constexpr auto
-loadunroll(const T *ptr, math::axis::RowStride<X> rowStride,
+loadunroll(const T *ptr, math::RowStride<X> rowStride,
            std::array<MT, NM> masks) -> Unroll<R, C, N, T> {
   if constexpr (R * C == 1) {
     MT msk = masks[0];
@@ -625,7 +625,7 @@ loadunroll(const T *ptr, math::axis::RowStride<X> rowStride,
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
           size_t NM, typename MT = mask::None<N>>
 [[gnu::always_inline]] constexpr auto
-loadstrideunroll(const T *ptr, math::axis::RowStride<X> rowStride,
+loadstrideunroll(const T *ptr, math::RowStride<X> rowStride,
                  std::array<MT, NM> masks) -> Unroll<R, C, N, T> {
   auto s = int32_t(ptrdiff_t(rowStride));
   if constexpr (R * C == 1) return {load(ptr, masks[0], s)};
@@ -666,7 +666,7 @@ struct UnrollRef {
     "Should have no masks, one mask for last `C`, or one mask per `C`");
   using UT = Unroll<R, C, N, T>;
   T *ptr_;
-  [[no_unique_address]] math::axis::RowStride<X> row_stride_;
+  [[no_unique_address]] math::RowStride<X> row_stride_;
   [[no_unique_address]] std::array<MT, NM> masks_;
   [[gnu::always_inline]] constexpr operator UT() {
     if constexpr (!Transposed)
@@ -854,4 +854,4 @@ ref(T *p, index::UnrollDims<R, C, W, M, Transposed, X> i)
   return {p, i.rs_, std::array<M, 1>{i.mask_}};
 }
 
-} // namespace poly::simd
+} // namespace simd

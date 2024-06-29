@@ -3,7 +3,7 @@ module;
 #include <concepts>
 #include <type_traits>
 
-module Array:Compression;
+export module Array:Compression;
 
 /// The idea here is that some types may have a compression/decompression that
 /// is potentially costly. To work around this, temporaries can live in
@@ -37,13 +37,15 @@ template <typename T> struct Uncompressed {
 template <Compressible T> struct Uncompressed<T> {
   using compressed = typename T::compressed_type;
 };
+export namespace utils {
 template <typename T>
 using compressed_t = typename Uncompressed<std::remove_cvref_t<T>>::compressed;
+}
 
 template <typename T>
 concept Decompressible =
   Compressible<typename T::decompressed_type> &&
-  std::same_as<T, compressed_t<typename T::decompressed_type>>;
+  std::same_as<T, utils::compressed_t<typename T::decompressed_type>>;
 
 template <typename T> struct Compressed {
   using uncompressed = T;
@@ -51,20 +53,22 @@ template <typename T> struct Compressed {
 template <Decompressible T> struct Compressed<T> {
   using uncompressed = typename T::decompressed_type;
 };
+export namespace utils {
 template <typename T>
 using decompressed_t =
   typename Compressed<std::remove_cvref_t<T>>::uncompressed;
-
-static_assert(std::same_as<decompressed_t<double>, double>);
+}
+static_assert(std::same_as<utils::decompressed_t<double>, double>);
 static_assert(!Decompressible<double>);
 static_assert(!Compressible<double>);
 
-template <typename T> constexpr void compress(const T &x, compressed_t<T> *p) {
+template <typename T>
+constexpr void compress(const T &x, utils::compressed_t<T> *p) {
   if constexpr (Compressible<T>) x.compress(p);
   else *p = x;
 }
 template <typename T>
-constexpr auto decompress(const compressed_t<T> *p) -> decltype(auto) {
+constexpr auto decompress(const utils::compressed_t<T> *p) -> decltype(auto) {
   if constexpr (Compressible<T>) return T::decompress(p);
   else return *p;
 }

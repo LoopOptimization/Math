@@ -10,8 +10,8 @@ import LinearAlgebra;
 import TinyVector;
 import TypePromotion;
 
-using namespace poly::math;
-using poly::utils::eltype_t, poly::math::transpose;
+using namespace math;
+using utils::eltype_t, math::transpose;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(DualTest, BasicAssertions) {
@@ -91,7 +91,7 @@ template <typename T> constexpr void expmimpl(MutSquarePtrMatrix<T> A) {
     SquareMatrix<T> B{SquareDims<>{row(n)}};
     if (nA <= 2.1) {
       A2 << A * A;
-      poly::containers::TinyVector<double, 5> p0, p1;
+      containers::TinyVector<double, 5> p0, p1;
       if (nA > 0.95) {
         p0 = {1.0, 3960.0, 2162160.0, 302702400.0, 8821612800.0};
         p1 = {90.0, 110880.0, 3.027024e7, 2.0756736e9, 1.76432256e10};
@@ -125,7 +125,7 @@ template <typename T> constexpr void expmimpl(MutSquarePtrMatrix<T> A) {
              64764752532480000 * I;
     }
   }
-  poly::containers::tie(A, U) << poly::containers::Tuple(A + U, A - U);
+  containers::tie(A, U) << containers::Tuple(A + U, A - U);
   LU::ldiv(U, MutPtrMatrix<T>(A));
   for (; s--; std::swap(A, U)) U << A * A;
 }
@@ -183,7 +183,7 @@ TEST(ExpMatTest, BasicAssertions) {
   B[3, 3] = 0.3930685232252409;
   EXPECT_LE(norm2(B - expm(A)), 1e-10);
 
-  static_assert(poly::utils::Compressible<Dual<double, 2>>);
+  static_assert(utils::Compressible<Dual<double, 2>>);
   SquareMatrix<Dual<double, 2>> Ad(4);
   Ad[0, 0] = Dual<double, 2>{
     0.13809508135032297,
@@ -291,7 +291,7 @@ TEST(ExpMatTest, BasicAssertions) {
     EXPECT_NEAR(x.gradient()[0], y.gradient()[0], 1e-14);
     EXPECT_NEAR(x.gradient()[1], y.gradient()[1], 1e-14);
   }
-  EXPECT_EQ(poly::math::smax(Bd[3, 3], 0.35), poly::math::smax(0.35, Bd[3, 3]));
+  EXPECT_EQ(math::smax(Bd[3, 3], 0.35), math::smax(0.35, Bd[3, 3]));
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

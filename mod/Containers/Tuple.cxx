@@ -55,17 +55,33 @@ template <typename T, typename... Ts> struct Tuple {
     return cattuple(f(head_, x.head_), tail_.map(x.tail_, f));
   }
   template <typename U, typename... Us>
-  constexpr void operator+=(const Tuple<U, Us...> &)
-  requires(sizeof...(Ts) == sizeof...(Us));
+  [[gnu::always_inline, gnu::flatten]] constexpr void
+  operator+=(const Tuple<U, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d + s; });
+  }
   template <typename U, typename... Us>
-  constexpr void operator-=(const Tuple<U, Us...> &)
-  requires(sizeof...(Ts) == sizeof...(Us));
+  [[gnu::always_inline, gnu::flatten]] constexpr void
+  operator-=(const Tuple<U, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d - s; });
+  }
   template <typename U, typename... Us>
-  constexpr void operator*=(const Tuple<U, Us...> &)
-  requires(sizeof...(Ts) == sizeof...(Us));
+  [[gnu::always_inline, gnu::flatten]] constexpr void
+  operator*=(const Tuple<U, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d * s; });
+  }
   template <typename U, typename... Us>
-  constexpr void operator/=(const Tuple<U, Us...> &)
-  requires(sizeof...(Ts) == sizeof...(Us));
+  [[gnu::always_inline, gnu::flatten]] constexpr void
+  operator/=(const Tuple<U, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d / s; });
+  }
   constexpr auto operator=(const Tuple &) -> Tuple & = default;
   template <typename U, typename... Us>
   constexpr auto operator=(Tuple<U, Us...> x)
@@ -88,7 +104,7 @@ template <typename T, typename... Ts> struct Tuple {
 
 private:
   template <typename U, typename... Us>
-  constexpr void copyFrom(const Tuple<U, Us...> &)
+  friend constexpr void copyFrom(Tuple<T, Ts...> &dst, const Tuple<U, Us...> &)
   requires(sizeof...(Ts) == sizeof...(Us));
 
   template <typename U, typename... Us>
@@ -96,14 +112,14 @@ private:
                                    const Tuple<U, Us...> &src)
   requires(sizeof...(Ts) == sizeof...(Us))
   {
-    dst.copyFrom(src);
+    copyFrom(dst, src);
   }
   template <typename U, typename... Us>
   friend constexpr void operator<<(Tuple<T, Ts...> &&dst,
                                    const Tuple<U, Us...> &src)
   requires(sizeof...(Ts) == sizeof...(Us))
   {
-    dst.copyFrom(src);
+    copyFrom(dst, src);
   }
 };
 template <typename T, typename... Ts>
@@ -153,8 +169,6 @@ template <typename T> struct Tuple<T> {
   }
 
 private:
-  template <typename U> constexpr void copyFrom(const Tuple<U> &);
-
   template <typename U>
   friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
     dst << src;
@@ -170,18 +184,18 @@ template <typename... Ts> Tuple(Ts...) -> Tuple<Ts...>;
 template <typename... Ts> constexpr auto tie(Ts &...x) -> Tuple<Ts &...> {
   return {x...};
 }
-} // namespace poly::containers
+} // namespace containers
 
 template <typename T, typename... Ts>
-struct std::tuple_size<poly::containers::Tuple<T, Ts...>>
+struct std::tuple_size<containers::Tuple<T, Ts...>>
   : public std::integral_constant<size_t, 1 + sizeof...(Ts)> {};
 
 template <typename T, typename... Ts>
-struct std::tuple_element<0, poly::containers::Tuple<T, Ts...>> {
+struct std::tuple_element<0, containers::Tuple<T, Ts...>> {
   using type = T;
 };
 template <size_t I, typename T, typename... Ts>
-struct std::tuple_element<I, poly::containers::Tuple<T, Ts...>> {
+struct std::tuple_element<I, containers::Tuple<T, Ts...>> {
   using type =
-    typename std::tuple_element<I - 1, poly::containers::Tuple<Ts...>>::type;
+    typename std::tuple_element<I - 1, containers::Tuple<Ts...>>::type;
 };

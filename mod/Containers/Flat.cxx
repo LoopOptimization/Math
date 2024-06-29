@@ -1,4 +1,5 @@
 module;
+#include "Owner.hxx"
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -6,11 +7,12 @@ module;
 export module Flat;
 
 import Allocator;
+import Invariant;
 
 export namespace containers {
-template <typename T> [[gsl::Owner(T)]] struct Flat {
+template <typename T> struct MATH_GSL_OWNER Flat {
 
-  explicit constexpr auto Flat(ptrdiff_t len)
+  explicit constexpr Flat(ptrdiff_t len)
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
     std::uninitialized_default_construct_n(ptr_, len_);
   };
@@ -21,7 +23,7 @@ template <typename T> [[gsl::Owner(T)]] struct Flat {
   constexpr auto operator=(const Flat &other) {
     if (len_ != other.size()) {
       maybeDeallocate();
-      ptr_ = alloc::Mallocator<T>{}.allocate(len);
+      ptr_ = alloc::Mallocator<T>{}.allocate(len_);
       len_ = other.size();
       if constexpr (!std::is_trivially_default_constructible_v<T>) {
         std::uninitialized_copy_n(other.data(), len_, ptr_);
@@ -48,14 +50,18 @@ template <typename T> [[gsl::Owner(T)]] struct Flat {
     invariant(size() >= 0);
     return len_;
   }
-  constexpr auto operator[](ptrdiff_t i) -> T * {
+  constexpr auto operator[](ptrdiff_t i) -> T & {
     invariant((i >= 0) && i < size());
     return ptr_[i];
   }
-  constexpr auto operator[](ptrdiff_t i) const -> const T * {
+  constexpr auto operator[](ptrdiff_t i) const -> const T & {
     invariant((i >= 0) && i < size());
     return ptr_[i];
   }
+  constexpr auto begin() -> T * { return ptr_; }
+  constexpr auto end() -> T * { return ptr_ + len_; }
+  constexpr auto begin() const -> const T * { return ptr_; }
+  constexpr auto end() const -> const T * { return ptr_ + len_; }
 
 private:
   constexpr void maybeDeallocate() {

@@ -9,7 +9,7 @@ TEST(FactorLowerBound, BasicAssertions) {
     double di = i;
     for (int j = 0; j++ < i;) {
       double dj = j;
-      auto [x, y] = poly::math::lower_bound_factor(di, dj);
+      auto [x, y] = math::lower_bound_factor(di, dj);
       EXPECT_EQ(di, x * y);
       EXPECT_LE(x, dj);
       EXPECT_EQ(std::round(x), x);

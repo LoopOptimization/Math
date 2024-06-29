@@ -17,7 +17,7 @@
 #include <ranges>
 // auto x = Dual<Dual<double, 4>, 2>{1.0};
 // auto y = x * 3.4;
-namespace poly::math {
+namespace math {
 static_assert(std::convertible_to<int, Dual<double, 4>>);
 static_assert(std::convertible_to<int, Dual<Dual<double, 4>, 2>>);
 
@@ -67,15 +67,15 @@ constexpr auto log2ceil(double x) -> ptrdiff_t {
 
 template <typename T> constexpr void expm(MutSquarePtrMatrix<T> A) {
   ptrdiff_t n = ptrdiff_t(A.numRow()), s = 0;
-  SquareMatrix<T> A2{SquareDims<>{poly::math::row(n)}},
-    U_{SquareDims<>{poly::math::row(n)}};
+  SquareMatrix<T> A2{SquareDims<>{math::row(n)}},
+    U_{SquareDims<>{math::row(n)}};
   MutSquarePtrMatrix<T> U{U_};
   if (double nA = opnorm1(A); nA <= 0.015) {
     A2 << A * A;
     U << A * (A2 + 60.0 * I);
     A << 12.0 * A2 + 120.0 * I;
   } else {
-    SquareMatrix<T> B{SquareDims<>{poly::math::row(n)}};
+    SquareMatrix<T> B{SquareDims<>{math::row(n)}};
     if (nA <= 2.1) {
       A2 << A * A;
       containers::TinyVector<double, 5> p0, p1;
@@ -117,13 +117,13 @@ template <typename T> constexpr void expm(MutSquarePtrMatrix<T> A) {
   for (; s--; std::swap(A, U)) U << A * A;
 }
 
-} // namespace poly::math
+} // namespace math
 
-using poly::math::Dual, poly::math::SquareDims, poly::math::SquareMatrix,
-  poly::math::URand;
+using math::Dual, math::SquareDims, math::SquareMatrix,
+  math::URand;
 
 auto expwork(const auto &A) {
-  SquareMatrix<poly::math::eltype_t<decltype(A)>> C{SquareDims{A.numRow()}},
+  SquareMatrix<math::eltype_t<decltype(A)>> C{SquareDims{A.numRow()}},
     B{A};
   expm(B);
   for (size_t i = 0; i < 8; ++i) {

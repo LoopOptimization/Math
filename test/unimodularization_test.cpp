@@ -4,8 +4,8 @@
 import ArrayParse;
 import Unimodularization;
 
-using namespace poly::math;
-using poly::utils::operator""_mat;
+using namespace math;
+using utils::operator""_mat;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(UnimodularizationTest, BasicAssertions) {

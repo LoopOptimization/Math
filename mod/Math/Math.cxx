@@ -15,13 +15,13 @@ module;
 #include <type_traits>
 #include <utility>
 
-module math:exprtemplates;
+module Array:ExprTemplates;
 
-import array;
-import axistypes;
-import simd;
-import param;
-import typeprmotion;
+import AxisTypes;
+import Param;
+import Range;
+import SIMD;
+import TypePromotion;
 
 namespace math {
 using utils::TriviallyCopyable;
@@ -164,7 +164,7 @@ template <typename Op, typename A> struct Elementwise {
 template <typename Op, typename A> Elementwise(Op, A) -> Elementwise<Op, A>;
 
 static_assert(
-  ColVector<Elementwise<std::negate<>, Array<int64_t, StridedRange>>>);
+  ColVector<Elementwise<std::negate<>, Array<int64_t, StridedRange<>>>>);
 
 constexpr auto size(const std::integral auto) -> ptrdiff_t { return 1; }
 constexpr auto size(const std::floating_point auto) -> ptrdiff_t { return 1; }
@@ -261,7 +261,7 @@ struct ElementwiseBinaryOp {
 };
 static_assert(AbstractMatrix<ElementwiseBinaryOp<Array<int64_t, DenseDims<>>,
                                                  int64_t, std::multiplies<>>>);
-static_assert(ColVector<ElementwiseBinaryOp<Array<int64_t, StridedRange>,
+static_assert(ColVector<ElementwiseBinaryOp<Array<int64_t, StridedRange<>>,
                                             int64_t, std::multiplies<>>>);
 template <TrivialTensor C, Trivial A, Trivial B> struct AbstractSelect {
   using value_type = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
@@ -896,9 +896,9 @@ static_assert(AbstractVector<const Vector<int64_t>>);
 static_assert(AbstractVector<Vector<int64_t> &>);
 static_assert(AbstractMatrix<IntMatrix<>>);
 static_assert(AbstractMatrix<IntMatrix<> &>);
-static_assert(!AbstractMatrix<Array<int64_t, StridedRange>>);
+static_assert(!AbstractMatrix<Array<int64_t, StridedRange<>>>);
 static_assert(!AbstractMatrix<
-              Elementwise<std::negate<void>, Array<int64_t, StridedRange>>>);
+              Elementwise<std::negate<void>, Array<int64_t, StridedRange<>>>>);
 
 static_assert(std::copyable<ManagedArray<int64_t, StridedDims<>>>);
 static_assert(std::copyable<ManagedArray<int64_t, DenseDims<>>>);
@@ -1056,4 +1056,4 @@ constexpr auto allLEZero(const AbstractTensor auto &A) -> bool {
 constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
   return !anyLTZero(A);
 }
-} // namespace poly::math
+} // namespace math

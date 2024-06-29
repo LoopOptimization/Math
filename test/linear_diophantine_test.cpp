@@ -7,7 +7,7 @@
 
 import LinearDiophantine;
 
-using namespace poly::math;
+using namespace math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(LinearDiophantineTest, BasicAssertions) {

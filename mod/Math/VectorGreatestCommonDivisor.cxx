@@ -51,4 +51,4 @@ constexpr auto lcmSkipZero(AbstractVector auto x) -> int64_t {
     if (xi) l = lcm(l, xi);
   return l;
 }
-} // namespace poly::math
+} // namespace math

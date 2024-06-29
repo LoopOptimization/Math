@@ -52,7 +52,7 @@ export namespace math {
 static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
-[[gsl::Owner(T)]] struct StaticArray
+struct [[gsl::Owner(T)]] StaticArray
   : public ArrayOps<T, StaticDims<T, M, N, Compress>,
                     StaticArray<T, M, N, Compress>> {
   using storage_type = std::conditional_t<Compress, utils::compressed_t<T>, T>;
@@ -161,16 +161,16 @@ template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
   }
 
   [[nodiscard]] constexpr auto diag() const noexcept {
-    StridedRange r{length(minRowCol()), RowStride(S{}) + 1};
+    StridedRange<> r{length(minRowCol()), RowStride(S{}) + 1};
     auto ptr = data();
     invariant(ptr != nullptr);
-    return Array<T, StridedRange>{ptr, r};
+    return Array<T, StridedRange<>>{ptr, r};
   }
   [[nodiscard]] constexpr auto antiDiag() const noexcept {
-    StridedRange r{length(minRowCol()), RowStride(S{}) - 1};
+    StridedRange<> r{length(minRowCol()), RowStride(S{}) - 1};
     auto ptr = data();
     invariant(ptr != nullptr);
-    return Array<T, StridedRange>{ptr + ptrdiff_t(Col(S{})) - 1, r};
+    return Array<T, StridedRange<>>{ptr + ptrdiff_t(Col(S{})) - 1, r};
   }
   [[nodiscard]] static constexpr auto isSquare() noexcept -> bool {
     return Row(S{}) == Col(S{});
@@ -217,7 +217,7 @@ template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
   }
 
   [[nodiscard]] constexpr auto begin() noexcept {
-    if constexpr (std::is_same_v<S, StridedRange>)
+    if constexpr (std::is_same_v<S, StridedRange<>>)
       return StridedIterator{data(), S{}.stride};
     else return data();
   }
@@ -243,13 +243,13 @@ template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
     std::fill_n(data(), ptrdiff_t(this->dim()), value);
   }
   [[nodiscard]] constexpr auto diag() noexcept {
-    StridedRange r{length(min(Row(S{}), Col(S{}))), RowStride(S{}) + 1};
-    return MutArray<T, StridedRange>{data(), r};
+    StridedRange<> r{length(min(Row(S{}), Col(S{}))), RowStride(S{}) + 1};
+    return MutArray<T, StridedRange<>>{data(), r};
   }
   [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col c = Col(S{});
-    StridedRange r{length(min(Row(S{}), c)), RowStride(S{}) - 1};
-    return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
+    StridedRange<> r{length(min(Row(S{}), c)), RowStride(S{}) - 1};
+    return MutArray<T, StridedRange<>>{data() + ptrdiff_t(c) - 1, r};
   }
   template <typename SHAPE>
   constexpr operator Array<T, SHAPE, Compress && utils::Compressible<T>>() const
@@ -289,7 +289,7 @@ private:
 
 template <simd::SIMDSupported T, ptrdiff_t M, ptrdiff_t N>
 requires((M * (N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) > 1)
-struct StaticArray<T, M, N, false>
+struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   : ArrayOps<T, StaticDims<T, M, N, false>, StaticArray<T, M, N, false>> {
   // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
   //   : ArrayOps<T, StaticDims<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
@@ -550,7 +550,7 @@ private:
 
 template <simd::SIMDSupported T, ptrdiff_t N>
 requires((N > 1) && ((N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) == 1)
-struct StaticArray<T, 1, N, false>
+struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
   : ArrayOps<T, StaticDims<T, 1, N, false>, StaticArray<T, 1, N, false>> {
   // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
   //   : ArrayOps<T, StaticDims<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
@@ -780,10 +780,10 @@ static_assert(utils::Compressible<SVector<int64_t, 7>>);
 } // namespace math
 
 template <class T, ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_size<::poly::math::SVector<T, N>>
+struct std::tuple_size<::math::SVector<T, N>>
   : std::integral_constant<ptrdiff_t, N> {};
 
 template <size_t I, class T, ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_element<I, poly::math::SVector<T, N>> {
+struct std::tuple_element<I, math::SVector<T, N>> {
   using type = T;
 };

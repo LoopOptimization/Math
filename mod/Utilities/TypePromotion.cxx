@@ -3,17 +3,19 @@ module;
 #include <concepts>
 #include <type_traits>
 
-export module typeprmotion;
+export module TypePromotion;
 
+export namespace utils {
 template <typename T>
 concept HasEltype = requires(T) {
   std::is_scalar_v<typename std::remove_reference_t<T>::value_type>;
 };
+} // namespace utils
 
 template <typename A> struct GetEltype {
   using value_type = A;
 };
-template <HasEltype A> struct GetEltype<A> {
+template <utils::HasEltype A> struct GetEltype<A> {
   using value_type = typename A::value_type;
 };
 

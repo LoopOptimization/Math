@@ -3,10 +3,11 @@
 #include <gtest/gtest.h>
 
 import Elementary;
+import ManagedArray;
 
 TEST(ElementarySIMD, BasicAssertions) {
 
-  poly::math::Vector<double> x{
+  math::Vector<double> x{
     std::array{1.564299025169599, 4.328641127555183, -10.43843599926044,
                -1.650625233314754, -0.5851694806951444, 0.07422197149516746,
                -5.231238164802142, 7.298495240920298, 6.983762398719033,
@@ -17,8 +18,8 @@ TEST(ElementarySIMD, BasicAssertions) {
                  0.005346900857986191, 1478.074107909007, 1078.9702561142797,
                  63.336568222798185, 0.20438323693119723, 1.2437838029152637,
                  826.3777611913293, 3.116190086521906, 0.037592750025674}},
-    z{poly::math::length(15)};
+    z{math::length(15)};
 
-  z << poly::math::Elementwise{[](auto a) { return poly::math::exp(a); }, x};
+  z << math::Elementwise{[](auto a) { return math::exp(a); }, x};
   for (ptrdiff_t i = 0; i < 15; ++i) EXPECT_DOUBLE_EQ(y[i], z[i]);
 }

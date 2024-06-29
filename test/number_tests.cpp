@@ -4,7 +4,7 @@
 
 import Int8;
 
-using poly::numbers::i8, poly::numbers::u8, poly::numbers::Flag8;
+using numbers::i8, numbers::u8, numbers::Flag8;
 
 TEST(Int8Test, BasicAssertions) {
   for (uint8_t x = 0; x < std::numeric_limits<uint8_t>::max(); ++x) {

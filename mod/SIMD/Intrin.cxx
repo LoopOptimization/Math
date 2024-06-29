@@ -10,14 +10,14 @@ module;
 #include <immintrin.h>
 #endif
 
-module SIMD:Intrin;
+export module SIMD:Intrin;
 
 import AxisTypes;
 import Invariant;
 import :Mask;
 import :Vec;
 
-namespace poly::simd {
+export namespace simd {
 
 // Supported means by this library currently; more types may be added in the
 // future as needed.
@@ -1503,7 +1503,7 @@ template <ptrdiff_t W, std::integral T> constexpr auto crz(Vec<W, T> v) {
 #endif
 
 template <typename T>
-static constexpr ptrdiff_t Width =
+inline constexpr ptrdiff_t Width =
   SIMDSupported<T> ? VECTORWIDTH / sizeof(T) : 1;
 template <ptrdiff_t N, typename T>
 constexpr ptrdiff_t VecLen =
@@ -1520,4 +1520,4 @@ consteval auto VectorDivRem() -> std::array<ptrdiff_t, 3> {
   } else return {W, L / W, L % W};
 };
 
-} // namespace poly::simd
+} // namespace simd

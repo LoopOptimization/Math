@@ -5,6 +5,7 @@ module;
 #include <utility>
 
 export module Optional;
+import Invariant;
 import Valid;
 
 export namespace utils {

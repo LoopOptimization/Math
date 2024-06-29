@@ -26,53 +26,47 @@ module;
 
 export module Array;
 
-import Arena;
-import Allocator;
-import Pair;
-import Storage;
+export import :Compression;
 export import :Ops;
-import AxisTypes;
-import :Indexing;
-import Ranges;
-import Concepts;
-import MatDim;
-import Rational;
-import SIMD;
+import Allocator;
+import Arena;
 import ArrayPrint;
 import :Assign;
+import AxisTypes;
+import Concepts;
+import :ExprTemplates;
+import :Indexing;
+import MatDim;
 import Optional;
-import :Compression;
+import Pair;
+import Range;
+import Rational;
+import SIMD;
+import Storage;
 import TypePromotion;
 import Valid;
 
-using axis::unwrapRow, axis::unwrapCol;
-
 export namespace math {
+using utils::compressed_t, utils::decompressed_t;
 
 static_assert(Dimension<Length<>>);
 static_assert(Dimension<DenseDims<3, 2>>);
 static_assert(
   std::same_as<Col<1>, decltype(Col(std::declval<DenseDims<3, 1>>()))>);
 static_assert(Dimension<DenseDims<3, 1>>);
-static_assert(VectorDimension<StridedRange>);
+static_assert(VectorDimension<StridedRange<>>);
 static_assert(VectorDimension<DenseDims<3, 1>>);
 static_assert(!MatrixDimension<DenseDims<3, 1>>);
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-template <typename T>
-using DefaultAlloc = std::allocator<utils::compressed_t<T>>;
+template <typename T> using DefaultAlloc = std::allocator<compressed_t<T>>;
 #else
-template <typename T>
-using DefaultAlloc = alloc::Mallocator<utils::compressed_t<T>>;
+template <typename T> using DefaultAlloc = alloc::Mallocator<compressed_t<T>>;
 #endif
 
 using utils::Valid, utils::Optional;
 
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct Array;
-
-template <typename T>
-inline auto printMatrix(std::ostream &os,
-                        Array<T, StridedDims<>> A) -> std::ostream &;
 
 // Cases we need to consider:
 // 1. Slice-indexing
@@ -137,14 +131,14 @@ static_assert(
                                  std::declval<StridedDims<3>>(), _, _(1, 5)))>);
 
 template <typename T, bool Column = false> struct SliceIterator {
-  using dim_type = std::conditional_t<Column, StridedRange, Length<>>;
+  using dim_type = std::conditional_t<Column, StridedRange<>, Length<>>;
   using value_type =
     std::conditional_t<std::is_const_v<T>,
                        Array<std::remove_cvref_t<T>, dim_type>,
                        MutArray<std::remove_reference_t<T>, dim_type>>;
   using storage_type =
-    std::conditional_t<std::is_const_v<T>, const utils::compressed_t<T>,
-                       utils::compressed_t<T>>;
+    std::conditional_t<std::is_const_v<T>, const compressed_t<T>,
+                       compressed_t<T>>;
   storage_type *data_;
   Length<> len_;
   RowStride<> row_stride_;
@@ -225,10 +219,10 @@ template <typename T, bool Column = false> struct SliceRange {
 };
 /// Constant Array
 template <class T, Dimension S, bool Compress>
-[[gsl::Pointer(T)]] struct Array {
+struct [[gsl::Pointer(T)]] Array {
   static_assert(!std::is_const_v<T>, "T shouldn't be const");
 
-  using storage_type = std::conditional_t<Compress, utils::compressed_t<T>, T>;
+  using storage_type = std::conditional_t<Compress, compressed_t<T>, T>;
   using value_type = T;
   using reference = T &;
   using const_reference = const T &;
@@ -243,7 +237,7 @@ template <class T, Dimension S, bool Compress>
     std::is_trivially_default_constructible_v<T> &&
     std::is_trivially_destructible_v<T>;
   static constexpr bool isdense = DenseLayout<S>;
-  static constexpr bool flatstride = isdense || std::same_as<S, StridedRange>;
+  static constexpr bool flatstride = isdense || std::same_as<S, StridedRange<>>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
   explicit constexpr Array() = default;
@@ -271,7 +265,7 @@ template <class T, Dimension S, bool Compress>
 
   [[nodiscard]] constexpr auto
   begin() const noexcept -> StridedIterator<const T>
-  requires(std::is_same_v<S, StridedRange>)
+  requires(std::is_same_v<S, StridedRange<>>)
   {
     const storage_type *p = ptr;
     return StridedIterator{p, sz.stride_};
@@ -322,14 +316,14 @@ template <class T, Dimension S, bool Compress>
   }
 
   [[nodiscard]] constexpr auto diag() const noexcept {
-    StridedRange r{minRowCol(), ptrdiff_t(RowStride(sz)) + 1};
+    StridedRange<> r{minRowCol(), ptrdiff_t(RowStride(sz)) + 1};
     invariant(ptr != nullptr);
-    return Array<T, StridedRange>{ptr, r};
+    return Array<T, StridedRange<>>{ptr, r};
   }
   [[nodiscard]] constexpr auto antiDiag() const noexcept {
-    StridedRange r{minRowCol(), ptrdiff_t(RowStride(sz)) - 1};
+    StridedRange<> r{minRowCol(), ptrdiff_t(RowStride(sz)) - 1};
     invariant(ptr != nullptr);
-    return Array<T, StridedRange>{ptr + ptrdiff_t(Col(sz)) - 1, r};
+    return Array<T, StridedRange<>>{ptr + ptrdiff_t(Col(sz)) - 1, r};
   }
   [[nodiscard]] constexpr auto isSquare() const noexcept -> bool {
     return ptrdiff_t(Row(sz)) == ptrdiff_t(Col(sz));
@@ -486,7 +480,8 @@ template <class T, Dimension S, bool Compress>
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
-      return printMatrix(os, Array<T, StridedDims<>>{x});
+      return printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
+                         ptrdiff_t(x.numCol()), ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
   }
   [[nodiscard]] constexpr auto split(ptrdiff_t at) const
@@ -543,7 +538,7 @@ static_assert(
   std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
 
 template <class T, Dimension S, bool Compress>
-[[gsl::Pointer(T)]] struct MutArray : Array<T, S, Compress>,
+struct [[gsl::Pointer(T)]] MutArray : Array<T, S, Compress>,
                                       ArrayOps<T, S, MutArray<T, S, Compress>> {
   using BaseT = Array<T, S, Compress>;
   // using BaseT::BaseT;
@@ -650,13 +645,13 @@ template <class T, Dimension S, bool Compress>
   }
 
   [[nodiscard]] constexpr auto begin() noexcept -> StridedIterator<T>
-  requires(std::is_same_v<S, StridedRange>)
+  requires(std::is_same_v<S, StridedRange<>>)
   {
     return StridedIterator{const_cast<storage_type *>(this->ptr),
                            this->sz.stride_};
   }
-  [[nodiscard]] constexpr auto
-  begin() noexcept -> storage_type *requires(!std::is_same_v<S, StridedRange>) {
+  [[nodiscard]] constexpr auto begin() noexcept
+    -> storage_type *requires(!std::is_same_v<S, StridedRange<>>) {
     return const_cast<storage_type *>(this->ptr);
   }
 
@@ -687,16 +682,16 @@ template <class T, Dimension S, bool Compress>
     Length l =
       length(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(Col(this->sz))));
     RowStride rs = RowStride(this->sz);
-    StridedRange r{l, ++rs};
-    return MutArray<T, StridedRange>{data(), r};
+    StridedRange<> r{l, ++rs};
+    return MutArray<T, StridedRange<>>{data(), r};
   }
   [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col<> c = Col(this->sz);
     Length l =
       length(ptrdiff_t(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(c))));
     RowStride rs = RowStride(this->sz);
-    StridedRange r{l, --rs};
-    return MutArray<T, StridedRange>{data() + ptrdiff_t(c) - 1, r};
+    StridedRange<> r{l, --rs};
+    return MutArray<T, StridedRange<>>{data() + ptrdiff_t(c) - 1, r};
   }
   constexpr void erase(ptrdiff_t i)
   requires(std::same_as<S, Length<>>)
@@ -835,10 +830,9 @@ template <class T, Dimension S, bool Compress>
   }
 };
 
+template <typename T, typename S> Array(T *, S) -> Array<decompressed_t<T>, S>;
 template <typename T, typename S>
-Array(T *, S) -> Array<utils::decompressed_t<T>, S>;
-template <typename T, typename S>
-MutArray(T *, S) -> MutArray<utils::decompressed_t<T>, S>;
+MutArray(T *, S) -> MutArray<decompressed_t<T>, S>;
 
 template <typename T, typename S> MutArray(MutArray<T, S>) -> MutArray<T, S>;
 
@@ -867,26 +861,27 @@ static_assert(!AbstractVector<Array<int64_t, StridedDims<>>>);
 static_assert(AbstractMatrix<Array<int64_t, StridedDims<>>>);
 static_assert(RowVector<Array<int64_t, Length<>>>);
 static_assert(ColVector<Transpose<Array<int64_t, Length<>>>>);
-static_assert(ColVector<Array<int64_t, StridedRange>>);
-static_assert(RowVector<Transpose<Array<int64_t, StridedRange>>>);
+static_assert(ColVector<Array<int64_t, StridedRange<>>>);
+static_assert(RowVector<Transpose<Array<int64_t, StridedRange<>>>>);
 
 // template <typename T, bool Column>
 // inline constexpr auto SliceIterator<T, Column>::operator*()
 //   -> SliceIterator<T, Column>::value_type {
-//   if constexpr (Column) return {data + idx, StridedRange{len, rowStride}};
+//   if constexpr (Column) return {data + idx, StridedRange<>{len, rowStride}};
 //   else return {data + rowStride * idx, len};
 // }
 template <typename T, bool Column>
 constexpr auto SliceIterator<T, Column>::operator*() const
   -> SliceIterator<T, Column>::value_type {
-  if constexpr (Column) return {data_ + idx_, StridedRange{len_, row_stride_}};
+  if constexpr (Column)
+    return {data_ + idx_, StridedRange<>{len_, row_stride_}};
   else return {data_ + ptrdiff_t(row_stride_) * idx_, len_};
 }
 // template <typename T, bool Column>
 // inline constexpr auto operator*(SliceIterator<T, Column> it)
 //   -> SliceIterator<T, Column>::value_type {
 //   if constexpr (Column)
-//     return {it.data + it.idx, StridedRange{it.len, it.rowStride}};
+//     return {it.data + it.idx, StridedRange<>{it.len, it.rowStride}};
 //   else return {it.data + it.rowStride * it.idx, it.len};
 // }
 
@@ -895,12 +890,12 @@ static_assert(std::forward_iterator<SliceIterator<int64_t, false>>);
 static_assert(std::ranges::forward_range<SliceRange<int64_t, false>>);
 static_assert(std::ranges::range<SliceRange<int64_t, false>>);
 using ITEST = std::iter_rvalue_reference_t<SliceIterator<int64_t, true>>;
-static_assert(std::is_same_v<ITEST, MutArray<int64_t, StridedRange, false>>);
+static_assert(std::is_same_v<ITEST, MutArray<int64_t, StridedRange<>, false>>);
 
 /// Non-owning view of a managed array, capable of resizing,
 /// but not of re-allocating in case the capacity is exceeded.
 template <class T, Dimension S>
-[[gsl::Pointer(T)]] struct ResizeableView : MutArray<T, S> {
+struct [[gsl::Pointer(T)]] ResizeableView : MutArray<T, S> {
   using BaseT = MutArray<T, S>;
   using U = containers::default_capacity_type_t<S>;
   using storage_type = typename BaseT::storage_type;
@@ -1184,8 +1179,8 @@ static_assert(!AbstractVector<int64_t>);
 static_assert(!std::is_trivially_copyable_v<Vector<int64_t>>);
 static_assert(!std::is_trivially_destructible_v<Vector<int64_t>>);
 
-template <typename T> using StridedVector = Array<T, StridedRange>;
-template <typename T> using MutStridedVector = MutArray<T, StridedRange>;
+template <typename T> using StridedVector = Array<T, StridedRange<>>;
+template <typename T> using MutStridedVector = MutArray<T, StridedRange<>>;
 
 static_assert(AbstractVector<StridedVector<int64_t>>);
 static_assert(AbstractVector<MutStridedVector<int64_t>>);
@@ -1382,10 +1377,9 @@ void ArrayOps<T, S, P>::vcopyTo(const RHS &B, Op op) {
 
 } // namespace math
 
-template <class T, poly::math::Dimension S, bool Compress>
+template <class T, math::Dimension S, bool Compress>
 inline constexpr bool
-  std::ranges::enable_borrowed_range<poly::math::Array<T, S, Compress>> = true;
-template <class T, poly::math::Dimension S, bool Compress>
+  std::ranges::enable_borrowed_range<math::Array<T, S, Compress>> = true;
+template <class T, math::Dimension S, bool Compress>
 inline constexpr bool
-  std::ranges::enable_borrowed_range<poly::math::MutArray<T, S, Compress>> =
-    true;
+  std::ranges::enable_borrowed_range<math::MutArray<T, S, Compress>> = true;

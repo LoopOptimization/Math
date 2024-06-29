@@ -3,12 +3,12 @@ module;
 #include <concepts>
 #include <cstddef>
 
-module SIMD:Index;
+export module SIMD:Index;
 
 import :Mask;
 import AxisTypes;
 
-namespace poly::simd::index {
+export namespace simd::index {
 
 // template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, ptrdiff_t X>
 // constexpr auto unroll(ptrdiff_t index, M mask, RowStride<X> rs){
@@ -29,12 +29,12 @@ struct UnrollDims {
   static_assert(W != 1 || !Transposed,
                 "Canonicalize scalar with Tranpose=false");
   [[no_unique_address]] M mask_;
-  [[no_unique_address]] math::axis::RowStride<X> rs_;
+  [[no_unique_address]] math::RowStride<X> rs_;
 };
 
-template <typename T> static constexpr bool issimd = false;
+template <typename T> inline constexpr bool issimd = false;
 
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, bool Transposed,
           ptrdiff_t X>
-static constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
-} // namespace poly::simd::index
+inline constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
+} // namespace simd::index

@@ -5,8 +5,6 @@
 import Arena;
 import UnrolledList;
 
-using namespace poly;
-
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(UListTest, BasicAssertions) {
   alloc::OwningArena<> alloc;

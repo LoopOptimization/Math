@@ -5,8 +5,8 @@ import Array;
 import ArrayParse;
 import Simplex;
 
-using namespace poly::math;
-using poly::utils::operator""_mat;
+using namespace math;
+using utils::operator""_mat;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SimplexTest, BasicAssertions) {
@@ -1052,8 +1052,7 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     EXPECT_EQ(sum, 3);
     EXPECT_EQ(rsum, 3);
     // std::cout << "sol2: " << sol2 << "\n";
-    poly::utils::printVector(std::cout << "sol2: ", sol2.begin(), sol2.end())
-      << "\n";
+    utils::printVector(std::cout << "sol2: ", sol2.begin(), sol2.end()) << "\n";
     for (ptrdiff_t i = 0; i < 37; ++i) {
       std::cout << "sol2[last-" << i << "] = " << sol2[last - i] << "\n";
       EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));

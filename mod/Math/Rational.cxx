@@ -10,17 +10,10 @@ module;
 
 export module Rational;
 
-import ArrayPrint;
 import GCD;
+import Widen;
 
-namespace math {
-
-template <class T, int Bits>
-concept is_int_v = std::signed_integral<T> && sizeof(T) == (Bits / 8);
-
-template <is_int_v<32> T> constexpr auto widen(T x) -> int64_t { return x; }
-template <is_int_v<64> T> constexpr auto widen(T x) -> __int128_t { return x; }
-template <is_int_v<32> T> constexpr auto splitInt(T x) -> int64_t { return x; }
+export namespace math {
 
 struct Rational {
   [[no_unique_address]] int64_t numerator{0};
@@ -186,20 +179,20 @@ struct Rational {
   constexpr auto operator!=(int y) const -> bool { return !isEqual(y); }
   constexpr auto operator!=(int64_t y) const -> bool { return !isEqual(y); }
   constexpr auto operator<(Rational y) const -> bool {
-    return (widen(numerator) * widen(y.denominator)) <
-           (widen(y.numerator) * widen(denominator));
+    return (utils::widen(numerator) * utils::widen(y.denominator)) <
+           (utils::widen(y.numerator) * utils::widen(denominator));
   }
   constexpr auto operator<=(Rational y) const -> bool {
-    return (widen(numerator) * widen(y.denominator)) <=
-           (widen(y.numerator) * widen(denominator));
+    return (utils::widen(numerator) * utils::widen(y.denominator)) <=
+           (utils::widen(y.numerator) * utils::widen(denominator));
   }
   constexpr auto operator>(Rational y) const -> bool {
-    return (widen(numerator) * widen(y.denominator)) >
-           (widen(y.numerator) * widen(denominator));
+    return (utils::widen(numerator) * utils::widen(y.denominator)) >
+           (utils::widen(y.numerator) * utils::widen(denominator));
   }
   constexpr auto operator>=(Rational y) const -> bool {
-    return (widen(numerator) * widen(y.denominator)) >=
-           (widen(y.numerator) * widen(denominator));
+    return (utils::widen(numerator) * utils::widen(y.denominator)) >=
+           (utils::widen(y.numerator) * utils::widen(denominator));
   }
   constexpr auto operator>=(int y) const -> bool {
     return *this >= Rational(y);
@@ -247,10 +240,4 @@ constexpr auto gcd(Rational x, Rational y) -> std::optional<Rational> {
   return Rational{gcd(x.numerator, y.numerator),
                   lcm(x.denominator, y.denominator)};
 }
-constexpr auto countDigits(Rational x) -> ptrdiff_t {
-  ptrdiff_t num = utils::countDigits(x.numerator);
-  return (x.denominator == 1) ? num
-                              : num + utils::countDigits(x.denominator) + 2;
-}
-static_assert(utils::Printable<Rational>);
-} // namespace poly::math
+} // namespace math

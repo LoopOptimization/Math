@@ -11,11 +11,9 @@ export module MatDim;
 import AxisTypes;
 import Invariant;
 
-namespace math {
+export namespace math {
 
-using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
-  axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
-  axis::asrow, axis::ascol, axis::asrowStride, axis::aslength, utils::invariant;
+using utils::invariant;
 
 template <ptrdiff_t R = -1> struct SquareDims;
 template <ptrdiff_t R = -1, ptrdiff_t C = -1> struct DenseDims;
@@ -156,6 +154,8 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   {
     return {m_, n_, stride_m_};
   }
+
+private:
   friend auto operator<<(std::ostream &os, StridedDims x) -> std::ostream & {
     return os << x.m_ << " x " << x.n_ << " (stride " << x.stride_m_ << ")";
   }
@@ -254,6 +254,8 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   {
     return {};
   }
+
+private:
   friend auto operator<<(std::ostream &os, DenseDims x) -> std::ostream & {
     return os << x.m_ << " x " << x.n_;
   }
@@ -331,12 +333,13 @@ template <ptrdiff_t R> struct SquareDims {
   {
     return {m_};
   }
+
+private:
   friend auto operator<<(std::ostream &os, SquareDims x) -> std::ostream & {
     return os << x.m_ << " x " << x.m_;
   }
 };
 
-namespace axis {
 template <ptrdiff_t R> Row(SquareDims<R>) -> Row<R>;
 template <ptrdiff_t R> Col(SquareDims<R>) -> Col<R>;
 template <ptrdiff_t R> RowStride(SquareDims<R>) -> RowStride<R>;
@@ -349,7 +352,6 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 Col(StridedDims<R, C, X>) -> Col<C>;
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 RowStride(StridedDims<R, C, X>) -> RowStride<X>;
-} // namespace axis
 
 template <ptrdiff_t R> SquareDims(Row<R>) -> SquareDims<R>;
 template <ptrdiff_t R, ptrdiff_t C>
@@ -438,5 +440,21 @@ constexpr auto stride(MatrixDimension auto s) { return RowStride(s); }
 
 template <typename T>
 concept HasInnerReduction = bool(T::has_reduction_loop);
+
+template <typename T>
+concept RowVectorDimension = requires(T t) {
+  { Length(t) } -> std::same_as<T>;
+};
+static_assert(RowVectorDimension<Length<3>>);
+static_assert(RowVectorDimension<Length<>>);
+static_assert(!RowVectorDimension<ptrdiff_t>);
+template <typename D>
+concept ColVectorDimension =
+  std::same_as<decltype(Col(std::declval<D>())), Col<1>>;
+template <typename D>
+concept VectorDimension = RowVectorDimension<D> || ColVectorDimension<D>;
+
+template <typename S>
+concept Dimension = VectorDimension<S> != MatrixDimension<S>;
 
 } // namespace math

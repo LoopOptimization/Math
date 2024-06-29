@@ -1,6 +1,6 @@
-#include <algorithm>
 module;
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <concepts>
@@ -13,6 +13,7 @@ module;
 export module ArrayPrint;
 
 import Flat;
+import Rational;
 
 template <std::integral T> consteval auto maxPow10() -> size_t {
   if constexpr (sizeof(T) == 1) return 3;
@@ -58,13 +59,55 @@ template <std::signed_integral T> constexpr auto countDigits(T x) -> T {
 template <typename T> inline auto countDigits(T *x) -> int {
   return countDigits(std::bit_cast<uintptr_t>(x));
 }
+constexpr auto countDigits(math::Rational x) -> ptrdiff_t {
+  ptrdiff_t num = countDigits(x.numerator);
+  return (x.denominator == 1) ? num : num + countDigits(x.denominator) + 2;
+}
+/// \brief Returns the maximum number of digits per column of a matrix.
+constexpr auto getMaxDigits(math::Rational *A, ptrdiff_t M, ptrdiff_t N,
+                            ptrdiff_t X) -> containers::Flat<ptrdiff_t> {
+  containers::Flat<ptrdiff_t> max_digits{N};
+  // this is slow, because we count the digits of every element
+  // we could optimize this by reducing the number of calls to countDigits
+  for (ptrdiff_t i = 0; i < M; i++) {
+    for (ptrdiff_t j = 0; j < N; j++) {
+      ptrdiff_t c = countDigits(A[i * X + j]);
+      max_digits[j] = std::max(max_digits[j], c);
+    }
+  }
+  return max_digits;
+}
+
+/// Returns the number of digits of the largest number in the matrix.
+template <std::integral T>
+constexpr auto getMaxDigits(T *A, ptrdiff_t M, ptrdiff_t N,
+                            ptrdiff_t X) -> conainters::Flat<T> {
+  containers::Flat<T> max_digits{N};
+  // first, we find the digits with the maximum value per column
+  for (ptrdiff_t i = 0; i < M; i++) {
+    for (ptrdiff_t j = 0; j < N; j++) {
+      // negative numbers need one more digit
+      // first, we find the maximum value per column,
+      // dividing positive numbers by -10
+      T Aij = A[i * X + j];
+      if constexpr (std::signed_integral<T>)
+        max_digits[j] = std::min(max_digits[j], Aij > 0 ? Aij / -10 : Aij);
+      else max_digits[j] = std::max(max_digits[j], Aij);
+    }
+  }
+  // then, we count the digits of the maximum value per column
+  for (ptrdiff_t j = 0; j < max_digits.size(); j++)
+    max_digits[j] = utils::countDigits(max_digits[j]);
+  return max_digits;
+}
 
 export namespace utils {
 template <typename T>
 concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
   { os << x } -> std::same_as<std::ostream &>;
-  { countDigits(x) };
+  { countDigits(x) } -> std::integral;
 };
+static_assert(Printable<math::Rational>);
 
 static_assert(Printable<int64_t>);
 inline void print_obj(std::ostream &os, Printable auto x) { os << x; };
@@ -79,57 +122,19 @@ inline auto printVector(std::ostream &os, auto B, auto E) -> std::ostream & {
   return os;
 }
 
-/// \brief Returns the maximum number of digits per column of a matrix.
-constexpr auto getMaxDigits(Rational *A, ptrdiff_t M,
-                            ptrdiff_t N) -> containers::Flat<ptrdiff_t> {
-  Flat<ptrdiff_t> max_digits(N);
-  // this is slow, because we count the digits of every element
-  // we could optimize this by reducing the number of calls to countDigits
-  for (ptrdiff_t i = 0; i < M; i++) {
-    for (ptrdiff_t j = 0; j < N; j++) {
-      ptrdiff_t c = countDigits(A[i, j]);
-      max_digits[j] = std::max(max_digits[j], c);
-    }
-  }
-  return max_digits;
-}
-
-/// Returns the number of digits of the largest number in the matrix.
-template <std::integral T>
-constexpr auto getMaxDigits(T *A, ptrdiff_t M,
-                            ptrdiff_t N) -> conainters::Flat<T> {
-  Flat<T> max_digits(N);
-  // first, we find the digits with the maximum value per column
-  for (ptrdiff_t i = 0; i < M; i++) {
-    for (ptrdiff_t j = 0; j < N; j++) {
-      // negative numbers need one more digit
-      // first, we find the maximum value per column,
-      // dividing positive numbers by -10
-      T Aij = A[i, j];
-      if constexpr (std::signed_integral<T>)
-        max_digits[j] = std::min(max_digits[j], Aij > 0 ? Aij / -10 : Aij);
-      else max_digits[j] = std::max(max_digits[j], Aij);
-    }
-  }
-  // then, we count the digits of the maximum value per column
-  for (ptrdiff_t j = 0; j < max_digits.size(); j++)
-    max_digits[j] = utils::countDigits(max_digits[j]);
-  return max_digits;
-}
-
 template <typename T>
-inline auto printMatrix(std::ostream &os, PtrMatrix<T> A) -> std::ostream & {
+inline auto printMatrix(std::ostream &os, T *A, ptrdiff_t M, ptrdiff_t N,
+                        ptrdiff_t X) -> std::ostream & {
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
-  auto [M, N] = shape(A);
   if ((!M) || (!N)) return os << "[ ]";
   // first, we determine the number of digits needed per column
-  auto max_digits{getMaxDigits(A)};
+  auto max_digits{getMaxDigits(A, M, N, X)};
   using U = decltype(countDigits(std::declval<T>()));
   for (ptrdiff_t i = 0; i < M; i++) {
     if (i) os << "  ";
     else os << "\n[ ";
     for (ptrdiff_t j = 0; j < N; j++) {
-      auto Aij = A[i, j];
+      auto Aij = A[i * X + j];
       for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); k++) os << " ";
       os << Aij;
       if (j != ptrdiff_t(N) - 1) os << " ";
@@ -146,10 +151,9 @@ inline auto printMatrix(std::ostream &os, PtrMatrix<T> A) -> std::ostream & {
 // to avoid allocations. We can use a Vector with a lot of initial capacity,
 // and then resize based on a conservative estimate of the number of chars per
 // elements.
-inline auto printMatrix(std::ostream &os,
-                        PtrMatrix<double> A) -> std::ostream & {
+inline auto printMatrix(std::ostream &os, double *A, ptrdiff_t M, ptrdiff_t N,
+                        ptrdiff_t X) -> std::ostream & {
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
-  auto [M, N] = shape(A);
   if ((!M) || (!N)) return os << "[ ]";
   // first, we determine the number of digits needed per column
   Vector<char, 512> digits;
@@ -160,7 +164,7 @@ inline auto printMatrix(std::ostream &os,
   char *p_end = digits.end();
   for (ptrdiff_t m = 0; m < M; m++) {
     for (ptrdiff_t n = 0; n < N; n++) {
-      auto Aij = A[m, n];
+      auto Aij = A[m * X + n];
       while (true) {
         auto [p, ec] = std::to_chars(ptr, p_end, Aij);
         if (ec == std::errc()) [[likely]] {

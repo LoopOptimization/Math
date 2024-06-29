@@ -10,12 +10,14 @@ module;
 #include <type_traits>
 #include <utility>
 
-export module soa;
+export module SOA;
 
-import allocator;
-import axistypes;
-import pair;
-import tuple;
+import Allocator;
+import Array;
+import AxisTypes;
+import MatDim;
+import Pair;
+import Tuple;
 
 namespace math {
 
@@ -88,7 +90,7 @@ struct Explicit {
   constexpr Explicit() = default;
   constexpr Explicit(ptrdiff_t sz)
     : capacity_{((sz > 8z) ? nextpow2(sz) : 8z * (sz > 0))} {}
-  constexpr Explicit(math::Length<> sz) : Explicit(ptrdiff_t(sz)) {}
+  constexpr Explicit(::math::Length<> sz) : Explicit(ptrdiff_t(sz)) {}
   constexpr auto operator()(auto) const -> ptrdiff_t { return capacity_; }
   constexpr auto operator=(ptrdiff_t cap) -> Explicit & {
     capacity_ = cap;

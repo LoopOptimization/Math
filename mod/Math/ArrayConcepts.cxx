@@ -5,6 +5,7 @@ module;
 
 export module ArrayConcepts;
 
+import AxisTypes;
 import MatDim;
 import TypePromotion;
 
@@ -172,4 +173,4 @@ template <typename T> constexpr auto transpose(const T &a) {
   else return Transpose{view(a)};
 }
 
-} // namespace poly::math
+} // namespace math

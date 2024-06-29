@@ -8,9 +8,11 @@ module;
 
 export module UniformScaling;
 
-import Concepts;
+import ArrayConcepts;
+import AxisTypes;
 import MatDim;
 import SIMD;
+import Widen;
 
 export namespace math {
 
@@ -25,7 +27,7 @@ template <class T> struct UniformScaling {
   [[gnu::always_inline]] constexpr auto
   operator[](simd::index::Unroll<R> r,
              simd::index::Unroll<C, W, M> c) const -> simd::Unroll<R, C, W, T> {
-    using I = simd::IntegerOfBytes<sizeof(T)>;
+    using I = utils::signed_integer_t<sizeof(T)>;
     using VI = simd::Vec<W, I>;
     simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value_);
     if constexpr (R * C == 1) {
@@ -102,7 +104,7 @@ template <class T> struct UniformScaling {
   }
 };
 
-[[maybe_unused]] static constexpr inline UniformScaling<std::true_type> I{
+[[maybe_unused]] constexpr inline UniformScaling<std::true_type> I{
   std::true_type{}}; // identity
 
 template <class T> UniformScaling(T) -> UniformScaling<T>;

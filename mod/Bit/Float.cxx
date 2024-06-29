@@ -6,7 +6,7 @@ module;
 
 export module BitHack;
 
-namespace bit {
+export namespace bit {
 
 constexpr auto exp2unchecked(std::integral auto x) {
   return std::bit_cast<double>(static_cast<int64_t>(1023 + x) << 52);

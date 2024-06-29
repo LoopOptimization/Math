@@ -47,6 +47,21 @@ FetchContent_MakeAvailable(googletest)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
+if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
+                                                "([Aa]ddress);([Uu]ndefined)"))
+  set(ENABLE_RTTI
+      ON
+      CACHE BOOL "Use RTTI")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(ENABLE_STACK_PROTECTOR
+        ON
+        CACHE BOOL "Use stack potection")
+  endif()
+else()
+  set(ENABLE_STACK_PROTECTOR
+      ON
+      CACHE BOOL "Use stack potection")
+endif()
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----
@@ -64,7 +79,7 @@ endif()
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
-  # we use don't rtti, which is incompatible with the vptr check:
+  # we don't use rtti, which is incompatible with the vptr check:
   # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
     target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
@@ -113,27 +128,10 @@ if(ENABLE_LLD)
   target_link_options(${PROJECT_NAME} PRIVATE -fuse-ld=lld)
 endif()
 
-target_precompile_headers(
-  ${PROJECT_NAME}
-  PRIVATE
-  <algorithm>
-  <cmath>
-  <concepts>
-  <cstddef>
-  <cstdint>
-  <functional>
-  <gtest/gtest.h>
-  <iostream>
-  <iterator>
-  <limits>
-  <numeric>
-  <optional>
-  <random>
-  <ranges>
-  <string>
-  <tuple>
-  <type_traits>
-  <utility>)
+# target_precompile_headers( ${PROJECT_NAME} PRIVATE <algorithm> <cmath>
+# <concepts> <cstddef> <cstdint> <functional> <gtest/gtest.h> <iostream>
+# <iterator> <limits> <numeric> <optional> <random> <ranges> <string> <tuple>
+# <type_traits> <utility>)
 
 # ---- Add MathTests ----
 

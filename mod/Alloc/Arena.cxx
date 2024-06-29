@@ -21,7 +21,7 @@ module;
 #if __has_include(<sanitizer/asan_interface.h>)
 #include <sanitizer/asan_interface.h>
 #endif // has asan include
-#else // no asan
+#else  // no asan
 #define MATH_ADDRESS_SANITIZER_BUILD 0
 #endif
 
@@ -39,7 +39,6 @@ export module Arena;
 import Allocator;
 import Invariant;
 import Valid;
-
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 #if !__has_include(<sanitizer/asan_interface.h>)
@@ -555,13 +554,13 @@ constexpr auto call(Arena<> alloc, const F &f, T &&...t) {
   else return f(std::forward<T>(t)...);
 }
 
-} // namespace poly::alloc
+} // namespace alloc
 
 template <size_t SlabSize, bool BumpUp>
 auto operator new(size_t Size,
-                  poly::alloc::Arena<SlabSize, BumpUp> &Alloc) -> void * {
+                  alloc::Arena<SlabSize, BumpUp> &Alloc) -> void * {
   return Alloc.allocate(Size);
 }
 
 template <size_t SlabSize, bool BumpUp>
-void operator delete(void *, poly::alloc::Arena<SlabSize, BumpUp> &) {}
+void operator delete(void *, alloc::Arena<SlabSize, BumpUp> &) {}

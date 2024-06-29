@@ -842,14 +842,12 @@ static_assert(utils::Compressible<Dual<double, 7>>);
 static_assert(utils::Compressible<Dual<double, 8>>);
 static_assert(
   AbstractVector<Conditional<
-    ::poly::math::ElementwiseBinaryOp<::poly::math::Range<long, long>, long,
-                                      std::not_equal_to<void>>,
-    ::poly::math::ElementwiseBinaryOp<
-      double, ::poly::math::StaticArray<double, 1, 8, false>,
-      std::multiplies<void>>,
-    ::poly::math::ElementwiseBinaryOp<
-      ::poly::math::StaticArray<double, 1, 8, false>, double,
-      std::multiplies<void>>,
+    ::math::ElementwiseBinaryOp<::math::Range<long, long>, long,
+                                std::not_equal_to<void>>,
+    ::math::ElementwiseBinaryOp<
+      double, ::math::StaticArray<double, 1, 8, false>, std::multiplies<void>>,
+    ::math::ElementwiseBinaryOp<::math::StaticArray<double, 1, 8, false>,
+                                double, std::multiplies<void>>,
     std::plus<void>>>);
 
 template <typename T> struct IsDualImpl : std::false_type {};
@@ -1154,17 +1152,17 @@ static_assert(MatrixDimension<SquareDims<>>);
 
 } // namespace math
 namespace std {
-template <> struct tuple_size<poly::math::HessianResult> {
+template <> struct tuple_size<math::HessianResult> {
   static constexpr size_t value = 3;
 };
-template <> struct tuple_element<size_t(0), poly::math::HessianResult> {
+template <> struct tuple_element<size_t(0), math::HessianResult> {
   using type = double;
 };
-template <> struct tuple_element<size_t(1), poly::math::HessianResult> {
-  using type = poly::math::MutPtrVector<double>;
+template <> struct tuple_element<size_t(1), math::HessianResult> {
+  using type = math::MutPtrVector<double>;
 };
-template <> struct tuple_element<size_t(2), poly::math::HessianResult> {
-  using type = poly::math::MutSquarePtrMatrix<double>;
+template <> struct tuple_element<size_t(2), math::HessianResult> {
+  using type = math::MutSquarePtrMatrix<double>;
 };
 
 } // namespace std

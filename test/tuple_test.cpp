@@ -4,7 +4,7 @@
 
 import Tuple;
 
-using poly::containers::Tuple, poly::containers::tie;
+using containers::Tuple, containers::tie;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(TupleTest, BasicAssertions) {

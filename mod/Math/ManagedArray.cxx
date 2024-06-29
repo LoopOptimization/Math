@@ -23,7 +23,7 @@ export namespace Math {
 /// This caused invalid frees, as the pointer still pointed to the old
 /// stack memory.
 template <class T, Dimension S, ptrdiff_t StackStorage, class A>
-[[gsl::Owner(T)]] struct ManagedArray : ResizeableView<T, S> {
+struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   // static_assert(std::is_trivially_destructible_v<T>);
   using BaseT = ResizeableView<T, S>;
   using U = containers::default_capacity_type_t<S>;

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <concepts>
 #include <gtest/gtest.h>
 #include <ranges>
@@ -5,8 +6,6 @@
 
 import Arena;
 import ListRange;
-
-using namespace poly;
 
 template <typename T> class List {
   T data;

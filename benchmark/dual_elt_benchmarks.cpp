@@ -2,19 +2,20 @@
 #include "Math/Iterators.hpp"
 #include "include/randdual.hpp"
 #include <benchmark/benchmark.h>
+#include <cstddef>
+#include <random>
 
-using poly::math::Dual, poly::math::SquareDims, poly::math::SquareMatrix,
-  poly::math::MutArray, poly::math::Array, poly::math::URand,
-  poly::containers::tie, poly::containers::Tuple;
+using math::Dual, math::SquareDims, math::SquareMatrix, math::MutArray,
+  math::Array, math::URand, containers::tie, containers::Tuple;
 
 template <typename A, typename... As, typename B, typename... Bs>
 constexpr void tuplecheck(Tuple<A, As...> &, const Tuple<B, Bs...> &) {
-  using C = poly::math::scalarize_via_cast_t<
+  using C = math::scalarize_via_cast_t<
     std::remove_cvref_t<decltype(std::declval<A>().view())>>;
   static_assert(
     !std::same_as<C, void> &&
-    poly::math::ScalarizeViaCastTo<C, As..., decltype(std::declval<B>().view()),
-                                   Bs...>());
+    math::ScalarizeViaCastTo<C, As..., decltype(std::declval<B>().view()),
+                             Bs...>());
 }
 
 template <typename T, typename S>
@@ -25,9 +26,9 @@ template <typename T, typename S>
 template <typename T, typename S>
 [[gnu::noinline]] void eltadd(MutArray<T, S> C, Array<T, S> A, Array<T, S> B) {
   static_assert(
-    std::same_as<double, poly::math::scalarize_via_cast_t<MutArray<T, S>>>);
+    std::same_as<double, math::scalarize_via_cast_t<MutArray<T, S>>>);
   static_assert(
-    std::same_as<double, poly::math::scalarize_via_cast_t<decltype(A + B)>>);
+    std::same_as<double, math::scalarize_via_cast_t<decltype(A + B)>>);
   C << A + B;
 }
 template <typename T, typename S>
@@ -43,7 +44,7 @@ template <typename T, typename S>
 template <ptrdiff_t N> static void BM_dualNdoublemul(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<double, N>;
-  SquareMatrix<D> A{SquareDims{poly::math::row(state.range(0))}};
+  SquareMatrix<D> A{SquareDims{math::row(state.range(0))}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   double t = 1.00000000001;
   for (auto b : state) eltmul(A, t);
@@ -53,7 +54,7 @@ template <ptrdiff_t M, ptrdiff_t N>
 static void BM_dualMxNdoublemul(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
-  SquareMatrix<D> A{SquareDims{poly::math::row(state.range(0))}};
+  SquareMatrix<D> A{SquareDims{math::row(state.range(0))}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   double t = 1.00000000001;
   for (auto b : state) eltmul(A, t);
@@ -62,7 +63,7 @@ static void BM_dualMxNdoublemul(benchmark::State &state) {
 template <ptrdiff_t N> static void BM_dualNadd(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
-  SquareDims<> dim{poly::math::row(state.range(0))};
+  SquareDims<> dim{math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);
@@ -72,7 +73,7 @@ template <ptrdiff_t M, ptrdiff_t N>
 static void BM_dualMxNadd(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
-  SquareDims<> dim{poly::math::row(state.range(0))};
+  SquareDims<> dim{math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);
@@ -81,7 +82,7 @@ static void BM_dualMxNadd(benchmark::State &state) {
 template <ptrdiff_t N> static void BM_dualNaddsub(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
-  SquareDims<> dim{poly::math::row(state.range(0))};
+  SquareDims<> dim{math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim}, D{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);
@@ -91,7 +92,7 @@ template <ptrdiff_t M, ptrdiff_t N>
 static void BM_dualMxNaddsub(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
-  SquareDims<> dim{poly::math::row(state.range(0))};
+  SquareDims<> dim{math::row(state.range(0))};
   SquareMatrix<T> A{dim}, B{dim}, C{dim}, D{dim};
   for (auto &&a : A) a = URand<T>{}(rng0);
   for (auto &&b : B) b = URand<T>{}(rng0);

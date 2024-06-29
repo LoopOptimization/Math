@@ -11,19 +11,18 @@ import Tuple;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SOATest, BasicAssertions) {
-  poly::containers::Tuple x{3, 2.0, 5.0F};
-  static_assert(poly::math::CumSizeOf_v<0, decltype(x)> == 0);
-  static_assert(poly::math::CumSizeOf_v<1, decltype(x)> == 4);
-  static_assert(poly::math::CumSizeOf_v<2, decltype(x)> == 12);
-  static_assert(poly::math::CumSizeOf_v<3, decltype(x)> == 16);
-  // poly::math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
+  containers::Tuple x{3, 2.0, 5.0F};
+  static_assert(math::CumSizeOf_v<0, decltype(x)> == 0);
+  static_assert(math::CumSizeOf_v<1, decltype(x)> == 4);
+  static_assert(math::CumSizeOf_v<2, decltype(x)> == 12);
+  static_assert(math::CumSizeOf_v<3, decltype(x)> == 16);
+  // math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
   using T = decltype(x);
-  static_assert(std::is_trivially_default_constructible_v<
-                poly::containers::Tuple<int, double>>);
+  static_assert(
+    std::is_trivially_default_constructible_v<containers::Tuple<int, double>>);
   static_assert(std::is_trivially_default_constructible_v<T>);
   static_assert(std::is_trivially_destructible_v<T>);
-  poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{},
-                             poly::math::length(5z));
+  math::ManagedSOA soa(std::type_identity<decltype(x)>{}, math::length(5z));
   EXPECT_EQ(soa.capacity_.capacity_, 8);
   soa[0] = x;
   soa[1] = {5, 2.25, 5.5F};
@@ -86,13 +85,13 @@ TEST(SOATest, BasicAssertions) {
   EXPECT_EQ(soa.size(), 65);
 }
 TEST(SOAPairTest, BasicAssertions) {
-  poly::containers::Pair x{3, 2.0};
-  static_assert(poly::math::CumSizeOf_v<0, decltype(x)> == 0);
-  static_assert(poly::math::CumSizeOf_v<1, decltype(x)> == 4);
-  static_assert(poly::math::CumSizeOf_v<2, decltype(x)> == 12);
-  // poly::math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
-  poly::math::ManagedSOA<decltype(x)> soa;
-  // poly::math::ManagedSOA soa(std::type_identity<decltype(x)>{});
+  containers::Pair x{3, 2.0};
+  static_assert(math::CumSizeOf_v<0, decltype(x)> == 0);
+  static_assert(math::CumSizeOf_v<1, decltype(x)> == 4);
+  static_assert(math::CumSizeOf_v<2, decltype(x)> == 12);
+  // math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
+  math::ManagedSOA<decltype(x)> soa;
+  // math::ManagedSOA soa(std::type_identity<decltype(x)>{});
   EXPECT_EQ(soa.capacity_.capacity_, 0);
   soa.push_back(x);
   soa[0] = x;
@@ -146,9 +145,7 @@ TEST(SOAPairTest, BasicAssertions) {
   EXPECT_EQ(soa.size(), 65);
 }
 TEST(VecOfSOATest, BasicAssertions) {
-  poly::math::Vector<
-    poly::math::ManagedSOA<poly::containers::Tuple<int, double, float>>>
-    vsoa;
+  math::Vector<math::ManagedSOA<containers::Tuple<int, double, float>>> vsoa;
   vsoa.emplace_back();
   vsoa.emplace_back();
   vsoa.pop_back();

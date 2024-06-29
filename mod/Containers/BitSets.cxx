@@ -414,4 +414,4 @@ BitSliceView(math::MutPtrVector<T>, const B &) -> BitSliceView<T, B>;
 
 static_assert(std::movable<BitSliceView<int64_t>::Iterator>);
 static_assert(std::movable<BitSliceView<int64_t>::ConstIterator>);
-} // namespace poly::containers
+} // namespace containers

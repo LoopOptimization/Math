@@ -4,8 +4,7 @@ import Array;
 import MatDim;
 import Orthogonalize;
 
-using poly::math::DenseMatrix, poly::math::DenseDims, poly::math::row,
-  poly::math::col;
+using math::DenseMatrix, math::DenseDims, math::row, math::col;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(OrthogonalizeMatricesTest, BasicAssertions) {
@@ -21,7 +20,7 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
   for (size_t i = 0; i < iters; ++i) {
     for (auto &&a : A) a = distrib(gen);
     // std::cout << "Random A =\n" << A << "\n";
-    A = poly::math::orthogonalize(std::move(A));
+    A = math::orthogonalize(std::move(A));
     // std::cout << "Orthogonal A =\n" << A << "\n";
     // note, A'A is not diagonal
     // but AA' is

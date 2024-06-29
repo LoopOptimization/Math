@@ -8,7 +8,7 @@ export module Orthogonalize;
 import NormalForm;
 import Rational import VGCD;
 
-namespace poly::math {
+namespace math {
 [[nodiscard]] constexpr auto
 orthogonalize(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   if ((A.numCol() < 2) || (A.numRow() == 0)) return A;
@@ -41,4 +41,4 @@ orthogonalize(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
 orthogonalNullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   return orthogonalize(NormalForm::nullSpace(std::move(A)));
 }
-} // namespace poly::math
+} // namespace math

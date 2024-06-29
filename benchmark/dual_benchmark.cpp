@@ -16,11 +16,11 @@
 #include <cstddef>
 #include <random>
 
-using poly::math::Vector;
+using math::Vector;
 
 namespace {
 using benchmark::State;
-using poly::math::Dual, poly::math::SquareMatrix, poly::math::URand;
+using math::Dual, math::SquareMatrix, math::URand;
 
 [[gnu::noinline]] void prod(auto &c, const auto &a, const auto &b) {
   c = a * b;
@@ -38,18 +38,18 @@ template <ptrdiff_t M, ptrdiff_t N> void BM_dualprod(benchmark::State &state) {
 
 template <typename T, ptrdiff_t N, bool SIMDArray = false> struct ManualDual {
   T value;
-  poly::math::SVector<T, N> partials;
-  auto grad() -> poly::math::SVector<T, N> & { return partials; }
+  math::SVector<T, N> partials;
+  auto grad() -> math::SVector<T, N> & { return partials; }
 };
 template <std::floating_point T, ptrdiff_t N, bool SIMDArray>
 struct ManualDual<ManualDual<T, N, SIMDArray>, 2, false> {
   using V = ManualDual<T, N, SIMDArray>;
   V value;
-  poly::containers::Tuple<V, V> partials{V{}, V{}};
+  containers::Tuple<V, V> partials{V{}, V{}};
   struct Gradient {
-    poly::containers::Tuple<V, V> &partials;
+    containers::Tuple<V, V> &partials;
     auto operator[](ptrdiff_t i) -> V & {
-      poly::utils::invariant(i == 0 || i == 1);
+      utils::invariant(i == 0 || i == 1);
       if (i == 0) return partials.head_;
       return partials.tail_.head_;
     }
@@ -61,13 +61,13 @@ struct ManualDual<ManualDual<T, N, SIMDArray>, 2, false> {
 };
 
 template <std::floating_point T, ptrdiff_t N> struct ManualDual<T, N, false> {
-  using P = poly::simd::Vec<ptrdiff_t(std::bit_ceil(size_t(N))), T>;
+  using P = simd::Vec<ptrdiff_t(std::bit_ceil(size_t(N))), T>;
   T value;
   P partials;
   auto grad() -> P & { return partials; }
 };
 template <std::floating_point T, ptrdiff_t N> struct ManualDual<T, N, true> {
-  using P = poly::math::StaticArray<T, 1, N, false>;
+  using P = math::StaticArray<T, 1, N, false>;
   T value;
   P partials;
   auto grad() -> P & { return partials; }
@@ -196,7 +196,7 @@ void BM_dualdivsum(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
   ptrdiff_t len = state.range(0);
-  Vector<std::array<D, 4>> x{poly::math::length(len)};
+  Vector<std::array<D, 4>> x{math::length(len)};
   for (ptrdiff_t i = 0; i < len; ++i) {
     x[i] = {URand<D>{}(rng0), URand<D>{}(rng0), URand<D>{}(rng0),
             URand<D>{}(rng0)};

@@ -15,8 +15,8 @@ import NormalForm;
 import Pair;
 import UniformScaling;
 
-using namespace poly::math;
-using poly::utils::operator""_mat;
+using namespace math;
+using utils::operator""_mat;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(OrthogonalizationTest, BasicAssertions) {
@@ -235,8 +235,8 @@ TEST(Hermite, BasicAssertions) {
   }
   {
     IntMatrix<> A = "[-3 -1 1; 0 0 -2]"_mat;
-    std::optional<poly::containers::Pair<IntMatrix<>, SquareMatrix<int64_t>>>
-      B = NormalForm::hermite(A);
+    std::optional<containers::Pair<IntMatrix<>, SquareMatrix<int64_t>>> B =
+      NormalForm::hermite(A);
     EXPECT_TRUE(B.has_value());
     auto &[H, U] = *B;
     EXPECT_TRUE(isHNF(H));

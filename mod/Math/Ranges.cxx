@@ -6,15 +6,34 @@ module;
 #include <ostream>
 #include <type_traits>
 
-export module Ranges;
+export module Range;
 
 import AxisTypes;
 import Invariant;
 
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+standardizeRangeBound(math::Row<M> x) {
+  if constexpr (M == -1) return ptrdiff_t(x);
+  else return std::integral_constant<ptrdiff_t, M>{};
+}
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+standardizeRangeBound(math::Col<M> x) {
+  if constexpr (M == -1) return ptrdiff_t(x);
+  else return std::integral_constant<ptrdiff_t, M>{};
+}
+
+constexpr auto standardizeRangeBound(auto x) { return x; }
+constexpr auto standardizeRangeBound(std::unsigned_integral auto x) {
+  return ptrdiff_t(x);
+}
+constexpr auto standardizeRangeBound(std::signed_integral auto x) {
+  return ptrdiff_t(x);
+}
+
 export namespace math {
-using axis::Row, axis::Col, axis::RowStride, axis::Length, axis::Capacity,
-  axis::row, axis::col, axis::rowStride, axis::length, axis::capacity,
-  axis::asrow, axis::ascol, axis::aslength, utils::invariant;
+using utils::invariant;
 template <typename B, typename E> struct Range {
   [[no_unique_address]] B b;
   [[no_unique_address]] E e;
@@ -99,14 +118,6 @@ private:
     return Range{x - r.b, x - r.e};
   }
 };
-constexpr auto standardizeRangeBound(auto x) { return x; }
-constexpr auto standardizeRangeBound(std::unsigned_integral auto x) {
-  return ptrdiff_t(x);
-}
-constexpr auto standardizeRangeBound(std::signed_integral auto x) {
-  return ptrdiff_t(x);
-}
-
 template <typename B, typename E>
 Range(B b, E e) -> Range<decltype(standardizeRangeBound(b)),
                          decltype(standardizeRangeBound(e))>;
@@ -208,4 +219,4 @@ static_assert(std::totally_ordered<StridedIterator<int64_t>>,
               "failed random access iterator");
 static_assert(std::random_access_iterator<StridedIterator<int64_t>>,
               "failed random access iterator");
-} // namespace poly::math
+} // namespace math

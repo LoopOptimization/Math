@@ -6,9 +6,9 @@ module;
 #include <limits>
 #include <type_traits>
 
-export module axistypes;
+export module AxisTypes;
 
-import invariant;
+import Invariant;
 
 /// LinAlg
 ///
@@ -31,7 +31,7 @@ import invariant;
 /// All the PtrVector/PtrMatrix types are trivially destructible, copyable, etc
 /// Their lifetimes are governed by the Arena or RAII type used to back
 /// them.
-namespace math::axis {
+export namespace math {
 
 using utils::invariant;
 
@@ -767,19 +767,6 @@ template <ptrdiff_t M>
 
 template <ptrdiff_t M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
-standardizeRangeBound(Row<M> x) {
-  if constexpr (M == -1) return ptrdiff_t(x);
-  else return std::integral_constant<ptrdiff_t, M>{};
-}
-template <ptrdiff_t M>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
-standardizeRangeBound(Col<M> x) {
-  if constexpr (M == -1) return ptrdiff_t(x);
-  else return std::integral_constant<ptrdiff_t, M>{};
-}
-
-template <ptrdiff_t M>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
 unwrapRow(Row<M> x) {
   if constexpr (M == -1) return ptrdiff_t(x);
   else return std::integral_constant<ptrdiff_t, M>{};
@@ -910,4 +897,4 @@ asrowStride(Length<M> len) -> RowStride<M> {
   else return {static_cast<RowStride<-1>::stride>(ptrdiff_t(len))};
 }
 
-} // namespace poly::math::axis
+} // namespace math

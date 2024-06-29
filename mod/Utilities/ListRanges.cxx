@@ -6,6 +6,8 @@ module;
 
 export module ListRange;
 
+import Invariant;
+
 export namespace utils {
 
 class GetNext {
@@ -326,11 +328,10 @@ NestedList(O, F) -> NestedList<O, F>;
 
 template <typename T, class Op, class Proj>
 inline constexpr bool
-  std::ranges::enable_borrowed_range<poly::utils::ListRange<T, Op, Proj>> =
-    true;
+  std::ranges::enable_borrowed_range<utils::ListRange<T, Op, Proj>> = true;
 template <std::ranges::forward_range O, class F>
 inline constexpr bool
-  std::ranges::enable_borrowed_range<poly::utils::NestedList<O, F>> =
+  std::ranges::enable_borrowed_range<utils::NestedList<O, F>> =
     std::ranges::enable_borrowed_range<O> &&
     std::ranges::enable_borrowed_range<
-      typename poly::utils::NestedList<O, F>::InnerType>;
+      typename utils::NestedList<O, F>::InnerType>;

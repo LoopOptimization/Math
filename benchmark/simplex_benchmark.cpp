@@ -10,10 +10,10 @@
 #include <cstddef>
 #include <cstdint>
 
-using poly::utils::operator""_mat, poly::math::_;
+using utils::operator""_mat, math::_;
 
 static void BM_Simplex0(benchmark::State &state) {
-  poly::math::DenseMatrix<int64_t> tableau{
+  math::DenseMatrix<int64_t> tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
@@ -881,17 +881,17 @@ static void BM_Simplex0(benchmark::State &state) {
     "1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]"_mat};
 
   tableau[0, _] << -5859553999884210514;
-  poly::alloc::OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
-  poly::utils::Valid<poly::math::Simplex> simpBackup{
-    poly::math::Simplex::create(&alloc, poly::math::row(numCon),
-                                poly::math::col(numVar))};
+  utils::Valid<math::Simplex> simpBackup{
+    math::Simplex::create(&alloc, math::row(numCon),
+                                math::col(numVar))};
   simpBackup->getTableau() << tableau;
   // Simplex simpBackup{tableau};
-  poly::utils::Valid<poly::math::Simplex> simp{poly::math::Simplex::create(
-    &alloc, poly::math::row(simpBackup->getNumCons()),
-    poly::math::col(simpBackup->getNumVars()))};
+  utils::Valid<math::Simplex> simp{math::Simplex::create(
+    &alloc, math::row(simpBackup->getNumCons()),
+    math::col(simpBackup->getNumVars()))};
   // Vector<Rational> sol(37);
   for (auto b : state) {
     *simp << *simpBackup;
@@ -904,7 +904,7 @@ static void BM_Simplex0(benchmark::State &state) {
 BENCHMARK(BM_Simplex0);
 
 static void BM_Simplex1(benchmark::State &state) {
-  poly::math::IntMatrix<> tableau{
+  math::IntMatrix<> tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 "
     "94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 1 0 -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 "
@@ -1123,16 +1123,16 @@ static void BM_Simplex1(benchmark::State &state) {
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 "
     "0 0 0 0 0 0 0 0 0 ]"_mat};
 
-  poly::alloc::OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
-  poly::utils::Valid<poly::math::Simplex> simpBackup{
-    poly::math::Simplex::create(&alloc, poly::math::row(numCon),
-                                poly::math::col(numVar), 0)};
+  utils::Valid<math::Simplex> simpBackup{
+    math::Simplex::create(&alloc, math::row(numCon),
+                                math::col(numVar), 0)};
   simpBackup->getTableau() << tableau;
-  poly::utils::Valid<poly::math::Simplex> simp{poly::math::Simplex::create(
-    &alloc, poly::math::row(simpBackup->getNumCons()),
-    poly::math::col(simpBackup->getNumVars()), 0)};
+  utils::Valid<math::Simplex> simp{math::Simplex::create(
+    &alloc, math::row(simpBackup->getNumCons()),
+    math::col(simpBackup->getNumVars()), 0)};
   for (auto b : state) {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();

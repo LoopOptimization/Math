@@ -10,17 +10,11 @@ module;
 #include <immintrin.h>
 #endif
 
-export module simd:mask;
+export module SIMD:Mask;
 
-import :vec;
-import invariant;
-
-
-template <size_t Bytes>
-using IntegerOfBytes = std::conditional_t<
-  Bytes >= 8, int64_t,
-  std::conditional_t<Bytes == 4, int32_t,
-                     std::conditional_t<Bytes == 2, int16_t, int8_t>>>;
+import :Vec;
+import Invariant;
+import Widen;
 
 export namespace simd {
 template <ptrdiff_t W,
@@ -221,7 +215,7 @@ template <ptrdiff_t W> using Mask = Bit<W>;
 
 template <ptrdiff_t W, size_t Bytes> struct Vector {
   static_assert(Bytes <= 8, "Only at most 8 bytes per element supported.");
-  using I = IntegerOfBytes<Bytes>;
+  using I = utils::signed_integer_t<Bytes>;
   static_assert(sizeof(I) == Bytes);
   // static_assert(sizeof(I) * W <= VECTORWIDTH);
   // TODO: add support for smaller mask types, we we can use smaller eltypes
@@ -321,13 +315,13 @@ using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
 
 template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
-  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
 constexpr auto
 create(ptrdiff_t i, ptrdiff_t len) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
-  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
 template <ptrdiff_t W, typename I = int64_t> using Mask = Vector<W, sizeof(I)>;
@@ -337,7 +331,7 @@ template <ptrdiff_t W, typename I = int64_t> using Mask = Vector<W, sizeof(I)>;
 #else  // ifdef __x86_64__
 
 template <ptrdiff_t W, size_t Bytes> struct Vector {
-  using I = IntegerOfBytes<Bytes>;
+  using I = utils::signed_integer_t<Bytes>;
   static_assert(sizeof(I) == Bytes);
   Vec<W, I> m;
   template <size_t newBytes> constexpr operator Vector<W, newBytes>() {
@@ -395,13 +389,13 @@ private:
 
 template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
-  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i,
                       ptrdiff_t len) -> Vector<W, VECTORWIDTH / W> {
-  using I = IntegerOfBytes<VECTORWIDTH / W>;
+  using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
 #endif // ifdef __x86_64__; else

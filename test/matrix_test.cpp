@@ -24,8 +24,8 @@ import UniformScaling;
 import ArrayParse;
 import TypePromotion;
 
-using namespace poly::math;
-using poly::utils::operator""_mat;
+using namespace math;
+using utils::operator""_mat;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SparseIndexingTest, BasicAssertions) {
   SmallSparseMatrix<int64_t> sparseA(row(3), col(4));
@@ -93,8 +93,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   IntMatrix<> C2{A * B};
   std::cout << "C=" << C << "\nC2=" << C2 << "\n";
   EXPECT_TRUE(C == C2);
-  IntMatrix<> At{
-    DenseDims<>{poly::math::asrow(A.numCol()), poly::math::ascol(A.numRow())}},
+  IntMatrix<> At{DenseDims<>{math::asrow(A.numCol()), math::ascol(A.numRow())}},
     Bt{B.t()};
   At[_(0, end), _(0, end)] << A.t();
   // At << A.t();
@@ -284,7 +283,7 @@ TEST(SquareMatrixTest, BasicAssertions) {
     for (ptrdiff_t i = 0; i < 2; ++i) EXPECT_EQ((B[j, i]), 4 * (i + 2) + j);
 }
 TEST(VectorTest, BasicAssertions) {
-  poly::alloc::OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   ResizeableView<int64_t, Length<>> x;
   for (size_t i = 0; i < 100; ++i) {
     if (x.getCapacity() <= x.size())
@@ -296,8 +295,8 @@ TEST(VectorTest, BasicAssertions) {
 }
 TEST(SVectorTest, BasicAssertions) {
   SVector<int64_t, 3> x{1, 2, 3};
-  // static_assert(poly::simd::VecLen<3, int64_t> == 2);
-  static_assert(poly::utils::Compressible<SVector<int64_t, 3>>);
+  // static_assert(simd::VecLen<3, int64_t> == 2);
+  static_assert(utils::Compressible<SVector<int64_t, 3>>);
   static_assert(std::tuple_size_v<decltype(x)> == 3);
   static_assert(std::same_as<std::tuple_element_t<2, decltype(x)>, int64_t>);
   SVector<int64_t, 3> y{10, 20, 30};
@@ -310,7 +309,7 @@ TEST(SVectorTest, BasicAssertions) {
   constexpr auto const_cmp = [](auto const &a, auto const &b) {
     return std::make_pair(a == b, std::is_constant_evaluated());
   };
-  Vector<int64_t> v{poly::math::length(3)};
+  Vector<int64_t> v{math::length(3)};
   v << _(1, 4);
   EXPECT_TRUE(const_cmp(v.size(), 3).first);
   EXPECT_FALSE(const_cmp(v.size(), 3).second);
@@ -334,8 +333,8 @@ TEST(SVectorTest, BasicAssertions) {
 }
 TEST(TinyVectorTest, BasicAssertions) {
   {
-    poly::containers::TinyVector<int, 5> v{};
-    static_assert(std::same_as<poly::utils::eltype_t<decltype(v)>, int>);
+    containers::TinyVector<int, 5> v{};
+    static_assert(std::same_as<utils::eltype_t<decltype(v)>, int>);
     EXPECT_TRUE(v.empty());
     EXPECT_EQ(v.size(), 0);
     v.resize(3);
@@ -371,8 +370,8 @@ TEST(TinyVectorTest, BasicAssertions) {
     EXPECT_EQ(s, 28);
   }
   {
-    poly::containers::TinyVector<int8_t, 5, int8_t> v{};
-    static_assert(std::same_as<poly::utils::eltype_t<decltype(v)>, int8_t>);
+    containers::TinyVector<int8_t, 5, int8_t> v{};
+    static_assert(std::same_as<utils::eltype_t<decltype(v)>, int8_t>);
     EXPECT_TRUE(v.empty());
     EXPECT_EQ(v.size(), 0);
     v.resize(3);
@@ -423,7 +422,7 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
     EXPECT_EQ(b, y[_(1, end)]);
   }
   Vector<int64_t> z{std::array<int64_t, 3>{0, 1, 2}};
-  Vector<Vector<int64_t, 0>, 0> x{poly::math::length(5)};
+  Vector<Vector<int64_t, 0>, 0> x{math::length(5)};
   for (ptrdiff_t i = 0; i < 10; i += 2)
     x[i / 2] = std::array<int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i};
   for (ptrdiff_t i = 10; i < 102; i += 2)
@@ -444,7 +443,7 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
 }
 
 TEST(StringMat1x1, BasicAssertions) {
-  using SD = poly::math::StaticDims<int64_t, 1, 1, true>;
+  using SD = math::StaticDims<int64_t, 1, 1, true>;
   StridedDims<1, 1, 1> sdstatic = SD{};
   StridedDims<> sddynamic = SD{};
   EXPECT_EQ(ptrdiff_t(sdstatic), 1);
@@ -452,9 +451,9 @@ TEST(StringMat1x1, BasicAssertions) {
   auto B = "[-5]"_mat;
   PtrMatrix<int64_t> Bp = B;
   IntMatrix<> A = "[-5]"_mat;
-  poly::math::DensePtrMatrix<int64_t> Dp = B;
-  poly::math::ManagedArray<int64_t, poly::math::DenseDims<>> D = "[-5]"_mat;
-  poly::containers::Tuple{Bp, A, Dp, D}.apply([](const auto &x) {
+  math::DensePtrMatrix<int64_t> Dp = B;
+  math::ManagedArray<int64_t, math::DenseDims<>> D = "[-5]"_mat;
+  containers::Tuple{Bp, A, Dp, D}.apply([](const auto &x) {
     EXPECT_EQ(ptrdiff_t(x.numCol()), 1);
     EXPECT_EQ(ptrdiff_t(x.numRow()), 1);
     EXPECT_EQ((x[0, 0]), -5);
@@ -462,20 +461,18 @@ TEST(StringMat1x1, BasicAssertions) {
 }
 
 TEST(StringVector, BasicAssertions) {
-  static_assert(!poly::utils::Compressible<int64_t>);
+  static_assert(!utils::Compressible<int64_t>);
   auto a = "[-5 3 7]"_mat;
   auto along = "[-5 3 7 -15 17 -5 -4 -3 -2 1 0 0 1 2 0 3 4 5 6 7]"_mat;
   static_assert(
-    std::convertible_to<poly::math::StaticDims<int64_t, 1, 3, false>,
-                        Length<>>);
-  poly::math::Array<int64_t, poly::math::StaticDims<int64_t, 1, 3, false>> aps =
-    a;
+    std::convertible_to<math::StaticDims<int64_t, 1, 3, false>, Length<>>);
+  math::Array<int64_t, math::StaticDims<int64_t, 1, 3, false>> aps = a;
   PtrVector<int64_t> ap = a;
   Vector<int64_t> b = a;
   EXPECT_EQ("[-5 3]"_mat, a[_(0, 2)]);
   const auto &ca = along;
   EXPECT_EQ(a, ca[_(0, 3)]);
-  poly::containers::Tuple{aps, ap, b}.apply([](const auto &x) {
+  containers::Tuple{aps, ap, b}.apply([](const auto &x) {
     EXPECT_EQ(ptrdiff_t(x.size()), 3);
     EXPECT_EQ(x[0], -5);
     EXPECT_EQ(x[1], 3);

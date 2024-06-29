@@ -26,7 +26,6 @@ import Range;
 import Rational;
 import SIMD;
 
-
 namespace math {
 // #define VERBOSESIMPLEX
 
@@ -958,13 +957,13 @@ public:
     auto cC = ptrdiff_t(conCap), vC = ptrdiff_t(varCap);
     size_t mem_needed = requiredMemory(cC, vC);
     // void *p = ::operator new(count * memNeeded);
-    return poly::alloc::malloc(count * mem_needed,
-                               std::align_val_t(alignof(Simplex)));
+    return alloc::malloc(count * mem_needed,
+                         std::align_val_t(alignof(Simplex)));
     // return ::operator new(count * memNeeded,
     //                       std::align_val_t(alignof(Simplex)));
   }
   static void operator delete(void *ptr, size_t sz) {
-    poly::alloc::free(ptr, sz, std::align_val_t(alignof(Simplex)));
+    alloc::free(ptr, sz, std::align_val_t(alignof(Simplex)));
     // ::operator delete(ptr, std::align_val_t(alignof(Simplex)));
   }
 
@@ -1026,4 +1025,4 @@ static_assert(std::movable<Simplex::Solution::iterator>);
 static_assert(std::indirectly_readable<Simplex::Solution::iterator>);
 static_assert(std::forward_iterator<Simplex::Solution::iterator>);
 static_assert(alignof(Simplex) == simd::VECTORWIDTH);
-} // namespace poly::math
+} // namespace math

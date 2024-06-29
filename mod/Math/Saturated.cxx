@@ -40,4 +40,4 @@ template <std::signed_integral T> constexpr auto mul_sat(T x, T y) -> T {
   return ((x > 0) == (y > 0)) ? std::numeric_limits<T>::max()
                               : std::numeric_limits<T>::min();
 }
-} // namespace poly::math
+} // namespace math

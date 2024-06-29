@@ -3,7 +3,7 @@
 
 import MultiplicativeInverse;
 
-using poly::math::MultiplicativeInverse, poly::math::cld;
+using math::MultiplicativeInverse, math::cld;
 
 TEST(MultiplicativeInverse, BasicAssertions) {
   for (int32_t j = -100; j <= 100; ++j) {

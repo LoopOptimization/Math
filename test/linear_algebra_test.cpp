@@ -9,7 +9,7 @@ import Array;
 import Invariant;
 import LinearAlgebra;
 
-using namespace poly::math;
+using namespace math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(LinearAlgebraTest, BasicAssertions) {

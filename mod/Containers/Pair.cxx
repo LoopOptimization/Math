@@ -4,7 +4,7 @@ module;
 #include <type_traits>
 #include <utility>
 
-export module Pairs;
+export module Pair;
 
 export namespace containers {
 
@@ -39,14 +39,14 @@ private:
 } // namespace containers
 
 template <typename F, typename S>
-struct std::tuple_size<poly::containers::Pair<F, S>>
+struct std::tuple_size<containers::Pair<F, S>>
   : public std::integral_constant<size_t, 2> {};
 
 template <typename F, typename S>
-struct std::tuple_element<0, poly::containers::Pair<F, S>> {
+struct std::tuple_element<0, containers::Pair<F, S>> {
   using type = F;
 };
 template <typename F, typename S>
-struct std::tuple_element<1, poly::containers::Pair<F, S>> {
+struct std::tuple_element<1, containers::Pair<F, S>> {
   using type = S;
 };

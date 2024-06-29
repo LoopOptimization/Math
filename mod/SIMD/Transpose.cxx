@@ -1,8 +1,10 @@
 module;
+#include "LoopMacros.hxx"
 #include <cstddef>
 module SIMD:Tranpose;
 
 import :Unroll;
+import :Vec;
 
 export namespace simd {
 

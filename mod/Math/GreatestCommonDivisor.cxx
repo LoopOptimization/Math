@@ -13,7 +13,7 @@ export module GCD;
 import Invariant;
 import SIMD;
 
-namespace math {
+export namespace math {
 using utils::invariant;
 constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;
@@ -144,4 +144,4 @@ constexpr auto divgcd(int64_t a, int64_t b) -> std::array<int64_t, 2> {
   return {t, s};
 }
 
-} // namespace poly::math
+} // namespace math

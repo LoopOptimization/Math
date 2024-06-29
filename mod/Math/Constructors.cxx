@@ -33,7 +33,7 @@ constexpr auto vector(WArena<T> alloc,
 template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto vector(Arena<SlabSize, BumpUp> *alloc,
                       ptrdiff_t M) -> ResizeableView<T, Length<>> {
-  return {alloc->template allocate<utils::compressed_t<T>>(M), length(M),
+  return {alloc->template allocate<compressed_t<T>>(M), length(M),
           capacity(M)};
 }
 
@@ -61,7 +61,7 @@ template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto vector(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
                       T x) -> ResizeableView<T, Length<>> {
   ResizeableView<T, Length<>> a{
-    alloc->template allocate<utils::compressed_t<T>>(M), length(M),
+    alloc->template allocate<compressed_t<T>>(M), length(M),
     capacity(M)};
   a.fill(x);
   return a;
@@ -88,7 +88,7 @@ constexpr auto square_matrix(WArena<T> alloc,
 template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto square_matrix(Arena<SlabSize, BumpUp> *alloc,
                              ptrdiff_t M) -> MutSquarePtrMatrix<T> {
-  return {alloc->template allocate<utils::compressed_t<T>>(M * M),
+  return {alloc->template allocate<compressed_t<T>>(M * M),
           SquareDims<>{row(M)}};
 }
 template <alloc::FreeAllocator A>
@@ -113,7 +113,7 @@ template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto square_matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
                              T x) -> MutSquarePtrMatrix<T> {
   MutSquarePtrMatrix<T> A{
-    alloc->template allocate<utils::compressed_t<T>>(M * M),
+    alloc->template allocate<compressed_t<T>>(M * M),
     SquareDims<>{row(M)}};
   A.fill(x);
   return A;
@@ -141,7 +141,7 @@ template <class T, size_t SlabSize, bool BumpUp, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M,
                       Col<C> N) -> MutArray<T, DenseDims<R, C>> {
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
-  return {alloc->template allocate<utils::compressed_t<T>>(memamt), M, N};
+  return {alloc->template allocate<compressed_t<T>>(memamt), M, N};
 }
 template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(A a, Row<R> M, Col<C> N, eltype_t<A> x)
@@ -168,7 +168,7 @@ constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N,
                       T x) -> MutArray<T, DenseDims<R, C>> {
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
   MutArray<T, DenseDims<R, C>> A{
-    alloc->template allocate<utils::compressed_t<T>>(memamt), DenseDims{M, N}};
+    alloc->template allocate<compressed_t<T>>(memamt), DenseDims{M, N}};
   A.fill(x);
   return A;
 }
@@ -214,4 +214,4 @@ concept Alloc = requires(T t, ptrdiff_t M, Row<> r, Col<> c, I i) {
 static_assert(Alloc<std::allocator<int64_t>, int64_t>);
 static_assert(Alloc<alloc::Mallocator<int64_t>, int64_t>);
 static_assert(Alloc<Arena<> *, int64_t>);
-} // namespace poly::math
+} // namespace math

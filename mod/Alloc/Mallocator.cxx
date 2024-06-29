@@ -40,7 +40,7 @@ export module Allocator;
 
 import Invariant;
 
-export namespace poly::alloc {
+export namespace alloc {
 
 #ifdef __cpp_lib_allocate_at_least
 template <class Pointer> using AllocResult = std::allocation_result<Pointer *>;
@@ -272,4 +272,4 @@ alloc_at_least(A a, size_t n) -> AllocResult<typename A::value_type> {
   if constexpr (CanAllocAtLeast<A>) return a.allocate_at_least(n);
   else return {a.allocate(n), n};
 }
-} // namespace poly::alloc
+} // namespace alloc

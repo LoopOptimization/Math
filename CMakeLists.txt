@@ -5,6 +5,8 @@ option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
+option(ENABLE_RTTI "Use RTTI" OFF)
+option(ENABLE_STACK_PROTECTOR "Use stack protection" OFF)
 # ---- Project ----
 
 # Note: update this to your new project's name and version
@@ -63,7 +65,14 @@ target_compile_options(
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+          $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+if(NOT ENABLE_RTTI)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
+endif()
+if(ENABLE_STACK_PROTECTOR)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
+endif()
 
 # --- Allocator override ----
 set(SEARCH_JE_MALLOC USE_JE_MALLOC)

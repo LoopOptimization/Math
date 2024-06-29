@@ -8,7 +8,7 @@
 
 import BitSet;
 
-using poly::containers::BitSet, poly::math::Vector;
+using containers::BitSet, math::Vector;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSetTest, BasicAssertions) {

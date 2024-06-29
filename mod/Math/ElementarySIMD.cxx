@@ -1,10 +1,10 @@
 module;
 #include <bit>
 #include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <type_traits>
 
 export module Elementary;
 
@@ -345,7 +345,7 @@ constexpr auto trunclo(double x) -> double {
   return std::bit_cast<double>(std::bit_cast<uint64_t>(x) & 0xfffffffff8000000);
 }
 
-constexpr auto fma(double x, double y, double z) -> double {
+constexpr auto fmadd(double x, double y, double z) -> double {
 #if __cpp_lib_constexpr_cmath < 202202L // no cmath constexpr support
   if consteval { // TODO drop when c++23 constexpr fma support is available
 #if defined(__linux__) && defined(__x86_64__)
@@ -369,22 +369,22 @@ constexpr auto fma(double x, double y, double z) -> double {
 
 [[gnu::always_inline]] constexpr auto
 expm1b_kernel(std::integral_constant<int, 2>, double x) -> double {
-  return x * fma(fma(fma(0.009618130135925114, x, 0.055504115022757844), x,
-                     0.2402265069590989),
-                 x, 0.6931471805599393);
+  return x * fmadd(fmadd(fmadd(0.009618130135925114, x, 0.055504115022757844),
+                         x, 0.2402265069590989),
+                   x, 0.6931471805599393);
 }
 [[gnu::always_inline]] constexpr auto
 expm1b_kernel(std::integral_constant<int, 3>, double x) -> double {
-  return x * fma(fma(fma(0.04166666762124105, x, 0.1666666704849642), x,
-                     0.49999999999999983),
-                 x, 0.9999999999999998);
+  return x * fmadd(fmadd(fmadd(0.04166666762124105, x, 0.1666666704849642), x,
+                         0.49999999999999983),
+                   x, 0.9999999999999998);
 }
 [[gnu::always_inline]] constexpr auto
 expm1b_kernel(std::integral_constant<int, 10>, double x) -> double {
-  return x * fma(fma(fma(fma(0.5393833837413015, x, 1.1712561359457612), x,
-                         2.0346785922926713),
-                     x, 2.6509490552382577),
-                 x, 2.302585092994046);
+  return x * fmadd(fmadd(fmadd(fmadd(0.5393833837413015, x, 1.1712561359457612),
+                               x, 2.0346785922926713),
+                         x, 2.6509490552382577),
+                   x, 2.302585092994046);
 }
 
 template <int B> constexpr auto exp_impl(double x) -> double {
@@ -395,13 +395,13 @@ template <int B> constexpr auto exp_impl(double x) -> double {
   // if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
   // #endif
   if (x <= subnormal_exp(x, base)) return 0.0;
-  double float_n = fma(x, LogBo256INV(base), magic_round_const<double>);
+  double float_n = fmadd(x, LogBo256INV(base), magic_round_const<double>);
   auto N = std::bit_cast<uint64_t>(float_n);
   float_n -= magic_round_const<double>;
-  double r = fma(float_n, LogBo256U(base), x);
-  r = fma(float_n, LogBo256L(base), r);
+  double r = fmadd(float_n, LogBo256U(base), x);
+  r = fmadd(float_n, LogBo256L(base), r);
   double jU = J_TABLE[N & 255];
-  double small = fma(jU, expm1b_kernel(base, r), jU);
+  double small = fmadd(jU, expm1b_kernel(base, r), jU);
   auto twopk = int64_t(N >> 8) << 52;
   return std::bit_cast<double>(twopk + std::bit_cast<int64_t>(small));
 }

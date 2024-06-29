@@ -1,15 +1,16 @@
 module;
 
+#include "Owner.hxx"
 #include <cstddef>
 #include <type_traits>
 
-export module valid;
+export module Valid;
 
-import invariant;
+import Invariant;
 
 export namespace utils {
 // TODO: communicate not-null to the compiler somehow?
-template <typename T> [[gsl::Pointer(T)]] class Valid {
+template <typename T> class MATH_GSL_POINTER Valid {
   [[no_unique_address]] T *value;
 
 public:

@@ -22,31 +22,30 @@ TEST(BoxOptTest, BasicAssertions) {
   //   1e-6
   // opt2 = BoxOptNewton.minimize(fsoft, (2, 2), (1, 1), (3, 32))
   // @test SVector(opt2) ≈ SVector(3.0, 9.132451832031007) rtol = 1e-6
-  poly::math::BoxTransform box(2, 1, 32);
+  math::BoxTransform box(2, 1, 32);
   EXPECT_EQ(box.getLowerBounds().size(), 2);
   EXPECT_EQ(box.getUpperBounds().size(), 2);
-  poly::math::BoxTransformVector<poly::math::MutPtrVector<double>> trf{
-    box.transformed()};
+  math::BoxTransformVector<math::MutPtrVector<double>> trf{box.transformed()};
   trf[1] = 3;
   box.transformed()[0] = 4;
   EXPECT_NEAR(box.transformed()[0], 4.0, 1e-14);
   EXPECT_NEAR(box.transformed()[1], 3.0, 1e-14);
-  poly::math::MutPtrVector<double> x0{box.getRaw()};
+  math::MutPtrVector<double> x0{box.getRaw()};
   x0 << -3.4; // approx 2 after transform
   constexpr auto fsoft = [](auto x) {
     auto u0 = x[0];
     auto u1 = x[1];
-    return fcore(u0, u1) + 0.25 * poly::math::softplus(8.0 * gcore(u0, u1));
+    return fcore(u0, u1) + 0.25 * math::softplus(8.0 * gcore(u0, u1));
   };
-  poly::alloc::OwningArena<> arena;
-  double opt0 = poly::math::minimize(&arena, box, fsoft);
+  alloc::OwningArena<> arena;
+  double opt0 = math::minimize(&arena, box, fsoft);
   double u0 = box.transformed()[0];
   double u1 = box.transformed()[1];
   std::cout << "u0 = " << u0 << "; u1 = " << u1 << '\n';
   EXPECT_LT(std::abs(3.45128 - u0), 1e-3);
   EXPECT_LT(std::abs(7.78878 - u1), 1e-3);
   box.decreaseUpperBound(0, 3);
-  double opt1 = poly::math::minimize(&arena, box, fsoft);
+  double opt1 = math::minimize(&arena, box, fsoft);
   EXPECT_LT(opt0, opt1);
   double u01 = box.transformed()[0];
   double u11 = box.transformed()[1];
@@ -54,8 +53,8 @@ TEST(BoxOptTest, BasicAssertions) {
   EXPECT_EQ(u01, 3.0);
   EXPECT_LT(std::abs(9.09724 - u11), 1e-3);
 
-  poly::math::Vector<int32_t> r{std::array{0, 0}};
-  double opti = poly::math::minimizeIntSol(&arena, r, 1, 32, fsoft);
+  math::Vector<int32_t> r{std::array{0, 0}};
+  double opti = math::minimizeIntSol(&arena, r, 1, 32, fsoft);
   EXPECT_GT(opti, opt1);
   EXPECT_EQ(r[0], 3);
   EXPECT_EQ(r[1], 9);
@@ -136,37 +135,36 @@ struct MatOpt {
     return (MKN / n_r) + MKN / m_c + (2 * MKN) / k_c;
   }
 
-  inline auto operator()(const poly::math::AbstractVector auto &x) const {
+  inline auto operator()(const math::AbstractVector auto &x) const {
     auto m_c = x[0] * m_r;
     auto k_c = x[1];
     auto n_c = x[2] * n_r;
     // TODO: smarter penalty scaling
     auto violation_penalty =
-      poly::math::smax<>(0.0, l2_use(m_c, k_c) - (0.9 / sizeof(double)) * L2c) +
-      poly::math::smax<>(0.0,
-                         l3_use(m_c, k_c, n_c) - (0.9 / sizeof(double)) * L3c);
+      math::smax<>(0.0, l2_use(m_c, k_c) - (0.9 / sizeof(double)) * L2c) +
+      math::smax<>(0.0, l3_use(m_c, k_c, n_c) - (0.9 / sizeof(double)) * L3c);
     auto r_to_l3 = ram_to_l3_datavolume(k_c, n_c) * (sizeof(double) / RAMb);
     auto l3_to_l2 = l3_to_l2_datavolume(m_c, k_c, n_c) * (sizeof(double) / L3b);
     auto l2_to_l1 = l2_to_l1_datavolume(m_c, k_c) * (sizeof(double) / L2b);
     auto res =
-      poly::math::smax<>(r_to_l3, l3_to_l2, l2_to_l1) + 1e3 * violation_penalty;
-    // std::cout << "m_c = " << poly::math::value(1.0 * m_c)
-    //           << "\nk_c = " << poly::math::value(1.0 * k_c)
-    //           << "\nn_c = " << poly::math::value(1.0 * n_c) << "\nres = " <<
+      math::smax<>(r_to_l3, l3_to_l2, l2_to_l1) + 1e3 * violation_penalty;
+    // std::cout << "m_c = " << math::value(1.0 * m_c)
+    //           << "\nk_c = " << math::value(1.0 * k_c)
+    //           << "\nn_c = " << math::value(1.0 * n_c) << "\nres = " <<
     //           res
     //           << "\n";
     return res;
-    // return poly::math::smax<>(r_to_l3, l3_to_l2, l2_to_l1) +
+    // return math::smax<>(r_to_l3, l3_to_l2, l2_to_l1) +
     //        1000.0 * violation_penalty;
   }
 };
 
 auto optimizeFloat(int32_t M, int32_t K, int32_t N) -> std::array<double, 4> {
 
-  poly::math::BoxTransform box(std::array<int32_t, 3>{1, 1, 1},
-                               std::array<int32_t, 3>{int32_t(cld(M, m_r)),
-                                                      int32_t(K),
-                                                      int32_t(cld(N, n_r))});
+  math::BoxTransform box(std::array<int32_t, 3>{1, 1, 1},
+                         std::array<int32_t, 3>{int32_t(cld(M, m_r)),
+                                                int32_t(K),
+                                                int32_t(cld(N, n_r))});
   { // init, we set `m_c = 3*m_r` and then use l2 and l3 sizes for rest
     box.transformed()[0] = 8;
     double m_c = 8 * m_r,
@@ -177,17 +175,17 @@ auto optimizeFloat(int32_t M, int32_t K, int32_t N) -> std::array<double, 4> {
     box.transformed()[2] = n_c;
   }
 
-  poly::alloc::OwningArena<> arena;
-  double opt = poly::math::minimize(&arena, box, MatOpt{M, K, N});
+  alloc::OwningArena<> arena;
+  double opt = math::minimize(&arena, box, MatOpt{M, K, N});
   return {opt, m_r * box.transformed()[0], box.transformed()[1],
           n_r * box.transformed()[2]};
 }
 auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
 
-  poly::math::BoxTransform box(std::array<int32_t, 3>{1, 1, 1},
-                               std::array<int32_t, 3>{int32_t(cld(M, m_r)),
-                                                      int32_t(K),
-                                                      int32_t(cld(N, n_r))});
+  math::BoxTransform box(std::array<int32_t, 3>{1, 1, 1},
+                         std::array<int32_t, 3>{int32_t(cld(M, m_r)),
+                                                int32_t(K),
+                                                int32_t(cld(N, n_r))});
   { // init, we set `m_c = 3*m_r` and then use l2 and l3 sizes for rest
     box.transformed()[0] = 4;
     double m_c = 4 * m_r,
@@ -198,9 +196,9 @@ auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
     box.transformed()[2] = n_c;
   }
 
-  poly::alloc::OwningArena<> arena;
-  poly::math::Vector<int32_t> r{poly::math::length(3)};
-  poly::math::minimizeIntSol(&arena, r, box, MatOpt{M, K, N});
+  alloc::OwningArena<> arena;
+  math::Vector<int32_t> r{math::length(3)};
+  math::minimizeIntSol(&arena, r, box, MatOpt{M, K, N});
   return {m_r * r[0], r[1], n_r * r[2]};
 }
 
