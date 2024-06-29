@@ -1,7 +1,8 @@
-#include "Math/Array.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/Orthogonalize.hpp"
 #include <gtest/gtest.h>
+
+import Array;
+import MatDim;
+import Orthogonalize;
 
 using poly::math::DenseMatrix, poly::math::DenseDims, poly::math::row,
   poly::math::col;

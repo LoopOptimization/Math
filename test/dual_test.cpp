@@ -1,14 +1,14 @@
-#include "Containers/TinyVector.hpp"
-#include "Math/Array.hpp"
-#include "Math/Constructors.hpp"
-#include "Math/Dual.hpp"
-#include "Math/Exp.hpp"
-#include "Math/LinearAlgebra.hpp"
-#include "Math/Matrix.hpp"
-#include "Utilities/TypePromotion.hpp"
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <random>
+
+import Array;
+import Dual;
+import LinearAlgebra;
+import TinyVector;
+import TypePromotion;
 
 using namespace poly::math;
 using poly::utils::eltype_t, poly::math::transpose;

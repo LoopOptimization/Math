@@ -1,13 +1,14 @@
-#include "Math/Array.hpp"
-#include "Math/LinearAlgebra.hpp"
-#include "Math/Math.hpp"
-#include "Utilities/Invariant.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <ostream>
 #include <random>
+
+import Array;
+import Invariant;
+import LinearAlgebra;
+
 using namespace poly::math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

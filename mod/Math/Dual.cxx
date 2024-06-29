@@ -9,14 +9,14 @@ module;
 #include <type_traits>
 #include <utility>
 
-
-export module ForwardDiff:Dual;
+export module Dual;
 
 import Arena;
 import Array;
+import Elementary;
 import Invariant;
-import TypePromotion;
 import SIMD;
+import TypePromotion;
 
 export namespace math {
 
@@ -974,6 +974,28 @@ template <class T, ptrdiff_t N>
 constexpr auto log1p(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return log1p(Dual<T, N>{x});
 }
+template <int l = 8> constexpr auto smax(auto x, auto y, auto z) {
+  double m = std::max(std::max(value(x), value(y)), value(z));
+  static constexpr double f = l, i = 1 / f;
+  return m + i * log(exp(f * (x - m)) + exp(f * (y - m)) + exp(f * (z - m)));
+}
+template <int l = 8> constexpr auto smax(auto w, auto x, auto y, auto z) {
+  double m =
+    std::max(std::max(value(w), value(y)), std::max(value(x), value(z)));
+  static constexpr double f = l, i = 1 / f;
+  return m + i * log(exp(f * (w - m)) + exp(f * (x - m)) + exp(f * (y - m)) +
+                     exp(f * (z - m)));
+}
+template <int l = 8, typename T, ptrdiff_t N>
+constexpr auto smax(SVector<T, N> x) -> T {
+  static_assert(!std::is_integral_v<T>);
+  static constexpr double f = l, i = 1 / f;
+  double m = -std::numeric_limits<double>::infinity();
+  for (ptrdiff_t n = 0; n < N; ++n) m = std::max(m, value(x[n]));
+  T a{};
+  for (ptrdiff_t n = 0; n < N; ++n) a += exp(f * (x[n] - m));
+  return m + i * log(a);
+}
 
 constexpr auto dval(double &x) -> double & { return x; }
 template <typename T, ptrdiff_t N>
@@ -1130,7 +1152,7 @@ constexpr auto hessian(alloc::Arena<> *arena, PtrVector<double> x,
 }
 static_assert(MatrixDimension<SquareDims<>>);
 
-} // namespace poly::math
+} // namespace math
 namespace std {
 template <> struct tuple_size<poly::math::HessianResult> {
   static constexpr size_t value = 3;

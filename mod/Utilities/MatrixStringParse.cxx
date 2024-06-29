@@ -4,9 +4,9 @@ module;
 #include <cstddef>
 #include <cstdint>
 
-export module Array:StringParse;
+export module ArrayParse;
 
-import :Static;
+import StaticArray;
 
 // #if !defined(__clang__)
 #define CONSTEVAL_LITERAL_ARRAYS

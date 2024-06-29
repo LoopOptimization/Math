@@ -1,7 +1,8 @@
-#include "Numbers/Int8.hpp"
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <limits>
+
+import Int8;
 
 using poly::numbers::i8, poly::numbers::u8, poly::numbers::Flag8;
 

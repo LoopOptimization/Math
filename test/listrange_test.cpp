@@ -1,9 +1,11 @@
-#include "Alloc/Arena.hpp"
-#include "Utilities/ListRanges.hpp"
 #include <concepts>
 #include <gtest/gtest.h>
 #include <ranges>
 #include <vector>
+
+import Arena;
+import ListRange;
+
 using namespace poly;
 
 template <typename T> class List {

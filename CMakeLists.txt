@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.28.2)
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
@@ -39,14 +39,22 @@ file(GLOB_RECURSE headers CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
 file(GLOB_RECURSE modules CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
-target_sources(${PROJECT_NAME} PUBLIC FILE_SET CXX_MODULES FILES ${modules})
+message(STATUS "Headers: ${headers}")
+message(STATUS "Modules: ${modules}")
 
 # ---- Create library ----
 
 # Note: for header-only libraries change all PUBLIC flags to INTERFACE and
 # create an interface target:
-add_library(${PROJECT_NAME} INTERFACE ${headers})
+add_library(${PROJECT_NAME} OBJECT) # ${headers})
+# add_library(${PROJECT_NAME} INTERFACE ${headers})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
+target_sources(
+  ${PROJECT_NAME}
+  PUBLIC FILE_SET CXX_MODULES FILES ${modules}
+  INTERFACE FILE_SET HEADERS FILES ${headers})
+
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 # being a cross-platform target, we enforce standards conformance on MSVC
 target_compile_options(
@@ -54,7 +62,7 @@ target_compile_options(
 
 target_include_directories(
   ${PROJECT_NAME}
-  INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
 
 # --- Allocator override ----
@@ -113,20 +121,24 @@ endif()
 # the project's regular header paths
 string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
 
-packageproject(
-  NAME
-  ${PROJECT_NAME}
-  VERSION
-  ${PROJECT_VERSION}
-  NAMESPACE
-  ${PROJECT_NAME}
-  BINARY_DIR
-  ${PROJECT_BINARY_DIR}
-  INCLUDE_DIR
-  ${PROJECT_SOURCE_DIR}/include
-  INCLUDE_DESTINATION
-  include/${PROJECT_NAME}-${PROJECT_VERSION}
-  VERSION_HEADER
-  "${VERSION_HEADER_LOCATION}"
-  COMPATIBILITY
-  SameMajorVersion)
+include(GNUInstallDirs)
+
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT math-targets
+  FILE_SET CXX_MODULES
+  # There's currently no convention for this location
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/my_package/src
+  FILE_SET HEADERS
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # Same as default, could be omitted
+  INCLUDES
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(
+  EXPORT math-targets
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math
+  CXX_MODULES_DIRECTORY .)
+# packageproject( NAME ${PROJECT_NAME} VERSION ${PROJECT_VERSION} NAMESPACE
+# ${PROJECT_NAME} BINARY_DIR ${PROJECT_BINARY_DIR} INCLUDE_DIR
+# ${PROJECT_SOURCE_DIR}/include INCLUDE_DESTINATION
+# include/${PROJECT_NAME}-${PROJECT_VERSION} VERSION_HEADER
+# "${VERSION_HEADER_LOCATION}" COMPATIBILITY SameMajorVersion)

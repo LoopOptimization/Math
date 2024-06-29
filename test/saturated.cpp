@@ -1,8 +1,9 @@
-#include "Math/Saturated.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <limits>
 #include <random>
+
+import Saturated;
 
 TEST(SaturatedArithmetic, BasicAssertions) {
 

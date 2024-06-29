@@ -1,6 +1,3 @@
-
-#include "Containers/Tuple.hpp"
-#include "Math/GreatestCommonDivisor.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -8,6 +5,9 @@
 #include <limits>
 #include <numeric>
 #include <random>
+
+import GCD;
+import Tuple;
 
 template <ptrdiff_t W>
 constexpr auto vecget(poly::simd::Vec<W, int64_t> v, ptrdiff_t i) -> int64_t {

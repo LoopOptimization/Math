@@ -1,8 +1,8 @@
-#include "Math/Math.hpp"
-#include <Math/ElementarySIMD.hpp>
 #include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
+
+import Elementary;
 
 TEST(ElementarySIMD, BasicAssertions) {
 

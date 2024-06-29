@@ -1,7 +1,8 @@
-#include "Utilities/Optional.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <limits>
+
+import Optional;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(Optional, BasicAssertions) {

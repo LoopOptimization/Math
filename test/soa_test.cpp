@@ -1,12 +1,14 @@
-#include "Containers/Pair.hpp"
-#include "Containers/Tuple.hpp"
-#include "Math/Array.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/SOA.hpp"
 #include <concepts>
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <type_traits>
+
+import Array;
+import Pair;
+import Range;
+import SOA;
+import Tuple;
+
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SOATest, BasicAssertions) {
   poly::containers::Tuple x{3, 2.0, 5.0F};

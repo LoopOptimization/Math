@@ -1,7 +1,7 @@
-
-#include "Math/Factor.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
+
+import Factor;
 
 TEST(FactorLowerBound, BasicAssertions) {
 

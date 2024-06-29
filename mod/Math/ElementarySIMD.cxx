@@ -8,8 +8,8 @@ module;
 
 export module Elementary;
 
-import SIMD;
 import BitHack;
+import SIMD;
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 constexpr double J_TABLE[256] = {1.0,

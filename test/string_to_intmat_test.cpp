@@ -1,9 +1,11 @@
-#include "Math/Array.hpp"
-#include "Utilities/MatrixStringParse.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <ostream>
+
+import Array;
+import ArrayParse;
+
 using namespace poly::math;
 using poly::utils::operator""_mat;
 

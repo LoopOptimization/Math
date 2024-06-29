@@ -1,8 +1,8 @@
-#include "Math/Math.hpp"
-#include "Math/Unimodularization.hpp"
-#include "Utilities/MatrixStringParse.hpp"
 #include <gtest/gtest.h>
 #include <ostream>
+
+import ArrayParse;
+import Unimodularization;
 
 using namespace poly::math;
 using poly::utils::operator""_mat;

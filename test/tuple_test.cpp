@@ -1,8 +1,8 @@
-
-#include "Containers/Tuple.hpp"
 #include <concepts>
 #include <cstdint>
 #include <gtest/gtest.h>
+
+import Tuple;
 
 using poly::containers::Tuple, poly::containers::tie;
 

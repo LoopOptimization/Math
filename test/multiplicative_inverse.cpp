@@ -1,6 +1,7 @@
-#include "Math/MultiplicativeInverse.hpp"
 #include <cstdint>
 #include <gtest/gtest.h>
+
+import MultiplicativeInverse;
 
 using poly::math::MultiplicativeInverse, poly::math::cld;
 

@@ -1,8 +1,9 @@
-#include "Bit/Float.hpp"
 #include <cmath>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <random>
+
+import BitHack;
 
 TEST(BitTest, BasicAssertions) {
   for (int i = 0; i < 63; ++i) {

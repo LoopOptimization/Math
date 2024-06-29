@@ -6,7 +6,7 @@ module;
 #include <cstdint>
 #include <type_traits>
 
-module Storage;
+export module Storage;
 
 import MatDim;
 import AxisTypes;

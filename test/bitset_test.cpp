@@ -1,4 +1,3 @@
-#include "Containers/BitSets.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -6,6 +5,8 @@
 #include <iostream>
 #include <ostream>
 #include <print>
+
+import BitSet;
 
 using poly::containers::BitSet, poly::math::Vector;
 

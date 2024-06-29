@@ -1,12 +1,3 @@
-#include "Containers/Pair.hpp"
-#include "Math/Array.hpp"
-#include "Math/LinearAlgebra.hpp"
-#include "Math/Math.hpp"
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/NormalForm.hpp"
-#include "Math/UniformScaling.hpp"
-#include "Utilities/MatrixStringParse.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -15,6 +6,15 @@
 #include <optional>
 #include <random>
 #include <utility>
+
+import Array;
+import ArrayParse;
+import LinearAlgebra;
+import MatDim;
+import NormalForm;
+import Pair;
+import UniformScaling;
+
 using namespace poly::math;
 using poly::utils::operator""_mat;
 

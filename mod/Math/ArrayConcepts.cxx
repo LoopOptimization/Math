@@ -3,7 +3,7 @@ module;
 #include <cstddef>
 #include <type_traits>
 
-module ArrayConcepts;
+export module ArrayConcepts;
 
 import MatDim;
 import TypePromotion;

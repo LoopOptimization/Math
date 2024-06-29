@@ -1,21 +1,4 @@
 module;
-#include "Alloc/Arena.hpp"
-#include "Alloc/Mallocator.hpp"
-#include "Math/Array.hpp"
-#include "Math/AxisTypes.hpp"
-#include "Math/Constraints.hpp"
-#include "Math/Constructors.hpp"
-#include "Math/GreatestCommonDivisor.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/Math.hpp"
-#include "Math/Matrix.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/NormalForm.hpp"
-#include "Math/Rational.hpp"
-#include "SIMD/Intrin.hpp"
-#include "SIMD/Vec.hpp"
-#include "Utilities/Invariant.hpp"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -37,7 +20,11 @@ import Array;
 import AxisTypes;
 import Constraints;
 import GCD;
+import Invariant;
+import MatDim;
+import Range;
 import Rational;
+import SIMD;
 
 
 namespace math {

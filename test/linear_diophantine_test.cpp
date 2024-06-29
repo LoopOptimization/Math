@@ -1,9 +1,12 @@
-#include "Math/LinearDiophantine.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <random>
+#include <vector>
+
+import LinearDiophantine;
+
 using namespace poly::math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

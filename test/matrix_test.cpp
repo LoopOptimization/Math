@@ -1,16 +1,3 @@
-#include "Alloc/Arena.hpp"
-#include "Containers/TinyVector.hpp"
-#include "Containers/Tuple.hpp"
-#include "Math/Array.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Math.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/SmallSparseMatrix.hpp"
-#include "Math/StaticArrays.hpp"
-#include "Math/UniformScaling.hpp"
-#include "Utilities/MatrixStringParse.hpp"
-#include "Utilities/TypeCompression.hpp"
-#include "Utilities/TypePromotion.hpp"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -34,6 +21,8 @@ import MatDim;
 import SmallSparseMatrix;
 import StaticArray;
 import UniformScaling;
+import ArrayParse;
+import TypePromotion;
 
 using namespace poly::math;
 using poly::utils::operator""_mat;

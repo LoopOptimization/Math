@@ -1,14 +1,14 @@
-#include "Alloc/Arena.hpp"
-#include "Math/Array.hpp"
-#include "Math/BoxOpt.hpp"
-#include "Math/BoxOptInt.hpp"
-#include "Math/Exp.hpp"
-#include "Math/ExpDual.hpp"
 #include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
+
+import Arena;
+import Array;
+import BoxOpt;
+import BoxOptInt;
+import Dual;
 
 constexpr auto fcore(auto u1, auto u2) {
   return (2.0 * u1 + u2 + u1 * u2) / (u1 * u2);

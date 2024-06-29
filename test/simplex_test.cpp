@@ -1,9 +1,9 @@
-#include "Math/Array.hpp"
-#include "Math/Math.hpp"
-#include "Math/Simplex.hpp"
-#include "Utilities/MatrixStringParse.hpp"
 #include <cstddef>
 #include <gtest/gtest.h>
+
+import Array;
+import ArrayParse;
+import Simplex;
 
 using namespace poly::math;
 using poly::utils::operator""_mat;
