@@ -3,7 +3,8 @@ module;
 #include <cstddef>
 module Array:Reference;
 
-import :Compression;
+import TypeCompression;
+
 template <typename T> struct Reference {
   using C = utils::compressed_t<T>;
   static_assert(!std::same_as<C, T>);
@@ -228,13 +229,13 @@ template <typename T>
                                           ptrdiff_t i) -> const T & {
   return p[i];
 }
-template <Compressible T>
+template <utils::Compressible T>
 [[gnu::always_inline]] constexpr auto ref(utils::compressed_t<T> *p,
                                           ptrdiff_t i) -> Reference<T> {
   return Reference<T>{p + i};
 }
 
-template <Compressible T>
+template <utils::Compressible T>
 [[gnu::always_inline]] constexpr auto ref(const utils::compressed_t<T> *p,
                                           ptrdiff_t i) -> T {
   return T::decompress(p + i);

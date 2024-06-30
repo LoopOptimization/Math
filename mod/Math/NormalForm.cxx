@@ -9,13 +9,16 @@ module;
 
 export module NormalForm;
 
-import Pair;
-import Tuple;
 import Array;
-import VGCD;
+import AxisTypes;
+import Pair;
 import SIMD;
+import Tuple;
+import VGCD;
 
 using containers::Tuple, containers::tie;
+
+using namespace math;
 
 constexpr auto gcdxScale(int64_t a, int64_t b) -> std::array<int64_t, 4> {
   if (constexpr_abs(a) == 1) return {a, 0, a, b};
@@ -161,7 +164,7 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
     } else {
       zeroSupDiagonal(A, K, i, row(M), col(N));
       int64_t Aii = A[i, i];
-      if (constexpr_abs(Aii) != 1) {
+      if (math::constexpr_abs(Aii) != 1) {
         // including this row renders the matrix not unimodular!
         // therefore, we drop the row.
         dropCol(A, i, row(M), col(--N));

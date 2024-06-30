@@ -11,7 +11,7 @@ export module ManagedArray;
 import AxisTypes;
 import Array;
 
-export namespace Math {
+export namespace math {
 
 /// Stores memory, then pointer.
 /// Thus struct's alignment determines initial alignment
@@ -750,4 +750,4 @@ inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
   return printMatrix(os, B.data(), ptrdiff_t(B.numRow()), ptrdiff_t(B.numCol()),
                      ptrdiff_t(B.rowStride()));
 }
-} // namespace Math
+} // namespace math

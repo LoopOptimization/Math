@@ -215,6 +215,12 @@ struct [[gsl::Owner(T)]] StaticArray
     invariant(ptr != nullptr);
     return {ptr, S{}};
   }
+  [[nodiscard]] constexpr auto
+  mview() noexcept -> MutArray<T, S, Compress && utils::Compressible<T>> {
+    storage_type *ptr = data();
+    invariant(ptr != nullptr);
+    return {ptr, S{}};
+  }
 
   [[nodiscard]] constexpr auto begin() noexcept {
     if constexpr (std::is_same_v<S, StridedRange<>>)

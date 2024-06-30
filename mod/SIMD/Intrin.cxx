@@ -1519,5 +1519,12 @@ consteval auto VectorDivRem() -> std::array<ptrdiff_t, 3> {
     return {V, L / V, L % V};
   } else return {W, L / W, L % W};
 };
+template <typename T, ptrdiff_t R, ptrdiff_t C> constexpr auto VecWidth() {
+  if constexpr (C > 1) return VectorDivRem<C, T>()[0];
+  else if constexpr (C == 1)
+    if constexpr (R >= 1) return VectorDivRem<R, T>()[0];
+    else return Width<T>;
+  else return Width<T>;
+}
 
 } // namespace simd

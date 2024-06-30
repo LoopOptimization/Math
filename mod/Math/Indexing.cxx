@@ -5,7 +5,7 @@ module;
 #include <ostream>
 #include <type_traits>
 
-export module Array:Indexing;
+export module Indexing;
 
 import AxisTypes;
 import Range;

@@ -16,6 +16,7 @@ import Array;
 import Elementary;
 import Invariant;
 import SIMD;
+import StaticArray;
 import TypePromotion;
 
 export namespace math {
@@ -1090,7 +1091,9 @@ constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
     if (i + U >= N) return std::make_pair(fx.value(), grad);
   }
 }
-// only computes the upper triangle blocks
+//
+/// Extract the value of a `Dual` number
+constexpr auto value(std::floating_point auto x) { return x; }
 template <class T, ptrdiff_t N, bool Compress>
 constexpr auto value(const Dual<T, N, Compress> &x) {
   return value(x.value());
