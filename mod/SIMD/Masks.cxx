@@ -228,8 +228,10 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
   }
   [[nodiscard]] constexpr auto intmask() const -> int32_t {
     if constexpr (sizeof(I) == 8)
-      if constexpr (W == 2) return _mm_movemask_pd(std::bit_cast<__m128d>(m));
-      else return _mm256_movemask_pd(std::bit_cast<__m256d>(m));
+      if constexpr (W == 2) {
+        __m128d arg = std::bit_cast<__m128d>(m);
+        return _mm_movemask_pd(arg);
+      } else return _mm256_movemask_pd(std::bit_cast<__m256d>(m));
     else if constexpr (sizeof(I) == 4)
       if constexpr (W == 4) return _mm_movemask_ps(std::bit_cast<__m128>(m));
       else return _mm256_movemask_ps(std::bit_cast<__m256>(m));

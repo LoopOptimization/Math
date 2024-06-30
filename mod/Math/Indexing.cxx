@@ -88,7 +88,8 @@ concept ScalarIndex =
 [[maybe_unused]] constexpr inline struct Colon {
   [[nodiscard, gnu::always_inline]] constexpr auto operator()(auto B,
                                                               auto E) const {
-    return Range{standardizeRangeBound(B), standardizeRangeBound(E)};
+    return Range{math::standardizeRangeBound(B),
+                 math::standardizeRangeBound(E)};
   }
 } _;
 

@@ -17,7 +17,11 @@ module;
 
 module Array:ExprTemplates;
 
+import ArrayConcepts;
 import AxisTypes;
+import :Indexing;
+import MatDim;
+import :Ops;
 import Param;
 import Range;
 import SIMD;
@@ -156,15 +160,12 @@ template <typename Op, typename A> struct Elementwise {
     return a.numCol();
   }
   [[nodiscard]] constexpr auto view() const { return *this; };
-  template <typename T> constexpr auto reinterpret() {
-    auto ra = math::reinterpret<T>(a);
+  template <typename T> constexpr auto reinterpretImpl() {
+    auto ra = reinterpret<T>(a);
     return Elementwise<Op, decltype(ra)>(op, ra);
   }
 };
 template <typename Op, typename A> Elementwise(Op, A) -> Elementwise<Op, A>;
-
-static_assert(
-  ColVector<Elementwise<std::negate<>, Array<int64_t, StridedRange<>>>>);
 
 constexpr auto size(const std::integral auto) -> ptrdiff_t { return 1; }
 constexpr auto size(const std::floating_point auto) -> ptrdiff_t { return 1; }
@@ -172,19 +173,13 @@ constexpr auto size(const AbstractVector auto &x) -> ptrdiff_t {
   return x.size();
 }
 
-static_assert(utils::ElementOf<int, DenseMatrix<int64_t>>);
-static_assert(utils::ElementOf<int64_t, DenseMatrix<int64_t>>);
-static_assert(utils::ElementOf<int64_t, DenseMatrix<double>>);
-static_assert(!utils::ElementOf<DenseMatrix<double>, DenseMatrix<double>>);
-
 template <typename T>
 concept HasConcreteSize = requires(T) {
   std::is_same_v<typename std::remove_reference_t<T>::concrete, std::true_type>;
 };
 
-static_assert(HasConcreteSize<DenseMatrix<int64_t>>);
 static_assert(!HasConcreteSize<int64_t>);
-static_assert(!HasConcreteSize<UniformScaling<std::true_type>>);
+// static_assert(!HasConcreteSize<UniformScaling<std::true_type>>);
 // template <typename T>
 // using is_concrete_t =
 //   std::conditional_t<HasConcreteSize<T>, std::true_type, std::false_type>;
@@ -253,16 +248,12 @@ struct ElementwiseBinaryOp {
     return unwrapRow(numRow()) * unwrapCol(numCol());
   }
   [[nodiscard]] constexpr auto view() const -> auto & { return *this; };
-  template <typename T> constexpr auto reinterpret() {
-    auto ra = math::reinterpret<T>(a);
-    auto rb = math::reinterpret<T>(b);
+  template <typename T> constexpr auto reinterpretImpl() {
+    auto ra = reinterpret<T>(a);
+    auto rb = reinterpret<T>(b);
     return ElementwiseBinaryOp<decltype(ra), decltype(rb), Op>(op, ra, rb);
   }
 };
-static_assert(AbstractMatrix<ElementwiseBinaryOp<Array<int64_t, DenseDims<>>,
-                                                 int64_t, std::multiplies<>>>);
-static_assert(ColVector<ElementwiseBinaryOp<Array<int64_t, StridedRange<>>,
-                                            int64_t, std::multiplies<>>>);
 template <TrivialTensor C, Trivial A, Trivial B> struct AbstractSelect {
   using value_type = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
   static constexpr bool isvector = AbstractVector<C>;
@@ -319,10 +310,6 @@ template <TrivialTensor C, Trivial A, Trivial B> struct AbstractSelect {
 }
 [[gnu::always_inline]] inline constexpr auto view(const auto &x) {
   return x.view();
-}
-template <class T, class S>
-[[gnu::always_inline]] constexpr auto view(Array<T, S> x) {
-  return x;
 }
 
 template <TrivialTensor C, Trivial A, Trivial B>
@@ -560,28 +547,6 @@ template <AbstractTensor A, AbstractTensor B> struct MatMatMul {
 // Vectors
 //
 
-static_assert(!AbstractMatrix<StridedVector<int64_t>>);
-
-// static_assert(std::is_trivially_copyable_v<MutStridedVector<int64_t>>);
-static_assert(std::is_trivially_copyable_v<
-              Elementwise<std::negate<>, StridedVector<int64_t>>>);
-static_assert(Trivial<Elementwise<std::negate<>, StridedVector<int64_t>>>);
-
-constexpr void swap(MutPtrMatrix<int64_t> A, Row<> i, Row<> j) {
-  if (i == j) return;
-  Col N = A.numCol();
-  invariant((i < A.numRow()) && (j < A.numRow()));
-  for (ptrdiff_t n = 0; n < N; ++n)
-    std::swap(A[ptrdiff_t(i), n], A[ptrdiff_t(j), n]);
-}
-constexpr void swap(MutPtrMatrix<int64_t> A, Col<> i, Col<> j) {
-  if (i == j) return;
-  Row M = A.numRow();
-  invariant((i < A.numCol()) && (j < A.numCol()));
-  for (ptrdiff_t m = 0; m < M; ++m)
-    std::swap(A[m, ptrdiff_t(i)], A[m, ptrdiff_t(j)]);
-}
-
 template <int Bits, class T>
 constexpr bool is_uint_v =
   sizeof(T) == (Bits / 8) && std::is_integral_v<T> && !std::is_signed_v<T>;
@@ -642,55 +607,12 @@ requires is_uint_v<64, T>
   return x >> 32;
 }
 
-static_assert(
-  AbstractMatrix<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
-
-static_assert(std::copy_constructible<PtrMatrix<int64_t>>);
-// static_assert(std::is_trivially_copyable_v<MutPtrMatrix<int64_t>>);
-static_assert(std::is_trivially_copyable_v<PtrMatrix<int64_t>>);
-static_assert(Trivial<PtrMatrix<int64_t>>);
 static_assert(Trivial<int>);
 static_assert(TriviallyCopyable<std::multiplies<>>);
-static_assert(
-  Trivial<ElementwiseBinaryOp<PtrMatrix<int64_t>, int, std::multiplies<>>>);
-static_assert(Trivial<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
-
 template <TriviallyCopyable OP, Trivial A, Trivial B>
 ElementwiseBinaryOp(OP, A, B) -> ElementwiseBinaryOp<A, B, OP>;
 
 constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
-
-template <typename T>
-inline auto operator<<(std::ostream &os,
-                       SmallSparseMatrix<T> const &A) -> std::ostream & {
-  ptrdiff_t k = 0;
-  os << "[ ";
-  for (ptrdiff_t i = 0; i < A.numRow(); ++i) {
-    if (i) os << "  ";
-    uint32_t m = A.rows[i] & 0x00ffffff;
-    ptrdiff_t j = 0;
-    while (m) {
-      if (j) os << " ";
-      uint32_t tz = std::countr_zero(m);
-      m >>= (tz + 1);
-      j += (tz + 1);
-      while (tz--) os << " 0 ";
-      const T &x = A.nonZeros[k++];
-      if (x >= 0) os << " ";
-      os << x;
-    }
-    for (; j < A.numCol(); ++j) os << "  0";
-    os << "\n";
-  }
-  os << " ]";
-  invariant(k == A.nonZeros.size());
-  return os;
-}
-template <AbstractMatrix T>
-inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
-  Matrix<std::remove_const_t<typename T::value_type>> B{A};
-  return printMatrix(os, PtrMatrix<typename T::value_type>(B));
-}
 
 constexpr auto operator-(const AbstractVector auto &a) {
   auto AA{a.view()};
@@ -724,9 +646,6 @@ constexpr auto operator~(const AbstractMatrix auto &a) {
   return Elementwise<std::bit_not<>, decltype(AA)>{.op = std::negate<>{},
                                                    .a = AA};
 }
-static_assert(AbstractMatrix<Elementwise<std::negate<>, PtrMatrix<int64_t>>>);
-static_assert(AbstractMatrix<Array<int64_t, SquareDims<>>>);
-static_assert(AbstractMatrix<ManagedArray<int64_t, SquareDims<>>>);
 
 constexpr auto abs2(auto x) { return x * x; }
 template <AbstractTensor B> constexpr auto norm2(const B &A) {
@@ -874,71 +793,36 @@ constexpr auto elementwise_less_equal(const A &a, const B &b) {
   return ElementwiseBinaryOp(std::less_equal<>{}, view(a), view(b));
 }
 
-static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<int64_t>, int,
-                                                 std::multiplies<>>>,
-              "ElementwiseBinaryOp isa AbstractMatrix failed");
+// template <typename T, typename I> struct SliceView {
+//   using value_type = T;
+//   [[no_unique_address]] MutPtrVector<T> a;
+//   [[no_unique_address]] PtrVector<I> i;
+//   struct Iterator {
+//     [[no_unique_address]] MutPtrVector<T> a;
+//     [[no_unique_address]] PtrVector<I> i;
+//     [[no_unique_address]] ptrdiff_t j;
+//     auto operator==(const Iterator &k) const -> bool { return j == k.j; }
+//     auto operator++() -> Iterator & {
+//       ++j;
+//       return *this;
+//     }
+//     auto operator*() -> T & { return a[i[j]]; }
+//     auto operator*() const -> const T & { return a[i[j]]; }
+//     auto operator->() -> T * { return &a[i[j]]; }
+//     auto operator->() const -> const T * { return &a[i[j]]; }
+//   };
+//   constexpr auto begin() -> Iterator { return Iterator{a, i, 0}; }
+//   constexpr auto end() -> Iterator { return Iterator{a, i, i.size()}; }
+//   auto operator[](ptrdiff_t j) -> T & { return a[i[j]]; }
+//   auto operator[](ptrdiff_t j) const -> const T & { return a[i[j]]; }
+//   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i.size(); }
+//   constexpr auto view() -> SliceView<T, I> { return *this; }
+//   [[nodiscard]] constexpr auto numRow() const -> Row<1> { return {}; }
+//   [[nodiscard]] constexpr auto numCol() const { return col(size()); }
+// };
 
-static_assert(
-  !AbstractVector<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>,
-  "MatMul should not be an AbstractVector!");
-static_assert(AbstractMatrix<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>,
-              "MatMul is not an AbstractMatrix!");
-static_assert(AbstractMatrix<Transpose<PtrMatrix<int64_t>>>);
+// static_assert(AbstractVector<SliceView<int64_t, unsigned>>);
 
-static_assert(
-  AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
-static_assert(
-  AbstractVector<decltype(-std::declval<StridedVector<int64_t>>() * 0)>);
-// static_assert(std::ranges::range<StridedVector<int64_t>>);
-
-static_assert(AbstractVector<Vector<int64_t>>);
-static_assert(AbstractVector<const Vector<int64_t>>);
-static_assert(AbstractVector<Vector<int64_t> &>);
-static_assert(AbstractMatrix<IntMatrix<>>);
-static_assert(AbstractMatrix<IntMatrix<> &>);
-static_assert(!AbstractMatrix<Array<int64_t, StridedRange<>>>);
-static_assert(!AbstractMatrix<
-              Elementwise<std::negate<void>, Array<int64_t, StridedRange<>>>>);
-
-static_assert(std::copyable<ManagedArray<int64_t, StridedDims<>>>);
-static_assert(std::copyable<ManagedArray<int64_t, DenseDims<>>>);
-static_assert(std::copyable<ManagedArray<int64_t, SquareDims<>>>);
-
-template <typename T, typename I> struct SliceView {
-  using value_type = T;
-  [[no_unique_address]] MutPtrVector<T> a;
-  [[no_unique_address]] PtrVector<I> i;
-  struct Iterator {
-    [[no_unique_address]] MutPtrVector<T> a;
-    [[no_unique_address]] PtrVector<I> i;
-    [[no_unique_address]] ptrdiff_t j;
-    auto operator==(const Iterator &k) const -> bool { return j == k.j; }
-    auto operator++() -> Iterator & {
-      ++j;
-      return *this;
-    }
-    auto operator*() -> T & { return a[i[j]]; }
-    auto operator*() const -> const T & { return a[i[j]]; }
-    auto operator->() -> T * { return &a[i[j]]; }
-    auto operator->() const -> const T * { return &a[i[j]]; }
-  };
-  constexpr auto begin() -> Iterator { return Iterator{a, i, 0}; }
-  constexpr auto end() -> Iterator { return Iterator{a, i, i.size()}; }
-  auto operator[](ptrdiff_t j) -> T & { return a[i[j]]; }
-  auto operator[](ptrdiff_t j) const -> const T & { return a[i[j]]; }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i.size(); }
-  constexpr auto view() -> SliceView<T, I> { return *this; }
-  [[nodiscard]] constexpr auto numRow() const -> Row<1> { return {}; }
-  [[nodiscard]] constexpr auto numCol() const { return col(size()); }
-};
-
-static_assert(AbstractVector<SliceView<int64_t, unsigned>>);
-
-template <typename T> auto countNonZero(PtrMatrix<T> x) -> ptrdiff_t {
-  ptrdiff_t count = 0;
-  for (ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x(r, _));
-  return count;
-}
 static_assert(std::same_as<decltype(_(0, 4) + 8), Range<ptrdiff_t, ptrdiff_t>>);
 
 template <typename T, ptrdiff_t R, ptrdiff_t C> constexpr auto SIMDVecWidth() {

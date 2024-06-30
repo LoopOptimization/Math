@@ -723,5 +723,31 @@ static_assert(sizeof(ManagedArray<int32_t, DenseDims<3, 5>, 15>) ==
               sizeof(int32_t *) + 16 * sizeof(int32_t));
 static_assert(sizeof(ManagedArray<int32_t, DenseDims<>, 15>) ==
               sizeof(int32_t *) + 3 * sizeof(ptrdiff_t) + 16 * sizeof(int32_t));
+static_assert(AbstractMatrix<ManagedArray<int64_t, SquareDims<>>>);
+static_assert(std::is_convertible_v<DenseMatrix<int64_t>, Matrix<int64_t>>);
+static_assert(
+  std::is_convertible_v<DenseMatrix<int64_t>, DensePtrMatrix<int64_t>>);
+static_assert(std::is_convertible_v<DenseMatrix<int64_t>, PtrMatrix<int64_t>>);
+static_assert(std::is_convertible_v<SquareMatrix<int64_t>, Matrix<int64_t>>);
+static_assert(
+  std::is_convertible_v<SquareMatrix<int64_t>, MutPtrMatrix<int64_t>>);
+static_assert(std::same_as<IntMatrix<>::value_type, int64_t>);
+static_assert(AbstractMatrix<IntMatrix<>>);
+static_assert(std::copyable<IntMatrix<>>);
+static_assert(std::move_constructible<Vector<intptr_t>>);
+static_assert(std::copy_constructible<Vector<intptr_t>>);
+static_assert(std::copyable<Vector<intptr_t>>);
+static_assert(AbstractVector<Vector<int64_t>>);
+static_assert(!std::is_trivially_copyable_v<Vector<int64_t>>);
+static_assert(!std::is_trivially_destructible_v<Vector<int64_t>>);
+static_assert(AbstractVector<Vector<int64_t>>,
+              "PtrVector<int64_t> isa AbstractVector failed");
+static_assert(std::same_as<utils::eltype_t<Matrix<int64_t>>, int64_t>);
 
+template <AbstractMatrix T>
+inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
+  Matrix<std::remove_const_t<typename T::value_type>> B{A};
+  return printMatrix(os, B.data(), ptrdiff_t(B.numRow()), ptrdiff_t(B.numCol()),
+                     ptrdiff_t(B.rowStride()));
+}
 } // namespace Math

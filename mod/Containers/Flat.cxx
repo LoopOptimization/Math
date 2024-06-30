@@ -11,51 +11,61 @@ import Invariant;
 
 export namespace containers {
 template <typename T> struct MATH_GSL_OWNER Flat {
-
+  static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
   explicit constexpr Flat(ptrdiff_t len)
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
     std::uninitialized_default_construct_n(ptr_, len_);
   };
 
-  constexpr Flat(const Flat &other) : Flat(other.size()) {
+  constexpr Flat(const Flat &other)
+    : ptr_{alloc::Mallocator<T>{}.allocate(other.size())}, len_{other.size()} {
     std::uninitialized_copy_n(other.data(), len_, data());
   };
-  constexpr auto operator=(const Flat &other) {
+  constexpr Flat(auto B, auto E)
+    : ptr_{alloc::Mallocator<T>{}.allocate(std::distance(B, E))},
+      len_{std::distance(B, E)} {
+    std::uninitialized_copy(B, E, data());
+  };
+  constexpr auto operator=(const Flat &other) -> Flat & {
+    if (this == &other) return *this;
     if (len_ != other.size()) {
       maybeDeallocate();
       ptr_ = alloc::Mallocator<T>{}.allocate(len_);
       len_ = other.size();
       if constexpr (!std::is_trivially_default_constructible_v<T>) {
         std::uninitialized_copy_n(other.data(), len_, ptr_);
-        return;
+        return *this;
       }
     }
     std::copy_n(other.data(), len_, data());
+    return *this;
   };
   constexpr Flat(Flat &&other) : ptr_{other.data()}, len_{other.size()} {
     other.ptr_ = nullptr;
     other.len_ = 0;
   };
-  constexpr auto operator=(Flat &&other) {
+  constexpr auto operator=(Flat &&other) -> Flat & {
+    if (this == &other) return *this;
     ptr_ = other.ptr_;
     len_ = other.size();
     other.ptr_ = nullptr;
     other.len_ = 0;
+    return *this;
   }
 
   constexpr ~Flat() { maybeDeallocate(); }
   constexpr auto data() -> T * { return ptr_; }
   constexpr auto data() const -> const T * { return ptr_; }
-  constexpr auto size() const -> ptrdiff_t {
-    invariant(size() >= 0);
+  [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
+    utils::invariant(size() >= 0);
     return len_;
   }
   constexpr auto operator[](ptrdiff_t i) -> T & {
-    invariant((i >= 0) && i < size());
+    utils::invariant((i >= 0) && i < size());
     return ptr_[i];
   }
   constexpr auto operator[](ptrdiff_t i) const -> const T & {
-    invariant((i >= 0) && i < size());
+    utils::invariant((i >= 0) && i < size());
     return ptr_[i];
   }
   constexpr auto begin() -> T * { return ptr_; }

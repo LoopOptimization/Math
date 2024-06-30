@@ -7,6 +7,7 @@
 #include <random>
 
 import GCD;
+import SIMD;
 import Tuple;
 
 template <ptrdiff_t W>

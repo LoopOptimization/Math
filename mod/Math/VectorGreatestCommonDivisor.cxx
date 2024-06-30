@@ -5,9 +5,10 @@ module;
 
 export module VGCD;
 
-import export GCD;
+export import GCD;
 import Pair;
 import Array;
+import ArrayConcepts;
 
 namespace math {
 

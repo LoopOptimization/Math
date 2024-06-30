@@ -22,9 +22,10 @@ import TypePromotion;
 
 #define CASTTOSCALARIZE
 
-export namespace math {
-using utils::invariant;
-// scalars broadcast
+template <typename T, typename U> constexpr auto reinterpret(U x) {
+  if constexpr (std::same_as<T, U>) return x;
+  else return x.template reinterpretImpl<T>();
+}
 template <typename S, typename T>
 [[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {
   return std::forward<T>(s);
@@ -33,23 +34,24 @@ template <typename S, typename T>
 [[gnu::always_inline]] constexpr auto get(T &&s, auto, auto) -> decltype(auto) {
   return std::forward<T>(s);
 }
-template <typename S, LinearlyIndexable<S> V>
+template <typename S, math::LinearlyIndexable<S> V>
 [[gnu::always_inline]] constexpr auto get(const V &v,
                                           auto i) -> decltype(auto) {
   return v[i];
 }
-template <typename S, CartesianIndexable<S> V>
+template <typename S, math::CartesianIndexable<S> V>
 [[gnu::always_inline]] constexpr auto get(const V &v, auto i,
                                           auto j) -> decltype(auto) {
   return v[i, j];
 }
 template <typename T, typename S>
-concept OnlyLinearlyIndexable = LinearlyIndexable<S> && !CartesianIndexable<S>;
+concept OnlyLinearlyIndexable =
+  math::LinearlyIndexable<S> && !math::CartesianIndexable<S>;
 template <typename S, OnlyLinearlyIndexable<S> V>
 [[gnu::always_inline]] constexpr auto get(const V &v, auto i,
                                           auto j) -> decltype(auto) {
-  static_assert(AbstractVector<V>);
-  if constexpr (RowVector<V>) return v[j];
+  static_assert(math::AbstractVector<V>);
+  if constexpr (math::RowVector<V>) return v[j];
   else return v[i];
 }
 
@@ -64,11 +66,6 @@ constexpr bool ScalarizeViaCastToImpl =
 template <typename To, typename... U>
 consteval auto ScalarizeViaCastTo() -> bool {
   return (... && ScalarizeViaCastToImpl<To, U>);
-}
-
-template <typename T, typename U> constexpr auto reinterpret(U x) {
-  if constexpr (std::same_as<T, U>) return x;
-  else return x.template reinterpret<T>();
 }
 
 // returns Unroll, Iters, Remainder
@@ -90,6 +87,10 @@ constexpr void fastCopy(D *d, const S *s, size_t N) {
   // else
   std::copy_n(s, N, d);
 }
+
+export namespace math {
+using utils::invariant;
+// scalars broadcast
 
 // inputs must be `ptrdiff_t` or `std::integral_constant<ptrdiff_t,value>`
 template <typename X, typename Y>
@@ -380,7 +381,7 @@ template <typename A, typename... As, typename B, typename... Bs>
     else if constexpr (math::IsOne<decltype(N)>)
       vcopyToSIMD(dst, src, M, NoRowIndex{});
     else if constexpr (math::StaticInt<decltype(M)>) {
-      constexpr std::array<ptrdiff_t, 2> UIR = math::unrollf<ptrdiff_t(M)>();
+      constexpr std::array<ptrdiff_t, 2> UIR = unrollf<ptrdiff_t(M)>();
       constexpr ptrdiff_t U = UIR[0];
       if constexpr (U != 0)
         for (ptrdiff_t r = 0; r < (M - U + 1); r += U)
@@ -454,17 +455,17 @@ requires(sizeof...(As) == sizeof...(Bs))
 #ifndef CASTTOSCALARIZE
   tupletensorops::vcopyTo(dst, src);
 #else
-  using C = math::scalarize_via_cast_t<
+  using C = scalarize_via_cast_t<
     std::remove_cvref_t<decltype(std::declval<A>().view())>>;
   if constexpr ((!std::same_as<C, void>) &&
-                math::ScalarizeViaCastTo<
-                  C, As..., decltype(std::declval<B>().view()), Bs...>()) {
+                ScalarizeViaCastTo<C, As..., decltype(std::declval<B>().view()),
+                                   Bs...>()) {
     using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                  utils::eltype_t<B>, utils::eltype_t<Bs>...>;
     if constexpr ((sizeof(T) % (sizeof(C) * simd::Width<C>)) != 0) {
-      auto lval{map([](auto &d) { return math::reinterpret<C>(d); })};
+      auto lval{map([](auto &d) { return reinterpret<C>(d); })};
       tupletensorops::vcopyTo(
-        lval, src.map([](const auto &s) { return math::reinterpret<C>(s); }));
+        lval, src.map([](const auto &s) { return reinterpret<C>(s); }));
     } else tupletensorops::vcopyTo(dst, src);
   } else tupletensorops::vcopyTo(dst, src);
 #endif

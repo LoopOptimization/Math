@@ -20,13 +20,8 @@ template <class S> struct DefaultCapacityType {
 template <SizeMultiple8 S> struct DefaultCapacityType<S> {
   using type = math::Capacity<-1, std::ptrdiff_t>;
 };
-template <class S>
-using default_capacity_type_t = typename DefaultCapacityType<S>::type;
-
 static_assert(!SizeMultiple8<uint32_t>);
 static_assert(SizeMultiple8<uint64_t>);
-static_assert(sizeof(default_capacity_type_t<uint32_t>) == 4);
-static_assert(sizeof(default_capacity_type_t<uint64_t>) == 8);
 
 consteval auto log2Floor(uint64_t x) -> uint64_t {
   return 63 - std::countl_zero(x);
@@ -44,6 +39,11 @@ consteval auto bisectFindSquare(uint64_t l, uint64_t h,
 }
 
 export namespace containers {
+template <class S>
+using default_capacity_type_t = typename DefaultCapacityType<S>::type;
+static_assert(sizeof(default_capacity_type_t<uint32_t>) == 4);
+static_assert(sizeof(default_capacity_type_t<uint64_t>) == 8);
+
 template <typename T, ptrdiff_t N> struct Storage {
   static_assert(N > 0);
   // We can avoid `reinterpret_cast` if we have trivial/implicit lifetime types.

@@ -103,9 +103,14 @@ template <typename T, typename... Ts> struct Tuple {
   }
 
 private:
+#ifdef __clang__
   template <typename U, typename... Us>
   friend constexpr void copyFrom(Tuple<T, Ts...> &dst, const Tuple<U, Us...> &)
   requires(sizeof...(Ts) == sizeof...(Us));
+#else
+  template <typename U, typename... Us>
+  friend constexpr void copyFrom(Tuple<T, Ts...> &dst, const Tuple<U, Us...> &);
+#endif
 
   template <typename U, typename... Us>
   friend constexpr void operator<<(Tuple<T, Ts...> &dst,

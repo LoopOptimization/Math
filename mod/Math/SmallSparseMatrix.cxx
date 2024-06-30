@@ -85,6 +85,34 @@ public:
   constexpr auto operator[](ptrdiff_t i, ptrdiff_t j) -> Reference {
     return Reference{this, i, j};
   }
+
+private:
+  template <typename T>
+  inline auto operator<<(std::ostream &os,
+                         const SmallSparseMatrix<T> &A) -> std::ostream & {
+    ptrdiff_t k = 0;
+    os << "[ ";
+    for (ptrdiff_t i = 0; i < A.numRow(); ++i) {
+      if (i) os << "  ";
+      uint32_t m = A.rows[i] & 0x00ffffff;
+      ptrdiff_t j = 0;
+      while (m) {
+        if (j) os << " ";
+        uint32_t tz = std::countr_zero(m);
+        m >>= (tz + 1);
+        j += (tz + 1);
+        while (tz--) os << " 0 ";
+        const T &x = A.nonZeros[k++];
+        if (x >= 0) os << " ";
+        os << x;
+      }
+      for (; j < A.numCol(); ++j) os << "  0";
+      os << "\n";
+    }
+    os << " ]";
+    invariant(k == A.nonZeros.size());
+    return os;
+  }
 };
 
 template <class T, class S, class P>

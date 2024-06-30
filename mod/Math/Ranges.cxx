@@ -11,6 +11,7 @@ export module Range;
 import AxisTypes;
 import Invariant;
 
+export namespace math {
 template <ptrdiff_t M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 standardizeRangeBound(math::Row<M> x) {
@@ -31,8 +32,6 @@ constexpr auto standardizeRangeBound(std::unsigned_integral auto x) {
 constexpr auto standardizeRangeBound(std::signed_integral auto x) {
   return ptrdiff_t(x);
 }
-
-export namespace math {
 using utils::invariant;
 template <typename B, typename E> struct Range {
   [[no_unique_address]] B b;
