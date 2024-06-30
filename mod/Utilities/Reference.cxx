@@ -1,10 +1,12 @@
 module;
 #include <concepts>
 #include <cstddef>
-module Array:Reference;
+
+export module CompressReference;
 
 import TypeCompression;
 
+export namespace utils {
 template <typename T> struct Reference {
   using C = utils::compressed_t<T>;
   static_assert(!std::same_as<C, T>);
@@ -241,3 +243,4 @@ template <utils::Compressible T>
   return T::decompress(p + i);
 }
 
+} // namespace utils

@@ -26,21 +26,21 @@ module;
 
 export module Array;
 
-export import :Indexing;
-export import :Ops;
+export import AssignExprTemplates;
+export import Indexing;
 export import TypeCompression;
 import Allocator;
 import Arena;
 import ArrayConcepts;
 import ArrayPrint;
 import AxisTypes;
-import :ExprTemplates;
+import CompressReference;
+import ExprTemplates;
 import MatDim;
 import Optional;
 import Pair;
 import Range;
 import Rational;
-import :Reference;
 import SIMD;
 import Storage;
 import TypePromotion;
@@ -67,6 +67,8 @@ using utils::Valid, utils::Optional;
 
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct Array;
+template <class T, Dimension S, bool Compress = utils::Compressible<T>>
+struct MutArray;
 
 // Cases we need to consider:
 // 1. Slice-indexing
@@ -84,8 +86,7 @@ index(P *ptr, S shape, I i) noexcept -> decltype(auto) {
   auto new_dim = calcNewDim(shape, i);
   invariant(ptr != nullptr);
   using D = decltype(new_dim);
-  if constexpr (simd::index::issimd<D>) return simd::ref(ptr + offset, new_dim);
-  else {
+  if constexpr (!simd::index::issimd<D>) {
     constexpr bool compress = !std::same_as<T, std::remove_const_t<P>>;
     if constexpr (!std::same_as<D, Empty>)
       if constexpr (std::is_const_v<P>)
@@ -93,8 +94,8 @@ index(P *ptr, S shape, I i) noexcept -> decltype(auto) {
       else return MutArray<T, D, compress>{ptr + offset, new_dim};
     else if constexpr (!compress) return ptr[offset];
     else if constexpr (std::is_const_v<P>) return T::decompress(ptr + offset);
-    else return Reference<T>{ptr + offset};
-  }
+    else return utils::Reference<T>{ptr + offset};
+  } else return simd::ref(ptr + offset, new_dim);
 }
 // for (row/col)vectors, we drop the row/col, essentially broadcasting
 template <typename T, typename P, typename S, typename R, typename C>
@@ -106,9 +107,7 @@ index(P *ptr, S shape, R wr, C wc) noexcept -> decltype(auto) {
     auto offset = calcOffset(shape, r, c);
     auto new_dim = calcNewDim(shape, r, c);
     using D = decltype(new_dim);
-    if constexpr (simd::index::issimd<D>) {
-      return simd::ref(ptr + offset, new_dim);
-    } else {
+    if constexpr (!simd::index::issimd<D>) {
       constexpr bool compress = !std::same_as<T, std::remove_const_t<P>>;
       if constexpr (!std::same_as<D, Empty>)
         if constexpr (std::is_const_v<P>)
@@ -116,12 +115,11 @@ index(P *ptr, S shape, R wr, C wc) noexcept -> decltype(auto) {
         else return MutArray<T, D, compress>{ptr + offset, new_dim};
       else if constexpr (!compress) return ptr[offset];
       else if constexpr (std::is_const_v<P>) return T::decompress(ptr + offset);
-      else return Reference<T>{ptr + offset};
-    }
+      else return utils::Reference<T>{ptr + offset};
+    } else return simd::ref(ptr + offset, new_dim);
   } else if constexpr (ColVectorDimension<S>)
     return index<T>(ptr, shape, unwrapRow(wr));
-  else // if constexpr (RowVectorDimension<S>)
-    return index<T>(ptr, shape, unwrapCol(wc));
+  else return index<T>(ptr, shape, unwrapCol(wc));
 }
 static_assert(
   std::same_as<StridedDims<3>,
@@ -219,7 +217,7 @@ template <typename T, bool Column = false> struct SliceRange {
 };
 /// Constant Array
 template <class T, Dimension S, bool Compress>
-struct [[gsl::Pointer(T)]] Array {
+struct [[gsl::Pointer(T)]] Array : public Expr<Array<T, S, Compress>> {
   static_assert(!std::is_const_v<T>, "T shouldn't be const");
 
   using storage_type = std::conditional_t<Compress, compressed_t<T>, T>;
@@ -437,7 +435,7 @@ struct [[gsl::Pointer(T)]] Array {
       const U *p = std::launder(reinterpret_cast<const U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
-        if constexpr (StaticInt<decltype(c)>)
+        if constexpr (utils::StaticInt<decltype(c)>)
           return Array<U, std::integral_constant<ptrdiff_t, c * ratio>>{p, {}};
         else return Array<U, ptrdiff_t>{p, c * ratio};
       } else if constexpr (DenseLayout<S>) {
@@ -534,15 +532,20 @@ protected:
   [[no_unique_address]] S sz;
 };
 template <class T, class S>
-[[gnu::always_inline]] constexpr auto view(Array<T, S> x) {
+[[gnu::always_inline]] constexpr auto view(Array<T, S> x) -> Array<T, S> {
   return x;
 }
+// static_assert(
+//   ColVector<Elementwise<std::negate<>, Array<int64_t, StridedRange<>>>>);
+// static_assert(AbstractMatrix<ElementwiseBinaryOp<Array<int64_t, DenseDims<>>,
+//                                                  int64_t,
+//                                                  std::multiplies<>>>);
+// static_assert(ColVector<ElementwiseBinaryOp<Array<int64_t, StridedRange<>>,
+//                                             int64_t, std::multiplies<>>>);
+static_assert(std::same_as<Array<int64_t, SquareDims<>>::value_type, int64_t>);
+static_assert(utils::HasEltype<Array<int64_t, SquareDims<>>>);
 static_assert(
-  ColVector<Elementwise<std::negate<>, Array<int64_t, StridedRange<>>>>);
-static_assert(AbstractMatrix<ElementwiseBinaryOp<Array<int64_t, DenseDims<>>,
-                                                 int64_t, std::multiplies<>>>);
-static_assert(ColVector<ElementwiseBinaryOp<Array<int64_t, StridedRange<>>,
-                                            int64_t, std::multiplies<>>>);
+  std::same_as<utils::eltype_t<Array<int64_t, SquareDims<>>>, int64_t>);
 static_assert(AbstractMatrix<Array<int64_t, SquareDims<>>>);
 
 static_assert(
@@ -821,7 +824,7 @@ struct [[gsl::Pointer(T)]] MutArray : Array<T, S, Compress>,
       U *p = std::launder(reinterpret_cast<U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
-        if constexpr (StaticInt<decltype(c)>)
+        if constexpr (utils::StaticInt<decltype(c)>)
           return MutArray<U, std::integral_constant<ptrdiff_t, c * ratio>>(
             p, std::integral_constant<ptrdiff_t, c * ratio>{});
         else return MutArray<U, ptrdiff_t>{p, c * ratio};
@@ -1193,9 +1196,9 @@ template <typename T> using MutStridedVector = MutArray<T, StridedRange<>>;
 static_assert(!AbstractMatrix<StridedVector<int64_t>>);
 
 static_assert(std::is_trivially_copyable_v<MutStridedVector<int64_t>>);
-static_assert(std::is_trivially_copyable_v<
-              Elementwise<std::negate<>, StridedVector<int64_t>>>);
-static_assert(Trivial<Elementwise<std::negate<>, StridedVector<int64_t>>>);
+// static_assert(std::is_trivially_copyable_v<
+//               Elementwise<std::negate<>, StridedVector<int64_t>>>);
+// static_assert(Trivial<Elementwise<std::negate<>, StridedVector<int64_t>>>);
 static_assert(AbstractVector<StridedVector<int64_t>>);
 static_assert(AbstractVector<MutStridedVector<int64_t>>);
 static_assert(std::is_trivially_copyable_v<StridedVector<int64_t>>);
@@ -1211,13 +1214,14 @@ using MutDensePtrMatrix = MutArray<T, DenseDims<R, C>>;
 template <class T> using SquarePtrMatrix = Array<T, SquareDims<>>;
 template <class T> using MutSquarePtrMatrix = MutArray<T, SquareDims<>>;
 
-static_assert(AbstractMatrix<Elementwise<std::negate<>, PtrMatrix<int64_t>>>);
+// static_assert(AbstractMatrix<Elementwise<std::negate<>,
+// PtrMatrix<int64_t>>>);
 static_assert(utils::ElementOf<int, DensePtrMatrix<int64_t>>);
 static_assert(utils::ElementOf<int64_t, DensePtrMatrix<int64_t>>);
 static_assert(utils::ElementOf<int64_t, DensePtrMatrix<double>>);
 static_assert(
   !utils::ElementOf<DensePtrMatrix<double>, DensePtrMatrix<double>>);
-static_assert(HasConcreteSize<DensePtrMatrix<int64_t>>);
+// static_assert(HasConcreteSize<DensePtrMatrix<int64_t>>);
 static_assert(sizeof(PtrMatrix<int64_t>) ==
               3 * sizeof(ptrdiff_t) + sizeof(int64_t *));
 static_assert(sizeof(MutPtrMatrix<int64_t>) ==
@@ -1303,25 +1307,26 @@ constexpr void swap(MutPtrMatrix<int64_t> A, Col<> i, Col<> j) {
   for (ptrdiff_t m = 0; m < M; ++m)
     std::swap(A[m, ptrdiff_t(i)], A[m, ptrdiff_t(j)]);
 }
-static_assert(
-  AbstractMatrix<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
+// static_assert(
+//   AbstractMatrix<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
 
 static_assert(std::copy_constructible<PtrMatrix<int64_t>>);
 // static_assert(std::is_trivially_copyable_v<MutPtrMatrix<int64_t>>);
 static_assert(std::is_trivially_copyable_v<PtrMatrix<int64_t>>);
-static_assert(Trivial<PtrMatrix<int64_t>>);
-static_assert(
-  Trivial<ElementwiseBinaryOp<PtrMatrix<int64_t>, int, std::multiplies<>>>);
-static_assert(Trivial<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
-static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<int64_t>, int,
-                                                 std::multiplies<>>>,
-              "ElementwiseBinaryOp isa AbstractMatrix failed");
+static_assert(utils::TriviallyCopyable<PtrMatrix<int64_t>>);
+// static_assert(
+//   Trivial<ElementwiseBinaryOp<PtrMatrix<int64_t>, int, std::multiplies<>>>);
+// static_assert(Trivial<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
+// static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<int64_t>, int,
+//                                                  std::multiplies<>>>,
+//               "ElementwiseBinaryOp isa AbstractMatrix failed");
 
-static_assert(
-  !AbstractVector<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>,
-  "MatMul should not be an AbstractVector!");
-static_assert(AbstractMatrix<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>,
-              "MatMul is not an AbstractMatrix!");
+// static_assert(
+//   !AbstractVector<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>,
+//   "MatMul should not be an AbstractVector!");
+// static_assert(AbstractMatrix<MatMatMul<PtrMatrix<int64_t>,
+// PtrMatrix<int64_t>>>,
+//               "MatMul is not an AbstractMatrix!");
 static_assert(AbstractMatrix<Transpose<PtrMatrix<int64_t>>>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);

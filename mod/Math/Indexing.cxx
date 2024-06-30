@@ -8,9 +8,11 @@ module;
 export module Indexing;
 
 import AxisTypes;
+import CompressReference;
 import Range;
 import MatDim;
 import SIMD;
+import TypePromotion;
 
 export namespace math {
 
@@ -257,13 +259,6 @@ stride(StridedRange<> r) -> RowStride<> {
   return r.stride_;
 }
 
-template <typename T>
-concept StaticInt =
-  std::is_same_v<T, std::integral_constant<typename T::value_type, T::value>>;
-
-static_assert(StaticInt<std::integral_constant<ptrdiff_t, 3>>);
-static_assert(!StaticInt<int64_t>);
-
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 constexpr auto IsStridedColVectorDim(StridedDims<R, C, X>) -> bool {
   return C == 1;
@@ -344,7 +339,7 @@ constexpr auto calcNewDim(StridedDims<>, R, C) -> Empty {
   return {};
 }
 constexpr auto calcNewDim(Length<> len, Colon) -> Length<> { return len; };
-constexpr auto calcNewDim(StaticInt auto len, Colon) { return len; };
+constexpr auto calcNewDim(utils::StaticInt auto len, Colon) { return len; };
 constexpr auto calcNewDim(StridedRange<> len, Colon) -> StridedRange<> {
   return len;
 };
@@ -450,5 +445,6 @@ constexpr auto calcNewDim(ColVectorDimension auto x,
     return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
   else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
+
 
 } // namespace math

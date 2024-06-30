@@ -47,6 +47,8 @@ template <typename T, typename I> consteval auto getWidth() -> ptrdiff_t {
   else return simd::VecLen<ptrdiff_t(I{}), T>;
 }
 
+using namespace math;
+
 template <class T, class C>
 concept Compatible =
   (AbstractTensor<C> && std::convertible_to<T, utils::eltype_t<C>>) ||
@@ -65,7 +67,8 @@ concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
 template <utils::TriviallyCopyable Op, utils::TriviallyCopyable A>
 struct Elementwise;
 
-constexpr auto elementwise(OP op, A a) -> Elementwise<OP, A>;
+template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A>
+constexpr auto elementwise(OP, A) -> Elementwise<OP, A>;
 
 constexpr auto size(const std::integral auto) -> ptrdiff_t { return 1; }
 constexpr auto size(const std::floating_point auto) -> ptrdiff_t { return 1; }
@@ -99,6 +102,8 @@ template <utils::TriviallyCopyable A, TrivialCompatible<A> B,
           BinaryFuncOfElts<A, B> Op>
 struct ElementwiseBinaryOp;
 
+template <AbstractTensor A, AbstractTensor B> struct MatMatMul;
+
 template <typename A, typename B>
 using argtyp_t =
   std::conditional_t<AbstractTensor<B> &&
@@ -107,9 +112,9 @@ using argtyp_t =
                         std::floating_point<utils::eltype_t<B>>),
                      utils::eltype_t<B>, A>;
 
-constexpr auto elementwise(utils::TriviallyCopyable OP,
-                           utils::TriviallyCopyable A,
-                           utils::TriviallyCopyable B)
+template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A,
+          utils::TriviallyCopyable B>
+constexpr auto elementwise(OP, A, B)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP>;
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
@@ -165,227 +170,6 @@ struct AbstractSelect {
   }
 };
 
-template <TrivialTensor C, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B>
-struct Select : public AbstractSelect<C, A, B> {
-  using value_type = AbstractSelect<C, A, B>::value_type;
-  static constexpr bool has_reduction_loop =
-    HasInnerReduction<A> || HasInnerReduction<B>;
-  constexpr auto operator[](auto i) const
-  requires LinearlyIndexable<C, bool> &&
-           LinearlyIndexableOrConvertible<A, value_type> &&
-           LinearlyIndexableOrConvertible<B, value_type>
-  {
-    if constexpr (LinearlyIndexable<A, value_type>)
-      if constexpr (LinearlyIndexable<B, value_type>)
-        return this->c[i] ? this->a[i] : this->b[i];
-      else return this->c[i] ? this->a[i] : this->b;
-    else if constexpr (LinearlyIndexable<B, value_type>)
-      return this->c[i] ? this->a : this->b[i];
-    else return this->c[i] ? this->a : this->b;
-  }
-  constexpr auto operator[](auto i, auto j) const
-  requires CartesianIndexableOrConvertible<C, bool> &&
-           CartesianIndexableOrConvertible<A, value_type> &&
-           CartesianIndexableOrConvertible<B, value_type>
-  {
-    if constexpr (CartesianIndexable<A, value_type>)
-      if constexpr (CartesianIndexable<B, value_type>)
-        return this->c[i, j] ? this->a[i, j] : this->b[i, j];
-      else return this->c[i, j] ? this->a[i, j] : this->b;
-    else if constexpr (CartesianIndexable<B, value_type>)
-      return this->c[i, j] ? this->a : this->b[i, j];
-    else return this->c[i, j] ? this->a : this->b;
-  }
-  [[nodiscard]] constexpr auto view() const -> Select { return *this; };
-};
-template <TrivialTensor C, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B>
-Select(C c, A a, B b) -> Select<C, A, B>;
-
-template <TrivialTensor C, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B, BinaryFuncOfElts<A, B> Op>
-struct Conditional : public AbstractSelect<C, A, B> {
-  using value_type = AbstractSelect<C, A, B>::value_type;
-  static constexpr bool has_reduction_loop =
-    HasInnerReduction<A> || HasInnerReduction<B>;
-  [[no_unique_address]] Op op;
-
-  constexpr auto operator[](ptrdiff_t i) const -> value_type
-  requires LinearlyIndexableOrConvertible<C, bool> &&
-           LinearlyIndexableOrConvertible<A, value_type> &&
-           LinearlyIndexableOrConvertible<B, value_type>
-  {
-    if constexpr (LinearlyIndexable<A, value_type>)
-      if constexpr (LinearlyIndexable<B, value_type>)
-        return this->c[i] ? op(this->a[i], this->b[i]) : this->a[i];
-      else return this->c[i] ? op(this->a[i], this->b) : this->a[i];
-    else if constexpr (LinearlyIndexable<B, value_type>)
-      return this->c[i] ? op(this->a, this->b[i]) : this->a;
-    else return this->c[i] ? op(this->a, this->b) : this->a;
-  }
-  template <ptrdiff_t U, ptrdiff_t W, typename M>
-  constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
-  requires LinearlyIndexableOrConvertible<C, bool> &&
-           LinearlyIndexableOrConvertible<A, value_type> &&
-           LinearlyIndexableOrConvertible<B, value_type>
-  {
-    if constexpr (W == 1) {
-      auto c = this->c[i];
-      simd::Unroll<U, 1, 1, value_type> x = get<value_type>(this->a, i),
-                                        y = op(x, get<value_type>(this->b, i));
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u)
-        x.data[u] = c.data[u] ? y.data[u] : x.data[u];
-      return x;
-    } else if constexpr (LinearlyIndexable<A, value_type>) {
-      auto c = get<bool>(this->c, i);
-      simd::Unroll<1, U, W, value_type> x = get<value_type>(this->a, i),
-                                        y = op(x, get<value_type>(this->b, i));
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u)
-        x.data[u] = c.data[u] ? y.data[u] : x.data[u];
-      return x;
-    } else if constexpr (LinearlyIndexable<B, value_type>) {
-      auto c = this->c[i];
-      using V = simd::Vec<W, value_type>;
-      value_type x_ = get<value_type>(this->a, i);
-      V x = simd::vbroadcast<W, value_type>(x_);
-      simd::Unroll<1, U, W, value_type> y = op(x, get<value_type>(this->b, i));
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u)
-        if constexpr (LinearlyIndexable<B, value_type>)
-          y.data[u] = c.data[u] ? y.data[u] : x;
-      return y;
-    } else {
-      auto c = this->c[i];
-      using V = simd::Vec<W, value_type>;
-      value_type x_ = get<value_type>(this->a, i);
-      value_type y_ = op(x_, get<value_type>(this->b, i));
-      V x = simd::vbroadcast<W, value_type>(x_),
-        y = simd::vbroadcast<W, value_type>(y_);
-      simd::Unroll<1, U, W, value_type> z;
-      POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) z.data[u] = c.data[u] ? y : x;
-      return z;
-    }
-    //   auto c = get<bool>(this->c, i);
-    //   auto x = get<value_type>(this->a, i);
-    //   auto y = op(x, get<value_type>(this->b, i));
-    //   simd::Unroll<1, U, W, value_type> z;
-    //   POLYMATHFULLUNROLL
-    //   for (ptrdiff_t u = 0; u < U; ++u)
-    //     if constexpr (LinearlyIndexable<A, value_type>)
-    //       z.data[u] = !c.data[u] ? x.data[u] : y.data[u];
-    //     else if constexpr (LinearlyIndexable<B, value_type>)
-    //       z.data[u] = !c.data[u] ? x : y.data[u];
-    //     else z.data[u] = c.data[u] ? y : x;
-    //   return z;
-    // }
-  }
-  constexpr auto operator[](auto i, auto j) const
-  requires CartesianIndexableOrConvertible<C, bool> &&
-           CartesianIndexableOrConvertible<A, value_type> &&
-           CartesianIndexableOrConvertible<B, value_type>
-  {
-    if constexpr (LinearlyIndexable<A, value_type>)
-      if constexpr (LinearlyIndexable<B, value_type>)
-        return this->c[i, j] ? op(this->a[i, j], this->b[i, j]) : this->a[i, j];
-      else return this->c[i, j] ? op(this->a[i, j], this->b) : this->a[i, j];
-    else if constexpr (LinearlyIndexable<B, value_type>)
-      return this->c[i, j] ? op(this->a, this->b[i, j]) : this->a;
-    else return this->c[i, j] ? op(this->a, this->b) : this->a;
-  }
-  [[nodiscard]] constexpr auto view() const -> Conditional { return *this; };
-};
-template <AbstractTensor A, AbstractTensor B> struct MatMatMul {
-  using value_type = utils::promote_eltype_t<A, B>;
-  using concrete = is_concrete_t<A, B>;
-  static constexpr bool has_reduction_loop = true;
-  static constexpr bool ismata = AbstractMatrix<A>;
-  static constexpr bool ismatb = AbstractMatrix<B>;
-  static_assert((ismata && (ismatb || ColVector<B>)) ||
-                (RowVector<A> && ismatb) || (ColVector<A> && RowVector<B>));
-  static constexpr bool ismatrix = ismata && ismatb;
-  // we could have
-  // ColVector * RowVector
-  // RowVector * Matrix
-  // Matrix * ColVector
-  // Matrix * Matrix
-  [[no_unique_address]] A a_;
-  [[no_unique_address]] B b_;
-  [[gnu::always_inline]] constexpr auto operator[](auto i, auto j) const
-  requires(ismatrix)
-  {
-    static_assert(AbstractMatrix<B>, "B should be an AbstractMatrix");
-    invariant(ptrdiff_t(a_.numCol()) > 0);
-    decltype(a_[i, 0] * b_[0, j] + a_[i, 1] * b_[1, j]) s{};
-    POLYMATHNOVECTORIZE
-    for (ptrdiff_t k = 0; k < ptrdiff_t(a_.numCol()); ++k)
-      s += a_[i, k] * b_[k, j];
-    return s;
-  }
-  // If `T isa Dual<Dual<double,7>,2>`, we would not want to construct
-  // intermediates that require masked loads/stores, as compilers have
-  // trouble optimizing these away.
-  // We can imagine two strategies for avoiding this:
-  // 1. Do not write/construct any intermediates, but write into the result
-  // directly.
-  // 2. Decompress/compress on load/store, so temporaries do not need masks.
-  // `1.` seems ideal, but harder to implement.
-  // For example, here, `s` would have to alias the result. Then we also have
-  // `s +=`, which would have to invoke somehow call
-  // `Dual<Dual<double,7>,2>::operator+=` without storing.
-  // Or, we'd need a method that can see through it, so we operate on the
-  // teminal values, but still in one go to only have one instance of the
-  // reduction loop. Thus, `1.` seems conceptually simple but without a clear
-  // implementation strategy.
-  //
-  //
-  [[gnu::always_inline]] constexpr auto operator[](auto i) const
-  requires(!ismatrix)
-  {
-    if constexpr (RowVector<A>) {
-      invariant(a_.size() == b_.numRow());
-      invariant(a_.size() > 0);
-      decltype(a_[0] * b_[0, i] + a_[1] * b_[1, i]) s{};
-      POLYMATHNOVECTORIZE
-      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
-        POLYMATHFAST
-        s += a_[k] * b_[k, i];
-      }
-      return s;
-    } else { // ColVector<B>
-      invariant(a_.numCol() == b_.size());
-      invariant(b_.size() > 0);
-      decltype(a_[i, 0] * b_[0] + a_[i, 1] * b_[1]) s{};
-      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
-        POLYMATHFAST
-        s += a_[i, k] * b_[k];
-      }
-      return s;
-    }
-  }
-  [[nodiscard]] constexpr auto numRow() const {
-    if constexpr (AbstractMatrix<A>) return a_.numRow();
-    else return Row<1>{};
-  }
-  [[nodiscard]] constexpr auto numCol() const {
-    if constexpr (AbstractMatrix<B>) return b_.numCol();
-    else return Col<1>{};
-  }
-  [[nodiscard]] constexpr auto size() const {
-    if constexpr (ismata)
-      if constexpr (ismatb)
-        return unwrapRow(a_.numRow()) * unwrapCol(b_.numCol());
-      else return unwrapRow(a_.numRow());
-    else if constexpr (RowVector<A>) return unwrapCol(b_.numCol());
-    else a_.size() * b_.size();
-  }
-  [[nodiscard]] constexpr auto view() const { return *this; };
-  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; };
-};
-
 // constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
 
 constexpr auto abs2(auto x) { return x * x; }
@@ -427,7 +211,38 @@ constexpr auto dot(const auto &a, const auto &b) {
 
 export namespace math {
 
-template <typename A> struct Expr {
+template <typename A> class Expr {
+  constexpr auto v() const { return static_cast<const A *>(this)->view(); }
+  using T = utils::eltype_t<A>;
+  static constexpr bool primitive_elt =
+    std::integral<T> || std::floating_point<T>;
+
+  friend constexpr auto operator+(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::plus<>{}, b, a.view());
+  }
+  friend constexpr auto operator-(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::minus<>{}, b, a.view());
+  }
+  friend constexpr auto operator/(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::divides<>{}, b, a.view());
+  }
+  friend constexpr auto operator%(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::modulus<>{}, b, a.view());
+  }
+  friend constexpr auto operator&(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::bit_and<>{}, b, a.view());
+  }
+  friend constexpr auto operator|(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::bit_or<>{}, b, a.view());
+  }
+  friend constexpr auto operator^(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::bit_xor<>{}, b, a.view());
+  }
+  friend constexpr auto operator*(utils::ElementOf<A> auto b, const A &a) {
+    return ElementwiseBinaryOp(std::multiplies<>{}, b, a.view());
+  }
+
+public:
   template <Compatible<A> B> constexpr auto operator-() const {
     return Elementwise(std::negate<>{}, v());
   }
@@ -478,7 +293,7 @@ template <typename A> struct Expr {
 
   [[gnu::flatten]] constexpr auto
   operator==(const AbstractTensor auto &B) -> bool {
-    auto [Ma, Na] = shape(A);
+    auto [Ma, Na] = shape(v());
     auto [Mb, Nb] = shape(B);
 
     if ((Ma != Mb) || (Na != Nb)) return false;
@@ -519,60 +334,28 @@ template <typename A> struct Expr {
     return true;
   }
   template <Compatible<A> B>
-  friend constexpr auto elementwise_equal(const B &b) const {
+  constexpr auto elementwise_equal(const B &b) const {
     return ElementwiseBinaryOp(std::equal_to<>{}, v(), view(b));
   }
   template <Compatible<A> B>
-  friend constexpr auto elementwise_not_equal(const B &b) const {
+  constexpr auto elementwise_not_equal(const B &b) const {
     return ElementwiseBinaryOp(std::not_equal_to<>{}, v(), view(b));
   }
   template <Compatible<A> B>
-  friend constexpr auto elementwise_greater(const B &b) const {
+  constexpr auto elementwise_greater(const B &b) const {
     return ElementwiseBinaryOp(std::greater<>{}, v(), view(b));
   }
-  template <Compatible<A> B>
-  friend constexpr auto elementwise_less(const B &b) const {
+  template <Compatible<A> B> constexpr auto elementwise_less(const B &b) const {
     return ElementwiseBinaryOp(std::less<>{}, v(), view(b));
   }
   template <Compatible<A> B>
-  friend constexpr auto elementwise_greater_equal(const B &b) const {
+  constexpr auto elementwise_greater_equal(const B &b) const {
     return ElementwiseBinaryOp(std::greater_equal<>{}, v(), view(b));
   }
   template <Compatible<A> B>
-  friend constexpr auto elementwise_less_equal(const B &b) const {
+  constexpr auto elementwise_less_equal(const B &b) const {
     return ElementwiseBinaryOp(std::less_equal<>{}, v(), view(b));
   }
-
-private:
-  friend constexpr auto operator+(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::plus<>{}, b, a.view());
-  }
-  friend constexpr auto operator-(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::minus<>{}, b, a.view());
-  }
-  friend constexpr auto operator/(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::divides<>{}, b, a.view());
-  }
-  friend constexpr auto operator%(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::modulus<>{}, b, a.view());
-  }
-  friend constexpr auto operator&(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::bit_and<>{}, b, a.view());
-  }
-  friend constexpr auto operator|(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::bit_or<>{}, b, a.view());
-  }
-  friend constexpr auto operator^(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::bit_xor<>{}, b, a.view());
-  }
-  friend constexpr auto operator*(utils::ElementOf<A> b, const A &a) {
-    return ElementwiseBinaryOp(std::multiplies<>{}, b, a.view());
-  }
-
-  constexpr auto v() const { return static_cast<const A *>(this)->view(); }
-  using T = utils::eltype_t<A>;
-  static constexpr bool primitive_elt =
-    std::integral<T> || std::floating_point<T>;
 };
 } // namespace math
 
@@ -705,6 +488,229 @@ constexpr auto elementwise(OP op, A a, B b)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP> {
   return {a, b, op};
 }
+template <TrivialTensor C, utils::TriviallyCopyable A,
+          utils::TriviallyCopyable B>
+struct Select : public AbstractSelect<C, A, B>,
+                public math::Expr<Select<C, A, B>> {
+  using value_type = AbstractSelect<C, A, B>::value_type;
+  static constexpr bool has_reduction_loop =
+    HasInnerReduction<A> || HasInnerReduction<B>;
+  constexpr auto operator[](auto i) const
+  requires LinearlyIndexable<C, bool> &&
+           LinearlyIndexableOrConvertible<A, value_type> &&
+           LinearlyIndexableOrConvertible<B, value_type>
+  {
+    if constexpr (LinearlyIndexable<A, value_type>)
+      if constexpr (LinearlyIndexable<B, value_type>)
+        return this->c[i] ? this->a[i] : this->b[i];
+      else return this->c[i] ? this->a[i] : this->b;
+    else if constexpr (LinearlyIndexable<B, value_type>)
+      return this->c[i] ? this->a : this->b[i];
+    else return this->c[i] ? this->a : this->b;
+  }
+  constexpr auto operator[](auto i, auto j) const
+  requires CartesianIndexableOrConvertible<C, bool> &&
+           CartesianIndexableOrConvertible<A, value_type> &&
+           CartesianIndexableOrConvertible<B, value_type>
+  {
+    if constexpr (CartesianIndexable<A, value_type>)
+      if constexpr (CartesianIndexable<B, value_type>)
+        return this->c[i, j] ? this->a[i, j] : this->b[i, j];
+      else return this->c[i, j] ? this->a[i, j] : this->b;
+    else if constexpr (CartesianIndexable<B, value_type>)
+      return this->c[i, j] ? this->a : this->b[i, j];
+    else return this->c[i, j] ? this->a : this->b;
+  }
+  [[nodiscard]] constexpr auto view() const -> Select { return *this; };
+};
+template <TrivialTensor C, utils::TriviallyCopyable A,
+          utils::TriviallyCopyable B>
+Select(C c, A a, B b) -> Select<C, A, B>;
+
+template <TrivialTensor C, utils::TriviallyCopyable A,
+          utils::TriviallyCopyable B, BinaryFuncOfElts<A, B> Op>
+struct Conditional : public AbstractSelect<C, A, B>,
+                     public math::Expr<Conditional<C, A, B, Op>> {
+  using value_type = AbstractSelect<C, A, B>::value_type;
+  static constexpr bool has_reduction_loop =
+    HasInnerReduction<A> || HasInnerReduction<B>;
+  [[no_unique_address]] Op op;
+
+  constexpr auto operator[](ptrdiff_t i) const -> value_type
+  requires LinearlyIndexableOrConvertible<C, bool> &&
+           LinearlyIndexableOrConvertible<A, value_type> &&
+           LinearlyIndexableOrConvertible<B, value_type>
+  {
+    if constexpr (LinearlyIndexable<A, value_type>)
+      if constexpr (LinearlyIndexable<B, value_type>)
+        return this->c[i] ? op(this->a[i], this->b[i]) : this->a[i];
+      else return this->c[i] ? op(this->a[i], this->b) : this->a[i];
+    else if constexpr (LinearlyIndexable<B, value_type>)
+      return this->c[i] ? op(this->a, this->b[i]) : this->a;
+    else return this->c[i] ? op(this->a, this->b) : this->a;
+  }
+  template <ptrdiff_t U, ptrdiff_t W, typename M>
+  constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
+  requires LinearlyIndexableOrConvertible<C, bool> &&
+           LinearlyIndexableOrConvertible<A, value_type> &&
+           LinearlyIndexableOrConvertible<B, value_type>
+  {
+    if constexpr (W == 1) {
+      auto c = this->c[i];
+      simd::Unroll<U, 1, 1, value_type> x = get<value_type>(this->a, i),
+                                        y = op(x, get<value_type>(this->b, i));
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t u = 0; u < U; ++u)
+        x.data[u] = c.data[u] ? y.data[u] : x.data[u];
+      return x;
+    } else if constexpr (LinearlyIndexable<A, value_type>) {
+      auto c = get<bool>(this->c, i);
+      simd::Unroll<1, U, W, value_type> x = get<value_type>(this->a, i),
+                                        y = op(x, get<value_type>(this->b, i));
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t u = 0; u < U; ++u)
+        x.data[u] = c.data[u] ? y.data[u] : x.data[u];
+      return x;
+    } else if constexpr (LinearlyIndexable<B, value_type>) {
+      auto c = this->c[i];
+      using V = simd::Vec<W, value_type>;
+      value_type x_ = get<value_type>(this->a, i);
+      V x = simd::vbroadcast<W, value_type>(x_);
+      simd::Unroll<1, U, W, value_type> y = op(x, get<value_type>(this->b, i));
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t u = 0; u < U; ++u)
+        if constexpr (LinearlyIndexable<B, value_type>)
+          y.data[u] = c.data[u] ? y.data[u] : x;
+      return y;
+    } else {
+      auto c = this->c[i];
+      using V = simd::Vec<W, value_type>;
+      value_type x_ = get<value_type>(this->a, i);
+      value_type y_ = op(x_, get<value_type>(this->b, i));
+      V x = simd::vbroadcast<W, value_type>(x_),
+        y = simd::vbroadcast<W, value_type>(y_);
+      simd::Unroll<1, U, W, value_type> z;
+      POLYMATHFULLUNROLL
+      for (ptrdiff_t u = 0; u < U; ++u) z.data[u] = c.data[u] ? y : x;
+      return z;
+    }
+    //   auto c = get<bool>(this->c, i);
+    //   auto x = get<value_type>(this->a, i);
+    //   auto y = op(x, get<value_type>(this->b, i));
+    //   simd::Unroll<1, U, W, value_type> z;
+    //   POLYMATHFULLUNROLL
+    //   for (ptrdiff_t u = 0; u < U; ++u)
+    //     if constexpr (LinearlyIndexable<A, value_type>)
+    //       z.data[u] = !c.data[u] ? x.data[u] : y.data[u];
+    //     else if constexpr (LinearlyIndexable<B, value_type>)
+    //       z.data[u] = !c.data[u] ? x : y.data[u];
+    //     else z.data[u] = c.data[u] ? y : x;
+    //   return z;
+    // }
+  }
+  constexpr auto operator[](auto i, auto j) const
+  requires CartesianIndexableOrConvertible<C, bool> &&
+           CartesianIndexableOrConvertible<A, value_type> &&
+           CartesianIndexableOrConvertible<B, value_type>
+  {
+    if constexpr (LinearlyIndexable<A, value_type>)
+      if constexpr (LinearlyIndexable<B, value_type>)
+        return this->c[i, j] ? op(this->a[i, j], this->b[i, j]) : this->a[i, j];
+      else return this->c[i, j] ? op(this->a[i, j], this->b) : this->a[i, j];
+    else if constexpr (LinearlyIndexable<B, value_type>)
+      return this->c[i, j] ? op(this->a, this->b[i, j]) : this->a;
+    else return this->c[i, j] ? op(this->a, this->b) : this->a;
+  }
+  [[nodiscard]] constexpr auto view() const -> Conditional { return *this; };
+};
+template <AbstractTensor A, AbstractTensor B>
+struct MatMatMul : public math::Expr<MatMatMul<A, B>> {
+  using value_type = utils::promote_eltype_t<A, B>;
+  using concrete = is_concrete_t<A, B>;
+  static constexpr bool has_reduction_loop = true;
+  static constexpr bool ismata = AbstractMatrix<A>;
+  static constexpr bool ismatb = AbstractMatrix<B>;
+  static_assert((ismata && (ismatb || ColVector<B>)) ||
+                (RowVector<A> && ismatb) || (ColVector<A> && RowVector<B>));
+  static constexpr bool ismatrix = ismata && ismatb;
+  // we could have
+  // ColVector * RowVector
+  // RowVector * Matrix
+  // Matrix * ColVector
+  // Matrix * Matrix
+  [[no_unique_address]] A a_;
+  [[no_unique_address]] B b_;
+  [[gnu::always_inline]] constexpr auto operator[](auto i, auto j) const
+  requires(ismatrix)
+  {
+    static_assert(AbstractMatrix<B>, "B should be an AbstractMatrix");
+    invariant(ptrdiff_t(a_.numCol()) > 0);
+    decltype(a_[i, 0] * b_[0, j] + a_[i, 1] * b_[1, j]) s{};
+    POLYMATHNOVECTORIZE
+    for (ptrdiff_t k = 0; k < ptrdiff_t(a_.numCol()); ++k)
+      s += a_[i, k] * b_[k, j];
+    return s;
+  }
+  // If `T isa Dual<Dual<double,7>,2>`, we would not want to construct
+  // intermediates that require masked loads/stores, as compilers have
+  // trouble optimizing these away.
+  // We can imagine two strategies for avoiding this:
+  // 1. Do not write/construct any intermediates, but write into the result
+  // directly.
+  // 2. Decompress/compress on load/store, so temporaries do not need masks.
+  // `1.` seems ideal, but harder to implement.
+  // For example, here, `s` would have to alias the result. Then we also have
+  // `s +=`, which would have to invoke somehow call
+  // `Dual<Dual<double,7>,2>::operator+=` without storing.
+  // Or, we'd need a method that can see through it, so we operate on the
+  // teminal values, but still in one go to only have one instance of the
+  // reduction loop. Thus, `1.` seems conceptually simple but without a clear
+  // implementation strategy.
+  //
+  //
+  [[gnu::always_inline]] constexpr auto operator[](auto i) const
+  requires(!ismatrix)
+  {
+    if constexpr (RowVector<A>) {
+      invariant(a_.size() == b_.numRow());
+      invariant(a_.size() > 0);
+      decltype(a_[0] * b_[0, i] + a_[1] * b_[1, i]) s{};
+      POLYMATHNOVECTORIZE
+      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
+        POLYMATHFAST
+        s += a_[k] * b_[k, i];
+      }
+      return s;
+    } else { // ColVector<B>
+      invariant(a_.numCol() == b_.size());
+      invariant(b_.size() > 0);
+      decltype(a_[i, 0] * b_[0] + a_[i, 1] * b_[1]) s{};
+      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
+        POLYMATHFAST
+        s += a_[i, k] * b_[k];
+      }
+      return s;
+    }
+  }
+  [[nodiscard]] constexpr auto numRow() const {
+    if constexpr (AbstractMatrix<A>) return a_.numRow();
+    else return Row<1>{};
+  }
+  [[nodiscard]] constexpr auto numCol() const {
+    if constexpr (AbstractMatrix<B>) return b_.numCol();
+    else return Col<1>{};
+  }
+  [[nodiscard]] constexpr auto size() const {
+    if constexpr (ismata)
+      if constexpr (ismatb)
+        return unwrapRow(a_.numRow()) * unwrapCol(b_.numCol());
+      else return unwrapRow(a_.numRow());
+    else if constexpr (RowVector<A>) return unwrapCol(b_.numCol());
+    else a_.size() * b_.size();
+  }
+  [[nodiscard]] constexpr auto view() const { return *this; };
+  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; };
+};
 
 export namespace math {
 

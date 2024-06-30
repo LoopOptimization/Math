@@ -3,7 +3,9 @@ module;
 #include <cstdint>
 
 export module Comparisons;
+import ArrayConcepts;
 import SIMD;
+import TypePromotion;
 
 export namespace math {
 constexpr auto allZero(const auto &x) -> bool {
@@ -21,13 +23,14 @@ constexpr auto allLEZero(const auto &x) -> bool {
 
 constexpr auto anyNEZero(const auto &x) -> bool {
   return std::any_of(x.begin(), x.end(), [](int64_t y) { return y != 0; });
-}[[gnu::always_inline, gnu::flatten]] constexpr auto
+}
+[[gnu::always_inline, gnu::flatten]] constexpr auto
 any(const AbstractTensor auto &A, const auto &f) -> bool {
   auto [M, N] = shape(A);
   using T = utils::eltype_t<decltype(A)>;
   if constexpr (simd::SIMDSupported<T>) {
     if constexpr (AbstractMatrix<decltype(A)>) {
-      if constexpr (StaticInt<decltype(N)>) {
+      if constexpr (utils::StaticInt<decltype(N)>) {
         constexpr std::array<ptrdiff_t, 3> vdr =
           simd::VectorDivRem<ptrdiff_t(N), T>();
         constexpr ptrdiff_t W = vdr[0];
@@ -50,7 +53,7 @@ any(const AbstractTensor auto &A, const auto &f) -> bool {
           }
         }
       }
-    } else if constexpr (StaticInt<decltype(M)> && StaticInt<decltype(N)>) {
+    } else if constexpr (utils::StaticInt<decltype(M)> && utils::StaticInt<decltype(N)>) {
       ptrdiff_t L = RowVector<decltype(A)> ? N : M;
       using SL =
         std::conditional_t<RowVector<decltype(A)>, decltype(N), decltype(M)>;
