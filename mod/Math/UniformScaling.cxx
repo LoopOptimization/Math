@@ -10,7 +10,6 @@ export module UniformScaling;
 
 import ArrayConcepts;
 import AxisTypes;
-import MatDim;
 import SIMD;
 import Widen;
 

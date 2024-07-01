@@ -52,6 +52,12 @@ if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
   set(ENABLE_RTTI
       ON
       CACHE BOOL "Use RTTI")
+  set(USE_MI_MALLOC
+      OFF
+      CACHE BOOL "No mimalloc with sanitizers")
+  set(USE_JE_MALLOC
+      OFF
+      CACHE BOOL "No jemalloc with sanitizers")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(ENABLE_STACK_PROTECTOR
         ON
@@ -79,15 +85,8 @@ endif()
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
-  # we don't use rtti, which is incompatible with the vptr check:
-  # https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
-                                                   -fsanitize-trap=all)
-  else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
-                                                   -fno-sanitize-recover=all)
-  endif()
+  target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
+                                                 -fsanitize-trap=all)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
 endif()

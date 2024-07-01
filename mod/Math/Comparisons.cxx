@@ -5,7 +5,6 @@ module;
 export module Comparisons;
 import ArrayConcepts;
 import SIMD;
-import TypePromotion;
 
 export namespace math {
 constexpr auto allZero(const auto &x) -> bool {
@@ -30,7 +29,7 @@ any(const AbstractTensor auto &A, const auto &f) -> bool {
   using T = utils::eltype_t<decltype(A)>;
   if constexpr (simd::SIMDSupported<T>) {
     if constexpr (AbstractMatrix<decltype(A)>) {
-      if constexpr (utils::StaticInt<decltype(N)>) {
+      if constexpr (StaticInt<decltype(N)>) {
         constexpr std::array<ptrdiff_t, 3> vdr =
           simd::VectorDivRem<ptrdiff_t(N), T>();
         constexpr ptrdiff_t W = vdr[0];
@@ -53,7 +52,7 @@ any(const AbstractTensor auto &A, const auto &f) -> bool {
           }
         }
       }
-    } else if constexpr (utils::StaticInt<decltype(M)> && utils::StaticInt<decltype(N)>) {
+    } else if constexpr (StaticInt<decltype(M)> && StaticInt<decltype(N)>) {
       ptrdiff_t L = RowVector<decltype(A)> ? N : M;
       using SL =
         std::conditional_t<RowVector<decltype(A)>, decltype(N), decltype(M)>;

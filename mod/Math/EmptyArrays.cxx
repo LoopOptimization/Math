@@ -5,7 +5,6 @@ export module Array:Emptry;
 
 import ArrayConcepts;
 import AxisTypes;
-import MatDim;
 
 export namespace math {
 

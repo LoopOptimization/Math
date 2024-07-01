@@ -41,8 +41,7 @@ file(GLOB_RECURSE headers CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
 file(GLOB_RECURSE modules CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
-message(STATUS "Headers: ${headers}")
-message(STATUS "Modules: ${modules}")
+# message(STATUS "Headers: ${headers}") message(STATUS "Modules: ${modules}")
 
 # ---- Create library ----
 
@@ -64,8 +63,8 @@ target_compile_options(
 
 target_include_directories(
   ${PROJECT_NAME}
-  PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-          $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if(NOT ENABLE_RTTI)
   target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
@@ -79,8 +78,8 @@ set(SEARCH_JE_MALLOC USE_JE_MALLOC)
 if(USE_MI_MALLOC)
   find_package(mimalloc) # REQUIRED)
   if(mimalloc_FOUND)
-    target_link_libraries(${PROJECT_NAME} INTERFACE mimalloc) # mimalloc-static
-    target_compile_definitions(${PROJECT_NAME} INTERFACE USING_MIMALLOC)
+    target_link_libraries(${PROJECT_NAME} PRIVATE mimalloc) # mimalloc-static
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USING_MIMALLOC)
     set(SEARCH_JE_MALLOC OFF)
   endif()
 endif()
@@ -89,10 +88,10 @@ if(SEARCH_JE_MALLOC)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(JEMALLOC jemalloc)
     if(jemalloc_FOUND)
-      target_link_libraries(${PROJECT_NAME} INTERFACE ${JEMALLOC_LIBRARIES})
+      target_link_libraries(${PROJECT_NAME} PRIVATE ${JEMALLOC_LIBRARIES})
       target_include_directories(${PROJECT_NAME}
-                                 INTERFACE ${JEMALLOC_INCLUDE_DIRS})
-      target_compile_definitions(${PROJECT_NAME} INTERFACE USING_JEMALLOC)
+                                 PRIVATE ${JEMALLOC_INCLUDE_DIRS})
+      target_compile_definitions(${PROJECT_NAME} PRIVATE USING_JEMALLOC)
     endif()
   endif()
 endif()
@@ -146,8 +145,3 @@ install(
   EXPORT math-targets
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math
   CXX_MODULES_DIRECTORY .)
-# packageproject( NAME ${PROJECT_NAME} VERSION ${PROJECT_VERSION} NAMESPACE
-# ${PROJECT_NAME} BINARY_DIR ${PROJECT_BINARY_DIR} INCLUDE_DIR
-# ${PROJECT_SOURCE_DIR}/include INCLUDE_DESTINATION
-# include/${PROJECT_NAME}-${PROJECT_VERSION} VERSION_HEADER
-# "${VERSION_HEADER_LOCATION}" COMPATIBILITY SameMajorVersion)

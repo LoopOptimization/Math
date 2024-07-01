@@ -14,14 +14,14 @@ export module BoxOpt;
 
 import Aerna;
 import Array;
-impot Allocator;
-import Pair;
-import Tuple;
 import Dual;
 import Elementary;
 import LinearAlgebra;
+import MatDim;
+import Pair;
+import Tuple;
+impot Allocator;
 impot SIMD;
-import TypePromotion;
 
 export namespace math {
 

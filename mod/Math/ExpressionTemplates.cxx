@@ -20,11 +20,9 @@ export module ExprTemplates;
 import ArrayConcepts;
 import AxisTypes;
 import Indexing;
-import MatDim;
 import Param;
 import Range;
 import SIMD;
-import TypePromotion;
 
 using utils::TriviallyCopyable;
 
@@ -64,11 +62,11 @@ concept TrivialVec = utils::TriviallyCopyable<T> && AbstractVector<T>;
 template <typename T>
 concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
 
-template <utils::TriviallyCopyable Op, utils::TriviallyCopyable A>
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
 struct Elementwise;
 
-template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A>
-constexpr auto elementwise(OP, A) -> Elementwise<OP, A>;
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable OP>
+constexpr auto elementwise(A, OP) -> Elementwise<A, OP>;
 
 constexpr auto size(const std::integral auto) -> ptrdiff_t { return 1; }
 constexpr auto size(const std::floating_point auto) -> ptrdiff_t { return 1; }
@@ -112,9 +110,9 @@ using argtyp_t =
                         std::floating_point<utils::eltype_t<B>>),
                      utils::eltype_t<B>, A>;
 
-template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B>
-constexpr auto elementwise(OP, A, B)
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
+          utils::TriviallyCopyable OP>
+constexpr auto elementwise(A, B, OP)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP>;
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
@@ -211,68 +209,65 @@ constexpr auto dot(const auto &a, const auto &b) {
 
 export namespace math {
 
-template <typename A> class Expr {
+template <typename T, typename A> class Expr {
   constexpr auto v() const { return static_cast<const A *>(this)->view(); }
-  using T = utils::eltype_t<A>;
   static constexpr bool primitive_elt =
     std::integral<T> || std::floating_point<T>;
 
   friend constexpr auto operator+(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::plus<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::plus<>{});
   }
   friend constexpr auto operator-(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::minus<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::minus<>{});
   }
   friend constexpr auto operator/(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::divides<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::divides<>{});
   }
   friend constexpr auto operator%(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::modulus<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::modulus<>{});
   }
   friend constexpr auto operator&(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::bit_and<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::bit_and<>{});
   }
   friend constexpr auto operator|(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::bit_or<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::bit_or<>{});
   }
   friend constexpr auto operator^(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::bit_xor<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::bit_xor<>{});
   }
   friend constexpr auto operator*(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(std::multiplies<>{}, b, a.view());
+    return ElementwiseBinaryOp(b, a.view(), std::multiplies<>{});
   }
 
 public:
-  template <Compatible<A> B> constexpr auto operator-() const {
-    return Elementwise(std::negate<>{}, v());
+  constexpr auto operator-() const { return elementwise(v(), std::negate<>{}); }
+  constexpr auto operator!() const {
+    return elementwise(v(), std::logical_not<>{});
   }
-  template <Compatible<A> B> constexpr auto operator!() const {
-    return Elementwise(std::logical_not<>{}, v());
-  }
-  template <Compatible<A> B> constexpr auto operator~() const {
-    return Elementwise(std::bit_not<>{}, v());
+  constexpr auto operator~() const {
+    return elementwise(v(), std::bit_not<>{});
   }
 
   template <Compatible<A> B> constexpr auto operator+(const B &b) const {
-    return ElementwiseBinaryOp(std::plus<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::plus<>{});
   }
   template <Compatible<A> B> constexpr auto operator-(const B &b) const {
-    return ElementwiseBinaryOp(std::minus<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::minus<>{});
   }
   template <Compatible<A> B> constexpr auto operator/(const B &b) const {
-    return ElementwiseBinaryOp(std::divides<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::divides<>{});
   }
   template <Compatible<A> B> constexpr auto operator%(const B &b) const {
-    return ElementwiseBinaryOp(std::modulus<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::modulus<>{});
   }
   template <Compatible<A> B> constexpr auto operator&(const B &b) const {
-    return ElementwiseBinaryOp(std::bit_and<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::bit_and<>{});
   }
   template <Compatible<A> B> constexpr auto operator|(const B &b) const {
-    return ElementwiseBinaryOp(std::bit_or<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::bit_or<>{});
   }
   template <Compatible<A> B> constexpr auto operator^(const B &b) const {
-    return ElementwiseBinaryOp(std::bit_xor<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::bit_xor<>{});
   }
   template <typename B>
   constexpr auto operator*(const B &b)
@@ -286,9 +281,9 @@ public:
         return dot(AA, BB.t());
       else if constexpr (AbstractVector<decltype(AA)> &&
                          AbstractVector<decltype(BB)>)
-        return ElementwiseBinaryOp(std::multiplies<>{}, AA, BB);
+        return elementwise(AA, BB, std::multiplies<>{});
       else return MatMatMul<decltype(AA), decltype(BB)>{.a_ = AA, .b_ = BB};
-    } else return ElementwiseBinaryOp(std::multiplies<>{}, v(), b);
+    } else return elementwise(v(), b, std::multiplies<>{});
   }
 
   [[gnu::flatten]] constexpr auto
@@ -335,37 +330,39 @@ public:
   }
   template <Compatible<A> B>
   constexpr auto elementwise_equal(const B &b) const {
-    return ElementwiseBinaryOp(std::equal_to<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::equal_to<>{});
   }
   template <Compatible<A> B>
   constexpr auto elementwise_not_equal(const B &b) const {
-    return ElementwiseBinaryOp(std::not_equal_to<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::not_equal_to<>{});
   }
   template <Compatible<A> B>
   constexpr auto elementwise_greater(const B &b) const {
-    return ElementwiseBinaryOp(std::greater<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::greater<>{});
   }
   template <Compatible<A> B> constexpr auto elementwise_less(const B &b) const {
-    return ElementwiseBinaryOp(std::less<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::less<>{});
   }
   template <Compatible<A> B>
   constexpr auto elementwise_greater_equal(const B &b) const {
-    return ElementwiseBinaryOp(std::greater_equal<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::greater_equal<>{});
   }
   template <Compatible<A> B>
   constexpr auto elementwise_less_equal(const B &b) const {
-    return ElementwiseBinaryOp(std::less_equal<>{}, v(), view(b));
+    return elementwise(v(), view(b), std::less_equal<>{});
   }
 };
 } // namespace math
 
-template <utils::TriviallyCopyable Op, utils::TriviallyCopyable A>
-struct Elementwise : public Expr<Elementwise<Op, A>> {
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
+struct Elementwise : public Expr<decltype(std::declval<Op>()(
+                                   std::declval<utils::eltype_t<A>>())),
+                                 Elementwise<A, Op>> {
   using value_type =
     decltype(std::declval<Op>()(std::declval<utils::eltype_t<A>>()));
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
-  [[no_unique_address]] Op op;
   [[no_unique_address]] A a;
+  [[no_unique_address]] Op op;
   constexpr auto operator[](auto i) const
   requires(LinearlyIndexableOrConvertible<A, value_type>)
   {
@@ -395,12 +392,16 @@ struct Elementwise : public Expr<Elementwise<Op, A>> {
   [[nodiscard]] constexpr auto view() const { return *this; };
   template <typename T> constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a);
-    return Elementwise<Op, decltype(ra)>(op, ra);
+    return Elementwise<decltype(ra), Op>(ra, op);
   }
 };
 template <utils::TriviallyCopyable A, TrivialCompatible<A> B,
           BinaryFuncOfElts<A, B> Op>
-struct ElementwiseBinaryOp : public math::Expr<ElementwiseBinaryOp<A, B, Op>> {
+struct ElementwiseBinaryOp
+  : public math::Expr<decltype(std::declval<Op>()(
+                        std::declval<indextype_t<A, B>>(),
+                        std::declval<indextype_t<B, A>>())),
+                      ElementwiseBinaryOp<A, B, Op>> {
   using elta = indextype_t<A, B>;
   using eltb = indextype_t<B, A>;
 
@@ -413,9 +414,9 @@ struct ElementwiseBinaryOp : public math::Expr<ElementwiseBinaryOp<A, B, Op>> {
   static constexpr bool ismatrix = AbstractMatrix<A> || AbstractMatrix<B>;
   static_assert(isvector != ismatrix);
 
-  [[no_unique_address]] Op op;
   [[no_unique_address]] A a;
   [[no_unique_address]] B b;
+  [[no_unique_address]] Op op;
   constexpr auto operator[](auto i) const
   requires LinearlyIndexableOrConvertible<A, elta> &&
            LinearlyIndexableOrConvertible<B, eltb>
@@ -461,37 +462,38 @@ struct ElementwiseBinaryOp : public math::Expr<ElementwiseBinaryOp<A, B, Op>> {
   template <typename T> constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a);
     auto rb = reinterpret<T>(b);
-    return ElementwiseBinaryOp<decltype(ra), decltype(rb), Op>(op, ra, rb);
+    return ElementwiseBinaryOp<decltype(ra), decltype(rb), Op>(ra, rb, op);
   }
 };
 
-template <utils::TriviallyCopyable Op, utils::TriviallyCopyable A>
-Elementwise(Op, A) -> Elementwise<Op, A>;
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
+Elementwise(A, Op) -> Elementwise<A, Op>;
 
-template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A>
-constexpr auto elementwise(OP op, A a) -> Elementwise<OP, A> {
-  return {op, a};
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
+constexpr auto elementwise(A a, Op op) -> Elementwise<A, Op> {
+  return {.a = a, .op = op};
 }
 
 // // promote primitive element types, e.g. so
 // // operator+(int, AbstractVector<int64_t>)
 // // turns into
 // // operator+(int64_t, AbstractVector<int64_t>)
-template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B>
-ElementwiseBinaryOp(OP, A, B)
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
+          utils::TriviallyCopyable OP>
+ElementwiseBinaryOp(A, B, OP)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP>;
 
-template <utils::TriviallyCopyable OP, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B>
-constexpr auto elementwise(OP op, A a, B b)
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
+          utils::TriviallyCopyable OP>
+constexpr auto elementwise(A a, B b, OP op)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP> {
-  return {a, b, op};
+  return {.a = a, .b = b, .op = op};
 }
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
 struct Select : public AbstractSelect<C, A, B>,
-                public math::Expr<Select<C, A, B>> {
+                public math::Expr<typename AbstractSelect<C, A, B>::value_type,
+                                  Select<C, A, B>> {
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
@@ -529,8 +531,10 @@ Select(C c, A a, B b) -> Select<C, A, B>;
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B, BinaryFuncOfElts<A, B> Op>
-struct Conditional : public AbstractSelect<C, A, B>,
-                     public math::Expr<Conditional<C, A, B, Op>> {
+struct Conditional
+  : public AbstractSelect<C, A, B>,
+    public math::Expr<typename AbstractSelect<C, A, B>::value_type,
+                      Conditional<C, A, B, Op>> {
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
@@ -624,7 +628,8 @@ struct Conditional : public AbstractSelect<C, A, B>,
   [[nodiscard]] constexpr auto view() const -> Conditional { return *this; };
 };
 template <AbstractTensor A, AbstractTensor B>
-struct MatMatMul : public math::Expr<MatMatMul<A, B>> {
+struct MatMatMul
+  : public math::Expr<utils::promote_eltype_t<A, B>, MatMatMul<A, B>> {
   using value_type = utils::promote_eltype_t<A, B>;
   using concrete = is_concrete_t<A, B>;
   static constexpr bool has_reduction_loop = true;

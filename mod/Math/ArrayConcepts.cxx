@@ -5,9 +5,8 @@ module;
 
 export module ArrayConcepts;
 
+export import MatDim;
 import AxisTypes;
-import MatDim;
-import TypePromotion;
 
 export namespace math {
 
@@ -135,7 +134,7 @@ template <typename A> struct Transpose {
   [[nodiscard]] constexpr auto numCol() const {
     return transpose_dim(a_.numRow());
   }
-  [[nodiscard]] constexpr auto view() const -> auto & { return *this; };
+  [[nodiscard]] constexpr auto view() const { return Transpose(a_.view()); };
   [[nodiscard]] constexpr auto size() const { return a_.size(); }
   [[nodiscard]] constexpr auto dim() const {
     return DenseDims(numRow(), numCol());

@@ -13,11 +13,9 @@ export module AssignExprTemplates;
 import ArrayConcepts;
 import Indexing;
 import Invariant;
-import MatDim;
 import SIMD;
 import Tuple;
 import TypeCompression;
-import TypePromotion;
 import UniformScaling;
 
 #define CASTTOSCALARIZE
@@ -195,7 +193,7 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
   // using PT = std::common_type_t<utils::eltype_t<LHS>, utils::eltype_t<RHS>>;
   using PT = utils::promote_eltype_t<LHS, RHS>;
   invariant(L >= 0);
-  if constexpr (utils::StaticInt<I>) {
+  if constexpr (StaticInt<I>) {
     constexpr std::array<ptrdiff_t, 3> vdr =
       simd::VectorDivRem<ptrdiff_t(L), PT>();
     constexpr ptrdiff_t W = vdr[0];
@@ -329,7 +327,7 @@ protected:
         vcopyToSIMD(self, view(B), N, NoRowIndex{}, op);
       else if constexpr (IsOne<decltype(N)>)
         vcopyToSIMD(self, view(B), M, NoRowIndex{}, op);
-      else if constexpr (utils::StaticInt<decltype(M)>) {
+      else if constexpr (StaticInt<decltype(M)>) {
         constexpr std::array<ptrdiff_t, 2> UIR = unrollf<ptrdiff_t(M)>();
         constexpr ptrdiff_t U = UIR[0];
         if constexpr (U != 0)
@@ -352,9 +350,8 @@ protected:
     } else if constexpr (AbstractVector<P>) {
 #endif
       ptrdiff_t L = IsOne<decltype(N)> ? M : N;
-      constexpr bool isstatic = IsOne<decltype(N)>
-                                  ? utils::StaticInt<decltype(M)>
-                                  : utils::StaticInt<decltype(N)>;
+      constexpr bool isstatic =
+        IsOne<decltype(N)> ? StaticInt<decltype(M)> : StaticInt<decltype(N)>;
       if constexpr (!std::is_copy_assignable_v<PT> && assign) {
         POLYMATHIVDEP
         for (ptrdiff_t j = 0; j < L; ++j)
@@ -448,7 +445,7 @@ vcopyToSIMD(Tuple<A, As...> &dref, const Tuple<B, Bs...> &sref, I L, R row) {
   // We're going for very short SIMD vectors to focus on small sizes
   using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
-  if constexpr (utils::StaticInt<I>) {
+  if constexpr (math::StaticInt<I>) {
     constexpr ptrdiff_t SL = ptrdiff_t(L);
     constexpr std::array<ptrdiff_t, 3> vdr = simd::VectorDivRem<SL, T>();
     constexpr ptrdiff_t W = vdr[0];
@@ -519,7 +516,7 @@ template <typename A, typename... As, typename B, typename... Bs>
       vcopyToSIMD(dst, src, N, NoRowIndex{});
     else if constexpr (math::IsOne<decltype(N)>)
       vcopyToSIMD(dst, src, M, NoRowIndex{});
-    else if constexpr (utils::StaticInt<decltype(M)>) {
+    else if constexpr (math::StaticInt<decltype(M)>) {
       constexpr std::array<ptrdiff_t, 2> UIR = unrollf<ptrdiff_t(M)>();
       constexpr ptrdiff_t U = UIR[0];
       if constexpr (U != 0)

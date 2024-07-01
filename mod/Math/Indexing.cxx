@@ -12,7 +12,6 @@ import CompressReference;
 import Range;
 import MatDim;
 import SIMD;
-import TypePromotion;
 
 export namespace math {
 
@@ -339,7 +338,7 @@ constexpr auto calcNewDim(StridedDims<>, R, C) -> Empty {
   return {};
 }
 constexpr auto calcNewDim(Length<> len, Colon) -> Length<> { return len; };
-constexpr auto calcNewDim(utils::StaticInt auto len, Colon) { return len; };
+constexpr auto calcNewDim(StaticInt auto len, Colon) { return len; };
 constexpr auto calcNewDim(StridedRange<> len, Colon) -> StridedRange<> {
   return len;
 };
@@ -445,6 +444,5 @@ constexpr auto calcNewDim(ColVectorDimension auto x,
     return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
   else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
-
 
 } // namespace math

@@ -15,9 +15,9 @@ import Arena;
 import Array;
 import Elementary;
 import Invariant;
+import MatDim;
 import SIMD;
 import StaticArray;
-import TypePromotion;
 
 export namespace math {
 

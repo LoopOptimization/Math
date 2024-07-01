@@ -36,14 +36,13 @@ import ArrayPrint;
 import AxisTypes;
 import CompressReference;
 import ExprTemplates;
-import MatDim;
 import Optional;
 import Pair;
+import Param;
 import Range;
 import Rational;
 import SIMD;
 import Storage;
-import TypePromotion;
 import Valid;
 
 export namespace math {
@@ -66,9 +65,9 @@ template <typename T> using DefaultAlloc = alloc::Mallocator<compressed_t<T>>;
 using utils::Valid, utils::Optional;
 
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
-struct Array;
+struct [[gsl::Pointer(T)]] Array;
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
-struct MutArray;
+struct [[gsl::Pointer(T)]] MutArray;
 
 // Cases we need to consider:
 // 1. Slice-indexing
@@ -217,7 +216,7 @@ template <typename T, bool Column = false> struct SliceRange {
 };
 /// Constant Array
 template <class T, Dimension S, bool Compress>
-struct [[gsl::Pointer(T)]] Array : public Expr<Array<T, S, Compress>> {
+struct Array : public Expr<T, Array<T, S, Compress>> {
   static_assert(!std::is_const_v<T>, "T shouldn't be const");
 
   using storage_type = std::conditional_t<Compress, compressed_t<T>, T>;
@@ -435,7 +434,7 @@ struct [[gsl::Pointer(T)]] Array : public Expr<Array<T, S, Compress>> {
       const U *p = std::launder(reinterpret_cast<const U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
-        if constexpr (utils::StaticInt<decltype(c)>)
+        if constexpr (StaticInt<decltype(c)>)
           return Array<U, std::integral_constant<ptrdiff_t, c * ratio>>{p, {}};
         else return Array<U, ptrdiff_t>{p, c * ratio};
       } else if constexpr (DenseLayout<S>) {
@@ -535,15 +534,7 @@ template <class T, class S>
 [[gnu::always_inline]] constexpr auto view(Array<T, S> x) -> Array<T, S> {
   return x;
 }
-// static_assert(
-//   ColVector<Elementwise<std::negate<>, Array<int64_t, StridedRange<>>>>);
-// static_assert(AbstractMatrix<ElementwiseBinaryOp<Array<int64_t, DenseDims<>>,
-//                                                  int64_t,
-//                                                  std::multiplies<>>>);
-// static_assert(ColVector<ElementwiseBinaryOp<Array<int64_t, StridedRange<>>,
-//                                             int64_t, std::multiplies<>>>);
-static_assert(std::same_as<Array<int64_t, SquareDims<>>::value_type, int64_t>);
-static_assert(utils::HasEltype<Array<int64_t, SquareDims<>>>);
+
 static_assert(
   std::same_as<utils::eltype_t<Array<int64_t, SquareDims<>>>, int64_t>);
 static_assert(AbstractMatrix<Array<int64_t, SquareDims<>>>);
@@ -552,8 +543,8 @@ static_assert(
   std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
 
 template <class T, Dimension S, bool Compress>
-struct [[gsl::Pointer(T)]] MutArray : Array<T, S, Compress>,
-                                      ArrayOps<T, S, MutArray<T, S, Compress>> {
+struct MutArray : Array<T, S, Compress>,
+                  ArrayOps<T, S, MutArray<T, S, Compress>> {
   using BaseT = Array<T, S, Compress>;
   // using BaseT::BaseT;
   using BaseT::operator[], BaseT::data, BaseT::begin, BaseT::end, BaseT::rbegin,
@@ -824,7 +815,7 @@ struct [[gsl::Pointer(T)]] MutArray : Array<T, S, Compress>,
       U *p = std::launder(reinterpret_cast<U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
-        if constexpr (utils::StaticInt<decltype(c)>)
+        if constexpr (StaticInt<decltype(c)>)
           return MutArray<U, std::integral_constant<ptrdiff_t, c * ratio>>(
             p, std::integral_constant<ptrdiff_t, c * ratio>{});
         else return MutArray<U, ptrdiff_t>{p, c * ratio};
@@ -1332,6 +1323,14 @@ static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>() * 0)>);
+
+// from
+Elementwise<math::Array<long, math::StridedRange<>>, std::negate<void>>
+// to
+math::Expr<decltype(std::declval<multiplies<void>>()(std::declval<indextype_t<Elementwise<Array<long, StridedRange<-1, -1>, false>, negate<void>>, long>>(), std::declval<indextype_t<long, Elementwise<Array<long, StridedRange<-1, -1>, false>, negate<void>>>>())), ElementwiseBinaryOp<Elementwise<Array<long, StridedRange<-1, -1>, false>, negate<void>>, long, multiplies<void>>>
+// aka
+Expr<long, ElementwiseBinaryOp<Elementwise<math::Array<long, math::StridedRange<-1, -1>, false>, std::negate<void>>, long, std::multiplies<void>>>
+
 template <typename T> auto countNonZero(PtrMatrix<T> x) -> ptrdiff_t {
   ptrdiff_t count = 0;
   for (ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x(r, _));

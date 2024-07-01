@@ -14,15 +14,14 @@
 #include <type_traits>
 
 import Arena;
-import TinyVector;
-import Tuple;
 import Array;
+import ArrayParse;
 import MatDim;
 import SmallSparseMatrix;
 import StaticArray;
+import TinyVector;
+import Tuple;
 import UniformScaling;
-import ArrayParse;
-import TypePromotion;
 
 using namespace math;
 using utils::operator""_mat;

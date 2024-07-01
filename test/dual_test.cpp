@@ -7,8 +7,8 @@
 import Array;
 import Dual;
 import LinearAlgebra;
+import MatDim;
 import TinyVector;
-import TypePromotion;
 
 using namespace math;
 using utils::eltype_t, math::transpose;

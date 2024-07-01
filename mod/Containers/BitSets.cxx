@@ -17,8 +17,8 @@ module;
 export module BitSet;
 import Array;
 import Invariant;
+import MatDim;
 import Range;
-import TypePromotion;
 
 export namespace containers {
 using utils::invariant;
