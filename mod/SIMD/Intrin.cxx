@@ -1275,15 +1275,17 @@ load(const T *p, mask::None<2>) -> Vec<2, T> {
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::None<2>,
                                                           Vec<2, T> x) {
-  if constexpr (std::same_as<T, double>)
-    _mm_storeu_pd(p, std::bit_cast<__m128d>(x));
-  else if constexpr (sizeof(T) == 8)
+  if constexpr (std::same_as<T, double>) {
+    __m128d xpd = std::bit_cast<__m128d>(x);
+    _mm_storeu_pd(p, xpd);
+  } else if constexpr (sizeof(T) == 8) {
+    __m128i xi = std::bit_cast<__m128i>(x);
 #ifdef __AVX512VL__
-    _mm_storeu_epi64(p, std::bit_cast<__m128i>(x));
+    _mm_storeu_epi64(p, xi);
 #else
-    _mm_storeu_si128((__m128i *)p, std::bit_cast<__m128i>(x));
+    _mm_storeu_si128((__m128i *)p, xi);
 #endif
-  else {
+  } else {
     p[0] = x[0];
     p[1] = x[1];
   }

@@ -19,26 +19,13 @@ export module ExprTemplates;
 
 import ArrayConcepts;
 import AxisTypes;
+import CheckSizes;
 import Indexing;
 import Param;
 import Range;
 import SIMD;
 
 using utils::TriviallyCopyable;
-
-template <typename T>
-concept ShouldView = requires(const T &x) {
-  { x.view() } -> utils::TriviallyCopyable;
-};
-
-export namespace math {
-
-template <typename T> [[gnu::always_inline]] constexpr auto view(const T &x) {
-  if constexpr (ShouldView<T>) return x.view();
-  else return x;
-}
-
-}; // namespace math
 
 template <typename T, typename I> consteval auto getWidth() -> ptrdiff_t {
   if constexpr (std::same_as<I, ptrdiff_t>) return simd::Width<T>;
@@ -215,28 +202,28 @@ template <typename T, typename A> class Expr {
     std::integral<T> || std::floating_point<T>;
 
   friend constexpr auto operator+(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::plus<>{});
+    return elementwise(b, a.view(), std::plus<>{});
   }
   friend constexpr auto operator-(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::minus<>{});
+    return elementwise(b, a.view(), std::minus<>{});
   }
   friend constexpr auto operator/(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::divides<>{});
+    return elementwise(b, a.view(), std::divides<>{});
   }
   friend constexpr auto operator%(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::modulus<>{});
+    return elementwise(b, a.view(), std::modulus<>{});
   }
   friend constexpr auto operator&(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::bit_and<>{});
+    return elementwise(b, a.view(), std::bit_and<>{});
   }
   friend constexpr auto operator|(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::bit_or<>{});
+    return elementwise(b, a.view(), std::bit_or<>{});
   }
   friend constexpr auto operator^(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::bit_xor<>{});
+    return elementwise(b, a.view(), std::bit_xor<>{});
   }
   friend constexpr auto operator*(utils::ElementOf<A> auto b, const A &a) {
-    return ElementwiseBinaryOp(b, a.view(), std::multiplies<>{});
+    return elementwise(b, a.view(), std::multiplies<>{});
   }
 
 public:
@@ -458,7 +445,7 @@ struct ElementwiseBinaryOp
   [[nodiscard]] constexpr auto size() const {
     return unwrapRow(numRow()) * unwrapCol(numCol());
   }
-  [[nodiscard]] constexpr auto view() const -> auto & { return *this; };
+  [[nodiscard]] constexpr auto view() const { return *this; };
   template <typename T> constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a);
     auto rb = reinterpret<T>(b);

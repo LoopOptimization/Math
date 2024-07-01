@@ -10,6 +10,7 @@ module;
 export module ManagedArray;
 import AxisTypes;
 import Array;
+import MatDim;
 
 export namespace math {
 
@@ -750,4 +751,55 @@ inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
   return printMatrix(os, B.data(), ptrdiff_t(B.numRow()), ptrdiff_t(B.numCol()),
                      ptrdiff_t(B.rowStride()));
 }
+
+using alloc::Arena, alloc::WArena, alloc::OwningArena, utils::eltype_t;
+template <alloc::FreeAllocator A>
+constexpr auto vector(A a, ptrdiff_t M)
+  -> ManagedArray<eltype_t<A>, Length<>,
+                  containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
+  return {length(M), a};
+}
+template <alloc::FreeAllocator A>
+constexpr auto vector(A a, ptrdiff_t M, eltype_t<A> x)
+  -> ManagedArray<eltype_t<A>, Length<>,
+                  containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
+  return {length(M), x, a};
+}
+template <alloc::FreeAllocator A>
+constexpr auto square_matrix(A a, ptrdiff_t M)
+  -> ManagedArray<eltype_t<A>, SquareDims<>,
+                  containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
+  return {SquareDims<>{row(M)}, a};
+}
+template <alloc::FreeAllocator A>
+constexpr auto square_matrix(A a, ptrdiff_t M, eltype_t<A> x)
+  -> ManagedArray<eltype_t<A>, SquareDims<>,
+                  containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
+  return {SquareDims<>{row(M)}, x, a};
+}
+template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+constexpr auto matrix(A a, Row<R> M, Col<C> N)
+  -> ManagedArray<eltype_t<A>, DenseDims<R, C>,
+                  containers::PreAllocStorage<eltype_t<A>, DenseDims<R, C>>(),
+                  A> {
+  return {DenseDims{M, N}, a};
+}
+template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+constexpr auto matrix(A a, Row<R> M, Col<C> N, eltype_t<A> x)
+  -> ManagedArray<eltype_t<A>, DenseDims<R, C>,
+                  containers::PreAllocStorage<eltype_t<A>, DenseDims<R, C>>(),
+                  A> {
+  return {DenseDims{M, N}, x, a};
+}
+template <alloc::FreeAllocator A>
+constexpr auto identity(A a, ptrdiff_t M)
+  -> ManagedArray<eltype_t<A>, SquareDims<>,
+                  containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
+  ManagedArray<eltype_t<A>, SquareDims<>,
+               containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A>
+    B{SquareDims<>{row(M)}, eltype_t<A>{}, a};
+  B.diag() << eltype_t<A>{1};
+  return B;
+}
+
 } // namespace math

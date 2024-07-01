@@ -1,20 +1,16 @@
 module;
 #include <cstddef>
+#include <memory>
 
 export module ArrayConstructors;
 
 import Arena;
 import Array;
+import AxisTypes;
 import MatDim;
 
+using utils::eltype_t;
 export namespace math {
-using alloc::Arena, alloc::WArena, alloc::OwningArena, utils::eltype_t;
-template <alloc::FreeAllocator A>
-constexpr auto vector(A a, ptrdiff_t M)
-  -> ManagedArray<eltype_t<A>, Length<>,
-                  containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
-  return {length(M), a};
-}
 
 template <alloc::Allocator A, typename T>
 using rebound_alloc =
@@ -33,15 +29,7 @@ constexpr auto vector(WArena<T> alloc,
 template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto vector(Arena<SlabSize, BumpUp> *alloc,
                       ptrdiff_t M) -> ResizeableView<T, Length<>> {
-  return {alloc->template allocate<compressed_t<T>>(M), length(M),
-          capacity(M)};
-}
-
-template <alloc::FreeAllocator A>
-constexpr auto vector(A a, ptrdiff_t M, eltype_t<A> x)
-  -> ManagedArray<eltype_t<A>, Length<>,
-                  containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
-  return {length(M), x, a};
+  return {alloc->template allocate<compressed_t<T>>(M), length(M), capacity(M)};
 }
 
 template <typename T, alloc::FreeAllocator A>
@@ -60,18 +48,10 @@ constexpr auto vector(WArena<T> alloc, ptrdiff_t M,
 template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto vector(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
                       T x) -> ResizeableView<T, Length<>> {
-  ResizeableView<T, Length<>> a{
-    alloc->template allocate<compressed_t<T>>(M), length(M),
-    capacity(M)};
+  ResizeableView<T, Length<>> a{alloc->template allocate<compressed_t<T>>(M),
+                                length(M), capacity(M)};
   a.fill(x);
   return a;
-}
-
-template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A a, ptrdiff_t M)
-  -> ManagedArray<eltype_t<A>, SquareDims<>,
-                  containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
-  return {SquareDims<>{row(M)}, a};
 }
 
 template <class T, alloc::FreeAllocator A>
@@ -91,12 +71,6 @@ constexpr auto square_matrix(Arena<SlabSize, BumpUp> *alloc,
   return {alloc->template allocate<compressed_t<T>>(M * M),
           SquareDims<>{row(M)}};
 }
-template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A a, ptrdiff_t M, eltype_t<A> x)
-  -> ManagedArray<eltype_t<A>, SquareDims<>,
-                  containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
-  return {SquareDims<>{row(M)}, x, a};
-}
 template <class T, alloc::FreeAllocator A>
 constexpr auto square_matrix(A a, ptrdiff_t M, std::type_identity_t<T> x) {
   if constexpr (std::same_as<T, eltype_t<A>>) return square_matrix(a, M, x);
@@ -112,20 +86,12 @@ constexpr auto square_matrix(WArena<T> alloc, ptrdiff_t M,
 template <class T, size_t SlabSize, bool BumpUp>
 constexpr auto square_matrix(Arena<SlabSize, BumpUp> *alloc, ptrdiff_t M,
                              T x) -> MutSquarePtrMatrix<T> {
-  MutSquarePtrMatrix<T> A{
-    alloc->template allocate<compressed_t<T>>(M * M),
-    SquareDims<>{row(M)}};
+  MutSquarePtrMatrix<T> A{alloc->template allocate<compressed_t<T>>(M * M),
+                          SquareDims<>{row(M)}};
   A.fill(x);
   return A;
 }
 
-template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A a, Row<R> M, Col<C> N)
-  -> ManagedArray<eltype_t<A>, DenseDims<R, C>,
-                  containers::PreAllocStorage<eltype_t<A>, DenseDims<R, C>>(),
-                  A> {
-  return {DenseDims{M, N}, a};
-}
 template <class T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(A a, Row<R> M, Col<C> N) {
   if constexpr (std::same_as<T, eltype_t<A>>) return matrix(a, M, N);
@@ -143,13 +109,15 @@ constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M,
   auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
   return {alloc->template allocate<compressed_t<T>>(memamt), M, N};
 }
-template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A a, Row<R> M, Col<C> N, eltype_t<A> x)
-  -> ManagedArray<eltype_t<A>, DenseDims<R, C>,
-                  containers::PreAllocStorage<eltype_t<A>, DenseDims<R, C>>(),
-                  A> {
-  return {DenseDims{M, N}, x, a};
+template <class T, size_t SlabSize, bool BumpUp, ptrdiff_t R, ptrdiff_t C>
+constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, CartesianIndex<R, C> dim)
+  -> MutArray<T, DenseDims<R, C>> {
+  Row M = Row(dim);
+  Col N = Col(dim);
+  auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
+  return {alloc->template allocate<compressed_t<T>>(memamt), M, N};
 }
+
 template <class T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(A a, Row<R> M, Col<C> N, std::type_identity_t<T> x) {
   if constexpr (std::same_as<T, eltype_t<A>>) return square_matrix(a, M, N, x);
@@ -173,16 +141,6 @@ constexpr auto matrix(Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N,
   return A;
 }
 
-template <alloc::FreeAllocator A>
-constexpr auto identity(A a, ptrdiff_t M)
-  -> ManagedArray<eltype_t<A>, SquareDims<>,
-                  containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A> {
-  ManagedArray<eltype_t<A>, SquareDims<>,
-               containers::PreAllocStorage<eltype_t<A>, SquareDims<>>(), A>
-    B{SquareDims<>{row(M)}, eltype_t<A>{}, a};
-  B.diag() << eltype_t<A>{1};
-  return B;
-}
 template <class T, alloc::FreeAllocator A>
 constexpr auto identity(A a, ptrdiff_t M) {
   if constexpr (std::same_as<T, eltype_t<A>>) return identity(a, M);

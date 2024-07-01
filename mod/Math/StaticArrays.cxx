@@ -19,8 +19,8 @@ export module StaticArray;
 
 import Array;
 import ArrayPrint;
+import AxisTypes;
 import ExprTemplates;
-import MatDim;
 import SIMD;
 import TypeCompression;
 
@@ -44,10 +44,10 @@ template <typename T, ptrdiff_t L> consteval auto alignSIMD() -> size_t {
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<
-  M == 1, Length<N>,
+  M == 1, math::Length<N>,
   std::conditional_t<
-    Compress || ((N % simd::VecLen<N, T>) == 0), DenseDims<M, N>,
-    StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
+    Compress || ((N % simd::VecLen<N, T>) == 0), math::DenseDims<M, N>,
+    math::StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
 export namespace math {
 
 static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);

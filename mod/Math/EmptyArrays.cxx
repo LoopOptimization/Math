@@ -1,7 +1,7 @@
 module;
 #include <cstddef>
 
-export module Array:Emptry;
+export module EmptyMatrix;
 
 import ArrayConcepts;
 import AxisTypes;

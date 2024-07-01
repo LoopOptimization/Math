@@ -28,7 +28,6 @@ export module Array;
 
 export import AssignExprTemplates;
 export import Indexing;
-export import TypeCompression;
 import Allocator;
 import Arena;
 import ArrayConcepts;
@@ -43,6 +42,7 @@ import Range;
 import Rational;
 import SIMD;
 import Storage;
+import TypeCompression;
 import Valid;
 
 export namespace math {
@@ -552,8 +552,8 @@ struct MutArray : Array<T, S, Compress>,
   using storage_type = typename BaseT::storage_type;
 
   explicit constexpr MutArray() = default;
-  constexpr MutArray(const MutArray &) = default;
-  constexpr MutArray(MutArray &&) noexcept = default;
+  explicit constexpr MutArray(const MutArray &) = default;
+  explicit constexpr MutArray(MutArray &&) noexcept = default;
   // constexpr auto operator=(const MutArray &) -> MutArray & = delete;
   constexpr auto operator=(const MutArray &) -> MutArray & = default;
   constexpr auto operator=(MutArray &&) noexcept -> MutArray & = default;
@@ -1323,13 +1323,6 @@ static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>() * 0)>);
-
-// from
-Elementwise<math::Array<long, math::StridedRange<>>, std::negate<void>>
-// to
-math::Expr<decltype(std::declval<multiplies<void>>()(std::declval<indextype_t<Elementwise<Array<long, StridedRange<-1, -1>, false>, negate<void>>, long>>(), std::declval<indextype_t<long, Elementwise<Array<long, StridedRange<-1, -1>, false>, negate<void>>>>())), ElementwiseBinaryOp<Elementwise<Array<long, StridedRange<-1, -1>, false>, negate<void>>, long, multiplies<void>>>
-// aka
-Expr<long, ElementwiseBinaryOp<Elementwise<math::Array<long, math::StridedRange<-1, -1>, false>, std::negate<void>>, long, std::multiplies<void>>>
 
 template <typename T> auto countNonZero(PtrMatrix<T> x) -> ptrdiff_t {
   ptrdiff_t count = 0;

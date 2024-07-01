@@ -9,9 +9,15 @@ module;
 
 export module NormalForm;
 
+import Arena;
 import Array;
+import ArrayConcepts;
+import ArrayConstructors;
 import AxisTypes;
+import Comparisons;
+import EmptyMatrix;
 import Pair;
+import Range;
 import SIMD;
 import Tuple;
 import VGCD;
@@ -147,36 +153,6 @@ constexpr void dropCol(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M, Col<> N) {
   // for (ptrdiff_t n = i; n < N; ++n) A[m, n] = A[m, n + 1];
 }
 
-constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
-  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
-  // we try to orthogonalize with respect to as many rows of `A` as we can
-  // prioritizing earlier rows.
-  auto [M, N] = shape(A);
-  SquareMatrix<int64_t> K{identity(math::DefaultAlloc<int64_t>{}, unsigned(M))};
-  Vector<unsigned> included;
-  included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
-  for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {
-    // zero ith row
-    if (pivotRows(A, K, i, row(M))) {
-      // cannot pivot, this is a linear combination of previous
-      // therefore, we drop the row
-      dropCol(A, i, row(M), col(--N));
-    } else {
-      zeroSupDiagonal(A, K, i, row(M), col(N));
-      int64_t Aii = A[i, i];
-      if (math::constexpr_abs(Aii) != 1) {
-        // including this row renders the matrix not unimodular!
-        // therefore, we drop the row.
-        dropCol(A, i, row(M), col(--N));
-      } else {
-        // we zero the sub diagonal
-        zeroSubDiagonal(A, K, i++, row(M), col(N));
-        included.push_back(j);
-      }
-    }
-  }
-  return {std::move(K), std::move(included)};
-}
 constexpr void zeroSupDiagonal(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
   auto [M, N] = shape(A);
   for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
@@ -320,15 +296,6 @@ constexpr void removeZeroRows(MutDensePtrMatrix<int64_t> &A) {
   A.truncate(numNonZeroRows(A));
 }
 
-// pass by value, returns number of rows to truncate
-constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
-                                  ptrdiff_t colInit = 0) -> Row<> {
-  auto [M, N] = shape(A);
-  for (ptrdiff_t r = 0, c = colInit; c < N && r < M; ++c)
-    if (!pivotRows(A, col(c), row(M), row(r)))
-      reduceColumn(A, col(c), row(r++));
-  return numNonZeroRows(A);
-}
 constexpr void reduceColumn(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
                             Row<> r) {
   zeroSupDiagonal(AB, c, r);
@@ -485,9 +452,14 @@ constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
 }
 
 export namespace math::NormalForm {
-constexpr auto orthogonalize(IntMatrix<> A)
-  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
-  return orthogonalizeBang(A);
+// pass by value, returns number of rows to truncate
+constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
+                                  ptrdiff_t colInit = 0) -> Row<> {
+  auto [M, N] = shape(A);
+  for (ptrdiff_t r = 0, c = colInit; c < N && r < M; ++c)
+    if (!pivotRows(A, col(c), row(M), row(r)))
+      reduceColumn(A, col(c), row(r++));
+  return numNonZeroRows(A);
 }
 
 constexpr void simplifySystem(EmptyMatrix<int64_t>, ptrdiff_t = 0) {}
@@ -500,8 +472,9 @@ constexpr void simplifySystem(MutPtrMatrix<int64_t> &E, ptrdiff_t colInit = 0) {
 // Perhaps we should define `MutPtrMatrix(const MutPtrMatrix &) = delete;`?
 //
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-constexpr auto rank(IntMatrix<> A) -> ptrdiff_t {
-  return ptrdiff_t(simplifySystemImpl(A, 0));
+constexpr auto rank(Arena<> alloc, PtrMatrix<int64_t> A) -> ptrdiff_t {
+  MutDensePtrMatrix<int64_t> B = matrix<int64_t>(&alloc, shape(A));
+  return ptrdiff_t(simplifySystemImpl(B << A, 0));
 }
 template <MatrixDimension S0, MatrixDimension S1>
 constexpr void simplifySystem(MutArray<int64_t, S0> &A,
@@ -512,12 +485,14 @@ constexpr void simplifySystem(MutArray<int64_t, S0> &A,
     B.truncate(newM);
   }
 }
-[[nodiscard]] constexpr auto
-hermite(IntMatrix<> A) -> containers::Pair<IntMatrix<>, SquareMatrix<int64_t>> {
+/// A is the matrix we factorize, `U` is initially uninitialized, but is
+/// destination of the unimodular matrix.
+[[nodiscard]] constexpr void hermite(PtrMatrix<int64_t> A,
+                                     SquarePtrMatrix<int64_t> U) {
+  invariant(A.numRow() == U.numRow());
   SquareMatrix<int64_t> U{
     SquareMatrix<int64_t>::identity(ptrdiff_t(A.numRow()))};
   simplifySystemsImpl({A, U});
-  return {std::move(A), std::move(U)};
 }
 
 /// use A[j,k] to zero A[i,k]
@@ -661,12 +636,13 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
 /// \f$\textbf{B}\f$ so that \f$\textbf{D}^{-1}\textbf{B} = \textbf{A}^{-1}\f$,
 /// and \f$\textbf{D}\f$ is diagonal.
 /// NOTE: This function assumes non-singular
+/// Mutates `A`
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-[[nodiscard]] constexpr auto inv(SquareMatrix<int64_t> A)
-  -> containers::Pair<SquareMatrix<int64_t>, SquareMatrix<int64_t>> {
-  auto B = SquareMatrix<int64_t>::identity(A.numCol());
+[[nodiscard]] constexpr auto
+inv(Arena<> *alloc, SquarePtrMatrix<int64_t> A) -> SquarePtrMatrix<int64_t> {
+  SquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
   solveSystem(A, B);
-  return {std::move(A), std::move(B)};
+  return B;
 }
 /// inv(A) -> (B, s)
 /// Given a matrix \f$\textbf{A}\f$, returns a matrix \f$\textbf{B}\f$ and a
@@ -675,15 +651,17 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
 /// D0 * B^{-1} = Binv0
 /// (s/s) * D0 * B^{-1} = Binv0
 /// s * B^{-1} = (s/D0) * Binv0
-[[nodiscard]] constexpr auto scaledInv(SquareMatrix<int64_t> A)
-  -> containers::Pair<SquareMatrix<int64_t>, int64_t> {
-  auto B = SquareMatrix<int64_t>::identity(A.numCol());
+/// mutates `A`
+[[nodiscard]] constexpr auto scaledInv(Arena<> *alloc,
+                                       SquarePtrMatrix<int64_t> A)
+  -> containers::Pair<SquarePtrMatrix<int64_t>, int64_t> {
+  SquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
   solveSystem(A, B);
   static_assert(AbstractVector<decltype(A.diag())>);
   auto [s, nonUnity] = lcmNonUnity(A.diag());
   if (nonUnity)
     for (ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
-  return {std::move(B), s};
+  return {B, s};
 }
 // one row per null dim
 constexpr void nullSpace11(DenseMatrix<int64_t> &B, DenseMatrix<int64_t> &A) {

@@ -15,8 +15,9 @@ module;
 #include <type_traits>
 
 export module BitSet;
-import Array;
+
 import Invariant;
+import ManagedArray;
 import MatDim;
 import Range;
 
