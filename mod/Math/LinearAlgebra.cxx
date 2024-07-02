@@ -5,8 +5,10 @@ module;
 
 export module LinearAlgebra;
 
-import Pair;
 import Array;
+import ArrayConcepts;
+import ManagedArray;
+import Pair;
 import Rational;
 
 export namespace math {

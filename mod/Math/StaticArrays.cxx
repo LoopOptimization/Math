@@ -18,9 +18,13 @@ module;
 export module StaticArray;
 
 import Array;
+import ArrayConcepts;
 import ArrayPrint;
 import AxisTypes;
+import CompressReference;
 import ExprTemplates;
+import MatDim;
+import Range;
 import SIMD;
 import TypeCompression;
 
@@ -107,7 +111,7 @@ struct [[gsl::Owner(T)]] StaticArray
     std::copy_n(list.begin(), list.size(), data());
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
-    this->vcopyTo(b, utils::CopyAssign{});
+    this->vcopyTo(b, CopyAssign{});
   }
 
   constexpr void compress(compressed_type *p) const
@@ -374,7 +378,7 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
     return Transpose{*this};
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
-    this->vcopyTo(b, utils::CopyAssign{});
+    this->vcopyTo(b, CopyAssign{});
   }
   constexpr explicit StaticArray(T x) {
     simd::Vec<W, T> v = simd::vbroadcast<W, T>(x);

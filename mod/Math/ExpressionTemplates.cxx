@@ -315,29 +315,6 @@ public:
     }
     return true;
   }
-  template <Compatible<A> B>
-  constexpr auto elementwise_equal(const B &b) const {
-    return elementwise(v(), view(b), std::equal_to<>{});
-  }
-  template <Compatible<A> B>
-  constexpr auto elementwise_not_equal(const B &b) const {
-    return elementwise(v(), view(b), std::not_equal_to<>{});
-  }
-  template <Compatible<A> B>
-  constexpr auto elementwise_greater(const B &b) const {
-    return elementwise(v(), view(b), std::greater<>{});
-  }
-  template <Compatible<A> B> constexpr auto elementwise_less(const B &b) const {
-    return elementwise(v(), view(b), std::less<>{});
-  }
-  template <Compatible<A> B>
-  constexpr auto elementwise_greater_equal(const B &b) const {
-    return elementwise(v(), view(b), std::greater_equal<>{});
-  }
-  template <Compatible<A> B>
-  constexpr auto elementwise_less_equal(const B &b) const {
-    return elementwise(v(), view(b), std::less_equal<>{});
-  }
 };
 } // namespace math
 
@@ -717,6 +694,24 @@ constexpr auto conditional(auto op, const AbstractTensor auto &c, const auto &a,
   auto vb = view(b);
   return Conditional<decltype(vc), decltype(va), decltype(vb), decltype(op)>{
     {vc, va, vb}, op};
+}
+constexpr auto elementwise_equal(const auto &a, const auto &b) {
+  return elementwise(view(a), view(b), std::equal_to<>{});
+}
+constexpr auto elementwise_not_equal(const auto &a, const auto &b) {
+  return elementwise(view(a), view(b), std::not_equal_to<>{});
+}
+constexpr auto elementwise_greater(const auto &a, const auto &b) {
+  return elementwise(view(a), view(b), std::greater<>{});
+}
+constexpr auto elementwise_less(const auto &a, const auto &b) {
+  return elementwise(view(a), view(b), std::less<>{});
+}
+constexpr auto elementwise_greater_equal(const auto &a, const auto &b) {
+  return elementwise(view(a), view(b), std::greater_equal<>{});
+}
+constexpr auto elementwise_less_equal(const auto &a, const auto &b) {
+  return elementwise(view(a), view(b), std::less_equal<>{});
 }
 
 } // namespace math

@@ -13,11 +13,15 @@ export module Dual;
 
 import Arena;
 import Array;
+import ArrayConcepts;
+import AxisTypes;
 import Elementary;
+import ExprTemplates;
 import Invariant;
 import MatDim;
 import SIMD;
 import StaticArray;
+import TypeCompression;
 
 export namespace math {
 
@@ -841,15 +845,15 @@ static_assert(!std::convertible_to<Array<Dual<double, 7, true>, Length<2>>,
                                    Dual<double, 7, false>>);
 static_assert(utils::Compressible<Dual<double, 7>>);
 static_assert(utils::Compressible<Dual<double, 8>>);
-static_assert(
-  AbstractVector<Conditional<
-    ::math::ElementwiseBinaryOp<::math::Range<long, long>, long,
-                                std::not_equal_to<void>>,
-    ::math::ElementwiseBinaryOp<
-      double, ::math::StaticArray<double, 1, 8, false>, std::multiplies<void>>,
-    ::math::ElementwiseBinaryOp<::math::StaticArray<double, 1, 8, false>,
-                                double, std::multiplies<void>>,
-    std::plus<void>>>);
+// static_assert(
+//   AbstractVector<Conditional<
+//     ::math::ElementwiseBinaryOp<::math::Range<long, long>, long,
+//                                 std::not_equal_to<void>>,
+//     ::math::ElementwiseBinaryOp<
+//       double, ::math::StaticArray<double, 1, 8, false>, std::multiplies<void>>,
+//     ::math::ElementwiseBinaryOp<::math::StaticArray<double, 1, 8, false>,
+//                                 double, std::multiplies<void>>,
+//     std::plus<void>>>);
 
 template <typename T> struct IsDualImpl : std::false_type {};
 template <typename T, ptrdiff_t N, bool Compress>

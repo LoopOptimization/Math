@@ -16,13 +16,14 @@ import ArrayConstructors;
 import AxisTypes;
 import Comparisons;
 import EmptyMatrix;
+import ManagedArray;
 import Pair;
 import Range;
 import SIMD;
 import Tuple;
 import VGCD;
 
-using containers::Tuple, containers::tie;
+using alloc::Arena, containers::Tuple, containers::tie;
 
 using namespace math;
 

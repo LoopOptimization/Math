@@ -2,6 +2,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <memory>
 #include <new>
 #include <version>
 
@@ -272,4 +273,18 @@ alloc_at_least(A a, size_t n) -> AllocResult<typename A::value_type> {
   if constexpr (CanAllocAtLeast<A>) return a.allocate_at_least(n);
   else return {a.allocate(n), n};
 }
+
+template <typename A>
+concept Allocator = requires(A a) {
+  typename A::value_type;
+  { a.allocate(1) } -> std::same_as<typename std::allocator_traits<A>::pointer>;
+  {
+    a.deallocate(std::declval<typename std::allocator_traits<A>::pointer>(), 1)
+  };
+};
+template <typename A>
+concept FreeAllocator = Allocator<A> && std::is_empty_v<A>;
+
+static_assert(FreeAllocator<Mallocator<int>>);
+
 } // namespace alloc

@@ -493,21 +493,10 @@ static_assert(
 static_assert(std::is_trivially_copyable_v<Valid<Arena<>>>);
 static_assert(std::is_trivially_copyable_v<WArena<int64_t>>);
 
-template <typename A>
-concept Allocator = requires(A a) {
-  typename A::value_type;
-  { a.allocate(1) } -> std::same_as<typename std::allocator_traits<A>::pointer>;
-  {
-    a.deallocate(std::declval<typename std::allocator_traits<A>::pointer>(), 1)
-  };
-};
 static_assert(Allocator<WArena<int64_t>>);
-static_assert(Allocator<std::allocator<int64_t>>);
+static_assert(!FreeAllocator<WArena<int64_t>>);
+static_assert(FreeAllocator<std::allocator<int64_t>>);
 
-template <typename A>
-concept FreeAllocator =
-  Allocator<A> &&
-  !std::same_as<std::remove_cvref_t<A>, WArena<typename A::value_type>>;
 
 struct NoCheckpoint {};
 
