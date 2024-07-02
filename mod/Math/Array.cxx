@@ -56,11 +56,6 @@ static_assert(Dimension<DenseDims<3, 1>>);
 static_assert(VectorDimension<StridedRange<>>);
 static_assert(VectorDimension<DenseDims<3, 1>>);
 static_assert(!MatrixDimension<DenseDims<3, 1>>);
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-template <typename T> using DefaultAlloc = std::allocator<compressed_t<T>>;
-#else
-template <typename T> using DefaultAlloc = alloc::Mallocator<compressed_t<T>>;
-#endif
 
 using utils::Valid, utils::Optional;
 

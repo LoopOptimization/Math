@@ -18,8 +18,14 @@ import AxisTypes;
 import MatDim;
 import Pair;
 import Storage;
+import TypeCompression;
 
 export namespace math {
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+template <typename T> using DefaultAlloc = std::allocator<compressed_t<T>>;
+#else
+template <typename T> using DefaultAlloc = alloc::Mallocator<compressed_t<T>>;
+#endif
 
 /// Stores memory, then pointer.
 /// Thus struct's alignment determines initial alignment
@@ -30,7 +36,9 @@ export namespace math {
 /// or at least build ManagedArrays bypassing the constructors listed here.
 /// This caused invalid frees, as the pointer still pointed to the old
 /// stack memory.
-template <class T, Dimension S, ptrdiff_t StackStorage, alloc::FreeAllocator A>
+template <class T, Dimension S,
+          ptrdiff_t StackStorage = containers::PreAllocStorage<T, S>(),
+          alloc::FreeAllocator A = DefaultAlloc<T>>
 struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   // static_assert(std::is_trivially_destructible_v<T>);
   using BaseT = ResizeableView<T, S>;
@@ -715,16 +723,17 @@ using SquareMatrix = ManagedArray<T, SquareDims<>, L>;
 // type def defined by allocator
 template <alloc::FreeAllocator A,
           ptrdiff_t L =
-            containers::PreAllocStorage<A::value_type, SquareDims<>>()>
-using SquareMatrixAlloc = ManagedArray<A::value_type, SquareDims<>, L, A>;
+            containers::PreAllocStorage<utils::eltype_t<A>, SquareDims<>>()>
+using SquareMatrixAlloc = ManagedArray<utils::eltype_t<A>, SquareDims<>, L, A>;
 template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C,
           ptrdiff_t L =
-            containers::PreAllocStorage<A::value_type, DenseDims<>>()>
-using DenseMatrixAlloc = ManagedArray<A::value_type, DenseDims<R, C>, L, A>;
+            containers::PreAllocStorage<utils::eltype_t<A>, DenseDims<>>()>
+using DenseMatrixAlloc =
+  ManagedArray<utils::eltype_t<A>, DenseDims<R, C>, L, A>;
 template <alloc::FreeAllocator A,
           ptrdiff_t L =
-            containers::PreAllocStorage<A::value_type, StridedDims<>>()>
-using StrideMatrixAlloc = ManagedArray<A::value_type, StridedDims<>, L, A>;
+            containers::PreAllocStorage<utils::eltype_t<A>, StridedDims<>>()>
+using StrideMatrixAlloc = ManagedArray<utils::eltype_t<A>, StridedDims<>, L, A>;
 
 template <VectorDimension S = ptrdiff_t>
 using IntVector = ManagedArray<int64_t, S>;
