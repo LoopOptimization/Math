@@ -100,15 +100,19 @@ template <typename S, OnlyLinearlyIndexable<S> V>
   else return v[i];
 }
 
+export namespace math {
 template <typename T> struct ScalarizeViaCast {
   using type = void;
 };
 template <typename T>
 using scalarize_via_cast_t = typename ScalarizeViaCast<T>::type;
+} // namespace math
+
 template <typename To, typename From>
 constexpr bool ScalarizeViaCastToImpl =
-  std::same_as<To, scalarize_via_cast_t<std::remove_cvref_t<From>>>;
+  std::same_as<To, math::scalarize_via_cast_t<std::remove_cvref_t<From>>>;
 template <typename To, typename... U>
+
 consteval auto ScalarizeViaCastTo() -> bool {
   return (... && ScalarizeViaCastToImpl<To, U>);
 }
@@ -255,10 +259,10 @@ template <class T, class S, class P> class ArrayOps {
   // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
   //   return static_cast<const P *>(this)->data();
   // }
-  constexpr auto size_() const -> ptrdiff_t {
+  [[nodiscard]] constexpr auto size_() const -> ptrdiff_t {
     return static_cast<const P *>(this)->size();
   }
-  constexpr auto dim_() const -> S {
+  [[nodiscard]] constexpr auto dim_() const -> S {
     return static_cast<const P *>(this)->dim();
   }
   // returns a mutable view of self
@@ -281,7 +285,7 @@ protected:
     constexpr bool assign = std::same_as<Op, CopyAssign>;
     using PT = utils::promote_eltype_t<P, RHS>;
 #ifdef CASTTOSCALARIZE
-    using E = scalarize_via_cast_t<
+    using E = math::scalarize_via_cast_t<
       std::remove_cvref_t<decltype(std::declval<P>().view())>>;
     if constexpr (!std::same_as<E, void> &&
                   ((ScalarizeViaCastTo<E, decltype(B)>()) ||
@@ -569,7 +573,7 @@ requires(sizeof...(As) == sizeof...(Bs))
 #ifndef CASTTOSCALARIZE
   tupletensorops::vcopyTo(dst, src);
 #else
-  using C = scalarize_via_cast_t<
+  using C = math::scalarize_via_cast_t<
     std::remove_cvref_t<decltype(std::declval<A>().view())>>;
   if constexpr ((!std::same_as<C, void>) &&
                 ScalarizeViaCastTo<C, As..., decltype(std::declval<B>().view()),

@@ -3,15 +3,20 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <limits>
+#include <memory>
 #include <ostream>
 #include <type_traits>
 
 export module ManagedArray;
 import Allocator;
 import Array;
+import ArrayConcepts;
+import ArrayPrint;
 import AxisTypes;
 import MatDim;
+import Pair;
 import Storage;
 
 export namespace math {
@@ -760,6 +765,5 @@ inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
   return printMatrix(os, B.data(), ptrdiff_t(B.numRow()), ptrdiff_t(B.numCol()),
                      ptrdiff_t(B.rowStride()));
 }
-
 
 } // namespace math
