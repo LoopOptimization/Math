@@ -16,10 +16,10 @@ import Param;
 import Rational;
 
 template <typename T>
-concept TrivialVec = utils::TriviallyCopyable<T> && AbstractVector<T>;
+concept TrivialVec = utils::TriviallyCopyable<T> && math::AbstractVector<T>;
 // template <typename T>
 // concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
-// 
+//
 export namespace math {
 namespace LU {
 [[nodiscard]] constexpr auto ldivrat(SquarePtrMatrix<Rational> F,

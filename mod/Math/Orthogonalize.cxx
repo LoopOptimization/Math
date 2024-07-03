@@ -1,11 +1,15 @@
 module;
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
 export module Orthogonalize;
 
 import Array;
+import ArrayConcepts;
+import AxisTypes;
+import GenericArrayConstructors;
 import ManagedArray;
 import NormalForm;
 import Pair;
@@ -18,7 +22,8 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   // we try to orthogonalize with respect to as many rows of `A` as we can
   // prioritizing earlier rows.
   auto [M, N] = shape(A);
-  SquareMatrix<int64_t> K{identity(math::DefaultAlloc<int64_t>{}, unsigned(M))};
+  SquareMatrix<int64_t> K{
+    identity(math::DefaultAlloc<int64_t>{}, ptrdiff_t(M))};
   Vector<unsigned> included;
   included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
   for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {

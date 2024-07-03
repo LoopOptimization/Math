@@ -16,6 +16,7 @@
 import Arena;
 import Array;
 import ArrayParse;
+import AxisTypes;
 import MatDim;
 import SmallSparseMatrix;
 import StaticArray;

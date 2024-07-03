@@ -90,8 +90,7 @@ constexpr auto square_matrix(A a, ptrdiff_t M, std::type_identity_t<T> x)
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto identity(A a,
-                        ptrdiff_t M) -> SquareMatrixAlloc<utils::eltype_t<A>> {
+constexpr auto identity(A a, ptrdiff_t M) -> SquareMatrixAlloc<A> {
   SquareMatrixAlloc<A> B{SquareDims<>{row(M)}, utils::eltype_t<A>{}, a};
   B.diag() << eltype_t<A>{1};
   return B;

@@ -283,9 +283,9 @@ template <typename T>
 concept StaticLength = RowVectorDimension<T> && !std::same_as<T, Length<>>;
 
 // constexpr auto row(RowVectorDimension auto) -> Row<1> { return {}; }
-constexpr auto row(ColVectorDimension auto s) { return Row(s); }
-constexpr auto col(ColVectorDimension auto) -> Col<1> { return {}; }
-constexpr auto stride(ColVectorDimension auto) -> RowStride<1> { return {}; }
+// constexpr auto row(ColVectorDimension auto s) { return Row(s); }
+// constexpr auto col(ColVectorDimension auto) -> Col<1> { return {}; }
+// constexpr auto stride(ColVectorDimension auto) -> RowStride<1> { return {}; }
 template <class I>
 constexpr auto calcOffset(ColVectorDimension auto d, I i) -> ptrdiff_t {
   return unwrapStride(stride(d)) * calcOffset(length(unwrapRow(Row(d))), i);

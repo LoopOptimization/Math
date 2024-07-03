@@ -435,7 +435,7 @@ expm1b_kernel(std::integral_constant<int, 10>,
               2.302585092994046);
 }
 template <int B, ptrdiff_t W>
-constexpr auto exp_impl(simd::Vec<W, double> x) -> simd::Vec<W, double> {
+constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   constexpr std::integral_constant<int, B> base{};
   // #if __FAST_MATH__
   using V = simd::Vec<W, double>;
@@ -464,6 +464,18 @@ constexpr auto exp_impl(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   V z = std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, int64_t>>(small));
   return simd::select<double>(altmask, alt, z);
 }
+template <int B, ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+constexpr auto
+exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+  if constexpr (R * U == 1) {
+    return {exp_impl_core<B, W>(x.vec_)};
+  } else {
+    simd::Unroll<R, U, W, double> ret;
+    for (ptrdiff_t i = 0; i < R * U; ++i)
+      ret.data_[i] = exp_impl_core<B, W>(x.data_[i]);
+    return ret;
+  }
+}
 
 export namespace math {
 constexpr auto exp(double x) -> double { return exp_impl<3>(x); }
@@ -491,7 +503,7 @@ constexpr auto logit(double x) -> double { return log(x / (1.0 - x)); }
 template <int l = 8> constexpr auto smax(auto x, auto y) {
   auto d = x > y ? (y - x) : (x - y);
   auto o = x > y ? decltype(d)(x) : decltype(d)(y);
-  return o + softplus(l * d) / l;
+  return o + (softplus(l * d) / l);
 }
 
 template <int l = 8> constexpr auto smin(auto x, auto y) {
@@ -499,27 +511,15 @@ template <int l = 8> constexpr auto smin(auto x, auto y) {
 }
 template <ptrdiff_t W>
 constexpr auto exp(simd::Vec<W, double> x) -> simd::Vec<W, double> {
-  return exp_impl<3, W>(x);
+  return exp_impl_core<3, W>(x);
 }
 template <ptrdiff_t W>
 constexpr auto exp2(simd::Vec<W, double> x) -> simd::Vec<W, double> {
-  return exp_impl<2, W>(x);
+  return exp_impl_core<2, W>(x);
 }
 template <ptrdiff_t W>
 constexpr auto exp10(simd::Vec<W, double> x) -> simd::Vec<W, double> {
-  return exp_impl<10, W>(x);
-}
-template <int B, ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
-constexpr auto
-exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
-  if constexpr (R * U == 1) {
-    return {exp_impl<B, W>(x.vec_)};
-  } else {
-    simd::Unroll<R, U, W, double> ret;
-    for (ptrdiff_t i = 0; i < R * U; ++i)
-      ret.data_[i] = exp_impl<B, W>(x.data_[i]);
-    return ret;
-  }
+  return exp_impl_core<10, W>(x);
 }
 template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
 constexpr auto
