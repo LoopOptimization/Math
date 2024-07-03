@@ -8,6 +8,7 @@
 import Array;
 import Invariant;
 import LinearAlgebra;
+import Rational;
 
 using namespace math;
 

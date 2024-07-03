@@ -46,13 +46,19 @@ template <typename T, ptrdiff_t L> consteval auto alignSIMD() -> size_t {
   else return alignof(simd::Vec<simd::VecLen<L, T>, T>);
 }
 
+export namespace math {
+
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<
   M == 1, math::Length<N>,
   std::conditional_t<
     Compress || ((N % simd::VecLen<N, T>) == 0), math::DenseDims<M, N>,
     math::StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
-export namespace math {
+
+static_assert(
+  ptrdiff_t(StridedDims<1, 1, 1>{math::StaticDims<int64_t, 1, 1, true>{}})== 1);
+static_assert(ptrdiff_t(StridedDims<>{math::StaticDims<int64_t, 1, 1, true>{}})==
+              1);
 
 static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
 
@@ -200,7 +206,10 @@ struct [[gsl::Owner(T)]] StaticArray
     return {};
   }
   [[nodiscard]] static constexpr auto dim() noexcept -> S { return S{}; }
-  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; }
+  [[nodiscard]] constexpr auto
+  t() const -> Transpose<T, Array<T, S, Compress>> {
+    return {*this};
+  }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool {
     if constexpr (M == N) {
       for (ptrdiff_t i = 0; i < M; ++i) {
@@ -289,10 +298,8 @@ struct [[gsl::Owner(T)]] StaticArray
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const StaticArray &x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, const StaticArray &x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
@@ -374,8 +381,8 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   [[nodiscard]] constexpr auto end() const
     -> const T *requires(((M == 1) || (N == 1))) { return data() + (M * N); }
 
-  [[nodiscard]] constexpr auto t() const {
-    return Transpose{*this};
+  [[nodiscard]] constexpr auto t() const -> Transpose<T, Array<T, S, false>> {
+    return {*this};
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
     this->vcopyTo(b, CopyAssign{});
@@ -551,10 +558,8 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const StaticArray &x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, const StaticArray &x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
@@ -641,7 +646,9 @@ struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
   static constexpr auto numCol() -> Col<N> { return {}; }
   static constexpr auto safeRow() -> Row<1> { return {}; }
   static constexpr auto safeCol() -> Col<W> { return {}; }
-  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; }
+  [[nodiscard]] constexpr auto t() const -> Transpose<T, Array<T, S, false>> {
+    return {*this};
+  }
   [[nodiscard]] static constexpr auto rowStride() noexcept -> RowStride<W> {
     return {};
   }
@@ -755,10 +762,8 @@ struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const StaticArray &x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, const StaticArray &x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
@@ -775,8 +780,8 @@ static_assert(
 
 static_assert(RowVector<SVector<int64_t, 3>>);
 static_assert(!ColVector<SVector<int64_t, 3>>);
-static_assert(!RowVector<Transpose<SVector<int64_t, 3>>>);
-static_assert(ColVector<Transpose<SVector<int64_t, 3>>>);
+static_assert(!RowVector<Transpose<int64_t, SVector<int64_t, 3>>>);
+static_assert(ColVector<Transpose<int64_t, SVector<int64_t, 3>>>);
 static_assert(RowVector<StaticArray<int64_t, 1, 4, false>>);
 static_assert(RowVector<StaticArray<int64_t, 1, 4, true>>);
 

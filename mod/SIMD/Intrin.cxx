@@ -1260,9 +1260,11 @@ template <typename T>
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 load(const T *p, mask::None<2>) -> Vec<2, T> {
-  if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(p));
-  else if constexpr (sizeof(T) == 8)
+  if constexpr (std::same_as<T, double>) {
+    double const *dp = p;
+    return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(dp));
+    // return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(p));
+  } else if constexpr (sizeof(T) == 8)
 #ifdef __AVX512VL__
     return std::bit_cast<Vec<2, T>>(_mm_loadu_epi64(p));
 #else
@@ -1276,8 +1278,9 @@ template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline void store(T *p, mask::None<2>,
                                                           Vec<2, T> x) {
   if constexpr (std::same_as<T, double>) {
+    double *dp = p;
     __m128d xpd = std::bit_cast<__m128d>(x);
-    _mm_storeu_pd(p, xpd);
+    _mm_storeu_pd(dp, xpd);
   } else if constexpr (sizeof(T) == 8) {
     __m128i xi = std::bit_cast<__m128i>(x);
 #ifdef __AVX512VL__

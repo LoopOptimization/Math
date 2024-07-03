@@ -2,7 +2,7 @@
 
 import Array;
 import MatDim;
-import Orthogonalize;
+import NormalForm;
 
 using math::DenseMatrix, math::DenseDims, math::row, math::col;
 

@@ -22,6 +22,7 @@ import SmallSparseMatrix;
 import StaticArray;
 import TinyVector;
 import Tuple;
+import TypeCompression;
 import UniformScaling;
 
 using namespace math;
@@ -443,11 +444,7 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
 }
 
 TEST(StringMat1x1, BasicAssertions) {
-  using SD = math::StaticDims<int64_t, 1, 1, true>;
-  StridedDims<1, 1, 1> sdstatic = SD{};
-  StridedDims<> sddynamic = SD{};
-  EXPECT_EQ(ptrdiff_t(sdstatic), 1);
-  EXPECT_EQ(ptrdiff_t(sddynamic), 1);
+
   auto B = "[-5]"_mat;
   PtrMatrix<int64_t> Bp = B;
   IntMatrix<> A = "[-5]"_mat;

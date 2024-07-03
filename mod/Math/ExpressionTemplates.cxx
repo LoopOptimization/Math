@@ -96,7 +96,7 @@ template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 constexpr auto elementwise(A, Op) -> Elementwise<A, Op>;
 
 template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
-          BinaryFuncOfElts<A ,B> Op>
+          BinaryFuncOfElts<A, B> Op>
 constexpr auto elementwise(A, B, Op)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op>;
 }; // namespace math
@@ -315,6 +315,61 @@ public:
     return true;
   }
 };
+template <typename T, typename A>
+struct Transpose : public Expr<T, Transpose<T, A>> {
+  static_assert(AbstractTensor<A>,
+                "Argument to transpose is not a matrix or vector.");
+  static_assert(std::is_trivially_copyable_v<A>,
+                "Argument to transpose is not trivially copyable.");
+
+  using value_type = T;
+  static constexpr bool has_reduction_loop = HasInnerReduction<A>;
+  [[no_unique_address]] A a_;
+  constexpr auto operator[](auto i) const
+  requires(AbstractVector<A>)
+  {
+    return a_[i];
+  }
+  constexpr auto operator[](auto i, auto j) const
+  requires(AbstractMatrix<A>)
+  {
+    return a_[j, i];
+  }
+  [[nodiscard]] constexpr auto numRow() const {
+    return transpose_dim(a_.numCol());
+  }
+  [[nodiscard]] constexpr auto numCol() const {
+    return transpose_dim(a_.numRow());
+  }
+  [[nodiscard]] constexpr auto view() const { return Transpose(a_.view()); };
+  [[nodiscard]] constexpr auto size() const { return a_.size(); }
+  [[nodiscard]] constexpr auto dim() const {
+    return DenseDims(numRow(), numCol());
+  }
+  constexpr Transpose(A b) : a_(b) {}
+  constexpr auto t() const -> A { return a_; }
+  constexpr auto operator<<(const auto &b) -> Transpose & {
+    a_ << transpose(b);
+    return *this;
+  }
+  constexpr auto operator+=(const auto &b) -> Transpose & {
+    a_ += transpose(b);
+    return *this;
+  }
+  constexpr auto operator-=(const auto &b) -> Transpose & {
+    a_ -= transpose(b);
+    return *this;
+  }
+  constexpr auto operator*=(const auto &b) -> Transpose & {
+    a_ *= transpose(b);
+    return *this;
+  }
+  constexpr auto operator/=(const auto &b) -> Transpose & {
+    a_ /= transpose(b);
+    return *this;
+  }
+};
+template <typename A> Transpose(A) -> Transpose<utils::eltype_t<A>, A>;
 } // namespace math
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
@@ -437,9 +492,10 @@ Elementwise(A, Op) -> Elementwise<A, Op>;
 // // turns into
 // // operator+(int64_t, AbstractVector<int64_t>)
 template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
-          BinaryFuncOfElts<A ,B> Op>
+          BinaryFuncOfElts<A, B> Op>
 ElementwiseBinaryOp(A, B, Op)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op>;
+
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
@@ -667,7 +723,9 @@ struct MatMatMul : public math::Expr<
     else a_.size() * b_.size();
   }
   [[nodiscard]] constexpr auto view() const { return *this; };
-  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; };
+  [[nodiscard]] constexpr auto t() const -> Transpose<value_type, MatMatMul> {
+    return {*this};
+  };
 };
 
 export namespace math {
@@ -713,6 +771,14 @@ constexpr auto elementwise_greater_equal(const auto &a, const auto &b) {
 }
 constexpr auto elementwise_less_equal(const auto &a, const auto &b) {
   return elementwise(view(a), view(b), std::less_equal<>{});
+}
+
+template <typename T> constexpr auto transpose(const T &a) {
+  if constexpr (requires(T t) {
+                  { t.t() } -> AbstractTensor;
+                })
+    return a.t();
+  else return Transpose{view(a)};
 }
 
 } // namespace math

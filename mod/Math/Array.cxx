@@ -308,7 +308,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
 
   [[nodiscard]] constexpr auto diag() const noexcept {
-    StridedRange<> r{length(minRowCol()), ++stride(sz) };
+    StridedRange<> r{length(minRowCol()), ++stride(sz)};
     invariant(ptr != nullptr);
     return Array<T, StridedRange<>>{ptr, r};
   }
@@ -349,7 +349,9 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   {
     sz = S{};
   }
-  [[nodiscard]] constexpr auto t() const { return Transpose{*this}; }
+  [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
+    return {*this};
+  }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool
   requires(MatrixDimension<S>)
   {
@@ -861,9 +863,9 @@ static_assert(AbstractVector<Array<int64_t, Length<>>>);
 static_assert(!AbstractVector<Array<int64_t, StridedDims<>>>);
 static_assert(AbstractMatrix<Array<int64_t, StridedDims<>>>);
 static_assert(RowVector<Array<int64_t, Length<>>>);
-static_assert(ColVector<Transpose<Array<int64_t, Length<>>>>);
+static_assert(ColVector<Transpose<int64_t,Array<int64_t, Length<>>>>);
 static_assert(ColVector<Array<int64_t, StridedRange<>>>);
-static_assert(RowVector<Transpose<Array<int64_t, StridedRange<>>>>);
+static_assert(RowVector<Transpose<int64_t,Array<int64_t, StridedRange<>>>>);
 
 // template <typename T, bool Column>
 // inline constexpr auto SliceIterator<T, Column>::operator*()
@@ -1311,7 +1313,7 @@ static_assert(utils::TriviallyCopyable<PtrMatrix<int64_t>>);
 // static_assert(AbstractMatrix<MatMatMul<PtrMatrix<int64_t>,
 // PtrMatrix<int64_t>>>,
 //               "MatMul is not an AbstractMatrix!");
-static_assert(AbstractMatrix<Transpose<PtrMatrix<int64_t>>>);
+static_assert(AbstractMatrix<Transpose<int64_t,PtrMatrix<int64_t>>>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
 static_assert(

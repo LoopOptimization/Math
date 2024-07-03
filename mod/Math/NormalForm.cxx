@@ -16,9 +16,11 @@ import ArrayConstructors;
 import AxisTypes;
 import Comparisons;
 import EmptyMatrix;
+import GenericArrayConstructors;
 import ManagedArray;
 import Pair;
 import Range;
+import Rational;
 import SIMD;
 import Tuple;
 import VGCD;
@@ -452,7 +454,40 @@ constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
   return M;
 }
 
-export namespace math::NormalForm {
+constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
+  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
+  // we try to orthogonalize with respect to as many rows of `A` as we can
+  // prioritizing earlier rows.
+  auto [M, N] = shape(A);
+  SquareMatrix<int64_t> K{
+    identity(math::DefaultAlloc<int64_t>{}, ptrdiff_t(M))};
+  Vector<unsigned> included;
+  included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
+  for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {
+    // zero ith row
+    if (pivotRows(A, K, i, row(M))) {
+      // cannot pivot, this is a linear combination of previous
+      // therefore, we drop the row
+      dropCol(A, i, row(M), col(--N));
+    } else {
+      zeroSupDiagonal(A, K, i, row(M), col(N));
+      int64_t Aii = A[i, i];
+      if (math::constexpr_abs(Aii) != 1) {
+        // including this row renders the matrix not unimodular!
+        // therefore, we drop the row.
+        dropCol(A, i, row(M), col(--N));
+      } else {
+        // we zero the sub diagonal
+        zeroSubDiagonal(A, K, i++, row(M), col(N));
+        included.push_back(j);
+      }
+    }
+  }
+  return {std::move(K), std::move(included)};
+}
+
+export namespace math {
+namespace NormalForm {
 // pass by value, returns number of rows to truncate
 constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
                                   ptrdiff_t colInit = 0) -> Row<> {
@@ -638,9 +673,10 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
 /// NOTE: This function assumes non-singular
 /// Mutates `A`
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-[[nodiscard]] constexpr auto
-inv(Arena<> *alloc, MutSquarePtrMatrix<int64_t> A) -> MutSquarePtrMatrix<int64_t> {
-  MutSquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
+[[nodiscard]] constexpr auto inv(Arena<> *alloc, MutSquarePtrMatrix<int64_t> A)
+  -> MutSquarePtrMatrix<int64_t> {
+  MutSquarePtrMatrix<int64_t> B =
+    identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
   solveSystem(A, B);
   return B;
 }
@@ -655,7 +691,8 @@ inv(Arena<> *alloc, MutSquarePtrMatrix<int64_t> A) -> MutSquarePtrMatrix<int64_t
 [[nodiscard]] constexpr auto scaledInv(Arena<> *alloc,
                                        MutSquarePtrMatrix<int64_t> A)
   -> containers::Pair<MutSquarePtrMatrix<int64_t>, int64_t> {
-  MutSquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
+  MutSquarePtrMatrix<int64_t> B =
+    identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
   solveSystem(A, B);
   static_assert(AbstractVector<decltype(A.diag())>);
   auto [s, nonUnity] = lcmNonUnity(A.diag());
@@ -694,4 +731,46 @@ nullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   return B;
 }
 
-} // namespace math::NormalForm
+// FIXME: why do we have two?
+constexpr auto orthogonalize(IntMatrix<> A)
+  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
+  return orthogonalizeBang(A);
+}
+
+} // namespace NormalForm
+
+// FIXME: why do we have two?
+[[nodiscard]] constexpr auto
+orthogonalize(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
+  if ((A.numCol() < 2) || (A.numRow() == 0)) return A;
+  normalizeByGCD(A[0, _]);
+  if (A.numRow() == 1) return A;
+  Vector<Rational, 8> buff;
+  buff.resizeForOverwrite(ptrdiff_t(A.numCol()));
+  for (ptrdiff_t i = 1; i < A.numRow(); ++i) {
+    for (ptrdiff_t j = 0; j < A.numCol(); ++j) buff[j] = A[i, j];
+    for (ptrdiff_t j = 0; j < i; ++j) {
+      int64_t n = 0;
+      int64_t d = 0;
+      for (ptrdiff_t k = 0; k < A.numCol(); ++k) {
+        n += A[i, k] * A[j, k];
+        d += A[j, k] * A[j, k];
+      }
+      for (ptrdiff_t k = 0; k < A.numCol(); ++k)
+        buff[k] -= Rational::createPositiveDenominator(A[j, k] * n, d);
+    }
+    int64_t lm = 1;
+    for (ptrdiff_t k = 0; k < A.numCol(); ++k)
+      lm = lcm(lm, buff[k].denominator);
+    for (ptrdiff_t k = 0; k < A.numCol(); ++k)
+      A[i, k] = buff[k].numerator * (lm / buff[k].denominator);
+  }
+  return A;
+}
+
+[[nodiscard]] constexpr auto
+orthogonalNullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
+  return orthogonalize(NormalForm::nullSpace(std::move(A)));
+}
+
+} // namespace math
