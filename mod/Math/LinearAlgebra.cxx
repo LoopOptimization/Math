@@ -7,6 +7,8 @@ export module LinearAlgebra;
 
 import Array;
 import ArrayConcepts;
+import ArrayConstructors;
+import AxisTypes;
 import ManagedArray;
 import Pair;
 import Rational;

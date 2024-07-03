@@ -2,10 +2,14 @@ module;
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 export module SmallSparseMatrix;
 
+import Array;
+import AxisTypes;
 import ManagedArray;
+import MatDim;
 
 export namespace math {
 // this file is not used at the moment
@@ -84,6 +88,24 @@ public:
   };
   constexpr auto operator[](ptrdiff_t i, ptrdiff_t j) -> Reference {
     return Reference{this, i, j};
+  }
+  template <std::convertible_to<T> Y, MatrixDimension S, ptrdiff_t L,
+            typename A>
+  operator ManagedArray<Y, S, L, A>() const {
+    ManagedArray<Y, S, L, A> B(dim(), 0);
+    ptrdiff_t k = 0;
+    for (ptrdiff_t i = 0; i < numRow(); ++i) {
+      uint32_t m = getRows()[i] & 0x00ffffff;
+      ptrdiff_t j = 0;
+      while (m) {
+        uint32_t tz = std::countr_zero(m);
+        m >>= tz + 1;
+        j += tz;
+        B[i, j++] = T(getNonZeros()[k++]);
+      }
+    }
+    invariant(k == getNonZeros().size());
+    return B;
   }
 
 private:

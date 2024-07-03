@@ -211,26 +211,6 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
     else std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
     b.resetNoFree();
   }
-  template <std::convertible_to<T> Y>
-  constexpr ManagedArray(const SmallSparseMatrix<Y> &B)
-    : BaseT{memory_.data(), B.dim(), capacity(StackStorage)} {
-    static_assert(trivialelt);
-    auto len = ptrdiff_t(this->sz);
-    this->growUndef(len);
-    this->fill(0);
-    ptrdiff_t k = 0;
-    for (ptrdiff_t i = 0; i < this->numRow(); ++i) {
-      uint32_t m = B.getRows()[i] & 0x00ffffff;
-      ptrdiff_t j = 0;
-      while (m) {
-        uint32_t tz = std::countr_zero(m);
-        m >>= tz + 1;
-        j += tz;
-        (*this)[i, j++] = T(B.getNonZeros()[k++]);
-      }
-    }
-    invariant(k == B.getNonZeros().size());
-  }
   constexpr ManagedArray(const ColVector auto &v)
   requires(MatrixDimension<S>)
     : BaseT{memory_.data(), S(shape(v)), U(capacity(StackStorage))} {

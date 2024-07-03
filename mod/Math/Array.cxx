@@ -308,12 +308,12 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
 
   [[nodiscard]] constexpr auto diag() const noexcept {
-    StridedRange<> r{minRowCol(), ptrdiff_t(RowStride(sz)) + 1};
+    StridedRange<> r{length(minRowCol()), ++stride(sz) };
     invariant(ptr != nullptr);
     return Array<T, StridedRange<>>{ptr, r};
   }
   [[nodiscard]] constexpr auto antiDiag() const noexcept {
-    StridedRange<> r{minRowCol(), ptrdiff_t(RowStride(sz)) - 1};
+    StridedRange<> r{length(minRowCol()), --stride(sz)};
     invariant(ptr != nullptr);
     return Array<T, StridedRange<>>{ptr + ptrdiff_t(Col(sz)) - 1, r};
   }
@@ -435,14 +435,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       } else if constexpr (DenseLayout<S>) {
         return Array<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
       } else {
-        ptrdiff_t stride = ptrdiff_t(rowStride()) * ratio;
+        ptrdiff_t str = ptrdiff_t(rowStride()) * ratio;
         if constexpr (IsOne<decltype(c)>) {
           constexpr auto sr = std::integral_constant<ptrdiff_t, ratio>{};
           return Array<U, StridedDims<-1, ratio, -1>>(
-            p, StridedDims(row(r), col(sr), rowStride(stride)));
+            p, StridedDims(row(r), col(sr), stride(str)));
         } else
           return Array<U, StridedDims<>>(
-            p, StridedDims(row(r), col(c * ratio), rowStride(stride)));
+            p, StridedDims(row(r), col(c * ratio), stride(str)));
       }
     }
   }
@@ -467,16 +467,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, Array x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
                                 ptrdiff_t(x.numCol()),
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
-  }
-  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  } [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
@@ -817,14 +815,14 @@ struct MutArray : Array<T, S, Compress>,
       } else if constexpr (DenseLayout<S>) {
         return MutArray<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
       } else {
-        ptrdiff_t stride = ptrdiff_t(this->rowStride()) * ratio;
+        ptrdiff_t str = ptrdiff_t(this->rowStride()) * ratio;
         if constexpr (IsOne<decltype(c)>) {
           constexpr auto sr = std::integral_constant<ptrdiff_t, ratio>{};
           return MutArray<U, StridedDims<-1, ratio, -1>>(
-            p, StridedDims(row(r), col(sr), rowStride(stride)));
+            p, StridedDims(row(r), col(sr), stride(str)));
         } else
           return MutArray<U, StridedDims<>>(
-            p, StridedDims(row(r), col(c * ratio), rowStride(stride)));
+            p, StridedDims(row(r), col(c * ratio), stride(str)));
       }
     }
   }

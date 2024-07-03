@@ -593,8 +593,8 @@ struct Conditional
 };
 template <AbstractTensor A, AbstractTensor B>
 struct MatMatMul
-  : public math::Expr<utils::promote_eltype_t<A, B>, MatMatMul<A, B>> {
-  using value_type = utils::promote_eltype_t<A, B>;
+  : public math::Expr<std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>, MatMatMul<A, B>> {
+  using value_type = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
   using concrete = is_concrete_t<A, B>;
   static constexpr bool has_reduction_loop = true;
   static constexpr bool ismata = AbstractMatrix<A>;

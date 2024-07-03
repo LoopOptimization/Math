@@ -813,7 +813,7 @@ col(Length<M> x) -> Col<M> {
   else return Col<-1>{static_cast<Col<-1>::col>(ptrdiff_t(x))};
 }
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
-rowStride(ptrdiff_t x) -> RowStride<> {
+stride(ptrdiff_t x) -> RowStride<> {
   invariant(x >= 0);
   return RowStride<-1>{static_cast<RowStride<-1>::stride>(x)};
 }
@@ -855,7 +855,7 @@ col(std::integral_constant<I, x>) -> Col<ptrdiff_t(x)> {
 }
 template <std::integral I, I x>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
-rowStride(std::integral_constant<I, x>) -> RowStride<ptrdiff_t(x)> {
+stride(std::integral_constant<I, x>) -> RowStride<ptrdiff_t(x)> {
   static_assert(x >= 0);
   return {};
 }

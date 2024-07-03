@@ -10,7 +10,7 @@ import Pair;
 import Array;
 import ArrayConcepts;
 
-namespace math {
+export namespace math {
 
 constexpr auto gcd(PtrVector<int64_t> x) -> int64_t {
   const ptrdiff_t N = x.size();

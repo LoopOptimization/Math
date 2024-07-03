@@ -19,7 +19,7 @@ import MatDim;
 import Pair;
 import Tuple;
 
-namespace math {
+export namespace math {
 
 template <typename... T> struct Types {};
 

@@ -488,11 +488,10 @@ constexpr void simplifySystem(MutArray<int64_t, S0> &A,
 }
 /// A is the matrix we factorize, `U` is initially uninitialized, but is
 /// destination of the unimodular matrix.
-[[nodiscard]] constexpr void hermite(PtrMatrix<int64_t> A,
-                                     SquarePtrMatrix<int64_t> U) {
+constexpr void hermite(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> U) {
   invariant(A.numRow() == U.numRow());
-  SquareMatrix<int64_t> U{
-    SquareMatrix<int64_t>::identity(ptrdiff_t(A.numRow()))};
+  U << 0;
+  U.diag() << 1;
   simplifySystemsImpl({A, U});
 }
 
@@ -640,8 +639,8 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
 /// Mutates `A`
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
 [[nodiscard]] constexpr auto
-inv(Arena<> *alloc, SquarePtrMatrix<int64_t> A) -> SquarePtrMatrix<int64_t> {
-  SquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
+inv(Arena<> *alloc, MutSquarePtrMatrix<int64_t> A) -> MutSquarePtrMatrix<int64_t> {
+  MutSquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
   solveSystem(A, B);
   return B;
 }
@@ -654,9 +653,9 @@ inv(Arena<> *alloc, SquarePtrMatrix<int64_t> A) -> SquarePtrMatrix<int64_t> {
 /// s * B^{-1} = (s/D0) * Binv0
 /// mutates `A`
 [[nodiscard]] constexpr auto scaledInv(Arena<> *alloc,
-                                       SquarePtrMatrix<int64_t> A)
-  -> containers::Pair<SquarePtrMatrix<int64_t>, int64_t> {
-  SquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
+                                       MutSquarePtrMatrix<int64_t> A)
+  -> containers::Pair<MutSquarePtrMatrix<int64_t>, int64_t> {
+  MutSquarePtrMatrix<int64_t> B = identity<int64_t>(alloc, ptrdiff_t(A.numCol()));
   solveSystem(A, B);
   static_assert(AbstractVector<decltype(A.diag())>);
   auto [s, nonUnity] = lcmNonUnity(A.diag());

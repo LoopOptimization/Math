@@ -105,7 +105,7 @@ class Simplex {
   // (varCapacity+1)%simd::Width<int64_t>==0
   static constexpr auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
     static constexpr ptrdiff_t W = simd::Width<int64_t>;
-    return rowStride((ptrdiff_t(rs) + W) & -W);
+    return stride((ptrdiff_t(rs) + W) & -W);
   }
   [[nodiscard]] static constexpr auto
   reservedTableau(ptrdiff_t cons, ptrdiff_t vars) -> ptrdiff_t {
@@ -749,7 +749,7 @@ public:
     auto checkpoint{alloc->checkpoint()};
     Simplex *simplex{Simplex::create(alloc, row(num_con),
                                      col(num_var + num_slack),
-                                     capacity(num_con), rowStride(var_cap))};
+                                     capacity(num_con), stride(var_cap))};
     // construct:
     // [ I A
     //   0 B ]
@@ -777,7 +777,7 @@ public:
     auto checkpoint{alloc->checkpoint()};
     Simplex *simplex{Simplex::create(alloc, row(num_con),
                                      col(num_var + num_slack),
-                                     capacity(num_con), rowStride(var_cap))};
+                                     capacity(num_con), stride(var_cap))};
     // construct:
     // [ I A ]
     // then drop the extra variables
@@ -936,7 +936,7 @@ public:
   static constexpr auto create(Arena<> *alloc, Row<> numCon,
                                Col<> numVar) -> Valid<Simplex> {
     return create(alloc, numCon, numVar, capacity(ptrdiff_t(numCon)),
-                  rowStride(ptrdiff_t(numVar) + ptrdiff_t(numCon)));
+                  stride(ptrdiff_t(numVar) + ptrdiff_t(numCon)));
   }
   static constexpr auto create(Arena<> *alloc, Row<> numCon, Col<> numVar,
                                Capacity<> conCap,
@@ -970,7 +970,7 @@ public:
   static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex> {
     auto nc = ptrdiff_t(numCon);
     return create(numCon, numVar, capacity(nc),
-                  rowStride(ptrdiff_t(numVar) + nc));
+                  stride(ptrdiff_t(numVar) + nc));
   }
   static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
                      RowStride<> varCap) -> std::unique_ptr<Simplex> {
@@ -989,7 +989,7 @@ public:
          ptrdiff_t numSlack) -> Valid<Simplex> {
     ptrdiff_t con_cap = ptrdiff_t(numCon),
               var_cap = ptrdiff_t(numVar) + numSlack + con_cap;
-    return create(alloc, numCon, numVar, capacity(con_cap), rowStride(var_cap));
+    return create(alloc, numCon, numVar, capacity(con_cap), stride(var_cap));
   }
   constexpr auto copy(Arena<> *alloc) const -> Valid<Simplex> {
     Valid<Simplex> res = create(alloc, row(getNumCons()), col(getNumVars()),

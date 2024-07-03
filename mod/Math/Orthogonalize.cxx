@@ -5,9 +5,14 @@ module;
 
 export module Orthogonalize;
 
+import Array;
+import ManagedArray;
 import NormalForm;
-import Rational import VGCD;
+import Pair;
+import Rational;
+import VGCD;
 
+namespace math {
 constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
   // we try to orthogonalize with respect to as many rows of `A` as we can
@@ -38,8 +43,10 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   }
   return {std::move(K), std::move(included)};
 }
-
-namespace math {
+} // namespace math
+// end unexported
+// begin exported
+export namespace math {
 constexpr auto orthogonalize(IntMatrix<> A)
   -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
   return orthogonalizeBang(A);

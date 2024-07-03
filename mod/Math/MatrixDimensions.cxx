@@ -67,7 +67,7 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   [[no_unique_address]] RowStride<X> stride_m_;
   explicit constexpr StridedDims() = default;
   constexpr StridedDims(Row<R> m, Col<C> n)
-    : m_{m}, n_{n}, stride_m_{rowStride(ptrdiff_t(n))} {}
+    : m_{m}, n_{n}, stride_m_{stride(ptrdiff_t(n))} {}
   constexpr StridedDims(Row<R> m, Col<C> n, RowStride<X> x)
     : m_{m}, n_{n}, stride_m_{x} {
     invariant(n_ <= stride_m_);
@@ -77,7 +77,7 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     : m_{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
       n_{Col<C>(col(std::integral_constant<ptrdiff_t, N>{}))},
       stride_m_{
-        RowStride<X>(rowStride(std::integral_constant<ptrdiff_t, N>{}))} {}
+        RowStride<X>(stride(std::integral_constant<ptrdiff_t, N>{}))} {}
   constexpr explicit operator int() const {
     return int(ptrdiff_t(m_) * ptrdiff_t(stride_m_));
   }
@@ -99,15 +99,6 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   constexpr auto operator=(DenseDims<R, C> D) -> StridedDims &requires(C == X);
   constexpr auto operator=(SquareDims<R> D) -> StridedDims &requires((R == C) &&
                                                                      (C == X));
-  constexpr explicit operator Row<R>() const { return m_; }
-  constexpr explicit operator Col<C>() const {
-    invariant(n_ <= stride_m_);
-    return n_;
-  }
-  constexpr explicit operator RowStride<X>() const {
-    invariant(n_ <= stride_m_);
-    return stride_m_;
-  }
   [[nodiscard]] constexpr auto operator==(const StridedDims &D) const -> bool {
     invariant(n_ <= stride_m_);
     return (m_ == D.m_) && (n_ == D.n_) && (stride_m_ == D.stride_m_);
@@ -124,22 +115,16 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     invariant(c <= n_);
     return similar(c);
   }
-  constexpr auto set(Row<> r) -> StridedDims &
-  requires(R == -1)
-  {
+  constexpr auto set(Row<> r) -> StridedDims &requires(R == -1) {
     invariant(n_ <= stride_m_);
     m_ = r;
     return *this;
-  }
-  constexpr auto set(Col<> c) -> StridedDims &
-  requires(C == -1)
-  {
+  } constexpr auto set(Col<> c) -> StridedDims &requires(C == -1) {
     n_ = c;
-    stride_m_ = rowStride(std::max(ptrdiff_t(stride_m_), ptrdiff_t(n_)));
+    stride_m_ = stride(std::max(ptrdiff_t(stride_m_), ptrdiff_t(n_)));
     return *this;
-  }
-  template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto similar(Row<S> r) const -> StridedDims {
+  } template <ptrdiff_t S> [[nodiscard]] constexpr auto similar(Row<S> r) const
+    -> StridedDims {
     invariant(n_ <= stride_m_);
     return {r, n_, stride_m_};
   }
@@ -154,13 +139,31 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
   {
     return {m_, n_, stride_m_};
   }
-
+  constexpr explicit operator Row<R>() const { return m_; }
+  constexpr explicit operator Col<C>() const {
+    invariant(n_ <= stride_m_);
+    return n_;
+  }
+  constexpr explicit operator RowStride<X>() const {
+    invariant(n_ <= stride_m_);
+    return stride_m_;
+  }
 private:
+  friend constexpr auto row(StridedDims d) -> Row<R> { return d.m_; }
+  friend constexpr auto col(StridedDims d) -> Col<C> {
+    invariant(d.n_ <= d.stride_m_);
+    return d.n_;
+  }
+  friend constexpr auto stride(StridedDims d) -> RowStride<X> {
+    invariant(d.n_ <= d.stride_m_);
+    return d.stride_m_;
+  }
   friend auto operator<<(std::ostream &os, StridedDims x) -> std::ostream & {
     return os << x.m_ << " x " << x.n_ << " (stride " << x.stride_m_ << ")";
   }
-};
+}; // namespace math
 static_assert(sizeof(StridedDims<-1, 8, 8>) == sizeof(ptrdiff_t));
+
 template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   [[no_unique_address]] Row<R> m_;
   [[no_unique_address]] Col<C> n_;
@@ -194,12 +197,6 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   // constexpr DenseDims(CartesianIndex<R, C> ind)
   //   : M(unsigned(ind.row)), N(unsigned(ind.col)) {}
   constexpr auto operator=(SquareDims<R> D) -> DenseDims &requires(R == C);
-  constexpr explicit operator Row<R>() const { return m_; }
-  constexpr explicit operator Col<C>() const { return n_; }
-  constexpr explicit operator RowStride<C>() const {
-    if constexpr (C == -1) return rowStride(ptrdiff_t{n_});
-    else return {};
-  }
   template <ptrdiff_t S>
   [[nodiscard]] constexpr auto truncate(Row<S> r) const -> DenseDims {
     invariant(r <= Row{m_});
@@ -211,20 +208,14 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     invariant(c <= Col{m_});
     return {m_, c, {ptrdiff_t(n_)}};
   }
-  constexpr auto set(Row<> r) -> DenseDims &
-  requires(R == -1)
-  {
+  constexpr auto set(Row<> r) -> DenseDims &requires(R == -1) {
     m_ = r;
     return *this;
-  }
-  constexpr auto set(Col<> c) -> DenseDims &
-  requires(C == -1)
-  {
+  } constexpr auto set(Col<> c) -> DenseDims &requires(C == -1) {
     n_ = c;
     return *this;
-  }
-  template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto similar(Row<S> r) const -> DenseDims {
+  } template <ptrdiff_t S> [[nodiscard]] constexpr auto similar(Row<S> r) const
+    -> DenseDims {
     return {r, n_};
   }
   template <ptrdiff_t S>
@@ -237,7 +228,7 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     return {m_, n_, n_};
   }
   constexpr operator StridedDims<>() const {
-    return {m_, n_, rowStride(ptrdiff_t(n_))};
+    return {m_, n_, stride(ptrdiff_t(n_))};
   }
   constexpr operator DenseDims<>() const
   requires((R != -1) || (C != -1))
@@ -254,8 +245,20 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   {
     return {};
   }
-
+  constexpr explicit operator Row<R>() const { return m_; }
+  constexpr explicit operator Col<C>() const { return n_; }
+  constexpr explicit operator RowStride<C>() const {
+    if constexpr (C == -1) return stride(ptrdiff_t{n_});
+    else return {};
+  }
 private:
+  friend constexpr auto row(DenseDims d) -> Row<R> { return d.m_; }
+  friend constexpr auto col(DenseDims d) -> Col<C> { return d.n_; }
+  friend constexpr auto stride(DenseDims d) -> RowStride<C> {
+    if constexpr (C == -1) return stride(ptrdiff_t{d.n_});
+    else return {};
+  }
+
   friend auto operator<<(std::ostream &os, DenseDims x) -> std::ostream & {
     return os << x.m_ << " x " << x.n_;
   }
@@ -289,12 +292,6 @@ template <ptrdiff_t R> struct SquareDims {
   // constexpr SquareDims(CartesianIndex<R, R> ind) : M(ind.row) {
   //   invariant(ptrdiff_t(ind.row), ptrdiff_t(ind.col));
   // }
-  constexpr explicit operator Row<R>() const { return m_; }
-  constexpr explicit operator Col<R>() const { return col(ptrdiff_t(m_)); }
-  constexpr explicit operator RowStride<R>() const {
-    if constexpr (R == -1) return rowStride(ptrdiff_t(m_));
-    else return {};
-  }
   template <ptrdiff_t S>
   [[nodiscard]] constexpr auto truncate(Row<S> r) const -> DenseDims<S, R> {
     invariant(r <= Row{m_});
@@ -317,10 +314,10 @@ template <ptrdiff_t R> struct SquareDims {
   constexpr operator StridedDims<R, R, R>() const
   requires(R != -1)
   {
-    return {m_, col(ptrdiff_t(m_)), rowStride(ptrdiff_t(m_))};
+    return {m_, col(ptrdiff_t(m_)), stride(ptrdiff_t(m_))};
   }
   constexpr operator StridedDims<>() const {
-    return {m_, col(ptrdiff_t(m_)), rowStride(ptrdiff_t(m_))};
+    return {m_, col(ptrdiff_t(m_)), stride(ptrdiff_t(m_))};
   }
   constexpr operator DenseDims<R, R>() const
   requires(R != -1)
@@ -333,8 +330,23 @@ template <ptrdiff_t R> struct SquareDims {
   {
     return {m_};
   }
+       constexpr explicit operator Row<R>() const { 
+                                      return m_; }
+  constexpr explicit operator Col<R>() const { return col(ptrdiff_t(m_)); }
+  constexpr explicit operator RowStride<R>() const {
+    if constexpr (R == -1) return stride(ptrdiff_t(m_));
+    else return {};
+  }
 
 private:
+  friend constexpr auto row(SquareDims d) -> Row<R> { return d.m_; }
+  friend constexpr auto col(SquareDims d) -> Col<R> {
+    return col(ptrdiff_t(d.m_));
+  }
+  friend constexpr auto stride(SquareDims d) -> RowStride<R> {
+    if constexpr (R == -1) return stride(ptrdiff_t(d.m_));
+    else return {};
+  }
   friend auto operator<<(std::ostream &os, SquareDims x) -> std::ostream & {
     return os << x.m_ << " x " << x.m_;
   }
@@ -405,7 +417,7 @@ template <class R, class C>
 constexpr inline CartesianIndex<R, C>::operator StridedDims<>() const
 requires(std::convertible_to<R, ptrdiff_t> && std::convertible_to<C, ptrdiff_t>)
 {
-  return StridedDims{row(row_idx_), col(col_idx_), rowStride(col_idx_)};
+  return StridedDims{row(row_idx_), col(col_idx_), stride(col_idx_)};
 }
 
 template <typename T, typename S>
@@ -414,8 +426,8 @@ concept different = !std::same_as<T, S>;
 template <typename D>
 concept MatrixDimension = requires(D d) {
   { d } -> std::convertible_to<StridedDims<-1, -1, -1>>;
-  { Row(d) } -> different<Row<1>>;
-  { Col(d) } -> different<Col<1>>;
+  { row(d) } -> different<Row<1>>;
+  { col(d) } -> different<Col<1>>;
 };
 static_assert(MatrixDimension<SquareDims<>>);
 static_assert(MatrixDimension<DenseDims<>>);
@@ -433,10 +445,6 @@ template <typename T, typename S>
 concept PromoteDimTo = (!std::same_as<T, S>) && std::convertible_to<T, S>;
 template <typename T, typename S>
 concept PromoteDimFrom = (!std::same_as<T, S>) && std::convertible_to<S, T>;
-
-constexpr auto row(MatrixDimension auto s) { return Row(s); }
-constexpr auto col(MatrixDimension auto s) { return Col(s); }
-constexpr auto stride(MatrixDimension auto s) { return RowStride(s); }
 
 template <typename T>
 concept HasInnerReduction = bool(T::has_reduction_loop);
@@ -495,9 +503,4 @@ template <typename A, typename B> struct PromoteEltype {
                        std::conditional_t<std::convertible_to<B, elta>, elta,
                                           std::common_type_t<elta, eltb>>>;
 };
-export namespace utils {
-template <typename A, typename B>
-using promote_eltype_t =
-  std::remove_cvref_t<typename PromoteEltype<A, B>::value_type>;
-} // namespace utils
 

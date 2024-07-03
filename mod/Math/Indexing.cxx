@@ -203,6 +203,22 @@ template <ptrdiff_t L = -1, ptrdiff_t X = -1> struct StridedRange {
   constexpr explicit operator RowStride<X>() const { return stride_; }
 
 private:
+  [[nodiscard, gnu::artificial,
+    gnu::always_inline]] friend inline constexpr auto
+  row(StridedRange<> r) -> Row<> {
+    return row(ptrdiff_t(r.len_));
+  }
+  [[nodiscard, gnu::artificial,
+    gnu::always_inline]] friend inline constexpr auto
+  col(StridedRange<>) -> Col<1> {
+    return {};
+  }
+  [[nodiscard, gnu::artificial,
+    gnu::always_inline]] friend inline constexpr auto
+  stride(StridedRange<> r) -> RowStride<> {
+    return r.stride_;
+  }
+
   friend inline auto operator<<(std::ostream &os,
                                 StridedRange x) -> std::ostream & {
     return os << "Length: " << ptrdiff_t(x.len_)
@@ -245,19 +261,6 @@ calcOffset(StridedDims<> d, R r, C c) -> ptrdiff_t {
 // constexpr auto is_integral_const(std::integral_constant<T, V>) -> bool {
 //   return true;
 // }
-[[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
-row(StridedRange<> r) -> Row<> {
-  return row(ptrdiff_t(r.len_));
-}
-[[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
-col(StridedRange<>) -> Col<1> {
-  return {};
-}
-[[nodiscard, gnu::artificial, gnu::always_inline]] inline constexpr auto
-stride(StridedRange<> r) -> RowStride<> {
-  return r.stride_;
-}
-
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X>
 constexpr auto IsStridedColVectorDim(StridedDims<R, C, X>) -> bool {
   return C == 1;
@@ -368,7 +371,7 @@ constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
     } else {
       auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
       return StridedDims(Row<NR>{}, ascol(colDims),
-                         rowStride(unwrapCol(Col(d))));
+                         stride(unwrapCol(Col(d))));
     }
   } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
     auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
@@ -441,8 +444,10 @@ template <ptrdiff_t U, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(ColVectorDimension auto x,
                           simd::index::Unroll<U, W, M> i) {
   if constexpr (W == 1)
-    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
-  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
+    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_,
+                                                          stride(x)};
+  else
+    return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
 
 } // namespace math

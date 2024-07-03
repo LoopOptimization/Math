@@ -173,7 +173,7 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
   // TODO: if `R` is a row index, maybe don't fully unroll static `L`
   // We're going for very short SIMD vectors to focus on small sizes
   // using PT = std::common_type_t<utils::eltype_t<LHS>, utils::eltype_t<RHS>>;
-  using PT = utils::promote_eltype_t<LHS, RHS>;
+  using PT = std::common_type_t<utils::eltype_t<LHS>, utils::eltype_t<RHS>>;
   invariant(L >= 0);
   if constexpr (StaticInt<I>) {
     constexpr std::array<ptrdiff_t, 3> vdr =
@@ -250,7 +250,6 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
 }
 #endif
 
-template <typename T> class SmallSparseMatrix;
 template <class T, class S, class P> class ArrayOps {
   static_assert(std::is_copy_assignable_v<T> ||
                 (std::is_trivially_copyable_v<T> &&
@@ -283,7 +282,7 @@ protected:
     auto self{SelfView()};
     auto [M, N] = promote_shape(self, B);
     constexpr bool assign = std::same_as<Op, CopyAssign>;
-    using PT = utils::promote_eltype_t<P, RHS>;
+    using PT = std::common_type_t<utils::eltype_t<P>, utils::eltype_t<RHS>>;
 #ifdef CASTTOSCALARIZE
     using E = math::scalarize_via_cast_t<
       std::remove_cvref_t<decltype(std::declval<P>().view())>>;
@@ -371,12 +370,10 @@ public:
   [[gnu::always_inline, gnu::flatten]] constexpr auto
   operator<<(const UniformScaling<Y> &B) -> P & {
     static_assert(MatrixDimension<S>);
-    std::fill_n(data_(), ptrdiff_t(this->dim()), T{});
-    this->diag() << B.value;
+    std::fill_n(data_(), ptrdiff_t(this->dim_()), T{});
+    static_cast<P *>(this)->diag() << B.value;
     return *static_cast<P *>(this);
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(const SmallSparseMatrix<T> &B) -> P &;
 
   [[gnu::always_inline, gnu::flatten]] constexpr auto
   operator<<(const auto &B) -> P & {

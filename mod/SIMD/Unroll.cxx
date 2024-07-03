@@ -99,34 +99,25 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
     return *this;
   }
   [[gnu::always_inline]] constexpr auto
-  operator+=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator+=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     return (*this) += vbroadcast<W, T>(a);
   }
   [[gnu::always_inline]] constexpr auto
-  operator-=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator-=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     return (*this) -= vbroadcast<W, T>(a);
   }
   [[gnu::always_inline]] constexpr auto
-  operator*=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator*=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     return (*this) *= vbroadcast<W, T>(a);
   }
   [[gnu::always_inline]] constexpr auto
-  operator/=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     return (*this) /= vbroadcast<W, T>(a);
   }
 
-private:
-  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
-  operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+  private : template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+            [[gnu::always_inline]] friend constexpr auto
+            operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
@@ -303,14 +294,12 @@ private:
       }
     } else if constexpr (W == 1) {
       static_assert(R == 1 || C == 1);
-      constexpr ptrdiff_t R2 = R == 1 ? C : R;
+      static constexpr ptrdiff_t R2 = R == 1 ? C : R;
       // `a` was indexed by row only
       Unroll<R2, C1, W1, T> z;
       static_assert(R1 == R2 || R1 == 1);
-      if constexpr (R2 == 1) {
-        POLYMATHFULLUNROLL
-        for (ptrdiff_t c = 0; c < C1; ++c) z.data_[c] = op(a.vec_, b.data_[c]);
-      } else if constexpr (C1 == 1) {
+      static_assert(R2 != 1);
+      if constexpr (C1 == 1) {
         POLYMATHFULLUNROLL
         for (ptrdiff_t r = 0; r < R2; ++r)
           if constexpr (R2 == R1) z.data_[r] = op(a.data_[r], b.vec_[r]);
@@ -336,10 +325,10 @@ private:
         POLYMATHFULLUNROLL
         for (ptrdiff_t c = 0; c < C; ++c) z.data_[c] = op(a.data_[c], b.vec_);
       } else if constexpr (C == 1) {
+        static_assert(R != 1 && R == R2);
         POLYMATHFULLUNROLL
         for (ptrdiff_t r = 0; r < R2; ++r)
-          if constexpr (R == R2) z.data_[r] = op(a.data_[r], b.data_[r]);
-          else z.data_[r] = op(a.vec_, b.data_[r]);
+          z.data_[r] = op(a.data_[r], b.data_[r]);
       } else {
         POLYMATHFULLUNROLL
         for (ptrdiff_t r = 0; r < R2; ++r) {
@@ -407,38 +396,29 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     return *this;
   }
   [[gnu::always_inline]] constexpr auto
-  operator+=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator+=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     vec_ += vbroadcast<W, T>(a);
     return *this;
   }
   [[gnu::always_inline]] constexpr auto
-  operator-=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator-=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     vec_ -= vbroadcast<W, T>(a);
     return *this;
   }
   [[gnu::always_inline]] constexpr auto
-  operator*=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator*=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     vec_ *= vbroadcast<W, T>(a);
     return *this;
   }
   [[gnu::always_inline]] constexpr auto
-  operator/=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
     vec_ /= vbroadcast<W, T>(a);
     return *this;
   }
 
-private:
-  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
-  operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+  private : template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+            [[gnu::always_inline]] friend constexpr auto
+            operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
@@ -674,9 +654,8 @@ struct UnrollRef {
     else
       return loadstrideunroll<R, C, N, T, X, NM, MT>(ptr_, row_stride_, masks_);
   }
-  constexpr auto operator=(UT x) -> UnrollRef &
-  requires(!Transposed)
-  {
+  constexpr auto
+  operator=(UT x) -> UnrollRef &requires(!Transposed) {
     auto rs = ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -700,10 +679,8 @@ struct UnrollRef {
       }
     }
     return *this;
-  }
-  constexpr auto operator=(Unroll<1, C, N, T> x) -> UnrollRef &
-  requires((!Transposed) && (R != 1))
-  {
+  } constexpr auto operator=(Unroll<1, C, N, T> x)
+                    -> UnrollRef &requires((!Transposed) && (R != 1)) {
     auto rs = ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -726,9 +703,8 @@ struct UnrollRef {
       }
     }
     return *this;
-  }
-  constexpr auto operator=(Unroll<R, C, 1, T> x)
-    -> UnrollRef &requires(!Transposed && (N != 1)) {
+  } constexpr auto operator=(Unroll<R, C, 1, T> x)
+                      -> UnrollRef &requires(!Transposed && (N != 1)) {
     auto rs = ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -751,9 +727,7 @@ struct UnrollRef {
     return *this;
   }
 
-  constexpr auto operator=(Vec<W, T> v) -> UnrollRef &
-  requires(!Transposed)
-  {
+  constexpr auto operator=(Vec<W, T> v) -> UnrollRef &requires(!Transposed) {
     auto rs = ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -773,10 +747,8 @@ struct UnrollRef {
       }
     }
     return *this;
-  }
-  constexpr auto operator=(Unroll<R, C, N, T> x) -> UnrollRef &
-  requires(Transposed)
-  {
+  } constexpr auto operator=(Unroll<R, C, N, T> x)
+                                          -> UnrollRef &requires(Transposed) {
     auto s = int32_t(ptrdiff_t(row_stride_));
     T *p = ptr_;
     for (ptrdiff_t r = 0; r < R; ++r, ++p) {
@@ -796,10 +768,7 @@ struct UnrollRef {
       }
     }
     return *this;
-  }
-  constexpr auto operator=(Vec<W, T> v) -> UnrollRef &
-  requires(Transposed)
-  {
+  } constexpr auto operator=(Vec<W, T> v) -> UnrollRef &requires(Transposed) {
     auto s = int32_t(ptrdiff_t(row_stride_));
     T *p = ptr_;
     for (ptrdiff_t r = 0; r < R; ++r, ++p) {
@@ -819,8 +788,7 @@ struct UnrollRef {
       }
     }
     return *this;
-  }
-  constexpr auto operator=(std::convertible_to<T> auto x) -> UnrollRef & {
+  } constexpr auto operator=(std::convertible_to<T> auto x) -> UnrollRef & {
     *this = Vec<W, T>{} + T(x);
     return *this;
   }
