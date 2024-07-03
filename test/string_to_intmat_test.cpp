@@ -3,8 +3,10 @@
 #include <gtest/gtest.h>
 #include <ostream>
 
+import Array;
 import ArrayParse;
 import ManagedArray;
+import MatDim;
 
 using namespace math;
 using utils::operator""_mat;

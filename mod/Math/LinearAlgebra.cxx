@@ -9,10 +9,17 @@ import Array;
 import ArrayConcepts;
 import ArrayConstructors;
 import AxisTypes;
+import GenericArrayConstructors;
 import ManagedArray;
 import Pair;
+import Param;
 import Rational;
 
+template <typename T>
+concept TrivialVec = utils::TriviallyCopyable<T> && AbstractVector<T>;
+// template <typename T>
+// concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
+// 
 export namespace math {
 namespace LU {
 [[nodiscard]] constexpr auto ldivrat(SquarePtrMatrix<Rational> F,

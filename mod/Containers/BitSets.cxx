@@ -17,6 +17,7 @@ module;
 export module BitSet;
 
 import Array;
+import AxisTypes;
 import Invariant;
 import ManagedArray;
 import MatDim;

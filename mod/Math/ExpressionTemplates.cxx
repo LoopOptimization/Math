@@ -44,16 +44,21 @@ template <typename T, typename C>
 concept TrivialCompatible = utils::TriviallyCopyable<T> && Compatible<T, C>;
 template <typename T>
 concept TrivialTensor = utils::TriviallyCopyable<T> && AbstractTensor<T>;
-template <typename T>
-concept TrivialVec = utils::TriviallyCopyable<T> && AbstractVector<T>;
-template <typename T>
-concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
 
-template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
-struct Elementwise;
+// returns the element type of `A` when used in a binary op with `B`
+template <class A, class B>
+using indextype_t =
+  std::conditional_t<AbstractTensor<B> &&
+                       std::convertible_to<A, utils::eltype_t<B>>,
+                     A, utils::eltype_t<A>>;
 
-template <utils::TriviallyCopyable A, utils::TriviallyCopyable OP>
-constexpr auto elementwise(A, OP) -> Elementwise<A, OP>;
+template <typename Op, typename A>
+concept FuncOfElt = std::is_invocable_v<Op, utils::eltype_t<A>>;
+template <typename Op, typename A, typename B>
+concept BinaryFuncOfElts =
+  std::is_invocable_v<Op, indextype_t<A, B>, indextype_t<B, A>>;
+
+template <utils::TriviallyCopyable A, FuncOfElt<A> Op> struct Elementwise;
 
 constexpr auto size(const std::integral auto) -> ptrdiff_t { return 1; }
 constexpr auto size(const std::floating_point auto) -> ptrdiff_t { return 1; }
@@ -65,17 +70,6 @@ template <typename T>
 concept HasConcreteSize = requires(T) {
   std::is_same_v<typename std::remove_reference_t<T>::concrete, std::true_type>;
 };
-
-// returns the element type of `A` when used in a binary op with `B`
-template <class A, class B>
-using indextype_t =
-  std::conditional_t<AbstractTensor<B> &&
-                       std::convertible_to<A, utils::eltype_t<B>>,
-                     A, utils::eltype_t<A>>;
-
-template <typename Op, typename A, typename B>
-concept BinaryFuncOfElts =
-  std::is_invocable_v<Op, indextype_t<A, B>, indextype_t<B, A>>;
 
 static_assert(!HasConcreteSize<int64_t>);
 template <typename T, typename U>
@@ -97,10 +91,15 @@ using argtyp_t =
                         std::floating_point<utils::eltype_t<B>>),
                      utils::eltype_t<B>, A>;
 
+export namespace math {
+template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
+constexpr auto elementwise(A, Op) -> Elementwise<A, Op>;
+
 template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
-          utils::TriviallyCopyable OP>
-constexpr auto elementwise(A, B, OP)
-  -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP>;
+          BinaryFuncOfElts<A ,B> Op>
+constexpr auto elementwise(A, B, Op)
+  -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op>;
+}; // namespace math
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
@@ -318,7 +317,7 @@ public:
 };
 } // namespace math
 
-template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
+template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 struct Elementwise : public Expr<decltype(std::declval<Op>()(
                                    std::declval<utils::eltype_t<A>>())),
                                  Elementwise<A, Op>> {
@@ -430,29 +429,18 @@ struct ElementwiseBinaryOp
   }
 };
 
-template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
+template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 Elementwise(A, Op) -> Elementwise<A, Op>;
-
-template <utils::TriviallyCopyable A, utils::TriviallyCopyable Op>
-constexpr auto elementwise(A a, Op op) -> Elementwise<A, Op> {
-  return {.a = a, .op = op};
-}
 
 // // promote primitive element types, e.g. so
 // // operator+(int, AbstractVector<int64_t>)
 // // turns into
 // // operator+(int64_t, AbstractVector<int64_t>)
 template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
-          utils::TriviallyCopyable OP>
-ElementwiseBinaryOp(A, B, OP)
-  -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP>;
+          BinaryFuncOfElts<A ,B> Op>
+ElementwiseBinaryOp(A, B, Op)
+  -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op>;
 
-template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
-          utils::TriviallyCopyable OP>
-constexpr auto elementwise(A a, B b, OP op)
-  -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, OP> {
-  return {.a = a, .b = b, .op = op};
-}
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
 struct Select : public AbstractSelect<C, A, B>,
@@ -592,8 +580,9 @@ struct Conditional
   [[nodiscard]] constexpr auto view() const -> Conditional { return *this; };
 };
 template <AbstractTensor A, AbstractTensor B>
-struct MatMatMul
-  : public math::Expr<std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>, MatMatMul<A, B>> {
+struct MatMatMul : public math::Expr<
+                     std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>,
+                     MatMatMul<A, B>> {
   using value_type = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
   using concrete = is_concrete_t<A, B>;
   static constexpr bool has_reduction_loop = true;
@@ -682,6 +671,18 @@ struct MatMatMul
 };
 
 export namespace math {
+
+template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
+constexpr auto elementwise(A a, Op op) -> Elementwise<A, Op> {
+  return {.a = a, .op = op};
+}
+
+template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
+          BinaryFuncOfElts<A, B> Op>
+constexpr auto elementwise(A a, B b, Op op)
+  -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op> {
+  return {.a = a, .b = b, .op = op};
+}
 
 constexpr auto select(const AbstractTensor auto &c, const auto &a,
                       const auto &b) {

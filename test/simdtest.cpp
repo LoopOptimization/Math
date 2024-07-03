@@ -2,7 +2,9 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 
+import AxisTypes;
 import Elementary;
+import ExprTemplates;
 import ManagedArray;
 
 TEST(ElementarySIMD, BasicAssertions) {
@@ -20,6 +22,6 @@ TEST(ElementarySIMD, BasicAssertions) {
                  826.3777611913293, 3.116190086521906, 0.037592750025674}},
     z{math::length(15)};
 
-  z << math::Elementwise{[](auto a) { return math::exp(a); }, x};
+  z << math::elementwise(x.view(), [](auto a) { return math::exp(a); });
   for (ptrdiff_t i = 0; i < 15; ++i) EXPECT_DOUBLE_EQ(y[i], z[i]);
 }

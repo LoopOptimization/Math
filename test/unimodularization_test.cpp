@@ -2,6 +2,7 @@
 #include <ostream>
 
 import ArrayParse;
+import ManagedArray;
 import Unimodularization;
 
 using namespace math;

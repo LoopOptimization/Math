@@ -4,6 +4,8 @@
 #include <type_traits>
 
 import Array;
+import AxisTypes;
+import ManagedArray;
 import Pair;
 import Range;
 import SOA;

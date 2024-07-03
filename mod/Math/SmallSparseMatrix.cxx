@@ -1,7 +1,9 @@
 module;
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <ostream>
 #include <utility>
 
 export module SmallSparseMatrix;
@@ -109,9 +111,8 @@ public:
   }
 
 private:
-  template <typename T>
-  inline auto operator<<(std::ostream &os,
-                         const SmallSparseMatrix<T> &A) -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os, const SmallSparseMatrix<T> &A)
+    -> std::ostream & {
     ptrdiff_t k = 0;
     os << "[ ";
     for (ptrdiff_t i = 0; i < A.numRow(); ++i) {
@@ -135,31 +136,30 @@ private:
     invariant(k == A.nonZeros.size());
     return os;
   }
-};
-
-template <class T, class S, class P>
-[[gnu::flatten]] constexpr auto
-ArrayOps<T, S, P>::operator<<(const SmallSparseMatrix<T> &B) -> P & {
-  static_assert(MatrixDimension<S>);
-  ptrdiff_t M = ptrdiff_t(nr()), N = ptrdiff_t(nc()), k = 0;
-  invariant(M, ptrdiff_t(B.numRow()));
-  invariant(N, ptrdiff_t(B.numCol()));
-  T *mem = data_();
-  PtrVector<T> nz = B.getNonZeros();
-  PtrVector<uint32_t> rws = B.getRows();
-  for (ptrdiff_t i = 0; i < M; ++i) {
-    uint32_t m = rws[i] & 0x00ffffff;
-    ptrdiff_t j = 0, l = ptrdiff_t(rs()) * i;
-    while (m) {
-      uint32_t tz = std::countr_zero(m);
-      m >>= tz + 1;
-      for (; tz; --tz) mem[l + j++] = T{};
-      mem[l + j++] = nz[k++];
+  template <std::convertible_to<T> Y, MatrixDimension S>
+  [[gnu::flatten]] friend constexpr auto
+  operator<<(MutArray<Y, S> A, const SmallSparseMatrix &B) -> MutArray<Y, S> {
+    ptrdiff_t M = ptrdiff_t(A.numRow()), N = ptrdiff_t(A.numCol()),
+              X = ptrdiff_t(A.rowStride()), k = 0;
+    invariant(M, ptrdiff_t(B.numRow()));
+    invariant(N, ptrdiff_t(B.numCol()));
+    T *mem = A.data();
+    PtrVector<T> nz = B.getNonZeros();
+    PtrVector<uint32_t> rws = B.getRows();
+    for (ptrdiff_t i = 0; i < M; ++i) {
+      uint32_t m = rws[i] & 0x00ffffff;
+      ptrdiff_t j = 0, l = X * i;
+      while (m) {
+        uint32_t tz = std::countr_zero(m);
+        m >>= tz + 1;
+        for (; tz; --tz) mem[l + j++] = T{};
+        mem[l + j++] = nz[k++];
+      }
+      for (; j < N; ++j) mem[l + j] = T{};
     }
-    for (; j < N; ++j) mem[l + j] = T{};
+    invariant(k == nz.size());
+    return A;
   }
-  invariant(k == nz.size());
-  return *static_cast<P *>(this);
-}
+};
 
 }; // namespace math

@@ -7,6 +7,7 @@
 #include <print>
 
 import BitSet;
+import ManagedArray;
 
 using containers::BitSet, math::Vector;
 
