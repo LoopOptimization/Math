@@ -8,6 +8,7 @@
 using math::Dual, math::SquareDims, math::SquareMatrix, math::MutArray,
   math::Array, math::URand, containers::tie, containers::Tuple;
 
+#ifndef NDEBUG
 template <typename A, typename... As, typename B, typename... Bs>
 constexpr void tuplecheck(Tuple<A, As...> &, const Tuple<B, Bs...> &) {
   using C = math::scalarize_via_cast_t<
@@ -17,6 +18,7 @@ constexpr void tuplecheck(Tuple<A, As...> &, const Tuple<B, Bs...> &) {
     math::ScalarizeViaCastTo<C, As..., decltype(std::declval<B>().view()),
                              Bs...>());
 }
+#endif
 
 template <typename T, typename S>
 [[gnu::noinline]] void eltmul(MutArray<T, S> A, double t) {

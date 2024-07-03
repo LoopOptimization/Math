@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
+#include <random>
 
-import Array;
+import ManagedArray;
 import MatDim;
 import NormalForm;
 

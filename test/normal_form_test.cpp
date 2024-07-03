@@ -11,6 +11,7 @@ import Array;
 import ArrayParse;
 import LinearAlgebra;
 import MatDim;
+import ManagedArray;
 import NormalForm;
 import Pair;
 import UniformScaling;

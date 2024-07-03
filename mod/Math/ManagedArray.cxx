@@ -10,8 +10,8 @@ module;
 #include <type_traits>
 
 export module ManagedArray;
+export import Array;
 import Allocator;
-import Array;
 import ArrayConcepts;
 import ArrayPrint;
 import AxisTypes;
@@ -57,9 +57,9 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif
-  constexpr ManagedArray() noexcept
-    : BaseT{memory_.data(), S{}, capacity(StackStorage)} {
+  constexpr ManagedArray() noexcept : BaseT{S{}, capacity(StackStorage)} {
 #ifndef NDEBUG
+    this->ptr = memory_.data();
     if (!StackStorage) return;
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
       std::fill_n(this->data(), StackStorage,
@@ -70,8 +70,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   }
   // if `T` is trivial, contents are uninitialized
   // if non-trivial, they are default constructed.
-  constexpr ManagedArray(S s) noexcept
-    : BaseT{memory_.data(), s, capacity(StackStorage)} {
+  constexpr ManagedArray(S s) noexcept : BaseT{s, capacity(StackStorage)} {
+    this->ptr = memory_.data();
     U len = U(capacity(ptrdiff_t(this->sz)));
     if (len > StackStorage) this->allocateAtLeast(len);
 #ifndef NDEBUG
@@ -85,8 +85,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
     if constexpr (!trivialelt)
       std::uninitialized_default_construct_n(this->data(), len);
   }
-  constexpr ManagedArray(S s, T x) noexcept
-    : BaseT{memory_.data(), s, capacity(StackStorage)} {
+  constexpr ManagedArray(S s, T x) noexcept : BaseT{s, capacity(StackStorage)} {
+    this->ptr = memory_.data();
     auto len = ptrdiff_t(this->sz);
     if (len > StackStorage) this->allocateAtLeast(capacity(len));
     if (!len) return;
@@ -110,14 +110,16 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   //   : ManagedArray(s, a){};
   constexpr ManagedArray(T x) noexcept
   requires(std::same_as<S, Length<>>)
-    : BaseT{memory_.data(), S{}, capacity(StackStorage)} {
+    : BaseT{S{}, capacity(StackStorage)} {
+    this->ptr = memory_.data();
     if constexpr (StackStorage == 0) this->growUndef(1);
     this->push_back_within_capacity(std::move(x));
   }
 
   template <class D>
   constexpr ManagedArray(const ManagedArray<T, D, StackStorage, A> &b) noexcept
-    : BaseT{memory_.data(), S(b.dim()), capacity(StackStorage)} {
+    : BaseT{S(b.dim()), capacity(StackStorage)} {
+    this->ptr = memory_.data();
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
@@ -125,7 +127,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, StackStorage, AY> &b) noexcept
-    : BaseT{memory_.data(), S{}, capacity(StackStorage)} {
+    : BaseT{S{}, capacity(StackStorage)} {
+    this->ptr = memory_.data();
     S d = b.dim();
     auto len = ptrdiff_t(d);
     this->growUndef(len);
@@ -135,7 +138,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   }
   template <std::convertible_to<T> Y, size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
-    : BaseT{memory_.data(), S{}, capacity(StackStorage)} {
+    : BaseT{S{}, capacity(StackStorage)} {
+    this->ptr = memory_.data();
     auto len = ptrdiff_t(M);
     this->growUndef(len);
     if constexpr (trivialelt) std::copy_n(il.begin(), len, this->data());
@@ -145,7 +149,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, StackStorage, AY> &b,
                          S s) noexcept
-    : BaseT{memory_.data(), S(s), capacity(StackStorage)} {
+    : BaseT{S(s), capacity(StackStorage)} {
+    this->ptr = memory_.data();
     auto len = ptrdiff_t(this->sz);
     invariant(len == U(b.size()));
     this->growUndef(len);
@@ -154,14 +159,16 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
     else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const ManagedArray &b) noexcept
-    : BaseT{memory_.data(), S(b.dim()), capacity(StackStorage)} {
+    : BaseT{S(b.dim()), capacity(StackStorage)} {
+    this->ptr = memory_.data();
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
     else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const Array<T, S> &b) noexcept
-    : BaseT{memory_.data(), S(b.dim()), capacity(StackStorage)} {
+    : BaseT{S(b.dim()), capacity(StackStorage)} {
+    this->ptr = memory_.data();
     auto len = ptrdiff_t(this->sz);
     this->growUndef(len);
     if constexpr (trivialelt) std::copy_n(b.data(), len, this->data());
@@ -169,31 +176,39 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   }
   template <AbstractSimilar<S> V>
   constexpr ManagedArray(const V &b) noexcept
-    : BaseT{memory_.data(), S(shape(b)), capacity(StackStorage)} {
+    : BaseT{S(shape(b)), capacity(StackStorage)} {
+    this->ptr = memory_.data();
     this->growUndef(ptrdiff_t(this->sz));
     (*this) << b;
   }
   template <class D>
   constexpr ManagedArray(ManagedArray<T, D, StackStorage, A> &&b) noexcept
-    : BaseT{memory_.data(), b.dim(), U(capacity(StackStorage))} {
+    : BaseT{b.dim(), U(capacity(StackStorage))} {
     if (!b.isSmall()) { // steal
       this->ptr = b.data();
       this->capacity_ = b.getCapacity();
-    } else if constexpr (trivialelt)
-      std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
-    else std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    } else {
+      this->ptr = memory_.data();
+      if constexpr (trivialelt)
+        std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+      else
+        std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    }
     b.resetNoFree();
   }
   constexpr ManagedArray(ManagedArray &&b) noexcept
-    : BaseT{memory_.data(), b.dim(), U(capacity(StackStorage))} {
+    : BaseT{b.dim(), U(capacity(StackStorage))} {
     if constexpr (StackStorage) {
       if (!b.isSmall()) { // steal
         this->ptr = b.data();
         this->capacity_ = b.getCapacity();
-      } else if constexpr (trivialelt)
-        std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
-      else
-        std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+      } else {
+        this->ptr = memory_.data();
+        if constexpr (trivialelt)
+          std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+        else
+          std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+      }
     } else {
       this->ptr = b.ptr;
       this->capacity_ = b.getCapacity();
@@ -202,18 +217,23 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   }
   template <class D>
   constexpr ManagedArray(ManagedArray<T, D, StackStorage, A> &&b, S s) noexcept
-    : BaseT{memory_.data(), s, U(capacity(StackStorage))} {
+    : BaseT{s, U(capacity(StackStorage))} {
     if (!b.isSmall()) { // steal
       this->ptr = b.data();
       this->capacity_ = b.getCapacity();
-    } else if constexpr (trivialelt)
-      std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
-    else std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    } else {
+      this->ptr = memory_.data();
+      if constexpr (trivialelt)
+        std::copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+      else
+        std::uninitialized_copy_n(b.data(), ptrdiff_t(b.dim()), this->data());
+    }
     b.resetNoFree();
   }
   constexpr ManagedArray(const ColVector auto &v)
   requires(MatrixDimension<S>)
-    : BaseT{memory_.data(), S(shape(v)), U(capacity(StackStorage))} {
+    : BaseT{S(shape(v)), U(capacity(StackStorage))} {
+    this->ptr = memory_.data();
     ptrdiff_t M = ptrdiff_t(this->sz);
     this->growUndef(M);
     if constexpr (!trivialelt)
@@ -222,8 +242,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
   }
   constexpr ManagedArray(const RowVector auto &v)
   requires(MatrixDimension<S>)
-    : BaseT{memory_.data(), S(CartesianIndex(1, v.size())),
-            U(capacity(StackStorage))} {
+    : BaseT{S(CartesianIndex(1, v.size())), U(capacity(StackStorage))} {
+    this->ptr = memory_.data();
     ptrdiff_t M = ptrdiff_t(this->sz);
     this->growUndef(M);
     if constexpr (!trivialelt)
@@ -238,29 +258,33 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
 #endif
 
   template <class D>
-  constexpr auto
-  operator=(const ManagedArray<T, D, StackStorage, A> &b) noexcept
-    -> ManagedArray &requires(!std::same_as<S, D>) {
+  constexpr auto operator=(
+    const ManagedArray<T, D, StackStorage, A> &b) noexcept -> ManagedArray &
+  requires(!std::same_as<S, D>)
+  {
     // this condition implies `this->data() == nullptr`
     if (this->data() == b.data()) return *this;
     resizeCopyTo(b);
     return *this;
-  } template <class D>
-    constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
-    -> ManagedArray &requires(!std::same_as<S, D>) {
-      // this condition implies `this->data() == nullptr`
-      if (this->data() == b.data()) return *this;
-      // here, we commandeer `b`'s memory
-      S d = b.dim();
-      // if `b` is small, we need to copy memory
-      // no need to shrink our capacity
-      if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
-      else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
-      b.resetNoFree();
-      this->sz = d;
-      return *this;
-    } constexpr auto
-    operator=(const ManagedArray &b) noexcept -> ManagedArray & {
+  }
+  template <class D>
+  constexpr auto
+  operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept -> ManagedArray &
+  requires(!std::same_as<S, D>)
+  {
+    // this condition implies `this->data() == nullptr`
+    if (this->data() == b.data()) return *this;
+    // here, we commandeer `b`'s memory
+    S d = b.dim();
+    // if `b` is small, we need to copy memory
+    // no need to shrink our capacity
+    if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
+    else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
+    b.resetNoFree();
+    this->sz = d;
+    return *this;
+  }
+  constexpr auto operator=(const ManagedArray &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     resizeCopyTo(b);
     return *this;
@@ -747,8 +771,8 @@ static_assert(std::same_as<utils::eltype_t<Matrix<int64_t>>, int64_t>);
 template <AbstractMatrix T>
 inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
   Matrix<std::remove_const_t<typename T::value_type>> B{A};
-  return utils::printMatrix(os, B.data(), ptrdiff_t(B.numRow()), ptrdiff_t(B.numCol()),
-                     ptrdiff_t(B.rowStride()));
+  return utils::printMatrix(os, B.data(), ptrdiff_t(B.numRow()),
+                            ptrdiff_t(B.numCol()), ptrdiff_t(B.rowStride()));
 }
 
 } // namespace math

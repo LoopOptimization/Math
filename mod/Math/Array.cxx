@@ -27,12 +27,12 @@ module;
 export module Array;
 
 export import AssignExprTemplates;
+export import AxisTypes;
 export import Indexing;
 import Allocator;
 import Arena;
 import ArrayConcepts;
 import ArrayPrint;
-import AxisTypes;
 import CompressReference;
 import ExprTemplates;
 import Optional;
@@ -40,6 +40,7 @@ import Pair;
 import Param;
 import Range;
 import Rational;
+import ScalarizeViaCast;
 import SIMD;
 import Storage;
 import TypeCompression;
@@ -469,14 +470,16 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  friend auto operator<<(std::ostream &os, Array x)
-    -> std::ostream &requires(utils::Printable<T>) {
+  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
                                 ptrdiff_t(x.numCol()),
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
-  } [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  }
+  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
@@ -520,6 +523,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   // }
 #endif
 protected:
+  constexpr Array(S s) : sz(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
@@ -831,6 +835,9 @@ struct MutArray : Array<T, S, Compress>,
   [[nodiscard]] constexpr auto mview() noexcept -> MutArray<T, S> {
     return *this;
   }
+
+protected:
+  constexpr MutArray(S s) : BaseT(s) {}
 };
 
 template <typename T, typename S> Array(T *, S) -> Array<decompressed_t<T>, S>;
@@ -863,9 +870,9 @@ static_assert(AbstractVector<Array<int64_t, Length<>>>);
 static_assert(!AbstractVector<Array<int64_t, StridedDims<>>>);
 static_assert(AbstractMatrix<Array<int64_t, StridedDims<>>>);
 static_assert(RowVector<Array<int64_t, Length<>>>);
-static_assert(ColVector<Transpose<int64_t,Array<int64_t, Length<>>>>);
+static_assert(ColVector<Transpose<int64_t, Array<int64_t, Length<>>>>);
 static_assert(ColVector<Array<int64_t, StridedRange<>>>);
-static_assert(RowVector<Transpose<int64_t,Array<int64_t, StridedRange<>>>>);
+static_assert(RowVector<Transpose<int64_t, Array<int64_t, StridedRange<>>>>);
 
 // template <typename T, bool Column>
 // inline constexpr auto SliceIterator<T, Column>::operator*()
@@ -1153,6 +1160,7 @@ struct [[gsl::Pointer(T)]] ResizeableView : MutArray<T, S> {
   }
 
 protected:
+  constexpr ResizeableView(S s, U c) noexcept : BaseT(s), capacity_(c) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   [[no_unique_address]] U capacity_{0};
 };
@@ -1313,7 +1321,7 @@ static_assert(utils::TriviallyCopyable<PtrMatrix<int64_t>>);
 // static_assert(AbstractMatrix<MatMatMul<PtrMatrix<int64_t>,
 // PtrMatrix<int64_t>>>,
 //               "MatMul is not an AbstractMatrix!");
-static_assert(AbstractMatrix<Transpose<int64_t,PtrMatrix<int64_t>>>);
+static_assert(AbstractMatrix<Transpose<int64_t, PtrMatrix<int64_t>>>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
 static_assert(
@@ -1325,6 +1333,13 @@ template <typename T> auto countNonZero(PtrMatrix<T> x) -> ptrdiff_t {
   return count;
 }
 
+template <typename T, typename S> struct ScalarizeViaCast<Array<T, S, true>> {
+  using type = scalarize_elt_cast_t<utils::compressed_t<T>>;
+};
+template <typename T, typename S>
+struct ScalarizeViaCast<MutArray<T, S, true>> {
+  using type = scalarize_elt_cast_t<utils::compressed_t<T>>;
+};
 } // namespace math
 
 template <class T, math::Dimension S, bool Compress>

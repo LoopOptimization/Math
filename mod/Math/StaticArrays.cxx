@@ -55,10 +55,10 @@ using StaticDims = std::conditional_t<
     Compress || ((N % simd::VecLen<N, T>) == 0), math::DenseDims<M, N>,
     math::StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
 
-static_assert(
-  ptrdiff_t(StridedDims<1, 1, 1>{math::StaticDims<int64_t, 1, 1, true>{}})== 1);
-static_assert(ptrdiff_t(StridedDims<>{math::StaticDims<int64_t, 1, 1, true>{}})==
-              1);
+static_assert(ptrdiff_t(StridedDims<1, 1, 1>{
+                math::StaticDims<int64_t, 1, 1, true>{}}) == 1);
+static_assert(ptrdiff_t(StridedDims<>{
+                math::StaticDims<int64_t, 1, 1, true>{}}) == 1);
 
 static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
 
@@ -224,17 +224,13 @@ struct [[gsl::Owner(T)]] StaticArray
         if (r != c && (*this)(r, c) != 0) return false;
     return true;
   }
-  [[nodiscard]] constexpr auto
+  [[nodiscard, gnu::always_inline]] constexpr auto
   view() const noexcept -> Array<T, S, Compress && utils::Compressible<T>> {
-    const storage_type *ptr = data();
-    invariant(ptr != nullptr);
-    return {ptr, S{}};
+    return {data(), S{}};
   }
-  [[nodiscard]] constexpr auto
+  [[nodiscard, gnu::always_inline]] constexpr auto
   mview() noexcept -> MutArray<T, S, Compress && utils::Compressible<T>> {
-    storage_type *ptr = data();
-    invariant(ptr != nullptr);
-    return {ptr, S{}};
+    return {data(), S{}};
   }
 
   [[nodiscard]] constexpr auto begin() noexcept {
@@ -298,8 +294,10 @@ struct [[gsl::Owner(T)]] StaticArray
   }
 
 private:
-  friend auto operator<<(std::ostream &os, const StaticArray &x)
-    -> std::ostream &requires(utils::Printable<T>) {
+  friend auto operator<<(std::ostream &os,
+                         const StaticArray &x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
@@ -338,9 +336,6 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   static constexpr ptrdiff_t Align = alignof(simd::Vec<W, T>);
   using S = StaticDims<T, M, N, false>;
 
-  [[nodiscard, gnu::always_inline]] constexpr auto view() const -> StaticArray {
-    return *this;
-  }
   [[nodiscard]] static constexpr auto dim() noexcept -> S { return S{}; }
 
   static constexpr ptrdiff_t L = (N + W - 1) / W;
@@ -350,6 +345,22 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   V memory_[M * L]{};
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
   // constexpr operator compressed_type() { return compressed_type{*this}; }
+  [[nodiscard, gnu::always_inline]] constexpr auto view() const -> StaticArray
+  requires(M *L <= 4)
+  {
+    return *this;
+  }
+  [[nodiscard, gnu::always_inline]] constexpr auto
+  view() const noexcept -> Array<T, S, false>
+  requires(M *L > 4)
+  {
+    return {data(), S{}};
+  }
+  [[nodiscard, gnu::always_inline]] constexpr auto
+  mview() noexcept -> MutArray<T, S, false> {
+    return {data(), S{}};
+  }
+
   constexpr StaticArray() = default;
   constexpr StaticArray(StaticArray const &) = default;
   constexpr StaticArray(StaticArray &&) noexcept = default;
@@ -558,8 +569,10 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os, const StaticArray &x)
-    -> std::ostream &requires(utils::Printable<T>) {
+  friend auto operator<<(std::ostream &os,
+                         const StaticArray &x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
@@ -602,6 +615,11 @@ struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
 
   [[nodiscard, gnu::always_inline]] constexpr auto view() const -> StaticArray {
     return *this;
+  }
+  // Maybe this should return `StaticArray&`?
+  [[nodiscard, gnu::always_inline]] constexpr auto
+  mview() noexcept -> MutArray<T, S, false> {
+    return {data(), S{}};
   }
 
   using V = simd::Vec<W, T>;
@@ -762,8 +780,10 @@ struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os, const StaticArray &x)
-    -> std::ostream &requires(utils::Printable<T>) {
+  friend auto operator<<(std::ostream &os,
+                         const StaticArray &x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());

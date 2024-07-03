@@ -22,6 +22,7 @@ import ExprTemplates;
 import Invariant;
 import MatDim;
 import Param;
+import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
 import TypeCompression;
@@ -1092,74 +1093,15 @@ constexpr auto hessian(alloc::Arena<> *arena, PtrVector<double> x,
 }
 static_assert(MatrixDimension<SquareDims<>>);
 
-template <typename T> struct IsDualImpl : std::false_type {};
 template <typename T, ptrdiff_t N, bool Compress>
-struct IsDualImpl<math::Dual<T, N, Compress>> : std::true_type {};
-template <typename T>
-concept IsDual = IsDualImpl<T>::value;
+struct IsDualImpl<::math::Dual<T, N, Compress>> : std::true_type {};
 
-// We want to support casting compressed `Dual` arrays to `double`
-// when possible as a performance optimization.
-// This is possible with
-// 1. Dual<T,N> (+/-) Dual<T,N>
-// 2. Dual<T,N> * double or double * Dual<T,N>
-// 3. Dual<T,N> / double
-// 4. Simple copies
-template <typename T> struct ScalarizeEltViaCast {
-  using type = void;
-};
-template <typename T>
-using scalarize_elt_cast_t = typename ScalarizeEltViaCast<T>::type;
 template <typename T, ptrdiff_t N>
 struct ScalarizeEltViaCast<Dual<T, N, true>> {
   using type = std::conditional_t<std::same_as<T, double>, double,
                                   scalarize_elt_cast_t<T>>;
 };
 
-template <typename T> struct ScalarizeViaCast<Elementwise<std::negate<>, T>> {
-  using type = scalarize_via_cast_t<T>;
-};
-template <typename T>
-concept AdditiveOp =
-  std::same_as<T, std::plus<>> || std::same_as<T, std::minus<>>;
-template <typename T>
-concept MultiplicativeOp =
-  std::same_as<T, std::multiplies<>> || std::same_as<T, std::divides<>>;
-template <typename T>
-concept EltIsDual = IsDual<utils::eltype_t<T>>;
-
-template <typename T, typename S> struct ScalarizeViaCast<Array<T, S, true>> {
-  using type = scalarize_elt_cast_t<utils::compressed_t<T>>;
-};
-template <typename T, typename S>
-struct ScalarizeViaCast<MutArray<T, S, true>> {
-  using type = scalarize_elt_cast_t<utils::compressed_t<T>>;
-};
-
-template <typename T>
-concept EltCastableDual =
-  EltIsDual<T> && std::same_as<scalarize_via_cast_t<T>, double>;
-template <AdditiveOp Op, EltCastableDual A, EltCastableDual B>
-struct ScalarizeViaCast<ElementwiseBinaryOp<A, B, Op>> {
-  // when we cast, we expand into rows, thus col vectors don't work
-  // as they'd have to become matrices, and then number of rows
-  // won't match up, unless both inputs were a ColVector
-  // It is unclear if the case where both inputs are ColVectors is worth
-  // the complexity, as the benefit from this optimization is being
-  // able to handle things contiguously, which we in that case.
-  using type = std::conditional_t<
-    (ColVector<A> || ColVector<B>) ||
-      (!std::same_as<utils::eltype_t<A>, utils::eltype_t<B>>),
-    void, double>;
-};
-template <MultiplicativeOp Op, EltCastableDual A, std::convertible_to<double> T>
-struct ScalarizeViaCast<ElementwiseBinaryOp<A, T, Op>> {
-  using type = double;
-};
-template <EltCastableDual B, std::convertible_to<double> T>
-struct ScalarizeViaCast<ElementwiseBinaryOp<T, B, std::multiplies<>>> {
-  using type = double;
-};
 } // namespace math
 
 namespace std {

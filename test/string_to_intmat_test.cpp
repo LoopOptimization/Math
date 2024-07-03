@@ -7,6 +7,7 @@ import Array;
 import ArrayParse;
 import ManagedArray;
 import MatDim;
+import StaticArray;
 
 using namespace math;
 using utils::operator""_mat;

@@ -12,16 +12,20 @@ module;
 
 export module BoxOpt;
 
-import Aerna;
+import Allocator;
+import Arena;
 import Array;
+import ArrayConcepts;
+import AxisTypes;
 import Dual;
 import Elementary;
 import LinearAlgebra;
 import MatDim;
 import Pair;
+import Param;
+import Reductions;
+import SIMD;
 import Tuple;
-impot Allocator;
-impot SIMD;
 
 export namespace math {
 
@@ -212,7 +216,7 @@ static_assert(!IsMutable<math::Array<double, Length<>>>);
 static_assert(!IsMutable<DualVector<2, math::Array<double, Length<>>>>);
 template <AbstractVector V> struct BoxTransformVector {
   using value_type = utils::eltype_t<V>;
-  static_assert(Trivial<V>);
+  static_assert(utils::TriviallyCopyable<V>);
   V v;
   BoxTransformView btv;
 

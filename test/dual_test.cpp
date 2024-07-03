@@ -4,10 +4,13 @@
 #include <gtest/gtest.h>
 #include <random>
 
+import Arena;
 import Array;
 import Dual;
+import ExprTemplates;
 import LinearAlgebra;
 import MatDim;
+import ManagedArray;
 import TinyVector;
 
 using namespace math;
@@ -15,7 +18,7 @@ using utils::eltype_t, math::transpose;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(DualTest, BasicAssertions) {
-  OwningArena arena;
+  alloc::OwningArena arena;
 
   std::mt19937 gen(0);
   std::uniform_real_distribution<double> dist(-1, 1);

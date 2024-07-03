@@ -14,9 +14,9 @@
 #include <type_traits>
 
 import Arena;
-import Array;
 import ArrayParse;
 import AxisTypes;
+import ManagedArray;
 import MatDim;
 import SmallSparseMatrix;
 import StaticArray;

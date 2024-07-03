@@ -23,6 +23,7 @@ import CheckSizes;
 import Indexing;
 import Param;
 import Range;
+import ScalarizeViaCast;
 import SIMD;
 
 using utils::TriviallyCopyable;
@@ -155,43 +156,6 @@ struct AbstractSelect {
 };
 
 // constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
-
-constexpr auto abs2(auto x) { return x * x; }
-template <AbstractTensor B> constexpr auto norm2(const B &A) {
-  utils::eltype_t<B> s = 0;
-  if constexpr (!LinearlyIndexable<B, utils::eltype_t<B>>) {
-    for (ptrdiff_t i = 0; i < A.numRow(); ++i) {
-      for (ptrdiff_t j = 0; j < A.numCol(); ++j) {
-        POLYMATHFAST
-        s += abs2(A[i, j]);
-      }
-    }
-  } else
-    for (ptrdiff_t j = 0, L = ptrdiff_t(A.size()); j < L; ++j) {
-      POLYMATHFAST
-      s += abs2(A[j]);
-    }
-  return s;
-}
-
-constexpr auto norm2(const auto &a) {
-  decltype(a[0] * a[0] + a[1] * a[1]) s{};
-  for (auto x : a) {
-    POLYMATHFAST
-    s += abs2(x, x);
-  }
-  return s;
-}
-constexpr auto dot(const auto &a, const auto &b) {
-  ptrdiff_t L = a.size();
-  invariant(L, b.size());
-  decltype(a[0] * b[0] + a[1] * b[1]) s{};
-  for (ptrdiff_t i = 0; i < L; ++i) {
-    POLYMATHFAST
-    s += a[i] * b[i];
-  }
-  return s;
-}
 
 export namespace math {
 
@@ -496,7 +460,6 @@ template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
 ElementwiseBinaryOp(A, B, Op)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op>;
 
-
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
 struct Select : public AbstractSelect<C, A, B>,
@@ -780,5 +743,30 @@ template <typename T> constexpr auto transpose(const T &a) {
     return a.t();
   else return Transpose{view(a)};
 }
+
+template <typename T> struct ScalarizeViaCast<Elementwise<std::negate<>, T>> {
+  using type = scalarize_via_cast_t<T>;
+};
+template <AdditiveOp Op, EltCastableDual A, EltCastableDual B>
+struct ScalarizeViaCast<ElementwiseBinaryOp<A, B, Op>> {
+  // when we cast, we expand into rows, thus col vectors don't work
+  // as they'd have to become matrices, and then number of rows
+  // won't match up, unless both inputs were a ColVector
+  // It is unclear if the case where both inputs are ColVectors is worth
+  // the complexity, as the benefit from this optimization is being
+  // able to handle things contiguously, which we in that case.
+  using type = std::conditional_t<
+    (ColVector<A> || ColVector<B>) ||
+      (!std::same_as<utils::eltype_t<A>, utils::eltype_t<B>>),
+    void, double>;
+};
+template <MultiplicativeOp Op, EltCastableDual A, std::convertible_to<double> T>
+struct ScalarizeViaCast<ElementwiseBinaryOp<A, T, Op>> {
+  using type = double;
+};
+template <EltCastableDual B, std::convertible_to<double> T>
+struct ScalarizeViaCast<ElementwiseBinaryOp<T, B, std::multiplies<>>> {
+  using type = double;
+};
 
 } // namespace math

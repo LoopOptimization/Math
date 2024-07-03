@@ -5,9 +5,9 @@
 #include <ostream>
 #include <random>
 
-import Array;
 import Invariant;
 import LinearAlgebra;
+import ManagedArray;
 import Rational;
 
 using namespace math;

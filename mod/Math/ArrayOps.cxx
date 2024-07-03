@@ -14,6 +14,7 @@ import ArrayConcepts;
 import CheckSizes;
 import Indexing;
 import Invariant;
+import ScalarizeViaCast;
 import SIMD;
 import Tuple;
 import TypeCompression;
@@ -100,19 +101,11 @@ template <typename S, OnlyLinearlyIndexable<S> V>
   else return v[i];
 }
 
-export namespace math {
-template <typename T> struct ScalarizeViaCast {
-  using type = void;
-};
-template <typename T>
-using scalarize_via_cast_t = typename ScalarizeViaCast<T>::type;
-} // namespace math
-
 template <typename To, typename From>
 constexpr bool ScalarizeViaCastToImpl =
   std::same_as<To, math::scalarize_via_cast_t<std::remove_cvref_t<From>>>;
-template <typename To, typename... U>
 
+template <typename To, typename... U>
 consteval auto ScalarizeViaCastTo() -> bool {
   return (... && ScalarizeViaCastToImpl<To, U>);
 }

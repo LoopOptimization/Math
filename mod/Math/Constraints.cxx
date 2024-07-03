@@ -5,11 +5,13 @@ module;
 #include <ostream>
 
 export module Constraints;
-import Array;
+import ArrayConcepts;
 import AxisTypes;
 import BitSet;
+import Comparisons;
 import GCD;
 import GenericArrayConstructors;
+import ManagedArray;
 import NormalForm;
 
 export namespace math {
