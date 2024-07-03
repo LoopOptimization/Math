@@ -22,7 +22,7 @@ TEST(DualTest, BasicAssertions) {
 
   std::mt19937 gen(0);
   std::uniform_real_distribution<double> dist(-1, 1);
-  SquareMatrix<double> A(15);
+  SquareMatrix<double> A(math::Row{15});
   Vector<double> x(length(15));
   for (auto &a : A) a = dist(gen);
   for (auto &xx : x) xx = dist(gen);

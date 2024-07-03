@@ -9,6 +9,8 @@ import Array;
 import BoxOpt;
 import BoxOptInt;
 import Dual;
+import Elementary;
+import ManagedArray;
 
 constexpr auto fcore(auto u1, auto u2) {
   return (2.0 * u1 + u2 + u1 * u2) / (u1 * u2);

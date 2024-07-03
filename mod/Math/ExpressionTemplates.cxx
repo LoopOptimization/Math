@@ -220,7 +220,7 @@ public:
     return elementwise(v(), view(b), std::bit_xor<>{});
   }
   template <typename B>
-  constexpr auto operator*(const B &b)
+  constexpr auto operator*(const B &b) const
   requires(std::convertible_to<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
   {
     if constexpr (!std::convertible_to<std::remove_cvref_t<B>, T>) {
@@ -237,7 +237,7 @@ public:
   }
 
   [[gnu::flatten]] constexpr auto
-  operator==(const AbstractTensor auto &B) -> bool {
+  operator==(const AbstractTensor auto &B) const -> bool {
     auto [Ma, Na] = shape(v());
     auto [Mb, Nb] = shape(B);
 

@@ -198,6 +198,12 @@ template <ptrdiff_t L = -1, ptrdiff_t X = -1> struct StridedRange {
   operator ptrdiff_t() const {
     return ptrdiff_t(len_);
   }
+
+  [[gnu::always_inline, gnu::artificial]] inline constexpr auto
+  flat() const -> StridedRange {
+    return *this;
+  }
+
   constexpr explicit operator Row<L>() const { return asrow(len_); }
   constexpr explicit operator Col<1>() const { return {}; }
   constexpr explicit operator RowStride<X>() const { return stride_; }
@@ -240,6 +246,16 @@ calcOffset(Length<> len, simd::index::Unroll<U, W, M> i) {
   if constexpr (std::same_as<M, simd::mask::None<W>>)
     invariant((i.index_ + U * W - 1) < len);
   else invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 < len);
+  return i.index_;
+}
+template <ptrdiff_t U, ptrdiff_t W, typename M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+calcOffset(DenseDims<> len, simd::index::Unroll<U, W, M> i) {
+  if constexpr (std::same_as<M, simd::mask::None<W>>)
+    invariant((i.index_ + U * W - 1) < ptrdiff_t(len));
+  else
+    invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 <
+              ptrdiff_t(len));
   return i.index_;
 }
 
@@ -370,8 +386,7 @@ constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
       return DenseDims(Row<NR>{}, Col<NC>{});
     } else {
       auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-      return StridedDims(Row<NR>{}, ascol(colDims),
-                         stride(unwrapCol(Col(d))));
+      return StridedDims(Row<NR>{}, ascol(colDims), stride(unwrapCol(Col(d))));
     }
   } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
     auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
@@ -444,10 +459,8 @@ template <ptrdiff_t U, ptrdiff_t W, typename M>
 constexpr auto calcNewDim(ColVectorDimension auto x,
                           simd::index::Unroll<U, W, M> i) {
   if constexpr (W == 1)
-    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_,
-                                                          stride(x)};
-  else
-    return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
+    return simd::index::UnrollDims<U, 1, 1, M, false, -1>{i.mask_, stride(x)};
+  else return simd::index::UnrollDims<1, U, W, M, true, -1>{i.mask_, stride(x)};
 }
 
 } // namespace math

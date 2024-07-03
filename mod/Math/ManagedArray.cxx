@@ -102,6 +102,8 @@ struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
 
   // constexpr ManagedArray(std::type_identity<T>) noexcept :
   // ManagedArray(A{}){};
+  constexpr ManagedArray(std::type_identity<T>, S s) noexcept
+    : ManagedArray(s) {};
   constexpr ManagedArray(std::type_identity<T>, S s, A) noexcept
     : ManagedArray(s) {};
   // constexpr ManagedArray(std::type_identity<T>, A a) noexcept :

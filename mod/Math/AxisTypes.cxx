@@ -62,6 +62,11 @@ template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
   operator Length<-1>() const;
   static constexpr auto comptime() -> ptrdiff_t { return M; }
 
+  [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+  flat() const -> Length {
+    return *this;
+  }
+
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto
   operator==(ptrdiff_t x, Length) -> bool {
@@ -156,6 +161,11 @@ template <std::signed_integral I> struct Length<-1, I> {
       static_cast<Length<-1, ptrdiff_t>::len>(ptrdiff_t(I(*this)))};
   }
   static constexpr auto comptime() -> ptrdiff_t { return -1; }
+
+  [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+  flat() const -> Length {
+    return *this;
+  }
 
 private:
   [[gnu::artificial, gnu::always_inline]] friend inline constexpr auto

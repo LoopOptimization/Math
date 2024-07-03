@@ -1,9 +1,12 @@
 module;
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 export module BoxOptInt;
 
+import Arena;
 import Array;
 import BoxOpt;
 

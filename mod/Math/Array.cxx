@@ -374,6 +374,13 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   [[nodiscard]] constexpr auto view() const noexcept -> Array<T, S> {
     return *this;
   }
+  [[nodiscard]] constexpr auto flatview() const noexcept
+  requires(flatstride)
+  {
+    auto szf = sz.flat();
+    return Array<T, std::remove_reference_t<decltype(szf)>, Compress>{
+      ptr, sz.flat()};
+  }
 
   [[nodiscard]] constexpr auto
   operator==(const Array &other) const noexcept -> bool {
@@ -383,7 +390,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       // may not be dense, iterate over rows
       for (ptrdiff_t i = 0; i < M; ++i)
         if ((*this)[i, _] != other[i, _]) return false;
-    } else {
+    } else if constexpr (!MatrixDimension<S>) {
       constexpr ptrdiff_t W = simd::Width<T>;
       ptrdiff_t N = size();
       if (N != other.size()) return false;
@@ -397,7 +404,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
           if (simd::cmp::ne<W, T>((*this)[u], other[u])) return false;
         }
       }
-    }
+    } else return flatview() == other.flatview();
     return true;
   }
   // FIXME: strided should skip over elements

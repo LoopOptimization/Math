@@ -130,6 +130,7 @@ constexpr auto pivotRowsPair(std::array<MutPtrMatrix<int64_t>, 2> AK, Col<> i,
   }
   return false;
 }
+export namespace math::NormalForm {
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> K,
                          ptrdiff_t i, Row<> M) -> bool {
   MutPtrMatrix<int64_t> B = K;
@@ -147,6 +148,15 @@ constexpr auto pivotRows(MutPtrMatrix<int64_t> A, ptrdiff_t i,
                          Row<> N) -> bool {
   return pivotRows(A, col(i), N, row(i));
 }
+/// numNonZeroRows(PtrMatrix<int64_t> A) -> Row
+/// Assumes some number of the trailing rows have been
+/// zeroed out.  Returns the number of rows that are remaining.
+constexpr auto numNonZeroRows(PtrMatrix<int64_t> A) -> Row<> {
+  Row newM = A.numRow();
+  while (newM && allZero(A[ptrdiff_t(newM) - 1, _])) --newM;
+  return newM;
+}
+} // namespace math::NormalForm
 
 constexpr void dropCol(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M, Col<> N) {
   // if any rows are left, we shift them up to replace it
@@ -278,25 +288,10 @@ constexpr void reduceColumn(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
   zeroSupDiagonal(A, c, r);
   reduceSubDiagonal(A, c, r);
 }
-// treats A as stacked on top of B
-constexpr void reduceColumnStack(MutPtrMatrix<int64_t> A,
-                                 MutPtrMatrix<int64_t> B, ptrdiff_t c,
-                                 ptrdiff_t r) {
-  zeroSupDiagonal(B, col(c), row(r));
-  reduceSubDiagonalStack(B, A, c, r);
-}
 
-/// numNonZeroRows(PtrMatrix<int64_t> A) -> Row
-/// Assumes some number of the trailing rows have been
-/// zeroed out.  Returns the number of rows that are remaining.
-constexpr auto numNonZeroRows(PtrMatrix<int64_t> A) -> Row<> {
-  Row newM = A.numRow();
-  while (newM && allZero(A[ptrdiff_t(newM) - 1, _])) --newM;
-  return newM;
-}
 // NormalForm version assumes zero rows are sorted to end due to pivoting
 constexpr void removeZeroRows(MutDensePtrMatrix<int64_t> &A) {
-  A.truncate(numNonZeroRows(A));
+  A.truncate(NormalForm::numNonZeroRows(A));
 }
 
 constexpr void reduceColumn(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
@@ -465,7 +460,7 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
   for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {
     // zero ith row
-    if (pivotRows(A, K, i, row(M))) {
+    if (NormalForm::pivotRows(A, K, i, row(M))) {
       // cannot pivot, this is a linear combination of previous
       // therefore, we drop the row
       dropCol(A, i, row(M), col(--N));
@@ -488,6 +483,13 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
 
 export namespace math {
 namespace NormalForm {
+// treats A as stacked on top of B
+constexpr void reduceColumnStack(MutPtrMatrix<int64_t> A,
+                                 MutPtrMatrix<int64_t> B, ptrdiff_t c,
+                                 ptrdiff_t r) {
+  zeroSupDiagonal(B, col(c), row(r));
+  reduceSubDiagonalStack(B, A, c, r);
+}
 // pass by value, returns number of rows to truncate
 constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
                                   ptrdiff_t colInit = 0) -> Row<> {
