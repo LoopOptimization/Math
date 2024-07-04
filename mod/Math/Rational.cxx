@@ -7,6 +7,7 @@ module;
 #include <limits>
 #include <optional>
 #include <ostream>
+#include <type_traits>
 
 export module Rational;
 
@@ -240,4 +241,20 @@ constexpr auto gcd(Rational x, Rational y) -> std::optional<Rational> {
   return Rational{gcd(x.numerator, y.numerator),
                   lcm(x.denominator, y.denominator)};
 }
-} // namespace math
+} // namespace math  
+export namespace std {
+template <> struct common_type<math::Rational, int> {
+  using type = math::Rational;
+};
+template <> struct common_type<int, math::Rational> {
+  using type = math::Rational;
+};
+template <> struct common_type<math::Rational, int64_t> {
+  using type = math::Rational;
+};
+template <> struct common_type<int64_t, math::Rational> {
+  using type = math::Rational;
+};
+}
+static_assert(std::same_as<std::common_type_t<math::Rational, int>, math::Rational>);
+static_assert(std::same_as<std::common_type_t<int,math::Rational >, math::Rational>);

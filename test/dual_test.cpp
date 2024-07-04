@@ -11,6 +11,7 @@ import ExprTemplates;
 import LinearAlgebra;
 import MatDim;
 import ManagedArray;
+import Reductions;
 import TinyVector;
 
 using namespace math;

@@ -10,6 +10,7 @@
 import Array;
 import ArrayConcepts;
 import ArrayParse;
+import Comparisons;
 import LinearAlgebra;
 import MatDim;
 import ManagedArray;
