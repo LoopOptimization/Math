@@ -22,7 +22,7 @@ using utils::operator""_mat;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(OrthogonalizationTest, BasicAssertions) {
-  SquareMatrix<int64_t> A(row(4));
+  SquareMatrix<int64_t> A(SquareDims<>{math::row(4)});
   std::cout << "\n\n\n========\n========\n========\n\n";
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -182,7 +182,7 @@ TEST(Hermite, BasicAssertions) {
     EXPECT_TRUE(H2 == U2 * A43);
   }
   {
-    SquareMatrix<int64_t> A(row(4));
+    SquareMatrix<int64_t> A(SquareDims<>{math::row(4)});
     A[0, 0] = 3;
     A[1, 0] = -6;
     A[2, 0] = 7;

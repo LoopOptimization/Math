@@ -250,6 +250,14 @@ calcOffset(Length<> len, simd::index::Unroll<U, W, M> i) {
 }
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+calcOffset(Length<1> len, simd::index::Unroll<U, W, M> i) {
+  if constexpr (std::same_as<M, simd::mask::None<W>>)
+    invariant((i.index_ + U * W - 1) == 0);
+  else invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 == 0);
+  return i.index_;
+}
+template <ptrdiff_t U, ptrdiff_t W, typename M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
 calcOffset(DenseDims<> len, simd::index::Unroll<U, W, M> i) {
   if constexpr (std::same_as<M, simd::mask::None<W>>)
     invariant((i.index_ + U * W - 1) < ptrdiff_t(len));

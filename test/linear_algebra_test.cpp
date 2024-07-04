@@ -9,6 +9,7 @@ import Invariant;
 import LinearAlgebra;
 import ManagedArray;
 import Rational;
+import Reductions;
 
 using namespace math;
 

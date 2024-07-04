@@ -22,7 +22,7 @@ TEST(DualTest, BasicAssertions) {
 
   std::mt19937 gen(0);
   std::uniform_real_distribution<double> dist(-1, 1);
-  SquareMatrix<double> A(math::row(15));
+  SquareMatrix<double> A(SquareDims<>{math::row(15)});
   Vector<double> x(length(15));
   for (auto &a : A) a = dist(gen);
   for (auto &xx : x) xx = dist(gen);
@@ -150,7 +150,7 @@ constexpr auto dualDeltaCmp(Dual<T, N> x, double y) -> bool {
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(ExpMatTest, BasicAssertions) {
-  SquareMatrix<double> A(4);
+  SquareMatrix<double> A(SquareDims<>{math::row(4)});
   A[0, 0] = 0.13809508135032297;
   A[0, 1] = -0.10597225613986219;
   A[0, 2] = -0.5623996136438215;
@@ -167,7 +167,7 @@ TEST(ExpMatTest, BasicAssertions) {
   A[3, 1] = 0.6550780207685463;
   A[3, 2] = -0.6227535845719466;
   A[3, 3] = 0.2280514374580733;
-  SquareMatrix<double> B(4);
+  SquareMatrix<double> B(SquareDims<>{math::row(4)});
   B[0, 0] = 0.2051199361909877;
   B[0, 1] = -0.049831094437687434;
   B[0, 2] = -0.3980657896416266;
@@ -187,7 +187,7 @@ TEST(ExpMatTest, BasicAssertions) {
   EXPECT_LE(norm2(B - expm(A)), 1e-10);
 
   static_assert(utils::Compressible<Dual<double, 2>>);
-  SquareMatrix<Dual<double, 2>> Ad(4);
+  SquareMatrix<Dual<double, 2>> Ad(SquareDims<>{math::row(4}));
   Ad[0, 0] = Dual<double, 2>{
     0.13809508135032297,
     SVector<double, 2>{0.23145585885555967, 0.6736099502056541}};
@@ -236,7 +236,7 @@ TEST(ExpMatTest, BasicAssertions) {
   Ad[3, 3] = Dual<double, 2>{
     0.2280514374580733,
     SVector<double, 2>{-1.2001994532706792, 0.03274459682369542}};
-  SquareMatrix<Dual<double, 2>> Bd(4);
+  SquareMatrix<Dual<double, 2>> Bd(SquareDims<>{math::row(4)});
   Bd[0, 0] = Dual<double, 2>{
     0.20511993619098767,
     SVector<double, 2>{0.09648410552837837, -2.2538795735050865}};
