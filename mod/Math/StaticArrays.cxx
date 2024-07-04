@@ -24,6 +24,7 @@ import AxisTypes;
 import CompressReference;
 import ExprTemplates;
 import MatDim;
+import Pair;
 import Range;
 import SIMD;
 import TypeCompression;
@@ -283,6 +284,10 @@ struct [[gsl::Owner(T)]] StaticArray
   constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
     return std::equal(begin(), end(), rhs.begin());
   }
+  template<containers::ConvertibleFrom<S> SHAPE>
+  constexpr auto operator==(Array<T,SHAPE> rhs) const noexcept -> bool {
+    return std::equal(begin(), end(), rhs.begin());
+  }
   template <std::size_t I> constexpr auto get() -> T & { return memory_[I]; }
   template <std::size_t I>
   [[nodiscard]] constexpr auto get() const -> const T & {
@@ -299,7 +304,7 @@ private:
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
-      return printMatrix(os, Array<T, StridedDims<>>{x});
+      return utils::printMatrix(os, x.data(), M, N, N);
     else return utils::printVector(os, x.begin(), x.end());
   }
 };
@@ -804,6 +809,8 @@ static_assert(!RowVector<Transpose<int64_t, SVector<int64_t, 3>>>);
 static_assert(ColVector<Transpose<int64_t, SVector<int64_t, 3>>>);
 static_assert(RowVector<StaticArray<int64_t, 1, 4, false>>);
 static_assert(RowVector<StaticArray<int64_t, 1, 4, true>>);
+static_assert(RowVector<StaticArray<int64_t, 1, 3, false>>);
+static_assert(RowVector<StaticArray<int64_t, 1, 3, true>>);
 
 template <class T, ptrdiff_t M, ptrdiff_t N>
 constexpr auto view(const StaticArray<T, M, N> &x) {

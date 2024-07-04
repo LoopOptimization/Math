@@ -126,7 +126,7 @@ inline auto printVector(std::ostream &os, auto B, auto E) -> std::ostream & {
 }
 
 template <typename T>
-inline auto printMatrix(std::ostream &os, T *A, ptrdiff_t M, ptrdiff_t N,
+inline auto printMatrix(std::ostream &os, const T *A, ptrdiff_t M, ptrdiff_t N,
                         ptrdiff_t X) -> std::ostream & {
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
   if ((!M) || (!N)) return os << "[ ]";

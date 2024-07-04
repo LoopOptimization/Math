@@ -702,7 +702,7 @@ template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
           BinaryFuncOfElts<A, B> Op>
 constexpr auto elementwise(A a, B b, Op op)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op> {
-  return {.a = a, .b = b, .op = op};
+  return {.a = argtyp_t<A, B>(a), .b = argtyp_t<B, A>(b), .op = op};
 }
 
 constexpr auto select(const AbstractTensor auto &c, const auto &a,

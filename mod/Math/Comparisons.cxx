@@ -1,6 +1,9 @@
 module;
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 export module Comparisons;
 import ArrayConcepts;
@@ -26,9 +29,10 @@ constexpr auto anyNEZero(const auto &x) -> bool {
 [[gnu::always_inline, gnu::flatten]] constexpr auto
 any(const AbstractTensor auto &A, const auto &f) -> bool {
   auto [M, N] = shape(A);
-  using T = utils::eltype_t<decltype(A)>;
+  using TA = std::remove_cvref_t<decltype(A)>;
+  using T = utils::eltype_t<TA>;
   if constexpr (simd::SIMDSupported<T>) {
-    if constexpr (AbstractMatrix<decltype(A)>) {
+    if constexpr (AbstractMatrix<TA>) {
       if constexpr (StaticInt<decltype(N)>) {
         constexpr std::array<ptrdiff_t, 3> vdr =
           simd::VectorDivRem<ptrdiff_t(N), T>();
@@ -53,9 +57,8 @@ any(const AbstractTensor auto &A, const auto &f) -> bool {
         }
       }
     } else if constexpr (StaticInt<decltype(M)> && StaticInt<decltype(N)>) {
-      ptrdiff_t L = RowVector<decltype(A)> ? N : M;
-      using SL =
-        std::conditional_t<RowVector<decltype(A)>, decltype(N), decltype(M)>;
+      ptrdiff_t L = RowVector<TA> ? N : M;
+      using SL = std::conditional_t<RowVector<TA>, decltype(N), decltype(M)>;
       constexpr std::array<ptrdiff_t, 3> vdr =
         simd::VectorDivRem<ptrdiff_t(SL{}), T>();
       constexpr ptrdiff_t W = vdr[0];
@@ -68,19 +71,19 @@ any(const AbstractTensor auto &A, const auto &f) -> bool {
         if (f(A[simd::index::unrollmask<1, W>(L, K)])) return true;
     } else {
       constexpr ptrdiff_t W = simd::Width<T>;
-      ptrdiff_t L = RowVector<decltype(A)> ? N : M;
+      ptrdiff_t L = RowVector<TA> ? N : M;
       for (ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
         if (f(A[u])) return true;
       }
     }
-  } else if constexpr (AbstractMatrix<decltype(A)>) {
+  } else if constexpr (AbstractMatrix<TA>) {
     for (ptrdiff_t r = 0; r < M; ++r)
       for (ptrdiff_t i = 0; i < N; ++i)
         if (f(A[r, i])) return true;
   } else {
-    ptrdiff_t L = RowVector<decltype(A)> ? N : M;
+    ptrdiff_t L = RowVector<TA> ? N : M;
     for (ptrdiff_t i = 0; i < L; ++i)
       if (f(A[i])) return true;
   }
@@ -91,8 +94,8 @@ constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
   constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
-    return any(A, [](simd::Vec<W, T> v) -> bool {
-      return bool(simd::cmp::ne<W, T>(v, simd::Vec<W, T>{}));
+    return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
+      return bool(v != simd::Vec<W, T>{});
     });
   else return any(A, [](T x) -> bool { return x != T{}; });
 }
@@ -101,8 +104,8 @@ constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
   constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
-    return any(A, [](simd::Vec<W, T> v) -> bool {
-      return bool(simd::cmp::lt<W, T>(v, simd::Vec<W, T>{}));
+    return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
+      return bool(v < simd::Vec<W, T>{});
     });
   else return any(A, [](T x) -> bool { return x < T{}; });
 }
@@ -111,8 +114,8 @@ constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
   constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
-    return any(A, [](simd::Vec<W, T> v) -> bool {
-      return bool(simd::cmp::gt<W, T>(v, simd::Vec<W, T>{}));
+    return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
+      return bool(v > simd::Vec<W, T>{});
     });
   else return any(A, [](T x) -> bool { return x > T{}; });
 }

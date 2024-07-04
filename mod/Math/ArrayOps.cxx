@@ -25,6 +25,7 @@ import UniformScaling;
 export struct CopyAssign {};
 export struct NoRowIndex {};
 
+namespace detail {
 template <typename D, typename S, typename Op>
 [[gnu::artificial, gnu::always_inline]] inline constexpr void
 assign(D &&d, const S &s, Op op) {
@@ -67,6 +68,7 @@ assign(D d, const S &s, R r, C c, Op op) {
   else if constexpr (no_row_ind) d[c] = op(const_cast<const D &>(d)[c], s[c]);
   else d[r, c] = op(const_cast<const D &>(d)[r, c], s[r, c]);
 }
+} // namespace detail
 
 template <typename T, typename U> constexpr auto reinterpret(U x) {
   if constexpr (std::same_as<T, U>) return x;
@@ -176,10 +178,10 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
     constexpr ptrdiff_t remainder = vdr[2];
     if constexpr (remainder > 0) {
       auto u{simd::index::unrollmask<fulliter + 1, W>(L, 0)};
-      assign(A, B, row, u, op);
+      detail::assign(A, B, row, u, op);
     } else {
       simd::index::Unroll<fulliter, W> u{0};
-      assign(A, B, row, u, op);
+      detail::assign(A, B, row, u, op);
     }
   } else {
     constexpr ptrdiff_t W = simd::Width<PT>;
@@ -187,26 +189,26 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
     // ptrdiff_t i = 0;
     // for (ptrdiff_t j = W; j <= L; j += W) {
     //   simd::index::Unroll<1, W> u{i};
-    //   assign(A, B, row, u, op);
+    //   detail::assign(A, B, row, u, op);
     //   i = j;
     // }
     // if (ptrdiff_t M = L % W) {
     //   auto u{simd::index::tailmask<W>(i, M)};
-    //   assign(A, B, row, u, op);
+    //   detail::assign(A, B, row, u, op);
     // }
     ptrdiff_t i = 0;
     static constexpr ptrdiff_t vbody = std::min(4 * W, ptrdiff_t(64));
     POLYMATHNOUNROLL
     for (; i <= L - vbody; i += vbody) {
       simd::index::Unroll<vbody / W, W> u{i};
-      assign(A, B, row, u, op);
+      detail::assign(A, B, row, u, op);
     }
     if (i < L) {
       auto ufull{simd::index::tailmask<W>(i, L - i)};
       // auto ufull{simd::index::unrollmask<1, 64>(L, i)};
       for (;;) {
         auto u{ufull.template sub<W>()};
-        assign(A, B, row, u, op);
+        detail::assign(A, B, row, u, op);
         if (!ufull) break;
         // if (L <= ufull.index_) return;
         // if (!ufull) ufull = simd::index::unrollmask<1, 64>(L,
@@ -219,7 +221,7 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
     //   for (ptrdiff_t j = 0; (j < (64 / W)); ++j) {
     //     if (!ufull) return;
     //     auto u{ufull.template sub<W>()};
-    //     assign(A, B, row, u, op);
+    //     detail::assign(A, B, row, u, op);
     //   }
     //   i = ufull.index_;
     // }
@@ -227,16 +229,16 @@ template <typename LHS, typename RHS, typename I, typename R, typename Op>
     ptrdiff_t i = 0;
     for (; i <= L - W; i += W) {
       simd::index::Unroll<1, W> u{i};
-      assign(A, B, row, u, op);
+      detail::assign(A, B, row, u, op);
     }
     if (ptrdiff_t M = L - i) {
       auto u{simd::index::tailmask<W>(i, M)};
-      assign(A, B, row, u, op);
+      detail::assign(A, B, row, u, op);
     }
     // for (ptrdiff_t i = 0;; i += W) {
     //   auto u{simd::index::unrollmask<1, W>(L, i)};
     //   if (!u) break;
-    //   assign(A, B, row, u, op);
+    //   detail::assign(A, B, row, u, op);
     // }
 #endif
   }
@@ -333,10 +335,12 @@ protected:
           else self[j] = auto{B[j]};
       } else if constexpr (isstatic) {
         POLYMATHFULLUNROLL
-        for (ptrdiff_t j = 0; j < L; ++j) assign(self, B, NoRowIndex{}, j, op);
+        for (ptrdiff_t j = 0; j < L; ++j)
+          detail::assign(self, B, NoRowIndex{}, j, op);
       } else {
         POLYMATHIVDEP
-        for (ptrdiff_t j = 0; j < L; ++j) assign(self, B, NoRowIndex{}, j, op);
+        for (ptrdiff_t j = 0; j < L; ++j)
+          detail::assign(self, B, NoRowIndex{}, j, op);
       }
     } else {
       ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
@@ -352,7 +356,7 @@ protected:
             else self[i, j] = auto{B[i, j]};
         } else {
           POLYMATHIVDEP
-          for (ptrdiff_t j = 0; j < C; ++j) assign(self, B, i, j, op);
+          for (ptrdiff_t j = 0; j < C; ++j) detail::assign(self, B, i, j, op);
         }
       }
     }

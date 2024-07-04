@@ -115,9 +115,11 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
     return (*this) /= vbroadcast<W, T>(a);
   }
 
-  private : template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-            [[gnu::always_inline]] friend constexpr auto
-            operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+  private :
+
+    template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+    [[gnu::always_inline]] friend constexpr auto
+    operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
@@ -416,9 +418,11 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     return *this;
   }
 
-  private : template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-            [[gnu::always_inline]] friend constexpr auto
-            operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+  private :
+
+    template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+    [[gnu::always_inline]] friend constexpr auto
+    operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
@@ -438,6 +442,61 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   [[gnu::always_inline]] friend constexpr auto
   operator/(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::divides<>{});
+  }
+
+  [[gnu::always_inline]] friend constexpr auto operator<(Unroll a, Unroll b) {
+    return cmp::lt<N, T>(a.vec_, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator>(Unroll a, Unroll b) {
+    return cmp::gt<N, T>(a.vec_, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator<=(Unroll a, Unroll b) {
+    return cmp::le<N, T>(a.vec_, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator>=(Unroll a, Unroll b) {
+    return cmp::ge<N, T>(a.vec_, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator==(Unroll a, Unroll b) {
+    return cmp::eq<N, T>(a.vec_, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator!=(Unroll a, Unroll b) {
+    return cmp::ne<N, T>(a.vec_, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator<(Unroll a, VT b) {
+    return cmp::lt<N, T>(a.vec_, b);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator>(Unroll a, VT b) {
+    return cmp::gt<N, T>(a.vec_, b);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator<=(Unroll a, VT b) {
+    return cmp::le<N, T>(a.vec_, b);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator>=(Unroll a, VT b) {
+    return cmp::ge<N, T>(a.vec_, b);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator==(Unroll a, VT b) {
+    return cmp::eq<N, T>(a.vec_, b);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator!=(Unroll a, VT b) {
+    return cmp::ne<N, T>(a.vec_, b);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator<(VT a, Unroll b) {
+    return cmp::lt<N, T>(a, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator>(VT a, Unroll b) {
+    return cmp::gt<N, T>(a, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator<=(VT a, Unroll b) {
+    return cmp::le<N, T>(a, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator>=(VT a, Unroll b) {
+    return cmp::ge<N, T>(a, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator==(VT a, Unroll b) {
+    return cmp::eq<N, T>(a, b.vec_);
+  }
+  [[gnu::always_inline]] friend constexpr auto operator!=(VT a, Unroll b) {
+    return cmp::ne<N, T>(a, b.vec_);
   }
 
   [[gnu::always_inline]] friend constexpr auto operator+(Unroll a,

@@ -120,6 +120,7 @@ template <typename T> struct Reference {
     return c->operator[](i, j);
   }
 
+private:
   // TODO: are these really needed / can we rely on implicit conversion?
   friend constexpr auto operator+(Reference x, const auto &y) {
     return T::decompress(x.c) + y;
@@ -219,6 +220,10 @@ template <typename T> struct Reference {
   }
   friend constexpr void swap(Reference x, Reference y) {
     std::swap(*x.c, *y.c);
+  }
+  friend constexpr auto value(Reference x) {
+    if constexpr (requires(C *c) { c->value(); }) return value(x.c->value());
+    else return value(*x.c);
   }
 };
 

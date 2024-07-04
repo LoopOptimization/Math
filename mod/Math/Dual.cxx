@@ -1038,12 +1038,6 @@ template <class T, ptrdiff_t N, bool Compress>
 constexpr auto value(const Dual<T, N, Compress> &x) {
   return value(x.value());
 }
-// this can call `value` on a compressed `Dual`, whichh is why we need `value`
-// to be defined on it.`
-template <class T, ptrdiff_t N>
-constexpr auto value(utils::Reference<Dual<T, N>> x) {
-  return value(x.c->value());
-}
 
 /// fills the lower triangle of the hessian
 constexpr auto hessian(HessianResultCore hr, PtrVector<double> x, const auto &f,

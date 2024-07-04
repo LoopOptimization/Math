@@ -1250,9 +1250,11 @@ template <typename T>
                                                           Vec<4, T> x) {
   if constexpr (std::same_as<T, float>)
     _mm_storeu_pd(p, std::bit_cast<__m128d>(x));
-  else if constexpr (sizeof(T) == 4)
-    _mm_storeu_si128((__m128i *)p, std::bit_cast<__m128i>(x));
-  else static_assert(false);
+  else if constexpr (sizeof(T) == 4) {
+    __m128i *pi = reinterpret_cast<__m128i *>(p);
+    __m128i xi = std::bit_cast<__m128i>(x);
+    _mm_storeu_si128(pi, xi);
+  } else static_assert(false);
 }
 
 #endif // AVX

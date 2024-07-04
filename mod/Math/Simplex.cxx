@@ -17,11 +17,15 @@ export module Simplex;
 import Allocator;
 import Arena;
 import Array;
+import ArrayConcepts;
 import AxisTypes;
+import Comparisons;
 import Constraints;
 import GCD;
 import Invariant;
+import ManagedArray;
 import MatDim;
+import NormalForm;
 import Range;
 import Rational;
 import SIMD;
@@ -735,7 +739,7 @@ public:
   // B(:,1:end)*x == B(:,0)
   // returns a Simplex if feasible, and an empty `Optional` otherwise
   static constexpr auto
-  positiveVariables(Arena<> *alloc, PtrMatrix<int64_t> A,
+  positiveVariables(alloc::Arena<> *alloc, PtrMatrix<int64_t> A,
                     PtrMatrix<int64_t> B) -> Optional<Simplex *> {
     invariant(A.numCol() == B.numCol());
     ptrdiff_t num_var = ptrdiff_t(A.numCol()) - 1,
@@ -765,7 +769,7 @@ public:
     alloc->rollback(checkpoint);
     return nullptr;
   }
-  static constexpr auto positiveVariables(Arena<> *alloc, PtrMatrix<int64_t> A)
+  static constexpr auto positiveVariables(alloc::Arena<> *alloc, PtrMatrix<int64_t> A)
     -> Optional<Simplex *> {
     ptrdiff_t num_var = ptrdiff_t(A.numCol()) - 1,
               num_slack = ptrdiff_t(A.numRow()), num_con = num_slack,
@@ -791,7 +795,7 @@ public:
     return nullptr;
   }
 
-  constexpr void pruneBounds(Arena<> *alloc, ptrdiff_t numSlack = 0) {
+  constexpr void pruneBounds(alloc::Arena<> *alloc, ptrdiff_t numSlack = 0) {
     auto p = alloc->scope();
     Simplex *simplex{Simplex::create(alloc, num_constraints_, num_vars_,
                                      constraint_capacity_,
@@ -843,7 +847,7 @@ public:
   // }
   // check if a solution exists such that `x` can be true.
   // returns `true` if unsatisfiable
-  [[nodiscard]] constexpr auto unSatisfiable(Arena<> alloc,
+  [[nodiscard]] constexpr auto unSatisfiable(alloc::Arena<> alloc,
                                              PtrVector<int64_t> x,
                                              ptrdiff_t off) const -> bool {
     // is it a valid solution to set the first `x.size()` variables to
@@ -869,14 +873,14 @@ public:
     // returns `true` if unsatisfiable
     return sub_simp->initiateFeasible();
   }
-  [[nodiscard]] constexpr auto satisfiable(Arena<> alloc, PtrVector<int64_t> x,
+  [[nodiscard]] constexpr auto satisfiable(alloc::Arena<> alloc, PtrVector<int64_t> x,
                                            ptrdiff_t off) const -> bool {
     return !unSatisfiable(alloc, x, off);
   }
   // check if a solution exists such that `x` can be true.
   // zeros remaining rows
   [[nodiscard]] constexpr auto
-  unSatisfiableZeroRem(Arena<> alloc, PtrVector<int64_t> x, ptrdiff_t off,
+  unSatisfiableZeroRem(alloc::Arena<> alloc, PtrVector<int64_t> x, ptrdiff_t off,
                        ptrdiff_t numRow) const -> bool {
     // is it a valid solution to set the first `x.size()` variables to
     // `x`? first, check that >= 0 constraint is satisfied
@@ -899,7 +903,7 @@ public:
   /// (i.e., indsFree + indOne == index of var pinned to 1)
   /// numRow is number of rows used, extras are dropped
   // [[nodiscard]] constexpr auto
-  [[nodiscard]] auto unSatisfiableZeroRem(Arena<> alloc, ptrdiff_t iFree,
+  [[nodiscard]] auto unSatisfiableZeroRem(alloc::Arena<> alloc, ptrdiff_t iFree,
                                           std::array<ptrdiff_t, 2> inds,
                                           ptrdiff_t numRow) const -> bool {
     invariant(numRow <= getNumCons());
@@ -912,7 +916,7 @@ public:
     return subSimp->initiateFeasible();
   }
   [[nodiscard]] constexpr auto
-  satisfiableZeroRem(Arena<> alloc, PtrVector<int64_t> x, ptrdiff_t off,
+  satisfiableZeroRem(alloc::Arena<> alloc, PtrVector<int64_t> x, ptrdiff_t off,
                      ptrdiff_t numRow) const -> bool {
     return !unSatisfiableZeroRem(alloc, x, off, numRow);
   }
@@ -933,12 +937,12 @@ public:
       }
     }
   }
-  static constexpr auto create(Arena<> *alloc, Row<> numCon,
+  static constexpr auto create(alloc::Arena<> *alloc, Row<> numCon,
                                Col<> numVar) -> Valid<Simplex> {
     return create(alloc, numCon, numVar, capacity(ptrdiff_t(numCon)),
                   stride(ptrdiff_t(numVar) + ptrdiff_t(numCon)));
   }
-  static constexpr auto create(Arena<> *alloc, Row<> numCon, Col<> numVar,
+  static constexpr auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
                                Capacity<> conCap,
                                RowStride<> varCap) -> Valid<Simplex> {
     varCap = alignVarCapacity(varCap);
@@ -969,8 +973,7 @@ public:
 
   static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex> {
     auto nc = ptrdiff_t(numCon);
-    return create(numCon, numVar, capacity(nc),
-                  stride(ptrdiff_t(numVar) + nc));
+    return create(numCon, numVar, capacity(nc), stride(ptrdiff_t(numVar) + nc));
   }
   static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
                      RowStride<> varCap) -> std::unique_ptr<Simplex> {
@@ -984,14 +987,14 @@ public:
   }
 
   static constexpr auto
-  create(Arena<> *alloc, Row<> numCon,
+  create(alloc::Arena<> *alloc, Row<> numCon,
          Col<> numVar, // NOLINT(bugprone-easily-swappable-parameters)
          ptrdiff_t numSlack) -> Valid<Simplex> {
     ptrdiff_t con_cap = ptrdiff_t(numCon),
               var_cap = ptrdiff_t(numVar) + numSlack + con_cap;
     return create(alloc, numCon, numVar, capacity(con_cap), stride(var_cap));
   }
-  constexpr auto copy(Arena<> *alloc) const -> Valid<Simplex> {
+  constexpr auto copy(alloc::Arena<> *alloc) const -> Valid<Simplex> {
     Valid<Simplex> res = create(alloc, row(getNumCons()), col(getNumVars()),
                                 getConCap(), getVarCap());
     *res << *this;

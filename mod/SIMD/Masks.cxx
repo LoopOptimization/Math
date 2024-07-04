@@ -233,8 +233,10 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
         return _mm_movemask_pd(arg);
       } else return _mm256_movemask_pd(std::bit_cast<__m256d>(m));
     else if constexpr (sizeof(I) == 4)
-      if constexpr (W == 4) return _mm_movemask_ps(std::bit_cast<__m128>(m));
-      else return _mm256_movemask_ps(std::bit_cast<__m256>(m));
+      if constexpr (W == 4) {
+        __m128 mm = std::bit_cast<__m128>(m);
+        return _mm_movemask_ps(mm);
+      } else return _mm256_movemask_ps(std::bit_cast<__m256>(m));
     else if constexpr (W == 16)
       return _mm_movemask_epi8(std::bit_cast<__m128i>(m));
     else return _mm256_movemask_epi8(std::bit_cast<__m256i>(m));
