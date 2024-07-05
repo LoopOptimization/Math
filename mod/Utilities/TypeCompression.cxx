@@ -5,6 +5,10 @@ module;
 
 export module TypeCompression;
 
+export namespace math{
+constexpr auto value(std::floating_point auto x) { return x; }
+} // namespace math
+
 /// The idea here is that some types may have a compression/decompression that
 /// is potentially costly. To work around this, temporaries can live in
 /// uncompressed form, while longer term storage can be compressed/decompressed.

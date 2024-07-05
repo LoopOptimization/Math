@@ -109,4 +109,10 @@ template <ptrdiff_t M> constexpr auto transpose_dim(Row<M> r) {
   else return Col<M>{};
 }
 
+template <typename T, typename U> constexpr auto reinterpret(U x) {
+  if constexpr (std::same_as<T, U>) return x;
+  else return x.template reinterpretImpl<T>();
+}
+
+
 } // namespace math

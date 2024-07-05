@@ -334,6 +334,8 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
   }
 };
 template <typename A> Transpose(A) -> Transpose<utils::eltype_t<A>, A>;
+
+
 } // namespace math
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
@@ -444,7 +446,7 @@ struct ElementwiseBinaryOp
   template <typename T> constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a);
     auto rb = reinterpret<T>(b);
-    return ElementwiseBinaryOp<decltype(ra), decltype(rb), Op>(ra, rb, op);
+    return elementwise(ra, rb, op);
   }
 };
 

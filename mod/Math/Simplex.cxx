@@ -32,7 +32,7 @@ import Range;
 import Rational;
 import SIMD;
 
-namespace math {
+export namespace math {
 // #define VERBOSESIMPLEX
 
 /// Tableau for the Simplex algorithm.

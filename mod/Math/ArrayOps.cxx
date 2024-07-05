@@ -70,10 +70,6 @@ assign(D d, const S &s, R r, C c, Op op) {
 }
 } // namespace detail
 
-template <typename T, typename U> constexpr auto reinterpret(U x) {
-  if constexpr (std::same_as<T, U>) return x;
-  else return x.template reinterpretImpl<T>();
-}
 template <typename S, typename T>
 [[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {
   return std::forward<T>(s);

@@ -14,6 +14,7 @@ import ManagedArray;
 import Pair;
 import Param;
 import Rational;
+import TypeCompression;
 
 template <typename T>
 concept TrivialVec = utils::TriviallyCopyable<T> && math::AbstractVector<T>;
@@ -211,7 +212,6 @@ fact(const SquareMatrix<int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
   }
   return Fact<Rational, L>{std::move(A), std::move(ipiv)};
 }
-constexpr auto value(std::floating_point auto x) { return x; }
 template <typename S> constexpr auto factImpl(MutSquarePtrMatrix<S> A) {
   using V = decltype(value(S{}));
   Row M = A.numRow();

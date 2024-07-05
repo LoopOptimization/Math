@@ -16,6 +16,7 @@ import Reductions;
 import StaticArray;
 import TinyVector;
 import Tuple;
+import TypeCompression;
 import UniformScaling;
 
 using namespace math;

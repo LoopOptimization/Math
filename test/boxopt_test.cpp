@@ -6,6 +6,7 @@
 
 import Arena;
 import Array;
+import ArrayConcepts;
 import BoxOpt;
 import BoxOptInt;
 import Dual;

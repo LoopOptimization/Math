@@ -7,13 +7,15 @@
 #include <random>
 #include <utility>
 
+import Arena;
 import Array;
 import ArrayConcepts;
+import ArrayConstructors;
 import ArrayParse;
 import Comparisons;
 import LinearAlgebra;
-import MatDim;
 import ManagedArray;
+import MatDim;
 import NormalForm;
 import Pair;
 import UniformScaling;
@@ -169,7 +171,9 @@ TEST(Hermite, BasicAssertions) {
     A43[2, 2] = 1;
     A43[3, 2] = 1;
     std::cout << "A=\n" << A43 << "\n";
-    auto [H, U] = NormalForm::hermite(A43);
+    IntMatrix<> H = A43;
+    SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
+    NormalForm::hermite(H, U);
     std::cout << "H=\n" << H << "\nU=\n" << U << "\n";
 
     EXPECT_TRUE(isHNF(H));
@@ -177,10 +181,11 @@ TEST(Hermite, BasicAssertions) {
 
     for (ptrdiff_t i = 0; i < 3; ++i) A43[2, i] = A43[0, i] + A43[1, i];
     std::cout << "\n\n\n=======\n\nA=\n" << A43 << "\n";
-    auto [H2, U2] = NormalForm::hermite(A43);
-    std::cout << "H=\n" << H2 << "\nU=\n" << U2 << "\n";
-    EXPECT_TRUE(isHNF(H2));
-    EXPECT_TRUE(H2 == U2 * A43);
+    H<<A43;
+    NormalForm::hermite(H,U);
+    std::cout << "H=\n" << H << "\nU=\n" << U << "\n";
+    EXPECT_TRUE(isHNF(H));
+    EXPECT_TRUE(H == U * A43);
   }
   {
     SquareMatrix<int64_t> A(SquareDims<>{math::row(4)});
@@ -200,10 +205,12 @@ TEST(Hermite, BasicAssertions) {
     A[1, 3] = -6;
     A[2, 3] = 8;
     A[3, 3] = -1;
-    auto [H3, U3] = NormalForm::hermite(A);
-    std::cout << "\n\n\n====\n\nH=\n" << H3 << "\nU=\n" << U3 << "\n";
-    EXPECT_TRUE(isHNF(H3));
-    EXPECT_TRUE(H3 == U3 * A);
+    IntMatrix<> H = A;
+    SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
+    NormalForm::hermite(H,U);
+    std::cout << "\n\n\n====\n\nH=\n" << H << "\nU=\n" << U << "\n";
+    EXPECT_TRUE(isHNF(H));
+    EXPECT_TRUE(H == U * A);
   }
   {
     IntMatrix<> A{"[1 -3 0 -2 0 0 -1 -1 0 0 -1 0 0 0 0 0 0 "
@@ -231,17 +238,18 @@ TEST(Hermite, BasicAssertions) {
                   "0 0 0 0 0 0 0 0 0 0 1 0; 0 0 0 0 0 0 0 "
                   "0 0 0 -1 0 0 0 0 0 0 0 0 0 0 "
                   "1]"_mat};
-    auto [H3, U3] = NormalForm::hermite(A);
-    std::cout << "\n\n\n====\n\nH=" << H3 << "\nU=" << U3 << "\n";
-    EXPECT_TRUE(isHNF(H3));
-    EXPECT_TRUE(H3 == U3 * A);
+    IntMatrix<> H = A;
+    SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
+    NormalForm::hermite(H, U);
+    std::cout << "\n\n\n====\n\nH=" << H << "\nU=" << U << "\n";
+    EXPECT_TRUE(isHNF(H));
+    EXPECT_TRUE(H == U * A);
   }
   {
     IntMatrix<> A = "[-3 -1 1; 0 0 -2]"_mat;
-    std::optional<containers::Pair<IntMatrix<>, SquareMatrix<int64_t>>> B =
-      NormalForm::hermite(A);
-    EXPECT_TRUE(B.has_value());
-    auto &[H, U] = *B;
+    IntMatrix<> H = A;
+    SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
+    NormalForm::hermite(H, U);
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(U * A == H);
     std::cout << "A = \n" << A << "\nH =\n" << H << "\nU =\n" << U << "\n";
@@ -249,7 +257,9 @@ TEST(Hermite, BasicAssertions) {
   {
     IntMatrix<> A =
       "[3 3 -3 1 0 -1 -2 1 1 2 -1; 3 3 -3 1 1 -3 2 0 3 0 -3; 2 -3 -2 -1 1 -2 3 3 3 3 -3]"_mat;
-    auto [H, U] = NormalForm::hermite(A);
+    IntMatrix<> H = A;
+    SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
+    NormalForm::hermite(H, U);
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(U * A == H);
     std::cout << "A = \n" << A << "\nH =\n" << H << "\nU =\n" << U << "\n";
@@ -342,27 +352,30 @@ TEST(InvTest, BasicAssertions) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-10, 10);
+  alloc::OwningArena<> alloc;
   const ptrdiff_t num_iters = 1000;
   for (ptrdiff_t dim = 1; dim < 5; ++dim) {
-    SquareMatrix<int64_t> B(SquareDims<>{row(dim)});
-    SquareMatrix<int64_t> Db = SquareMatrix<int64_t>::identity(dim);
+    auto sp = alloc.scope();
+    MutSquarePtrMatrix<int64_t> B{square_matrix<int64_t>(&alloc, dim)};
     for (ptrdiff_t i = 0; i < num_iters; ++i) {
       while (true) {
         for (ptrdiff_t n = 0; n < dim * dim; ++n) B.data()[n] = distrib(gen);
-        if (NormalForm::rank(B) == dim) break;
+        if (NormalForm::rank(alloc, B) == dim) break;
       }
       // Da * B^{-1} = Binv0
       // Da = Binv0 * B
-      auto [Da, Binv0] = NormalForm::inv(B);
-      auto [Binv1, s] = NormalForm::scaledInv(B);
+      MutSquarePtrMatrix<int64_t> Da{square_matrix<int64_t>(&alloc, dim)};
+      Da<<B;
+      auto Binv0 = NormalForm::inv(&alloc, Da);
+      auto [Binv1, s] = NormalForm::scaledInv(&alloc, B);
       EXPECT_TRUE(Da.isDiagonal());
       EXPECT_EQ((Binv0 * B), Da);
-      Db.diag() << s;
-      if (B * Binv1 != Db) {
+      Da.diag() << s;
+      if (B * Binv1 != Da) {
         std::cout << "\nB = " << B << "\nDa = " << Da << "\nBinv0 = " << Binv0
                   << "\nBinv1 = " << Binv1 << "\ns = " << s << "\n";
       }
-      EXPECT_EQ(B * Binv1, Db);
+      EXPECT_EQ(B * Binv1, Da);
     }
   }
 }

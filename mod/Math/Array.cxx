@@ -424,7 +424,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     // return std::reduce(begin(), end());
   }
   // interpret a bigger object as smaller
-  template <typename U> [[nodiscard]] auto reinterpret() const {
+  template <typename U> [[nodiscard]] auto reinterpretImpl() const {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
     static_assert(std::same_as<U, double>);
     if constexpr (std::same_as<U, T>) return *this;
@@ -804,7 +804,7 @@ struct MutArray : Array<T, S, Compress>,
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  template <typename U> [[nodiscard]] auto reinterpret() {
+  template <typename U> [[nodiscard]] auto reinterpretImpl() {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
     static_assert(std::same_as<U, double>);
     if constexpr (std::same_as<U, T>) return *this;

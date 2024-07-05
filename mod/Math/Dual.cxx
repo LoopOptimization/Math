@@ -11,13 +11,13 @@ module;
 
 export module Dual;
 
+export import Elementary;
 import Arena;
 import Array;
 import ArrayConcepts;
 import ArrayConstructors;
 import AxisTypes;
 import CompressReference;
-import Elementary;
 import ExprTemplates;
 import Invariant;
 import MatDim;
@@ -845,6 +845,12 @@ private:
   }
 };
 
+/// Extract the value of a `Dual` number
+template <class T, ptrdiff_t N, bool Compress>
+constexpr auto value(const Dual<T, N, Compress> &x) {
+  return value(x.value());
+}
+
 static_assert(!std::convertible_to<Array<Dual<double, 7, true>, Length<2>>,
                                    Dual<double, 7, false>>);
 static_assert(utils::Compressible<Dual<double, 7>>);
@@ -1032,12 +1038,6 @@ constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
   }
 }
 //
-/// Extract the value of a `Dual` number
-constexpr auto value(std::floating_point auto x) { return x; }
-template <class T, ptrdiff_t N, bool Compress>
-constexpr auto value(const Dual<T, N, Compress> &x) {
-  return value(x.value());
-}
 
 /// fills the lower triangle of the hessian
 constexpr auto hessian(HessianResultCore hr, PtrVector<double> x, const auto &f,

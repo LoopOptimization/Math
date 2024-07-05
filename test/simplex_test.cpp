@@ -1,8 +1,14 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 
+import Arena;
 import Array;
+import ArrayConcepts;
 import ArrayParse;
+import ArrayPrint;
+import ManagedArray;
+import MatDim;
+import Rational;
 import Simplex;
 
 using namespace math;
@@ -15,7 +21,7 @@ TEST(SimplexTest, BasicAssertions) {
   IntMatrix<> A{"[10 3 2 1; 15 2 5 3]"_mat};
   IntMatrix<> B{DenseDims<>{row(0), col(4)}};
   IntMatrix<> D{"[0 0 0 -2 -3 -4; 10 1 0  3  2  1; 15 0 1  2  5  3 ]"_mat};
-  OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   Optional<Simplex *> optS0{Simplex::positiveVariables(&alloc, A)};
   ASSERT_TRUE(optS0.hasValue());
   Optional<Simplex *> optS1{Simplex::positiveVariables(&alloc, A, B)};
@@ -38,7 +44,7 @@ TEST(SimplexTest, BasicAssertions) {
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(LexMinSmallTest, BasicAssertions) {
-  OwningArena alloc;
+  alloc::OwningArena alloc;
   // -10 == -3x - 2y - z  + s0
   // -15 == -2x - 5y - 3z + s1
   IntMatrix<> tableau{"[-10 0 1 -1 -2 -3; -15 1 0 -3 -5 -2]"_mat};
@@ -111,7 +117,7 @@ TEST(LexMinSmallTest, BasicAssertions) {
   EXPECT_EQ(sol[last - 4], 15);
 }
 
-auto simplexFromTableau(Arena<> *alloc,
+auto simplexFromTableau(alloc::Arena<> *alloc,
                         IntMatrix<> &tableau) -> Valid<Simplex> {
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
@@ -997,7 +1003,7 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     "1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]"_mat};
   // std::cout << "tableau3 =" << tableau << "\n";
   tableau[0, _] << -5859553999884210514;
-  OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
   Vector<Rational> sol(length(37));
   EXPECT_EQ(sol.size(), 37);
@@ -1279,7 +1285,7 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 "
     "0 0 0 0 0 0 0 0 0 ]"_mat};
   // std::cout << "tableau4 =" << tableau << "\n";
-  OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
   Vector<Rational> sol(length(15));
   EXPECT_EQ(sol.size(), 15);
@@ -2193,7 +2199,7 @@ TEST(Infeasible, BasicAssertions) {
   C[219, 288] = -1;
   C[219, 294] = 1;
   C[219, 295] = 1;
-  OwningArena<> alloc;
+  alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, C)};
   EXPECT_TRUE(simp->initiateFeasible());
 }
