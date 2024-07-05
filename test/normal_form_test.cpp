@@ -355,19 +355,22 @@ TEST(InvTest, BasicAssertions) {
   alloc::OwningArena<> alloc;
   const ptrdiff_t num_iters = 1000;
   for (ptrdiff_t dim = 1; dim < 5; ++dim) {
-    auto sp = alloc.scope();
+    auto s0 = alloc.scope();
     MutSquarePtrMatrix<int64_t> B{square_matrix<int64_t>(&alloc, dim)};
     for (ptrdiff_t i = 0; i < num_iters; ++i) {
       while (true) {
         for (ptrdiff_t n = 0; n < dim * dim; ++n) B.data()[n] = distrib(gen);
         if (NormalForm::rank(alloc, B) == dim) break;
       }
+      auto s1 = alloc.scope();
       // Da * B^{-1} = Binv0
       // Da = Binv0 * B
       MutSquarePtrMatrix<int64_t> Da{square_matrix<int64_t>(&alloc, dim)};
       Da<<B;
       auto Binv0 = NormalForm::inv(&alloc, Da);
-      auto [Binv1, s] = NormalForm::scaledInv(&alloc, B);
+      MutSquarePtrMatrix<int64_t> Bc{square_matrix<int64_t>(&alloc, dim)};
+      Bc<<B;
+      auto [Binv1, s] = NormalForm::scaledInv(&alloc, Bc);
       EXPECT_TRUE(Da.isDiagonal());
       EXPECT_EQ((Binv0 * B), Da);
       Da.diag() << s;

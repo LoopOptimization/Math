@@ -69,7 +69,7 @@ constexpr auto countDigits(math::Rational x) -> ptrdiff_t {
 /// \brief Returns the maximum number of digits per column of a matrix.
 constexpr auto getMaxDigits(const math::Rational *A, ptrdiff_t M, ptrdiff_t N,
                             ptrdiff_t X) -> containers::Flat<ptrdiff_t> {
-  containers::Flat<ptrdiff_t> max_digits(N);
+  containers::Flat<ptrdiff_t> max_digits(N, 0z);
   // this is slow, because we count the digits of every element
   // we could optimize this by reducing the number of calls to countDigits
   for (ptrdiff_t i = 0; i < M; i++) {
@@ -85,7 +85,7 @@ constexpr auto getMaxDigits(const math::Rational *A, ptrdiff_t M, ptrdiff_t N,
 template <std::integral T>
 constexpr auto getMaxDigits(const T *A, ptrdiff_t M, ptrdiff_t N, ptrdiff_t X)
   -> containers::Flat<std::remove_const_t<T>> {
-  containers::Flat<std::remove_const_t<T>> max_digits(N);
+  containers::Flat<std::remove_const_t<T>> max_digits(N, T{});
   // first, we find the digits with the maximum value per column
   for (ptrdiff_t i = 0; i < M; i++) {
     for (ptrdiff_t j = 0; j < N; j++) {

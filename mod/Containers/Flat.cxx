@@ -16,6 +16,10 @@ template <typename T> struct MATH_GSL_OWNER Flat {
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
     std::uninitialized_default_construct_n(ptr_, len_);
   };
+  explicit constexpr Flat(ptrdiff_t len, T x)
+    : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
+    std::uninitialized_fill_n(ptr_, len_, x);
+  };
 
   constexpr Flat(const Flat &other)
     : ptr_{alloc::Mallocator<T>{}.allocate(other.size())}, len_{other.size()} {
@@ -57,7 +61,7 @@ template <typename T> struct MATH_GSL_OWNER Flat {
   constexpr auto data() -> T * { return ptr_; }
   constexpr auto data() const -> const T * { return ptr_; }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    utils::invariant(size() >= 0);
+    utils::invariant(len_ >= 0);
     return len_;
   }
   constexpr auto operator[](ptrdiff_t i) -> T & {
