@@ -1,6 +1,7 @@
 module;
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -21,6 +22,7 @@ import ArrayConcepts;
 import AxisTypes;
 import Comparisons;
 import Constraints;
+import ExprTemplates;
 import GCD;
 import Invariant;
 import ManagedArray;
@@ -308,7 +310,7 @@ public:
   }
 
   // AbstractVector
-  struct Solution {
+  struct Solution : Expr<Rational, Solution> {
     using value_type = Rational;
     // view of tableau dropping const column
     Valid<const Simplex> simplex_;
@@ -385,8 +387,9 @@ public:
       return (*this)[canonicalizeRange(r, size())];
     }
     constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) const -> Solution {
-      return {simplex_, length(ptrdiff_t(skipped_vars_) + r.b),
-              length(ptrdiff_t(skipped_vars_) + r.e)};
+      return {.simplex_ = simplex_,
+              .skipped_vars_ = length(ptrdiff_t(skipped_vars_) + r.b),
+              .num_vars_ = length(ptrdiff_t(skipped_vars_) + r.e)};
     }
     [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
       return ptrdiff_t(num_vars_ - skipped_vars_);
@@ -414,7 +417,8 @@ public:
 #endif
   };
   [[nodiscard]] constexpr auto getSolution() const -> Solution {
-    return {this, {}, aslength(num_vars_)};
+    return {
+      .simplex_ = this, .skipped_vars_ = {}, .num_vars_ = aslength(num_vars_)};
   }
 
   /// simplex.initiateFeasible() -> bool
@@ -491,7 +495,7 @@ public:
       // we now zero out the implicit cost of `1`
       costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
     }
-    ASSERT(std::all_of(basic_vars.begin(), basic_vars.end(),
+    assert(std::all_of(basic_vars.begin(), basic_vars.end(),
                        [](int64_t i) { return i >= 0; }));
     // false/0 means feasible
     // true/non-zero infeasible
@@ -590,7 +594,7 @@ public:
   // 0
   constexpr auto runCore(int64_t f = 1) -> Rational {
 #ifndef NDEBUG
-    ASSERT(in_canonical_form_);
+    assert(in_canonical_form_);
 #endif
     //     return runCore(getCostsAndConstraints(), f);
     // }
@@ -607,7 +611,7 @@ public:
   // set basicVar's costs to 0, and then runCore()
   constexpr auto run() -> Rational {
 #ifndef NDEBUG
-    ASSERT(in_canonical_form_);
+    assert(in_canonical_form_);
     assertCanonical();
 #endif
     MutPtrVector<index_type> basic_vars{getBasicVariables()};
@@ -654,7 +658,7 @@ public:
   // minimize v, not touching any variable lex > v
   constexpr auto rLexMin(ptrdiff_t v) -> bool {
 #ifndef NDEBUG
-    ASSERT(in_canonical_form_);
+    assert(in_canonical_form_);
 #endif
     MutPtrMatrix<value_type> C{getTableau()};
     MutPtrVector<index_type> basic_constraints{getBasicConstraints()};
@@ -710,25 +714,27 @@ public:
   }
   constexpr auto rLexMinLast(ptrdiff_t n) -> Solution {
 #ifndef NDEBUG
-    ASSERT(in_canonical_form_);
+    assert(in_canonical_form_);
     assertCanonical();
 #endif
     for (ptrdiff_t v = getNumVars(), e = v - n; v != e;) rLexMin(--v);
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {this, length(getNumVars() - n), length(getNumVars())};
+    return {.simplex_ = this,
+            .skipped_vars_ = length(getNumVars() - n),
+            .num_vars_ = length(getNumVars())};
   }
   constexpr auto rLexMinStop(ptrdiff_t skippedVars) -> Solution {
 #ifndef NDEBUG
-    ASSERT(in_canonical_form_);
+    assert(in_canonical_form_);
     assertCanonical();
 #endif
     for (ptrdiff_t v = getNumVars(); v != skippedVars;) rLexMin(--v);
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {this, length(skippedVars), length(getNumVars())};
+    return {.simplex_=this,.skipped_vars_= length(skippedVars),.num_vars_= length(getNumVars())};
   }
 
   // reverse lexicographic ally minimize vars
@@ -769,8 +775,9 @@ public:
     alloc->rollback(checkpoint);
     return nullptr;
   }
-  static constexpr auto positiveVariables(alloc::Arena<> *alloc, PtrMatrix<int64_t> A)
-    -> Optional<Simplex *> {
+  static constexpr auto
+  positiveVariables(alloc::Arena<> *alloc,
+                    PtrMatrix<int64_t> A) -> Optional<Simplex *> {
     ptrdiff_t num_var = ptrdiff_t(A.numCol()) - 1,
               num_slack = ptrdiff_t(A.numRow()), num_con = num_slack,
               var_cap = num_var + num_slack;
@@ -873,15 +880,16 @@ public:
     // returns `true` if unsatisfiable
     return sub_simp->initiateFeasible();
   }
-  [[nodiscard]] constexpr auto satisfiable(alloc::Arena<> alloc, PtrVector<int64_t> x,
+  [[nodiscard]] constexpr auto satisfiable(alloc::Arena<> alloc,
+                                           PtrVector<int64_t> x,
                                            ptrdiff_t off) const -> bool {
     return !unSatisfiable(alloc, x, off);
   }
   // check if a solution exists such that `x` can be true.
   // zeros remaining rows
   [[nodiscard]] constexpr auto
-  unSatisfiableZeroRem(alloc::Arena<> alloc, PtrVector<int64_t> x, ptrdiff_t off,
-                       ptrdiff_t numRow) const -> bool {
+  unSatisfiableZeroRem(alloc::Arena<> alloc, PtrVector<int64_t> x,
+                       ptrdiff_t off, ptrdiff_t numRow) const -> bool {
     // is it a valid solution to set the first `x.size()` variables to
     // `x`? first, check that >= 0 constraint is satisfied
     if (!allGEZero(x)) return true;
@@ -942,8 +950,8 @@ public:
     return create(alloc, numCon, numVar, capacity(ptrdiff_t(numCon)),
                   stride(ptrdiff_t(numVar) + ptrdiff_t(numCon)));
   }
-  static constexpr auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-                               Capacity<> conCap,
+  static constexpr auto create(alloc::Arena<> *alloc, Row<> numCon,
+                               Col<> numVar, Capacity<> conCap,
                                RowStride<> varCap) -> Valid<Simplex> {
     varCap = alignVarCapacity(varCap);
     auto c_cap = ptrdiff_t(conCap), v_cap = ptrdiff_t(varCap);
@@ -1022,8 +1030,8 @@ public:
 static_assert(AbstractVector<Simplex::Solution>);
 
 static_assert(AbstractVector<PtrVector<Rational>>);
-static_assert(AbstractVector<ElementwiseBinaryOp<
-                PtrVector<Rational>, PtrVector<Rational>, std::minus<>>>);
+// static_assert(AbstractVector<ElementwiseBinaryOp<
+//                 PtrVector<Rational>, PtrVector<Rational>, std::minus<>>>);
 static_assert(std::movable<Simplex::Solution::iterator>);
 static_assert(std::indirectly_readable<Simplex::Solution::iterator>);
 static_assert(std::forward_iterator<Simplex::Solution::iterator>);

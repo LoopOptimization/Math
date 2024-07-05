@@ -164,28 +164,28 @@ template <typename T, typename A> class Expr {
   static constexpr bool primitive_elt =
     std::integral<T> || std::floating_point<T>;
 
-  friend constexpr auto operator+(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator+(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::plus<>{});
   }
-  friend constexpr auto operator-(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator-(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::minus<>{});
   }
-  friend constexpr auto operator/(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator/(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::divides<>{});
   }
-  friend constexpr auto operator%(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator%(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::modulus<>{});
   }
-  friend constexpr auto operator&(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator&(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::bit_and<>{});
   }
-  friend constexpr auto operator|(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator|(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::bit_or<>{});
   }
-  friend constexpr auto operator^(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator^(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::bit_xor<>{});
   }
-  friend constexpr auto operator*(utils::ElementOf<A> auto b, const A &a) {
+  friend constexpr auto operator*(std::convertible_to<T> auto b, const A &a) {
     return elementwise(b, a.view(), std::multiplies<>{});
   }
 

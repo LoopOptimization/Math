@@ -1,6 +1,7 @@
 module;
 
 #include "LoopMacros.hxx"
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
@@ -10,6 +11,7 @@ export module UniformScaling;
 
 import ArrayConcepts;
 import AxisTypes;
+import ExprTemplates;
 import SIMD;
 import Widen;
 
@@ -86,6 +88,83 @@ template <class T> struct UniformScaling {
   constexpr auto operator==(const AbstractMatrix auto &A) const -> bool {
     return isEqual(A);
   }
+
+  constexpr auto operator-() const -> UniformScaling { return -value_; }
+
+  constexpr auto operator+(const auto &b) const {
+    return elementwise(*this, view(b), std::plus<>{});
+  }
+  constexpr auto operator-(const auto &b) const {
+    return elementwise(*this, view(b), std::minus<>{});
+  }
+  template <typename B>
+  constexpr auto operator*(const B &b) const
+  requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
+  {
+    if constexpr (!std::common_with<std::remove_cvref_t<B>, T>) {
+      auto BB{b.view()};
+       return elementwise(value_, BB, std::multiplies<>{});
+    } else
+       return UniformScaling<std::common_type_t<T, std::remove_reference_t<B>>>(value_ * b);
+  }
+
+  template<std::common_with<T> S>
+  constexpr auto operator+(
+                                  UniformScaling<S> b) const {
+    return UniformScaling<std::common_type_t<S,T>>(value_+b.value_);
+  }
+  template<std::common_with<T> S>
+   constexpr auto operator-(
+                                  UniformScaling<S> b) const{
+    return UniformScaling<std::common_type_t<S,T>>(value_-b.value_);
+  }
+  template<std::common_with<T> S>
+   constexpr auto operator*(
+                                  UniformScaling<S> b) const{
+    return UniformScaling<std::common_type_t<S,T>>(value_*b.value_);
+  }
+
+private:
+  friend constexpr auto operator+(std::common_with<T> auto b,
+                                  UniformScaling a) {
+    return elementwise(b, a, std::plus<>{});
+  }
+  friend constexpr auto operator-(std::common_with<T> auto b,
+                                  UniformScaling a) {
+    return elementwise(b, a, std::minus<>{});
+  }
+  friend constexpr auto operator/(std::common_with<T> auto b,
+                                  UniformScaling a) {
+    return elementwise(b, a.value_, std::divides<>{});
+  }
+  friend constexpr auto operator%(std::common_with<T> auto b,
+                                  UniformScaling a) {
+    return elementwise(b, a.value_, std::modulus<>{});
+  }
+  // friend constexpr auto operator&(std::common_with<T> auto b, UniformScaling
+  // a) {
+  //   return elementwise(b, a.view(), std::bit_and<>{});
+  // }
+  // friend constexpr auto operator|(std::common_with<T> auto b, UniformScaling
+  // a) { 
+  //   return elementwise(b, a.vie(), std::bit_or<>{});
+  // } 
+  // friend constexpr auto operator^(std::common_with<T> auto b, UniformScaling
+  // a) {
+  //   return elementwise(b, a.view(), std::bit_xor<>{});
+  // }
+  template <typename B>
+  friend constexpr auto operator*(const B &b, UniformScaling a) 
+  requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
+  {
+    if constexpr (!std::common_with<std::remove_cvref_t<B>, T>) {
+      auto BB{b.view()};
+       return elementwise(BB, a.value_, std::multiplies<>{});
+    } else
+       return UniformScaling<std::common_type_t<T, std::remove_reference_t<B>>>(
+        b*a.value_ );
+  }
+
   friend inline auto operator<<(std::ostream &os,
                                 UniformScaling S) -> std::ostream & {
     return os << "UniformScaling(" << S.value_ << ")";

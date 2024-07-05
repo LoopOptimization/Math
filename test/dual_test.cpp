@@ -6,13 +6,17 @@
 
 import Arena;
 import Array;
+import ArrayConcepts;
 import Dual;
 import ExprTemplates;
 import LinearAlgebra;
-import MatDim;
 import ManagedArray;
+import MatDim;
 import Reductions;
+import StaticArray;
 import TinyVector;
+import Tuple;
+import UniformScaling;
 
 using namespace math;
 using utils::eltype_t, math::transpose;
@@ -188,7 +192,7 @@ TEST(ExpMatTest, BasicAssertions) {
   EXPECT_LE(norm2(B - expm(A)), 1e-10);
 
   static_assert(utils::Compressible<Dual<double, 2>>);
-  SquareMatrix<Dual<double, 2>> Ad(SquareDims<>{math::row(4}));
+  SquareMatrix<Dual<double, 2>> Ad(SquareDims<>{math::row(4)});
   Ad[0, 0] = Dual<double, 2>{
     0.13809508135032297,
     SVector<double, 2>{0.23145585885555967, 0.6736099502056541}};

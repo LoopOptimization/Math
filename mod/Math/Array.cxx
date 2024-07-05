@@ -477,16 +477,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, Array x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
                                 ptrdiff_t(x.numCol()),
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
-  }
-  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  } [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
@@ -640,7 +638,7 @@ struct MutArray : Array<T, S, Compress>,
   }
 
   template <class... Args>
-  constexpr MutArray(Args &&...args)
+  constexpr MutArray(Args &&...args) requires(std::constructible_from<Array<T,S,Compress>, Args...>)
     : Array<T, S, Compress>(std::forward<Args>(args)...) {}
 
   template <std::convertible_to<T> U, std::convertible_to<S> V>
@@ -1329,10 +1327,16 @@ static_assert(utils::TriviallyCopyable<PtrMatrix<int64_t>>);
 // PtrMatrix<int64_t>>>,
 //               "MatMul is not an AbstractMatrix!");
 static_assert(AbstractMatrix<Transpose<int64_t, PtrMatrix<int64_t>>>);
+static_assert(ColVector<StridedVector<int64_t>>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
+static_assert(ColVector<decltype(-std::declval<StridedVector<int64_t>>() * 0)>);
+
+static_assert(RowVector<math::Array<double, math::Length<-1, long>, false>>);
 static_assert(
-  AbstractVector<decltype(-std::declval<StridedVector<int64_t>>() * 0)>);
+  ColVector<math::MutArray<double, math::StridedRange<-1, -1>, false>>);
+// static_assert(!std::common_with<math::MutArray<double, math::StridedRange<-1,
+// -1>, false>, double>);
 
 template <typename T> auto countNonZero(PtrMatrix<T> x) -> ptrdiff_t {
   ptrdiff_t count = 0;

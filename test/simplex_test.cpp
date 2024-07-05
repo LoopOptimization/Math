@@ -17,11 +17,9 @@ TEST(SimplexTest, BasicAssertions) {
   IntMatrix<> D{"[0 0 0 -2 -3 -4; 10 1 0  3  2  1; 15 0 1  2  5  3 ]"_mat};
   OwningArena<> alloc;
   Optional<Simplex *> optS0{Simplex::positiveVariables(&alloc, A)};
-  EXPECT_TRUE(optS0.hasValue());
+  ASSERT_TRUE(optS0.hasValue());
   Optional<Simplex *> optS1{Simplex::positiveVariables(&alloc, A, B)};
-  EXPECT_TRUE(optS1.hasValue());
-  ASSERT(optS0.hasValue());
-  ASSERT(optS1.hasValue());
+  ASSERT_TRUE(optS1.hasValue());
   for (ptrdiff_t i = 0; i < 2; ++i) {
     Simplex *S{i ? *optS1 : *optS0};
     auto C{S->getCost()};

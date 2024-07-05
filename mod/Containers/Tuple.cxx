@@ -15,6 +15,14 @@ template <typename T, typename... Ts>
 [[gnu::always_inline]] constexpr auto cattuple(T,
                                                Tuple<Ts...>) -> Tuple<T, Ts...>;
 
+template <typename T, typename... Ts, typename U, typename... Us>
+constexpr void copyFrom(Tuple<T, Ts...> &dst, const Tuple<U, Us...> &src)
+requires(sizeof...(Ts) == sizeof...(Us) && std::assignable_from<T, U> &&
+         (... && std::assignable_from<Ts, Us>))
+{
+  dst = src;
+}
+
 template <typename T, typename... Ts> struct Tuple {
   [[no_unique_address]] T head_;
   [[no_unique_address]] Tuple<Ts...> tail_;
@@ -44,6 +52,9 @@ template <typename T, typename... Ts> struct Tuple {
   {
     f(head_, x.head_);
     tail_.apply(x.tail_, f);
+  }
+  constexpr auto mutmap(const auto &f) {
+    return cattuple(f(head_), tail_.mutmap(f));
   }
   constexpr auto map(const auto &f) const {
     return cattuple(f(head_), tail_.map(f));
@@ -93,38 +104,20 @@ template <typename T, typename... Ts> struct Tuple {
   }
 
   template <typename U, typename V>
-  constexpr auto operator=(Pair<U, V> x) -> Tuple &
-  requires((sizeof...(Ts) == 1) &&
-           (std::assignable_from<T, U> && ... && std::assignable_from<Ts, V>))
-  {
+  constexpr auto operator=(Pair<U, V> x)
+    -> Tuple &requires((sizeof...(Ts) == 1) &&
+                       (std::assignable_from<T, U> && ... &&
+                        std::assignable_from<Ts, V>)) {
     head_ = x.first;
     tail_.head_ = x.second;
     return *this;
   }
 
-private:
-#ifdef __clang__
   template <typename U, typename... Us>
-  friend constexpr void copyFrom(Tuple<T, Ts...> &dst, const Tuple<U, Us...> &)
-  requires(sizeof...(Ts) == sizeof...(Us));
-#else
-  template <typename U, typename... Us>
-  friend constexpr void copyFrom(Tuple<T, Ts...> &dst, const Tuple<U, Us...> &);
-#endif
-
-  template <typename U, typename... Us>
-  friend constexpr void operator<<(Tuple<T, Ts...> &dst,
-                                   const Tuple<U, Us...> &src)
+  constexpr void operator<<(const Tuple<U, Us...> &src)
   requires(sizeof...(Ts) == sizeof...(Us))
   {
-    copyFrom(dst, src);
-  }
-  template <typename U, typename... Us>
-  friend constexpr void operator<<(Tuple<T, Ts...> &&dst,
-                                   const Tuple<U, Us...> &src)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    copyFrom(dst, src);
+    copyFrom(*this, src);
   }
 };
 template <typename T, typename... Ts>
@@ -152,6 +145,9 @@ template <typename T> struct Tuple<T> {
   template <typename U> constexpr void apply(const Tuple<U> &x, const auto &f) {
     f(head_, x.head_);
   }
+  constexpr auto mutmap(const auto &f) -> Tuple<decltype(f(head_))> {
+    return {f(head_)};
+  }
   constexpr auto map(const auto &f) const -> Tuple<decltype(f(head_))> {
     return {f(head_)};
   }
@@ -166,16 +162,15 @@ template <typename T> struct Tuple<T> {
   template <typename U> constexpr void operator/=(const Tuple<U> &);
 
   template <typename U>
-  constexpr auto operator=(Tuple<U> x) -> Tuple &
-  requires((!std::same_as<T, U>) && std::assignable_from<T, U>)
-  {
+  constexpr auto operator=(Tuple<U> x)
+    -> Tuple &requires((!std::same_as<T, U>) && std::assignable_from<T, U>) {
     head_ = x.head_;
     return *this;
   }
 
-private:
-  template <typename U>
-  friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
+  private
+    : template <typename U>
+      friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
     dst << src;
   }
   template <typename U>

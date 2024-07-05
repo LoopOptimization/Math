@@ -36,8 +36,7 @@ TEST(LinearAlgebraTest, BasicAssertions) {
   A[3, 3] = 4;
 
   auto opt_luf = LU::fact(A);
-  EXPECT_TRUE(opt_luf.has_value());
-  ASSERT(opt_luf.has_value());
+  ASSERT_TRUE(opt_luf.has_value());
   auto &LUF = *opt_luf;
   Matrix<Rational> B0 = A;
   std::cout << "A = \n" << A << "\nB = \n" << B0 << "\n";

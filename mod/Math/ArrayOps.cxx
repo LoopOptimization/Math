@@ -363,6 +363,8 @@ protected:
   }
 
 public:
+  using array_op_parent_type = P;
+
   template <std::convertible_to<T> Y>
   [[gnu::always_inline, gnu::flatten]] constexpr auto
   operator<<(const UniformScaling<Y> &B) -> P & {
@@ -401,7 +403,15 @@ public:
 
 } // namespace math
 
-namespace containers {
+template <typename T> struct IsArrayOpImpl : std::false_type {};
+template <typename T, typename S, typename P>
+struct IsArrayOpImpl<math::ArrayOps<T, S, P>> : std::true_type {};
+
+template <typename T>
+concept IsArrayOp =
+  requires(T) { typename std::remove_cvref_t<T>::array_op_parent_type; };
+
+export namespace containers {
 
 namespace tupletensorops {
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
@@ -415,7 +425,7 @@ template <typename A, typename... As, typename B, typename... Bs, typename I,
 vcopyToSIMD(Tuple<A, As...> &dref, const Tuple<B, Bs...> &sref, I L, R row) {
   // we want to avoid the pointer reloading on every iter, so we help alias
   // analysis out.
-  auto dst{dref.map([](auto &d) { return d.mview(); })};
+  auto dst{dref.mutmap([](auto &d) { return d.mview(); })};
   auto src{sref.map([](auto &s) { return view(s); })};
   // TODO: if `R` is a row index, maybe don't fully unroll static `L`
   // We're going for very short SIMD vectors to focus on small sizes
@@ -555,6 +565,7 @@ template <typename A, typename... As, typename B, typename... Bs>
   }
 }
 }; // namespace tupletensorops
+
 // Note: these are inlined, because we want
 // the compiler to be exposed to which arrays
 // are identical, in case of re-use, so that
@@ -562,7 +573,8 @@ template <typename A, typename... As, typename B, typename... Bs>
 template <typename A, typename... As, typename B, typename... Bs>
 [[gnu::always_inline, gnu::flatten]] constexpr void
 copyFrom(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src)
-requires(sizeof...(As) == sizeof...(Bs))
+requires(sizeof...(As) == sizeof...(Bs) && IsArrayOp<A> &&
+         (... && IsArrayOp<As>))
 {
 #ifndef CASTTOSCALARIZE
   tupletensorops::vcopyTo(dst, src);
@@ -581,12 +593,5 @@ requires(sizeof...(As) == sizeof...(Bs))
     } else tupletensorops::vcopyTo(dst, src);
   } else tupletensorops::vcopyTo(dst, src);
 #endif
-}
-template <typename A, typename... As, typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] constexpr void
-operator<<(Tuple<A, As...> &&dst, const Tuple<B, Bs...> &src)
-requires(sizeof...(As) == sizeof...(Bs))
-{
-  dst << src;
 }
 } // namespace containers
