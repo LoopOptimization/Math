@@ -7,6 +7,8 @@ option(ENABLE_RTTI "Use RTTI" OFF)
 option(ENABLE_STACK_PROTECTOR "Use stack protection" OFF)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
+option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
+
 # ---- Project ----
 
 # Note: update this to your new project's name and version
@@ -71,6 +73,10 @@ if(NOT ENABLE_RTTI)
 endif()
 if(ENABLE_STACK_PROTECTOR)
   target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
+endif()
+# --- Maybe Use SIMD Array Ops ---
+if(POLYMATHNOEXPLICITSIMDARRAY)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
 endif()
 
 # --- Allocator override ----
