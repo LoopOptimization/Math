@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.28.2)
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
-option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
-option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(ENABLE_RTTI "Use RTTI" OFF)
 option(ENABLE_STACK_PROTECTOR "Use stack protection" OFF)
+option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
+option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 # ---- Project ----
 
 # Note: update this to your new project's name and version
@@ -58,8 +58,8 @@ target_sources(
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 # being a cross-platform target, we enforce standards conformance on MSVC
-target_compile_options(
-  ${PROJECT_NAME} INTERFACE "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
+# target_compile_options(
+#   ${PROJECT_NAME} INTERFACE "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 
 target_include_directories(
   ${PROJECT_NAME}
@@ -100,22 +100,22 @@ endif()
 
 if(ENABLE_NATIVE_COMPILATION)
   if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_compile_options(${PROJECT_NAME} INTERFACE -xhost)
+    target_compile_options(${PROJECT_NAME} PUBLIC -xhost)
     if(ENABLE_WIDE_VECTORS)
-      target_compile_options(${PROJECT_NAME} INTERFACE -qopt-zmm-usage=high)
+      target_compile_options(${PROJECT_NAME} PUBLIC -qopt-zmm-usage=high)
     endif()
   else()
-    target_compile_options(${PROJECT_NAME} INTERFACE -march=native)
+    target_compile_options(${PROJECT_NAME} PUBLIC -march=native)
     if(ENABLE_WIDE_VECTORS)
       include(CheckCXXCompilerFlag)
       check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
       if(VEC512)
         if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
           target_compile_options(${PROJECT_NAME}
-                                 INTERFACE -mprefer-vector-width=512)
+                                 PUBLIC -mprefer-vector-width=512)
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
           target_compile_options(
-            ${PROJECT_NAME} INTERFACE -mprefer-vector-width=512
+            ${PROJECT_NAME} PUBLIC -mprefer-vector-width=512
                                       -mtune-ctrl=avx512_move_by_pieces)
         endif()
       endif()
@@ -127,7 +127,7 @@ endif()
 
 # the location where the project's version header will be placed should match
 # the project's regular header paths
-string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
+# string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
 
 include(GNUInstallDirs)
 
@@ -136,7 +136,7 @@ install(
   EXPORT math-targets
   FILE_SET CXX_MODULES
   # There's currently no convention for this location
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/my_package/src
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math/mod
   FILE_SET HEADERS
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # Same as default, could be omitted
   INCLUDES

@@ -10,9 +10,10 @@ project(MathTests LANGUAGES CXX)
 
 # ---- Options ----
 
-option(ENABLE_TEST_COVERAGE "Enable test coverage" ON)
+option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
 option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
+option(ENABLE_LLD "Use lld as the linker" ON)
 
 # --- Import tools ----
 
@@ -124,13 +125,9 @@ endif()
 target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_ASSERTIONS
                                                -ftemplate-backtrace-limit=0)
 if(ENABLE_LLD)
+  # TODO: use `CMAKE_LINKER_TYPE`/`LINKER_TYPE` once you've upgraded to cmake 29
   target_link_options(${PROJECT_NAME} PRIVATE -fuse-ld=lld)
 endif()
-
-# target_precompile_headers( ${PROJECT_NAME} PRIVATE <algorithm> <cmath>
-# <concepts> <cstddef> <cstdint> <functional> <gtest/gtest.h> <iostream>
-# <iterator> <limits> <numeric> <optional> <random> <ranges> <string> <tuple>
-# <type_traits> <utility>)
 
 # ---- Add MathTests ----
 

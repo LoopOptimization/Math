@@ -583,7 +583,7 @@ requires(sizeof...(As) == sizeof...(Bs) && IsArrayOp<A> &&
     using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                  utils::eltype_t<B>, utils::eltype_t<Bs>...>;
     if constexpr ((sizeof(T) % (sizeof(C) * simd::Width<C>)) != 0) {
-      auto lval{map([](auto &d) { return reinterpret<C>(d); })};
+      auto lval{dst.mutmap([](auto &d) { return reinterpret<C>(d); })};
       tupletensorops::vcopyTo(
         lval, src.map([](const auto &s) { return reinterpret<C>(s); }));
     } else tupletensorops::vcopyTo(dst, src);
