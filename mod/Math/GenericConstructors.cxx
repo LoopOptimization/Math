@@ -2,6 +2,7 @@ module;
 
 #include <concepts>
 #include <memory>
+#include <type_traits>
 
 export module GenericArrayConstructors;
 
@@ -13,6 +14,9 @@ import AxisTypes;
 import ManagedArray;
 import MatDim;
 import Storage;
+
+template <typename T>
+concept NonEmpty = !std::is_empty_v<T>;
 
 export namespace math {
 
@@ -38,12 +42,12 @@ constexpr auto vector(A a, ptrdiff_t M, eltype_t<A> x)
   return {length(M), x, a};
 }
 
-template <class T, alloc::FreeAllocator A>
+template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto vector(A a, ptrdiff_t M) {
   if constexpr (std::same_as<T, eltype_t<A>>) return vector(a, M);
   else return vector(rebound_alloc_t<A, T>{}, M);
 }
-template <typename T, alloc::FreeAllocator A>
+template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto vector(A a, ptrdiff_t M, std::type_identity_t<T> x) {
   if constexpr (std::same_as<T, eltype_t<A>>) return vector<A>(a, M, x);
   else return vector<A>(rebound_alloc_t<A, T>{}, M, x);
@@ -59,11 +63,11 @@ constexpr auto matrix(A a, Row<R> M, Col<C> N,
   return {DenseDims{M, N}, x, a};
 }
 
-template <class T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(A a, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, rebound_alloc_t<A, T>{}};
 }
-template <class T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
 constexpr auto matrix(A a, Row<R> M, Col<C> N,
                       std::type_identity_t<T> x) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, rebound_alloc_t<A, T>{}};
@@ -78,12 +82,12 @@ constexpr auto square_matrix(A a, ptrdiff_t M,
                              utils::eltype_t<A> x) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, x, A{}};
 }
-template <class T, alloc::FreeAllocator A>
+template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto
 square_matrix(A a, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, rebound_alloc_t<A, T>{}};
 }
-template <class T, alloc::FreeAllocator A>
+template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto square_matrix(A a, ptrdiff_t M, std::type_identity_t<T> x)
   -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, x, rebound_alloc_t<A, T>{}};
@@ -95,7 +99,7 @@ constexpr auto identity(A a, ptrdiff_t M) -> SquareMatrixAlloc<A> {
   B.diag() << eltype_t<A>{1};
   return B;
 }
-template <class T, alloc::FreeAllocator A>
+template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto
 identity(A a, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return identity<rebound_alloc_t<A, T>>(rebound_alloc_t<A, T>{}, M);

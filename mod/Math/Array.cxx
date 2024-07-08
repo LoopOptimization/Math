@@ -26,13 +26,13 @@ module;
 
 export module Array;
 
+export import ArrayConcepts;
 export import AssignExprTemplates;
 export import AxisTypes;
 export import Indexing;
 export import Range;
 import Allocator;
 import Arena;
-import ArrayConcepts;
 import ArrayPrint;
 import CompressReference;
 import ExprTemplates;

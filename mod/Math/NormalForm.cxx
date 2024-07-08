@@ -301,13 +301,6 @@ constexpr void reduceColumn(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
 }
 /// multiplies `A` and `B` by matrix `X`, where `X` reduces `A` to a normal
 /// form.
-constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
-  auto [M, N] = shape(AB[0]);
-  for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
-    if (!pivotRowsPair(AB, col(c), row(M), row(r)))
-      reduceColumn(AB, col(c), row(r++));
-}
-
 constexpr void zeroWithRowOperation(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
                                     Col<> k, Range<ptrdiff_t, ptrdiff_t> skip) {
   if (int64_t Aik = A[i, k]) {
@@ -483,6 +476,13 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
 
 export namespace math {
 namespace NormalForm {
+constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
+  auto [M, N] = shape(AB[0]);
+  for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
+    if (!pivotRowsPair(AB, col(c), row(M), row(r)))
+      reduceColumn(AB, col(c), row(r++));
+}
+
 // treats A as stacked on top of B
 constexpr void reduceColumnStack(MutPtrMatrix<int64_t> A,
                                  MutPtrMatrix<int64_t> B, ptrdiff_t c,
