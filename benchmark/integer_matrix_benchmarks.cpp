@@ -1,13 +1,11 @@
-#include "Math/Array.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Math/MatrixDimensions.hpp"
-#include "Math/NormalForm.hpp"
-#include <Utilities/MatrixStringParse.hpp>
 #include <benchmark/benchmark.h>
 #include <cstddef>
 #include <cstdint>
 #include <random>
+
+import Array;
+import ArrayParse;
+import NormalForm;
 
 static void BM_normal_form(benchmark::State &state) {
   using math::_;

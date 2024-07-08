@@ -1,14 +1,13 @@
-#include "Alloc/Arena.hpp"
-#include "Math/Array.hpp"
-#include "Math/Indexing.hpp"
-#include "Math/Iterators.hpp"
-#include "Utilities/Valid.hpp"
-#include <Math/Simplex.hpp>
-#include <Utilities/MatrixStringParse.hpp>
 #include <benchmark/benchmark.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+
+import Arena;
+import Array;
+import ArrayParse;
+import Simplex;
+import Valid;
 
 using utils::operator""_mat, math::_;
 
