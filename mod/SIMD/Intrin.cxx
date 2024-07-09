@@ -103,6 +103,9 @@ template <ptrdiff_t W, typename T> consteval auto mmzero() {
 }
 
 #ifdef __AVX512F__
+
+template auto vbroadcast<8,int64_t>(Vec<8,int64_t>)->Vec<8,int64_t>;
+
 // namespace hw {
 // typedef double __m512d_u __attribute__((__vector_size__(64),
 // __aligned__(8)));
@@ -416,6 +419,9 @@ constexpr auto select(mask::Bit<16> m, Vec<16, T> x,
   } else static_assert(false);
 }
 
+template auto load<int64_t>(const int64_t*,mask::Bit<8>)->Vec<8,int64_t>;
+template void store<int64_t>(int64_t*,mask::Bit<8>,Vec<8,int64_t>);
+
 #endif // AVX512F
 #ifdef __AVX__
 template <typename T>
@@ -480,6 +486,10 @@ template <typename T>
 #endif
   } else static_assert(false);
 }
+#ifdef __AVX512F__
+template auto load<int64_t>(const int64_t*,mask::None<8>)->Vec<8,int64_t>;
+template void store<int64_t>(int64_t*,mask::None<8>,Vec<8,int64_t>);
+#endif
 #ifdef __AVX2__
 // Non-masked gather is same with AVX512VL and AVX2
 template <typename T>
