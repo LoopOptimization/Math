@@ -7,6 +7,7 @@ module;
 export module ListRange;
 
 import Invariant;
+import Valid;
 
 export namespace utils {
 
@@ -134,13 +135,11 @@ public:
 };
 template <typename T, class Op, class Proj>
 ListRange(T *, Op, Proj) -> ListRange<T, Op, Proj>;
-template <typename T> class Valid;
 template <typename T, class Op, class Proj>
 ListRange(Valid<T>, Op, Proj) -> ListRange<T, Op, Proj>;
 
 template <typename T, class Op>
 ListRange(T *, Op) -> ListRange<T, Op, Identity>;
-template <typename T> class Valid;
 template <typename T, class Op>
 ListRange(Valid<T>, Op) -> ListRange<T, Op, Identity>;
 

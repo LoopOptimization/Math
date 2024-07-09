@@ -6,12 +6,12 @@ module;
 #include <version>
 #endif
 #endif
-#if __has_builtin(__builtin_trap)
-#define TRAP() __builtin_trap()
-#else
+// #if __has_builtin(__builtin_trap)
+// #define TRAP() __builtin_trap()
+// #else
 #include <cstdlib>
 #define TRAP() abort()
-#endif
+// #endif
 export module Invariant;
 
 export namespace utils {

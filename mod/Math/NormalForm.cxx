@@ -394,6 +394,41 @@ constexpr auto pivotRowsBareiss(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M,
   if (j != piv) swap(A, j, piv);
   return ptrdiff_t(piv);
 }
+
+constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
+  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
+  // we try to orthogonalize with respect to as many rows of `A` as we can
+  // prioritizing earlier rows.
+  auto [M, N] = shape(A);
+  SquareMatrix<int64_t> K{
+    identity(math::DefaultAlloc<int64_t>{}, ptrdiff_t(M))};
+  Vector<unsigned> included;
+  included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
+  for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {
+    // zero ith row
+    if (NormalForm::pivotRows(A, K, i, row(M))) {
+      // cannot pivot, this is a linear combination of previous
+      // therefore, we drop the row
+      dropCol(A, i, row(M), col(--N));
+    } else {
+      zeroSupDiagonal(A, K, i, row(M), col(N));
+      int64_t Aii = A[i, i];
+      if (math::constexpr_abs(Aii) != 1) {
+        // including this row renders the matrix not unimodular!
+        // therefore, we drop the row.
+        dropCol(A, i, row(M), col(--N));
+      } else {
+        // we zero the sub diagonal
+        zeroSubDiagonal(A, K, i++, row(M), col(N));
+        included.push_back(j);
+      }
+    }
+  }
+  return {std::move(K), std::move(included)};
+}
+
+export namespace math {
+namespace NormalForm {
 // update a reduced matrix for a new row
 // doesn't reduce last row (assumes you're solving for it)
 constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
@@ -441,41 +476,6 @@ constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
   }
   return M;
 }
-
-constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
-  -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
-  // we try to orthogonalize with respect to as many rows of `A` as we can
-  // prioritizing earlier rows.
-  auto [M, N] = shape(A);
-  SquareMatrix<int64_t> K{
-    identity(math::DefaultAlloc<int64_t>{}, ptrdiff_t(M))};
-  Vector<unsigned> included;
-  included.reserve(std::min(ptrdiff_t(M), ptrdiff_t(N)));
-  for (ptrdiff_t i = 0, j = 0; i < std::min(ptrdiff_t(M), ptrdiff_t(N)); ++j) {
-    // zero ith row
-    if (NormalForm::pivotRows(A, K, i, row(M))) {
-      // cannot pivot, this is a linear combination of previous
-      // therefore, we drop the row
-      dropCol(A, i, row(M), col(--N));
-    } else {
-      zeroSupDiagonal(A, K, i, row(M), col(N));
-      int64_t Aii = A[i, i];
-      if (math::constexpr_abs(Aii) != 1) {
-        // including this row renders the matrix not unimodular!
-        // therefore, we drop the row.
-        dropCol(A, i, row(M), col(--N));
-      } else {
-        // we zero the sub diagonal
-        zeroSubDiagonal(A, K, i++, row(M), col(N));
-        included.push_back(j);
-      }
-    }
-  }
-  return {std::move(K), std::move(included)};
-}
-
-export namespace math {
-namespace NormalForm {
 constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
   auto [M, N] = shape(AB[0]);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
