@@ -6,7 +6,12 @@ module;
 #include <version>
 #endif
 #endif
-
+#if __has_builtin(__builtin_trap)
+#define TRAP() __builtin_trap()
+#else
+#include <cstdlib>
+#define TRAP() abort()
+#endif
 export module Invariant;
 
 export namespace utils {
@@ -15,7 +20,7 @@ export namespace utils {
 invariant(bool condition) {
 #ifndef NDEBUG
   if (!condition) [[unlikely]]
-    __builtin_trap();
+    TRAP();
 #endif
 }
 template <typename T>
@@ -23,7 +28,7 @@ template <typename T>
                                                                         T y) {
 #ifndef NDEBUG
   if (x != y) [[unlikely]]
-    __builtin_trap();
+    TRAP();
 #endif
 }
 
@@ -31,7 +36,7 @@ template <typename T>
 assume(bool condition) {
 #ifndef NDEBUG
   if (!condition) [[unlikely]]
-    __builtin_trap();
+    TRAP();
 #else
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
   [[assume(condition)]];
@@ -55,7 +60,7 @@ template <typename T>
                                                                        T y) {
 #ifndef NDEBUG
   if (x != y) [[unlikely]]
-    __builtin_trap();
+    TRAP();
 #else
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
   [[assume(condition)]];
