@@ -8,6 +8,7 @@ option(ENABLE_STACK_PROTECTOR "Use stack protection" OFF)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
+option(USE_MODULES "Use C++ Modules" OFF)
 
 # ---- Project ----
 
@@ -36,13 +37,19 @@ cpmaddpackage("gh:TheLartians/PackageProject.cmake@1.8.0")
 
 # ---- Add source files ----
 
-# Note: globbing sources is considered bad practice as CMake's generators may
-# not detect new files automatically. Keep that in mind when changing files, or
-# explicitly mention them here.
-file(GLOB_RECURSE headers CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
-file(GLOB_RECURSE modules CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
+if(USE_MODULES)
+  # Note: globbing sources is considered bad practice as CMake's generators may
+  # not detect new files automatically. Keep that in mind when changing files,
+  # or explicitly mention them here.
+  file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+       "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
+  file(GLOB_RECURSE modules CONFIGURE_DEPENDS
+       "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
+else()
+  file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+       "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
+       "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
+endif()
 # message(STATUS "Headers: ${headers}") message(STATUS "Modules: ${modules}")
 
 # ---- Create library ----
@@ -52,10 +59,31 @@ file(GLOB_RECURSE modules CONFIGURE_DEPENDS
 add_library(${PROJECT_NAME} OBJECT) # ${headers})
 # add_library(${PROJECT_NAME} INTERFACE ${headers})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
-target_sources(
-  ${PROJECT_NAME}
-  PUBLIC FILE_SET CXX_MODULES FILES ${modules}
-  INTERFACE FILE_SET HEADERS FILES ${headers})
+if(USE_MODULES)
+  target_sources(
+    ${PROJECT_NAME}
+    PUBLIC FILE_SET CXX_MODULES FILES ${modules}
+    INTERFACE FILE_SET HEADERS FILES ${headers})
+  target_compile_definitions(${PROJECT_NAME} PRIVATE USE_MODULES)
+  target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+  if(NOT ENABLE_RTTI)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
+  endif()
+  if(ENABLE_STACK_PROTECTOR)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
+  endif()
+  # --- Maybe Use SIMD Array Ops ---
+  if(POLYMATHNOEXPLICITSIMDARRAY)
+    target_compile_definitions(${PROJECT_NAME}
+                               PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
+  endif()
+else()
+  target_sources(${PROJECT_NAME} INTERFACE FILE_SET HEADERS FILES ${headers})
+endif()
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
@@ -63,30 +91,19 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 # target_compile_options( ${PROJECT_NAME} INTERFACE
 # "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 
-target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-         $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
-target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
-if(NOT ENABLE_RTTI)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
-endif()
-if(ENABLE_STACK_PROTECTOR)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
-endif()
-# --- Maybe Use SIMD Array Ops ---
-if(POLYMATHNOEXPLICITSIMDARRAY)
-  target_compile_definitions(${PROJECT_NAME}
-                             PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
-endif()
-
 # --- Allocator override ----
 set(SEARCH_JE_MALLOC USE_JE_MALLOC)
 if(USE_MI_MALLOC)
   find_package(mimalloc) # REQUIRED)
   if(mimalloc_FOUND)
-    target_link_libraries(${PROJECT_NAME} PRIVATE mimalloc) # mimalloc-static
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USING_MIMALLOC)
+    if(USE_MODULES)
+      target_link_libraries(${PROJECT_NAME} PRIVATE mimalloc) # mimalloc-static
+      target_compile_definitions(${PROJECT_NAME} PRIVATE USING_MIMALLOC)
+    else()
+      target_link_libraries(${PROJECT_NAME} INTERFACE mimalloc
+      )# mimalloc-static
+      target_compile_definitions(${PROJECT_NAME} INTERFACE USING_MIMALLOC)
+    endif()
     set(SEARCH_JE_MALLOC OFF)
   endif()
 endif()
@@ -95,10 +112,17 @@ if(SEARCH_JE_MALLOC)
   if(PKG_CONFIG_FOUND)
     pkg_check_modules(JEMALLOC jemalloc)
     if(jemalloc_FOUND)
-      target_link_libraries(${PROJECT_NAME} PRIVATE ${JEMALLOC_LIBRARIES})
-      target_include_directories(${PROJECT_NAME}
-                                 PRIVATE ${JEMALLOC_INCLUDE_DIRS})
-      target_compile_definitions(${PROJECT_NAME} PRIVATE USING_JEMALLOC)
+      if(USE_MODULES)
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${JEMALLOC_LIBRARIES})
+        target_include_directories(${PROJECT_NAME}
+                                   PRIVATE ${JEMALLOC_INCLUDE_DIRS})
+        target_compile_definitions(${PROJECT_NAME} PRIVATE USING_JEMALLOC)
+      else()
+        target_link_libraries(${PROJECT_NAME} INTERFACE ${JEMALLOC_LIBRARIES})
+        target_include_directories(${PROJECT_NAME}
+                                   INTERFACE ${JEMALLOC_INCLUDE_DIRS})
+        target_compile_definitions(${PROJECT_NAME} INTERFACE USING_JEMALLOC)
+      endif()
     endif()
   endif()
 endif()
@@ -107,9 +131,16 @@ endif()
 
 if(ENABLE_NATIVE_COMPILATION)
   if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_compile_options(${PROJECT_NAME} PUBLIC -xhost)
-    if(ENABLE_WIDE_VECTORS)
-      target_compile_options(${PROJECT_NAME} PUBLIC -qopt-zmm-usage=high)
+    if(USE_MODULES)
+      target_compile_options(${PROJECT_NAME} PUBLIC -xhost)
+      if(ENABLE_WIDE_VECTORS)
+        target_compile_options(${PROJECT_NAME} PUBLIC -qopt-zmm-usage=high)
+      endif()
+    else()
+      target_compile_options(${PROJECT_NAME} INTERFACE -xhost)
+      if(ENABLE_WIDE_VECTORS)
+        target_compile_options(${PROJECT_NAME} INTERFACE -qopt-zmm-usage=high)
+      endif()
     endif()
   else()
     target_compile_options(${PROJECT_NAME} PUBLIC -march=native)
@@ -117,13 +148,24 @@ if(ENABLE_NATIVE_COMPILATION)
       include(CheckCXXCompilerFlag)
       check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
       if(VEC512)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-          target_compile_options(${PROJECT_NAME}
-                                 PUBLIC -mprefer-vector-width=512)
-        elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-          target_compile_options(
-            ${PROJECT_NAME} PUBLIC -mprefer-vector-width=512
-                                   -mtune-ctrl=avx512_move_by_pieces)
+        if(USE_MODULES)
+          if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(${PROJECT_NAME}
+                                   PUBLIC -mprefer-vector-width=512)
+          elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            target_compile_options(
+              ${PROJECT_NAME} PUBLIC -mprefer-vector-width=512
+                                     -mtune-ctrl=avx512_move_by_pieces)
+          endif()
+        else()
+          if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(${PROJECT_NAME}
+                                   INTERFACE -mprefer-vector-width=512)
+          elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            target_compile_options(
+              ${PROJECT_NAME} INTERFACE -mprefer-vector-width=512
+                                        -mtune-ctrl=avx512_move_by_pieces)
+          endif()
         endif()
       endif()
     endif()
@@ -138,17 +180,28 @@ endif()
 
 include(GNUInstallDirs)
 
-install(
-  TARGETS ${PROJECT_NAME}
-  EXPORT math-targets
-  FILE_SET CXX_MODULES
-  # There's currently no convention for this location
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math/mod
-  FILE_SET HEADERS
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # Same as default, could be omitted
-  INCLUDES
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(
-  EXPORT math-targets
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math
-  CXX_MODULES_DIRECTORY .)
+if(USE_MODULES)
+  install(
+    TARGETS ${PROJECT_NAME}
+    EXPORT math-targets
+    FILE_SET CXX_MODULES
+    # There's currently no convention for this location
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math/mod
+    FILE_SET HEADERS
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # Same as default, could be omitted
+    INCLUDES
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  install(
+    EXPORT math-targets
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math
+    CXX_MODULES_DIRECTORY .)
+else()
+  install(
+    TARGETS ${PROJECT_NAME}
+    EXPORT math-targets
+    FILE_SET HEADERS
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # Same as default, could be omitted
+    INCLUDES
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  install(EXPORT math-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/math)
+endif()
