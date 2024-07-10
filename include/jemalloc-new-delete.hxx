@@ -91,4 +91,3 @@ operator new[](std::size_t n, std::align_val_t al,
   return mallocx(n, MALLOCX_ALIGN(static_cast<size_t>(al)));
 }
 #endif
-

@@ -78,7 +78,6 @@ add_executable(${PROJECT_NAME} ${sources})
 target_link_libraries(${PROJECT_NAME} Math GTest::gtest_main)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
-
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
@@ -88,7 +87,8 @@ else()
   target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
 endif()
 if(POLYMATHNOEXPLICITSIMDARRAY)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
+  target_compile_definitions(${PROJECT_NAME}
+                             PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
 endif()
 
 # enable compiler warnings

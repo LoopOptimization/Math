@@ -5,7 +5,7 @@ module;
 
 export module TypeCompression;
 
-export namespace math{
+export namespace math {
 constexpr auto value(std::floating_point auto x) { return x; }
 } // namespace math
 

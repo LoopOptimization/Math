@@ -46,4 +46,3 @@ concept EltCastableDual =
   EltIsDual<T> && std::same_as<scalarize_via_cast_t<T>, double>;
 
 } // namespace math
-

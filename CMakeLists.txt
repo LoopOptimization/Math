@@ -60,13 +60,13 @@ target_sources(
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 # being a cross-platform target, we enforce standards conformance on MSVC
-# target_compile_options(
-#   ${PROJECT_NAME} INTERFACE "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
+# target_compile_options( ${PROJECT_NAME} INTERFACE
+# "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+         $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
 target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if(NOT ENABLE_RTTI)
   target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
@@ -76,7 +76,8 @@ if(ENABLE_STACK_PROTECTOR)
 endif()
 # --- Maybe Use SIMD Array Ops ---
 if(POLYMATHNOEXPLICITSIMDARRAY)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
+  target_compile_definitions(${PROJECT_NAME}
+                             PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
 endif()
 
 # --- Allocator override ----
@@ -122,7 +123,7 @@ if(ENABLE_NATIVE_COMPILATION)
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
           target_compile_options(
             ${PROJECT_NAME} PUBLIC -mprefer-vector-width=512
-                                      -mtune-ctrl=avx512_move_by_pieces)
+                                   -mtune-ctrl=avx512_move_by_pieces)
         endif()
       endif()
     endif()
@@ -132,8 +133,8 @@ endif()
 # this allows users to install and find the library via `find_package()`.
 
 # the location where the project's version header will be placed should match
-# the project's regular header paths
-# string(TOLOWER ${PROJECT_NAME}/version.h VERSION_HEADER_LOCATION)
+# the project's regular header paths string(TOLOWER ${PROJECT_NAME}/version.h
+# VERSION_HEADER_LOCATION)
 
 include(GNUInstallDirs)
 

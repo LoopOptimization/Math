@@ -335,7 +335,6 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
 };
 template <typename A> Transpose(A) -> Transpose<utils::eltype_t<A>, A>;
 
-
 } // namespace math
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>

@@ -638,7 +638,8 @@ struct MutArray : Array<T, S, Compress>,
   }
 
   template <class... Args>
-  constexpr MutArray(Args &&...args) requires(std::constructible_from<Array<T,S,Compress>, Args...>)
+  constexpr MutArray(Args &&...args)
+  requires(std::constructible_from<Array<T, S, Compress>, Args...>)
     : Array<T, S, Compress>(std::forward<Args>(args)...) {}
 
   template <std::convertible_to<T> U, std::convertible_to<S> V>

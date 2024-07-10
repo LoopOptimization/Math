@@ -281,13 +281,18 @@ struct [[gsl::Owner(T)]] StaticArray
   {
     return {data(), SHAPE(dim())};
   }
-  constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
-    return std::equal(begin(), end(), rhs.begin());
-  }
-  template<containers::ConvertibleFrom<S> SHAPE>
-  constexpr auto operator==(Array<T,SHAPE> rhs) const noexcept -> bool {
-    return std::equal(begin(), end(), rhs.begin());
-  }
+  // constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
+  //   return std::equal(begin(), end(), rhs.begin());
+  // }
+  // template<containers::ConvertibleFrom<S> SHAPE>
+  // constexpr auto operator==(Array<T,SHAPE> rhs) const noexcept -> bool {
+  //   return std::equal(begin(), end(), rhs.begin());
+  // }
+  // template <MatrixDimension S>
+  // constexpr auto operator==(Array<T,S> rhs) const ->bool
+  // (requires((M==1)||(N==1))){
+  //   if ((rhs.numRow() != M)||(rhs.numCol() != N)) return false;
+  // }
   template <std::size_t I> constexpr auto get() -> T & { return memory_[I]; }
   template <std::size_t I>
   [[nodiscard]] constexpr auto get() const -> const T & {
@@ -299,10 +304,8 @@ struct [[gsl::Owner(T)]] StaticArray
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const StaticArray &x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, const StaticArray &x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), M, N, N);
     else return utils::printVector(os, x.begin(), x.end());
@@ -574,10 +577,8 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const StaticArray &x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, const StaticArray &x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());
@@ -785,10 +786,8 @@ struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const StaticArray &x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, const StaticArray &x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return printMatrix(os, Array<T, StridedDims<>>{x});
     else return utils::printVector(os, x.begin(), x.end());

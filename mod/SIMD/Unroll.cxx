@@ -98,28 +98,20 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] /= a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
-  operator+=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    return (*this) += vbroadcast<W, T>(a);
-  }
-  [[gnu::always_inline]] constexpr auto
-  operator-=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    return (*this) -= vbroadcast<W, T>(a);
-  }
-  [[gnu::always_inline]] constexpr auto
-  operator*=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    return (*this) *= vbroadcast<W, T>(a);
-  }
-  [[gnu::always_inline]] constexpr auto
-  operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    return (*this) /= vbroadcast<W, T>(a);
-  }
+[[gnu::always_inline]] constexpr auto operator+=(std::convertible_to<T> auto a)
+  -> Unroll &requires(W != 1) { return (*this) += vbroadcast<W, T>(a); }
+[[gnu::always_inline]] constexpr auto operator-=(std::convertible_to<T> auto a)
+  -> Unroll &requires(W != 1) { return (*this) -= vbroadcast<W, T>(a); }
+[[gnu::always_inline]] constexpr auto operator*=(std::convertible_to<T> auto a)
+  -> Unroll &requires(W != 1) { return (*this) *= vbroadcast<W, T>(a); }
+[[gnu::always_inline]] constexpr auto operator/=(std::convertible_to<T> auto a)
+  -> Unroll &requires(W != 1) { return (*this) /= vbroadcast<W, T>(a); }
 
-  private :
+private :
 
-    template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-    [[gnu::always_inline]] friend constexpr auto
-    operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
@@ -397,32 +389,32 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     vec_ /= a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
-  operator+=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    vec_ += vbroadcast<W, T>(a);
-    return *this;
-  }
-  [[gnu::always_inline]] constexpr auto
-  operator-=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    vec_ -= vbroadcast<W, T>(a);
-    return *this;
-  }
-  [[gnu::always_inline]] constexpr auto
-  operator*=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    vec_ *= vbroadcast<W, T>(a);
-    return *this;
-  }
-  [[gnu::always_inline]] constexpr auto
-  operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
-    vec_ /= vbroadcast<W, T>(a);
-    return *this;
-  }
+[[gnu::always_inline]] constexpr auto
+operator+=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
+  vec_ += vbroadcast<W, T>(a);
+  return *this;
+}
+[[gnu::always_inline]] constexpr auto
+operator-=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
+  vec_ -= vbroadcast<W, T>(a);
+  return *this;
+}
+[[gnu::always_inline]] constexpr auto
+operator*=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
+  vec_ *= vbroadcast<W, T>(a);
+  return *this;
+}
+[[gnu::always_inline]] constexpr auto
+operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
+  vec_ /= vbroadcast<W, T>(a);
+  return *this;
+}
 
-  private :
+private :
 
-    template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-    [[gnu::always_inline]] friend constexpr auto
-    operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
+  template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
+  [[gnu::always_inline]] friend constexpr auto
+  operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 

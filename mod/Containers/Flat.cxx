@@ -89,4 +89,3 @@ private:
   ptrdiff_t len_{0};
 };
 } // namespace containers
-

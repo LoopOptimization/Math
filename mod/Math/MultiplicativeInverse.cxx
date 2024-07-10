@@ -233,4 +233,3 @@ static_assert(
   std::is_trivially_default_constructible_v<MultiplicativeInverse<double>>);
 
 } // namespace math
-

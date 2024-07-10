@@ -104,7 +104,7 @@ template <ptrdiff_t W, typename T> consteval auto mmzero() {
 
 #ifdef __AVX512F__
 
-template auto vbroadcast<8,int64_t>(Vec<8,int64_t>)->Vec<8,int64_t>;
+template auto vbroadcast<8, int64_t>(Vec<8, int64_t>) -> Vec<8, int64_t>;
 
 // namespace hw {
 // typedef double __m512d_u __attribute__((__vector_size__(64),
@@ -419,9 +419,6 @@ constexpr auto select(mask::Bit<16> m, Vec<16, T> x,
   } else static_assert(false);
 }
 
-template auto load<int64_t>(const int64_t*,mask::Bit<8>)->Vec<8,int64_t>;
-template void store<int64_t>(int64_t*,mask::Bit<8>,Vec<8,int64_t>);
-
 #endif // AVX512F
 #ifdef __AVX__
 template <typename T>
@@ -486,10 +483,6 @@ template <typename T>
 #endif
   } else static_assert(false);
 }
-#ifdef __AVX512F__
-template auto load<int64_t>(const int64_t*,mask::None<8>)->Vec<8,int64_t>;
-template void store<int64_t>(int64_t*,mask::None<8>,Vec<8,int64_t>);
-#endif
 #ifdef __AVX2__
 // Non-masked gather is same with AVX512VL and AVX2
 template <typename T>
@@ -1370,6 +1363,43 @@ template <typename T>
   }
   // else static_assert(false);
 }
+
+#ifdef __AVX512F__
+template auto load<int64_t>(const int64_t *, mask::None<2>) -> Vec<2, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<2>) -> Vec<2, int64_t>;
+template void store<int64_t>(int64_t *, mask::None<2>, Vec<2, int64_t>);
+template void store<int64_t>(int64_t *, mask::Bit<2>, Vec<2, int64_t>);
+template auto load<int64_t>(const int64_t *, mask::None<4>) -> Vec<4, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<4>) -> Vec<4, int64_t>;
+template void store<int64_t>(int64_t *, mask::None<4>, Vec<4, int64_t>);
+template void store<int64_t>(int64_t *, mask::Bit<4>, Vec<4, int64_t>);
+template auto load<int64_t>(const int64_t *, mask::None<8>) -> Vec<8, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<8>) -> Vec<8, int64_t>;
+template void store<int64_t>(int64_t *, mask::None<8>, Vec<8, int64_t>);
+template void store<int64_t>(int64_t *, mask::Bit<8>, Vec<8, int64_t>);
+
+template auto load<int64_t>(const int64_t *, mask::None<2>,
+                            int32_t) -> Vec<2, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<2>,
+                            int32_t) -> Vec<2, int64_t>;
+template void store<int64_t>(int64_t *, mask::None<2>, Vec<2, int64_t>,
+                             int32_t);
+template void store<int64_t>(int64_t *, mask::Bit<2>, Vec<2, int64_t>, int32_t);
+template auto load<int64_t>(const int64_t *, mask::None<4>,
+                            int32_t) -> Vec<4, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<4>,
+                            int32_t) -> Vec<4, int64_t>;
+template void store<int64_t>(int64_t *, mask::None<4>, Vec<4, int64_t>,
+                             int32_t);
+template void store<int64_t>(int64_t *, mask::Bit<4>, Vec<4, int64_t>, int32_t);
+template auto load<int64_t>(const int64_t *, mask::None<8>,
+                            int32_t) -> Vec<8, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<8>,
+                            int32_t) -> Vec<8, int64_t>;
+template void store<int64_t>(int64_t *, mask::None<8>, Vec<8, int64_t>,
+                             int32_t);
+template void store<int64_t>(int64_t *, mask::Bit<8>, Vec<8, int64_t>, int32_t);
+#endif
 
 #else // not __x86_64__
 template <typename T, ptrdiff_t W>

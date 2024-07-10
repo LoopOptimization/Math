@@ -734,7 +734,9 @@ public:
 #ifndef NDEBUG
     assertCanonical();
 #endif
-    return {.simplex_=this,.skipped_vars_= length(skippedVars),.num_vars_= length(getNumVars())};
+    return {.simplex_ = this,
+            .skipped_vars_ = length(skippedVars),
+            .num_vars_ = length(getNumVars())};
   }
 
   // reverse lexicographic ally minimize vars

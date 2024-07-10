@@ -114,22 +114,16 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     invariant(c <= n_);
     return similar(c);
   }
-  constexpr auto set(Row<> r) -> StridedDims &
-  requires(R == -1)
-  {
+  constexpr auto set(Row<> r) -> StridedDims &requires(R == -1) {
     invariant(n_ <= stride_m_);
     m_ = r;
     return *this;
-  }
-  constexpr auto set(Col<> c) -> StridedDims &
-  requires(C == -1)
-  {
+  } constexpr auto set(Col<> c) -> StridedDims &requires(C == -1) {
     n_ = c;
     stride_m_ = stride(std::max(ptrdiff_t(stride_m_), ptrdiff_t(n_)));
     return *this;
-  }
-  template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto similar(Row<S> r) const -> StridedDims {
+  } template <ptrdiff_t S> [[nodiscard]] constexpr auto similar(Row<S> r) const
+    -> StridedDims {
     invariant(n_ <= stride_m_);
     return {r, n_, stride_m_};
   }
@@ -214,20 +208,14 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     invariant(c <= Col{m_});
     return {m_, c, {ptrdiff_t(n_)}};
   }
-  constexpr auto set(Row<> r) -> DenseDims &
-  requires(R == -1)
-  {
+  constexpr auto set(Row<> r) -> DenseDims &requires(R == -1) {
     m_ = r;
     return *this;
-  }
-  constexpr auto set(Col<> c) -> DenseDims &
-  requires(C == -1)
-  {
+  } constexpr auto set(Col<> c) -> DenseDims &requires(C == -1) {
     n_ = c;
     return *this;
-  }
-  template <ptrdiff_t S>
-  [[nodiscard]] constexpr auto similar(Row<S> r) const -> DenseDims {
+  } template <ptrdiff_t S> [[nodiscard]] constexpr auto similar(Row<S> r) const
+    -> DenseDims {
     return {r, n_};
   }
   template <ptrdiff_t S>
@@ -529,4 +517,3 @@ template <typename A, typename B> struct PromoteEltype {
                        std::conditional_t<std::convertible_to<B, elta>, elta,
                                           std::common_type_t<elta, eltb>>>;
 };
-

@@ -497,7 +497,6 @@ static_assert(Allocator<WArena<int64_t>>);
 static_assert(!FreeAllocator<WArena<int64_t>>);
 static_assert(FreeAllocator<std::allocator<int64_t>>);
 
-
 struct NoCheckpoint {};
 
 constexpr auto checkpoint(const auto &) { return NoCheckpoint{}; }

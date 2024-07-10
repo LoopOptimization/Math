@@ -59,13 +59,11 @@ endif()
 
 # --- Maybe Use SIMD Array Ops ---
 if(POLYMATHNOEXPLICITSIMDARRAY)
-  target_compile_definitions(${PROJECT_NAME}
-                             PUBLIC POLYMATHNOEXPLICITSIMDARRAY)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC POLYMATHNOEXPLICITSIMDARRAY)
   message(STATUS "Do not use SIMD Array operations")
 else()
   message(STATUS "Use SIMD Array operations")
 endif()
-
 
 target_link_libraries(${PROJECT_NAME} PRIVATE benchmark::benchmark_main)
 

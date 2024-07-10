@@ -181,8 +181,8 @@ TEST(Hermite, BasicAssertions) {
 
     for (ptrdiff_t i = 0; i < 3; ++i) A43[2, i] = A43[0, i] + A43[1, i];
     std::cout << "\n\n\n=======\n\nA=\n" << A43 << "\n";
-    H<<A43;
-    NormalForm::hermite(H,U);
+    H << A43;
+    NormalForm::hermite(H, U);
     std::cout << "H=\n" << H << "\nU=\n" << U << "\n";
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(H == U * A43);
@@ -207,7 +207,7 @@ TEST(Hermite, BasicAssertions) {
     A[3, 3] = -1;
     IntMatrix<> H = A;
     SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
-    NormalForm::hermite(H,U);
+    NormalForm::hermite(H, U);
     std::cout << "\n\n\n====\n\nH=\n" << H << "\nU=\n" << U << "\n";
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(H == U * A);
@@ -366,10 +366,10 @@ TEST(InvTest, BasicAssertions) {
       // Da * B^{-1} = Binv0
       // Da = Binv0 * B
       MutSquarePtrMatrix<int64_t> Da{square_matrix<int64_t>(&alloc, dim)};
-      Da<<B;
+      Da << B;
       auto Binv0 = NormalForm::inv(&alloc, Da);
       MutSquarePtrMatrix<int64_t> Bc{square_matrix<int64_t>(&alloc, dim)};
-      Bc<<B;
+      Bc << B;
       auto [Binv1, s] = NormalForm::scaledInv(&alloc, Bc);
       EXPECT_TRUE(Da.isDiagonal());
       EXPECT_EQ((Binv0 * B), Da);

@@ -161,16 +161,15 @@ template <typename T> struct Tuple<T> {
   template <typename U> constexpr void operator*=(const Tuple<U> &);
   template <typename U> constexpr void operator/=(const Tuple<U> &);
 
-  template <typename U>
-  constexpr auto operator=(Tuple<U> x)
-    -> Tuple &requires((!std::same_as<T, U>) && std::assignable_from<T, U>) {
-    head_ = x.head_;
-    return *this;
-  }
+template <typename U>
+constexpr auto operator=(Tuple<U> x)
+  -> Tuple &requires((!std::same_as<T, U>) && std::assignable_from<T, U>) {
+  head_ = x.head_;
+  return *this;
+}
 
-  private
-    : template <typename U>
-      friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
+private : template <typename U>
+          friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
     dst << src;
   }
   template <typename U>

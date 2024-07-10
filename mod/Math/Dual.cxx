@@ -989,7 +989,8 @@ public:
   }
 };
 
-template <ptrdiff_t N, AbstractVector T> struct DualVector : Expr<Dual<utils::eltype_t<T>, N>, DualVector<N, T>> {
+template <ptrdiff_t N, AbstractVector T>
+struct DualVector : Expr<Dual<utils::eltype_t<T>, N>, DualVector<N, T>> {
   using value_type = Dual<utils::eltype_t<T>, N>;
   static_assert(utils::TriviallyCopyable<T>);
   T x;
@@ -1009,7 +1010,7 @@ static_assert(AbstractVector<DualVector<2, DualVector<8, PtrVector<double>>>>);
 
 template <ptrdiff_t N>
 constexpr auto dual(const AbstractVector auto &x, ptrdiff_t offset) {
-  return DualVector<N, decltype(x.view())>{.x=x.view(), .offset=offset};
+  return DualVector<N, decltype(x.view())>{.x = x.view(), .offset = offset};
 }
 
 struct Assign {

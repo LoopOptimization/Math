@@ -16,8 +16,7 @@
 #include <cstddef>
 #include <random>
 
-using math::Dual, math::SquareMatrix, math::SquareDims,
-  math::I, math::URand;
+using math::Dual, math::SquareMatrix, math::SquareDims, math::I, math::URand;
 
 [[gnu::noinline]] static void A12pI120(auto &B, const auto &A) {
   B << 12.0 * A + 120.0 * I;
@@ -178,9 +177,8 @@ static void BM_dual6x2dApI(benchmark::State &state) {
   static_assert(utils::Compressible<Dual<double, 6>>);
   static_assert(utils::Compressible<D>);
   static_assert(sizeof(utils::compressed_t<D>) == (21 * sizeof(double)));
-  static_assert(
-    simd::SIMDSupported<double> ==
-    (sizeof(math::SVector<double, 7>) == (8 * sizeof(double))));
+  static_assert(simd::SIMDSupported<double> ==
+                (sizeof(math::SVector<double, 7>) == (8 * sizeof(double))));
   static_assert(simd::SIMDSupported<double> ==
                 (sizeof(Dual<double, 6>) == (8 * sizeof(double))));
   static_assert(simd::SIMDSupported<double> ==

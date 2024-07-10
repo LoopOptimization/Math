@@ -222,7 +222,8 @@ private:
     std::swap(*x.c, *y.c);
   }
   friend constexpr auto value(Reference x) {
-    if constexpr (requires(C *c) { c->value(); }) return math::value(x.c->value());
+    if constexpr (requires(C *c) { c->value(); })
+      return math::value(x.c->value());
     else return math::value(*x.c);
   }
 };

@@ -119,12 +119,10 @@ template <typename T> constexpr void expm(MutSquarePtrMatrix<T> A) {
 
 } // namespace math
 
-using math::Dual, math::SquareDims, math::SquareMatrix,
-  math::URand;
+using math::Dual, math::SquareDims, math::SquareMatrix, math::URand;
 
 auto expwork(const auto &A) {
-  SquareMatrix<math::eltype_t<decltype(A)>> C{SquareDims{A.numRow()}},
-    B{A};
+  SquareMatrix<math::eltype_t<decltype(A)>> C{SquareDims{A.numRow()}}, B{A};
   expm(B);
   for (size_t i = 0; i < 8; ++i) {
     expm(C << A * exp2(-double(i)));

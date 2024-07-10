@@ -114,5 +114,4 @@ template <typename T, typename U> constexpr auto reinterpret(U x) {
   else return x.template reinterpretImpl<T>();
 }
 
-
 } // namespace math

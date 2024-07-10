@@ -884,13 +884,12 @@ static void BM_Simplex0(benchmark::State &state) {
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
   utils::Valid<math::Simplex> simpBackup{
-    math::Simplex::create(&alloc, math::row(numCon),
-                                math::col(numVar))};
+    math::Simplex::create(&alloc, math::row(numCon), math::col(numVar))};
   simpBackup->getTableau() << tableau;
   // Simplex simpBackup{tableau};
-  utils::Valid<math::Simplex> simp{math::Simplex::create(
-    &alloc, math::row(simpBackup->getNumCons()),
-    math::col(simpBackup->getNumVars()))};
+  utils::Valid<math::Simplex> simp{
+    math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
+                          math::col(simpBackup->getNumVars()))};
   // Vector<Rational> sol(37);
   for (auto b : state) {
     *simp << *simpBackup;
@@ -1126,12 +1125,11 @@ static void BM_Simplex1(benchmark::State &state) {
   ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
   ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
   utils::Valid<math::Simplex> simpBackup{
-    math::Simplex::create(&alloc, math::row(numCon),
-                                math::col(numVar), 0)};
+    math::Simplex::create(&alloc, math::row(numCon), math::col(numVar), 0)};
   simpBackup->getTableau() << tableau;
-  utils::Valid<math::Simplex> simp{math::Simplex::create(
-    &alloc, math::row(simpBackup->getNumCons()),
-    math::col(simpBackup->getNumVars()), 0)};
+  utils::Valid<math::Simplex> simp{
+    math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
+                          math::col(simpBackup->getNumVars()), 0)};
   for (auto b : state) {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();

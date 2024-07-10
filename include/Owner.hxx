@@ -10,4 +10,3 @@
 #else
 #define MATH_GSL_POINTER
 #endif
-
