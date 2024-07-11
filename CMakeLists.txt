@@ -63,7 +63,7 @@ if(USE_MODULES)
     ${PROJECT_NAME}
     PUBLIC FILE_SET CXX_MODULES FILES ${modules}
     INTERFACE FILE_SET HEADERS FILES ${headers})
-  target_compile_definitions(${PROJECT_NAME} PRIVATE USE_MODULES)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MODULE)
   target_include_directories(
     ${PROJECT_NAME}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>

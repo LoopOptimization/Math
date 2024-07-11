@@ -2,11 +2,11 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2 clangavx512
+all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2 clangavx512
 else ifeq ($(HAVE_AVX2),0)
-all: clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2
+all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2
 else
-all: clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch
+all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch
 endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
@@ -44,6 +44,9 @@ buildclang/avx512/:
 buildclang/nosimdarrayop/:
 	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosimdarrayop/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
 
+buildclang/modules/:
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
+
 
 gccnosan: buildgcc/nosan/
 	cmake --build buildgcc/nosan/
@@ -76,6 +79,10 @@ clangavx512: buildclang/avx512/
 clangnosimd: buildclang/nosimdarrayop/
 	cmake --build buildclang/nosimdarrayop/
 	cmake --build buildclang/nosimdarrayop/ --target test
+
+clangmodules: buildclang/modules/
+	cmake --build buildclang/modules/
+	cmake --build buildclang/modules/ --target test
 
 clean:
 	rm -rf buildclang #buildgcc

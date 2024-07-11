@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
+#include "Owner.hxx"
 #include <algorithm>
 #include <array>
 #include <bit>
