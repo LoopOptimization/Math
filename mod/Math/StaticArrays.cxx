@@ -117,6 +117,7 @@ struct MATH_GSL_OWNER StaticArray
   using compressed_type = StaticArray<utils::compressed_t<T>, M, N, true>;
   using decompressed_type = StaticArray<value_type, M, N, false>;
   using S = StaticDims<T, M, N, Compress>;
+  using Expr<T, StaticArray<T, M, N, Compress>>::operator==;
   constexpr StaticArray() = default;
   constexpr explicit StaticArray(const T &x) noexcept {
     if consteval {
@@ -139,35 +140,9 @@ struct MATH_GSL_OWNER StaticArray
     invariant(list.size() <= size_t(capacity));
     std::copy_n(list.begin(), list.size(), data());
   }
-#if true // false
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
     this->vcopyTo(b, arrayop::detail::CopyAssign{});
   }
-#else
-  template <AbstractSimilar<S> V>
-  constexpr StaticArray(const V &b) noexcept
-  requires((!std::convertible_to<V, Array<T, S>>) ||
-           (std::same_as<S, typename V::S> && !std::same_as<StaticArray, V>))
-  {
-    this->vcopyTo(b, arrayop::detail::CopyAssign{});
-  }
-  template <AbstractSimilar<S> V>
-  explicit constexpr StaticArray(const V &b) noexcept
-  requires((std::convertible_to<V, Array<T, S>>) &&
-           (!std::same_as<S, typename V::S> || std::same_as<StaticArray, V>))
-  {
-    this->vcopyTo(b, arrayop::detail::CopyAssign{});
-  }
-  constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
-    return this->equal_to_impl(rhs);
-  }
-//   template <std::convertible_to<T>U,bool Cmp> constexpr StaticArray(const
-//   StaticArray<U,M,N,Cmp> &b) noexcept
-// requires( (!std::same_as<T,U>) || (Cmp != Compress) )
-//   {
-//     this->vcopyTo(b, arrayop::detail::CopyAssign{});
-//   }
-#endif
 
   constexpr void compress(compressed_type *p) const
   requires(std::same_as<StaticArray, decompressed_type>)
