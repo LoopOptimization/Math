@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <ostream>
 #ifndef USE_MODULE
-#include "Math/Unimodularization.cxx"
 #include "Math/ManagedArray.cxx"
+#include "Math/Unimodularization.cxx"
 #include "Utilities/MatrixStringParse.cxx"
 #else
 

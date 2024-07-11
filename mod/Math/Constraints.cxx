@@ -9,14 +9,14 @@ module;
 #include <ostream>
 
 #ifndef USE_MODULE
-#include "Math/NormalForm.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/GenericConstructors.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include "Math/EmptyArrays.cxx"
-#include "Math/Comparisons.cxx"
 #include "Containers/BitSets.cxx"
 #include "Math/AxisTypes.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/EmptyArrays.cxx"
+#include "Math/GenericConstructors.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/NormalForm.cxx"
 #else
 export module Constraints;
 import ArrayConcepts;

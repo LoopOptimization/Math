@@ -8,16 +8,16 @@ module;
 #include <ranges>
 
 #ifndef USE_MODULE
-#include "Utilities/TypeCompression.cxx"
-#include "Math/Rational.cxx"
-#include "Utilities/Parameters.cxx"
 #include "Containers/Pair.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/GenericConstructors.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/Constructors.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
+#include "Math/GenericConstructors.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/Rational.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 export module LinearAlgebra;
 

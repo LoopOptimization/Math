@@ -8,10 +8,10 @@ module;
 #include <memory>
 
 #ifndef USE_MODULE
-#include "Math/MatrixDimensions.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/MatrixDimensions.cxx"
 #else
 export module ArrayConstructors;
 

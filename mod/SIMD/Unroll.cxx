@@ -15,9 +15,9 @@ module;
 
 #ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
-#include "SIMD/Masks.cxx"
 #include "SIMD/Indexing.cxx"
 #include "SIMD/Intrin.cxx"
+#include "SIMD/Masks.cxx"
 #include "SIMD/Vec.cxx"
 #else
 export module SIMD:Unroll;

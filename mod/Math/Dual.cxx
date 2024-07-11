@@ -14,21 +14,21 @@ module;
 #include <utility>
 
 #ifndef USE_MODULE
-#include "Utilities/TypeCompression.cxx"
-#include "Math/StaticArrays.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Utilities/Reference.cxx"
+#include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/Constructors.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
-#include "Alloc/Arena.cxx"
 #include "Math/ElementarySIMD.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Math/StaticArrays.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 export module Dual;
 
@@ -153,6 +153,10 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   constexpr Dual(T v) : val(v) {}
   constexpr Dual(T v, ptrdiff_t n) : val(v) { partials[n] = T{1}; }
   constexpr Dual(T v, data_type g) : val(v), partials(g) {}
+  constexpr Dual(T v, AbstractVector auto g) {
+    value() = v;
+    gradient() << g;
+  }
   constexpr Dual(std::integral auto v) : val(v) {}
   constexpr Dual(std::floating_point auto v) : val(v) {}
   // constexpr Dual(const Dual &) = default;

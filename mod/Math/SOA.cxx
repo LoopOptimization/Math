@@ -15,12 +15,12 @@ module;
 #include <utility>
 
 #ifndef USE_MODULE
-#include "Containers/Tuple.cxx"
-#include "Containers/Pair.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Containers/Pair.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/MatrixDimensions.cxx"
 #else
 export module SOA;
 

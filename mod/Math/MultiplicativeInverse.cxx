@@ -12,9 +12,9 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/Widen.cxx"
-#include "Utilities/Invariant.cxx"
 #include "Numbers/Int8.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/Widen.cxx"
 #else
 export module MultiplicativeInverse;
 

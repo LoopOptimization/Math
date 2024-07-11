@@ -5,11 +5,11 @@
 #include <ostream>
 #include <random>
 #ifndef USE_MODULE
-#include "Math/Reductions.cxx"
-#include "Math/Rational.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
 #include "Math/LinearAlgebra.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Rational.cxx"
+#include "Math/Reductions.cxx"
 #include "Utilities/Invariant.cxx"
 #else
 

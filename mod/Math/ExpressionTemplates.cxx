@@ -20,14 +20,14 @@ module;
 #include <utility>
 
 #ifndef USE_MODULE
-#include "SIMD/SIMD.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Math/Ranges.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/CheckSizes.cxx"
-#include "Math/AxisTypes.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/CheckSizes.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/Parameters.cxx"
 #else
 export module ExprTemplates;
 
@@ -212,6 +212,49 @@ template <typename T, typename A> class Expr {
     return elementwise(b, a.view(), std::multiplies<>{});
   }
 
+protected:
+  constexpr auto equal_to_impl(const AbstractTensor auto &B) const -> bool {
+    auto [Ma, Na] = shape(v());
+    auto [Mb, Nb] = shape(B);
+
+    if ((Ma != Mb) || (Na != Nb)) return false;
+    using CT = std::common_type_t<T, utils::eltype_t<decltype(B)>>;
+    auto M = check_sizes(Ma, Mb);
+    auto N = check_sizes(Na, Nb);
+    auto a{v()};
+    auto b{view(B)};
+    if constexpr (simd::Width<CT> <= 2) {
+      if constexpr (AbstractMatrix<A>) {
+        for (ptrdiff_t r = 0; r < M; ++r)
+          for (ptrdiff_t i = 0; i < N; ++i)
+            if (a[r, i] != b[r, i]) return false;
+      } else {
+        ptrdiff_t L = RowVector<A> ? N : M;
+        for (ptrdiff_t i = 0; i < L; ++i)
+          if (a[i] != b[i]) return false;
+      }
+    } else if constexpr (AbstractMatrix<A>) {
+      constexpr ptrdiff_t W = getWidth<CT, decltype(N)>();
+      for (ptrdiff_t r = 0; r < M; ++r) {
+        for (ptrdiff_t i = 0;; i += W) {
+          auto u{simd::index::unrollmask<1, W>(N, i)};
+          if (!u) break;
+          if (simd::cmp::ne<W, CT>(a[r, u], b[r, u])) return false;
+        }
+      }
+    } else {
+      constexpr ptrdiff_t W = RowVector<A> ? getWidth<CT, decltype(N)>()
+                                           : getWidth<CT, decltype(M)>();
+      ptrdiff_t L = RowVector<A> ? N : M;
+      for (ptrdiff_t i = 0;; i += W) {
+        auto u{simd::index::unrollmask<1, W>(L, i)};
+        if (!u) break;
+        if (simd::cmp::ne<W, CT>(a[u], b[u])) return false;
+      }
+    }
+    return true;
+  }
+
 public:
   constexpr auto operator-() const { return elementwise(v(), std::negate<>{}); }
   constexpr auto operator!() const {
@@ -261,45 +304,7 @@ public:
 
   [[gnu::flatten]] constexpr auto
   operator==(const AbstractTensor auto &B) const -> bool {
-    auto [Ma, Na] = shape(v());
-    auto [Mb, Nb] = shape(B);
-
-    if ((Ma != Mb) || (Na != Nb)) return false;
-    using CT = std::common_type_t<T, utils::eltype_t<decltype(B)>>;
-    auto M = check_sizes(Ma, Mb);
-    auto N = check_sizes(Na, Nb);
-    auto a{v()};
-    auto b{view(B)};
-    if constexpr (simd::Width<CT> <= 2) {
-      if constexpr (AbstractMatrix<A>) {
-        for (ptrdiff_t r = 0; r < M; ++r)
-          for (ptrdiff_t i = 0; i < N; ++i)
-            if (a[r, i] != b[r, i]) return false;
-      } else {
-        ptrdiff_t L = RowVector<A> ? N : M;
-        for (ptrdiff_t i = 0; i < L; ++i)
-          if (a[i] != b[i]) return false;
-      }
-    } else if constexpr (AbstractMatrix<A>) {
-      constexpr ptrdiff_t W = getWidth<CT, decltype(N)>();
-      for (ptrdiff_t r = 0; r < M; ++r) {
-        for (ptrdiff_t i = 0;; i += W) {
-          auto u{simd::index::unrollmask<1, W>(N, i)};
-          if (!u) break;
-          if (simd::cmp::ne<W, CT>(a[r, u], b[r, u])) return false;
-        }
-      }
-    } else {
-      constexpr ptrdiff_t W = RowVector<A> ? getWidth<CT, decltype(N)>()
-                                           : getWidth<CT, decltype(M)>();
-      ptrdiff_t L = RowVector<A> ? N : M;
-      for (ptrdiff_t i = 0;; i += W) {
-        auto u{simd::index::unrollmask<1, W>(L, i)};
-        if (!u) break;
-        if (simd::cmp::ne<W, CT>(a[u], b[u])) return false;
-      }
-    }
-    return true;
+    return equal_to_impl(B);
   }
 };
 template <typename T, typename A>
@@ -328,7 +333,9 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
   [[nodiscard]] constexpr auto numCol() const {
     return transpose_dim(a_.numRow());
   }
-  [[nodiscard]] constexpr auto view() const { return Transpose(a_.view()); };
+  [[nodiscard]] constexpr auto view() const {
+    return Transpose<T, std::remove_cvref_t<decltype(a_.view())>>(a_.view());
+  };
   [[nodiscard]] constexpr auto size() const { return a_.size(); }
   [[nodiscard]] constexpr auto dim() const {
     return DenseDims(numRow(), numCol());

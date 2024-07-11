@@ -9,8 +9,8 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/Valid.cxx"
 #include "Utilities/Invariant.cxx"
+#include "Utilities/Valid.cxx"
 #else
 export module ListRange;
 

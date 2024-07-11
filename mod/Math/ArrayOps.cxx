@@ -13,15 +13,15 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Math/UniformScaling.cxx"
-#include "Utilities/TypeCompression.cxx"
 #include "Containers/Tuple.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/CheckSizes.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/CheckSizes.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Math/UniformScaling.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 export module AssignExprTemplates;
 
@@ -37,7 +37,6 @@ import UniformScaling;
 #endif
 
 #define CASTTOSCALARIZE
-
 
 namespace arrayop::detail {
 struct NoRowIndex {};
@@ -88,7 +87,7 @@ assign(D d, const S &s, R r, C c, Op op) {
   else if constexpr (no_row_ind) d[c] = op(const_cast<const D &>(d)[c], s[c]);
   else d[r, c] = op(const_cast<const D &>(d)[r, c], s[r, c]);
 }
-} // namespace detail
+} // namespace arrayop::detail
 
 template <typename S, typename T>
 [[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {
@@ -356,11 +355,13 @@ protected:
       } else if constexpr (isstatic) {
         POLYMATHFULLUNROLL
         for (ptrdiff_t j = 0; j < L; ++j)
-          arrayop::detail::assign(self, B, arrayop::detail::NoRowIndex{}, j, op);
+          arrayop::detail::assign(self, B, arrayop::detail::NoRowIndex{}, j,
+                                  op);
       } else {
         POLYMATHIVDEP
         for (ptrdiff_t j = 0; j < L; ++j)
-          arrayop::detail::assign(self, B, arrayop::detail::NoRowIndex{}, j, op);
+          arrayop::detail::assign(self, B, arrayop::detail::NoRowIndex{}, j,
+                                  op);
       }
     } else {
       ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
@@ -376,7 +377,8 @@ protected:
             else self[i, j] = auto{B[i, j]};
         } else {
           POLYMATHIVDEP
-          for (ptrdiff_t j = 0; j < C; ++j) arrayop::detail::assign(self, B, i, j, op);
+          for (ptrdiff_t j = 0; j < C; ++j)
+            arrayop::detail::assign(self, B, i, j, op);
         }
       }
     }

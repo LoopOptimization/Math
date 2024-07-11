@@ -10,10 +10,10 @@ module;
 
 #ifndef USE_MODULE
 #include "Containers/Pair.cxx"
-#include "Math/NormalForm.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
 #include "Math/Array.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/NormalForm.cxx"
 #else
 export module Unimodularization;
 

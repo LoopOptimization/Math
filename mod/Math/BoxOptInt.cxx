@@ -9,9 +9,9 @@ module;
 #include <limits>
 
 #ifndef USE_MODULE
-#include "Math/BoxOpt.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/BoxOpt.cxx"
 #else
 export module BoxOptInt;
 

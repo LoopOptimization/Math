@@ -15,20 +15,20 @@ module;
 #include <utility>
 
 #ifndef USE_MODULE
-#include "Containers/Tuple.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Math/Reductions.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Containers/Pair.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/ElementarySIMD.cxx"
-#include "Math/Dual.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Containers/Pair.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Dual.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Reductions.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/Parameters.cxx"
 #else
 export module BoxOpt;
 

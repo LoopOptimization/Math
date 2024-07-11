@@ -6,8 +6,8 @@
 #include <ostream>
 #include <print>
 #ifndef USE_MODULE
-#include "Math/ManagedArray.cxx"
 #include "Containers/BitSets.cxx"
+#include "Math/ManagedArray.cxx"
 #else
 
 import BitSet;

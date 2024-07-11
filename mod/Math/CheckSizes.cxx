@@ -8,8 +8,8 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/Parameters.cxx"
 #include "Utilities/Invariant.cxx"
+#include "Utilities/Parameters.cxx"
 #else
 export module CheckSizes;
 

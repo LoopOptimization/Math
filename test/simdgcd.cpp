@@ -7,8 +7,8 @@
 #include <random>
 #ifndef USE_MODULE
 #include "Containers/Tuple.cxx"
-#include "SIMD/SIMD.cxx"
 #include "Math/GreatestCommonDivisor.cxx"
+#include "SIMD/SIMD.cxx"
 #else
 
 import GCD;

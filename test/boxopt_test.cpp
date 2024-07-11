@@ -4,14 +4,14 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #ifndef USE_MODULE
-#include "Math/ManagedArray.cxx"
-#include "Math/ElementarySIMD.cxx"
-#include "Math/Dual.cxx"
-#include "Math/BoxOptInt.cxx"
-#include "Math/BoxOpt.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/BoxOpt.cxx"
+#include "Math/BoxOptInt.cxx"
+#include "Math/Dual.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/ManagedArray.cxx"
 #else
 
 import Arena;

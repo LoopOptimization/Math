@@ -11,8 +11,8 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
 #include "Math/AxisTypes.cxx"
+#include "Utilities/Invariant.cxx"
 #else
 export module Range;
 

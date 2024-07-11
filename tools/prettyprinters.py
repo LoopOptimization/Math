@@ -129,12 +129,12 @@ pp.add_printer(
 )
 pp.add_printer(
     "math::DensePtrMatrix",
-    "^math::(Mut)?Array<.*, math::DenseDims<-1[l]?>,[^,]*?>$",
+    "^math::(Mut)?Array<.*, math::DenseDims<-1[l]?, -1[l]?>,[^,]*?>$",
     DenseMatrixPrinter,
 )
 pp.add_printer(
     "math::StridedPtrMatrix",
-    "^math::(Mut)?Array<.*, math::StridedDims<-1[l]?>,[^,]*?>$",
+    "^math::(Mut)?Array<.*, math::StridedDims<-1[l]?, -1[l]?, -1[l]?>,[^,]*?>$",
     StridedMatrixPrinter,
 )
 pp.add_printer(

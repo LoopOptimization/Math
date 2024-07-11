@@ -14,8 +14,8 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/Widen.cxx"
 #include "Math/GreatestCommonDivisor.cxx"
+#include "Utilities/Widen.cxx"
 #else
 export module Rational;
 

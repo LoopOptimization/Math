@@ -20,17 +20,17 @@ module;
 #include <utility>
 
 #ifndef USE_MODULE
-#include "Utilities/TypeCompression.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Math/Ranges.cxx"
 #include "Containers/Pair.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Utilities/Reference.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Math/ArrayConcepts.cxx"
 #include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 export module StaticArray;
 
@@ -86,7 +86,7 @@ static_assert(ptrdiff_t(StridedDims<>{
 static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
-struct [[gsl::Owner(T)]] StaticArray
+struct MATH_GSL_OWNER StaticArray
   : public ArrayOps<T, StaticDims<T, M, N, Compress>,
                     StaticArray<T, M, N, Compress>>,
     Expr<T, StaticArray<T, M, N, Compress>> {
@@ -139,9 +139,35 @@ struct [[gsl::Owner(T)]] StaticArray
     invariant(list.size() <= size_t(capacity));
     std::copy_n(list.begin(), list.size(), data());
   }
+#if true // false
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
     this->vcopyTo(b, arrayop::detail::CopyAssign{});
   }
+#else
+  template <AbstractSimilar<S> V>
+  constexpr StaticArray(const V &b) noexcept
+  requires((!std::convertible_to<V, Array<T, S>>) ||
+           (std::same_as<S, typename V::S> && !std::same_as<StaticArray, V>))
+  {
+    this->vcopyTo(b, arrayop::detail::CopyAssign{});
+  }
+  template <AbstractSimilar<S> V>
+  explicit constexpr StaticArray(const V &b) noexcept
+  requires((std::convertible_to<V, Array<T, S>>) &&
+           (!std::same_as<S, typename V::S> || std::same_as<StaticArray, V>))
+  {
+    this->vcopyTo(b, arrayop::detail::CopyAssign{});
+  }
+  constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
+    return this->equal_to_impl(rhs);
+  }
+//   template <std::convertible_to<T>U,bool Cmp> constexpr StaticArray(const
+//   StaticArray<U,M,N,Cmp> &b) noexcept
+// requires( (!std::same_as<T,U>) || (Cmp != Compress) )
+//   {
+//     this->vcopyTo(b, arrayop::detail::CopyAssign{});
+//   }
+#endif
 
   constexpr void compress(compressed_type *p) const
   requires(std::same_as<StaticArray, decompressed_type>)
@@ -303,9 +329,6 @@ struct [[gsl::Owner(T)]] StaticArray
   {
     return {data(), SHAPE(dim())};
   }
-  // constexpr auto operator==(const StaticArray &rhs) const noexcept -> bool {
-  //   return std::equal(begin(), end(), rhs.begin());
-  // }
   // template<containers::ConvertibleFrom<S> SHAPE>
   // constexpr auto operator==(Array<T,SHAPE> rhs) const noexcept -> bool {
   //   return std::equal(begin(), end(), rhs.begin());
@@ -336,7 +359,7 @@ private:
 
 template <simd::SIMDSupported T, ptrdiff_t M, ptrdiff_t N>
 requires((M * (N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) > 1)
-struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
+struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   : ArrayOps<T, StaticDims<T, M, N, false>, StaticArray<T, M, N, false>>,
     Expr<T, StaticArray<T, M, N, false>> {
   // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
@@ -609,7 +632,7 @@ private:
 
 template <simd::SIMDSupported T, ptrdiff_t N>
 requires((N > 1) && ((N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) == 1)
-struct [[gsl::Owner(T)]] StaticArray<T, 1, N, false>
+struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   : ArrayOps<T, StaticDims<T, 1, N, false>, StaticArray<T, 1, N, false>>,
     Expr<T, StaticArray<T, 1, N, false>> {
   // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>

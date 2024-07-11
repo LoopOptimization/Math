@@ -9,14 +9,14 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Containers/Storage.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Containers/Storage.cxx"
+#include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
 #include "Math/Constructors.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
 #else
 export module GenericArrayConstructors;
 
@@ -83,21 +83,21 @@ constexpr auto matrix(A, Row<R> M, Col<C> N,
 }
 
 template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A , Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
+constexpr auto matrix(A, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, rebound_alloc_t<A, T>{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A , Row<R> M, Col<C> N,
+constexpr auto matrix(A, Row<R> M, Col<C> N,
                       std::type_identity_t<T> x) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, rebound_alloc_t<A, T>{}};
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A , ptrdiff_t M) -> SquareMatrixAlloc<A> {
+constexpr auto square_matrix(A, ptrdiff_t M) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, A{}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A , ptrdiff_t M,
+constexpr auto square_matrix(A, ptrdiff_t M,
                              utils::eltype_t<A> x) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, x, A{}};
 }

@@ -15,10 +15,10 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include "SIMD/Vec.cxx"
-#include "SIMD/Masks.cxx"
-#include "Utilities/Invariant.cxx"
 #include "Math/AxisTypes.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/Vec.cxx"
+#include "Utilities/Invariant.cxx"
 #else
 export module SIMD:Intrin;
 
@@ -456,10 +456,10 @@ load(const T *p, mask::None<8>) -> Vec<8, T> {
     return std::bit_cast<Vec<8, T>>(_mm512_loadu_epi64(vp));
 #else
   } else if constexpr (sizeof(T) == 4) {
-    __m256i *pi = reinterpret_cast<const __m256i *>(p);
+    const __m256i *pi = reinterpret_cast<const __m256i *>(p);
     return std::bit_cast<Vec<8, T>>(_mm256_loadu_si256(pi));
   } else if constexpr (sizeof(T) == 2) {
-    __m128i *pi = reinterpret_cast<const __m128i *>(p);
+    const __m128i *pi = reinterpret_cast<const __m128i *>(p);
     return std::bit_cast<Vec<8, T>>(_mm_loadu_si128(pi));
 #endif
   } else static_assert(false);
@@ -490,8 +490,7 @@ template <typename T>
 #else
   } else if constexpr (sizeof(T) == 4) {
     __m256i xi = std::bit_cast<__m256i>(x);
-    _mm256_storeu_si256(reinterpret_cast<__m256i *>(p),
-                        std::bit_cast<__m256i>(x));
+    _mm256_storeu_si256(reinterpret_cast<__m256i *>(p), xi);
   } else if constexpr (sizeof(T) == 2) {
     __m128i xi = std::bit_cast<__m128i>(x);
     _mm_storeu_si128(reinterpret_cast<__m128i *>(p), xi);
@@ -508,9 +507,10 @@ gather(const T *p, mask::None<4>, Vec<4, int32_t> indv) -> Vec<4, T> {
     return std::bit_cast<Vec<4, double>>(_mm256_i32gather_pd(p, x, 8));
   else if constexpr (std::same_as<T, float>)
     return std::bit_cast<Vec<4, float>>(_mm_i32gather_ps(p, x, 4));
-  else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(_mm256_i32gather_epi64(p, x, 8));
-  else if constexpr (sizeof(T) == 4)
+  else if constexpr (sizeof(T) == 8) {
+    const long long int *pi = reinterpret_cast<const long long int *>(p);
+    return std::bit_cast<Vec<4, T>>(_mm256_i32gather_epi64(pi, x, 8));
+  } else if constexpr (sizeof(T) == 4)
     return std::bit_cast<Vec<4, T>>(_mm_i32gather_epi32(p, x, 4));
   else static_assert(false);
 }
@@ -520,9 +520,10 @@ gather(const T *p, mask::None<4>, Vec<4, int64_t> indv) -> Vec<4, T> {
   auto x = std::bit_cast<__m256i>(indv);
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_i64gather_pd(p, x, 8));
-  else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(_mm256_i64gather_epi64(p, x, 8));
-  else static_assert(false);
+  else if constexpr (sizeof(T) == 8) {
+    const long long int *pi = reinterpret_cast<const long long int *>(p);
+    return std::bit_cast<Vec<4, T>>(_mm256_i64gather_epi64(pi, x, 8));
+  } else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
@@ -535,9 +536,10 @@ gather(const T *p, mask::None<2>, Vec<2, int64_t> indv) -> Vec<2, T> {
   auto x = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(_mm_i64gather_pd(p, x, 8));
-  else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<2, T>>(_mm_i64gather_epi64(p, x, 8));
-  else static_assert(false);
+  else if constexpr (sizeof(T) == 8) {
+    const long long int *pi = reinterpret_cast<const long long int *>(p);
+    return std::bit_cast<Vec<2, T>>(_mm_i64gather_epi64(pi, x, 8));
+  } else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
@@ -548,28 +550,30 @@ template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 gather(const T *p, mask::None<8>, Vec<8, int32_t> indv) -> Vec<8, T> {
   auto inds = std::bit_cast<__m256i>(indv);
-  if constexpr (std::same_as<T, float>)
+  if constexpr (std::same_as<T, float>) {
     return std::bit_cast<Vec<8, T>>(_mm256_i32gather_ps(p, inds, 4));
-  else if constexpr (sizeof(T) == 4)
+  } else if constexpr (sizeof(T) == 4) {
     return std::bit_cast<Vec<8, T>>(_mm256_i32gather_epi32(p, inds, 4));
 #ifdef __AVX512F__
-  else if constexpr (std::same_as<T, double>)
+  } else if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<8, T>>(_mm512_i32gather_pd(inds, p, 8));
-  else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_epi64(inds, p, 8));
+  } else if constexpr (sizeof(T) == 8) {
+    const long long int *pi = reinterpret_cast<const long long int *>(p);
+    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_epi64(inds, pi, 8));
 #endif
-  else static_assert(false);
+  } else static_assert(false);
 }
 #ifdef __AVX512F__
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto
 gather(const T *p, mask::None<8>, Vec<8, int64_t> indv) -> Vec<8, T> {
   auto inds = std::bit_cast<__m512i>(indv);
-  if constexpr (std::same_as<T, double>)
+  if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<8, T>>(_mm512_i64gather_pd(inds, p, 8));
-  else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<8, T>>(_mm512_i64gather_epi64(inds, p, 8));
-  else static_assert(false);
+  } else if constexpr (sizeof(T) == 8) {
+    const long long int *pi = reinterpret_cast<const long long int *>(p);
+    return std::bit_cast<Vec<8, T>>(_mm512_i64gather_epi64(inds, pi, 8));
+  } else static_assert(false);
 }
 #endif // AVX512F
 template <typename T>

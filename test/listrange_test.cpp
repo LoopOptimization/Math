@@ -4,8 +4,8 @@
 #include <ranges>
 #include <vector>
 #ifndef USE_MODULE
-#include "Utilities/ListRanges.cxx"
 #include "Alloc/Arena.cxx"
+#include "Utilities/ListRanges.cxx"
 #else
 
 import Arena;

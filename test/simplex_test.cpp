@@ -1,15 +1,15 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
-#include "Math/Simplex.cxx"
-#include "Math/Rational.cxx"
-#include "Math/MatrixDimensions.cxx"
+#include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
 #include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Rational.cxx"
+#include "Math/Simplex.cxx"
 #include "Utilities/ArrayPrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
-#include "Alloc/Arena.cxx"
 #else
 
 import Arena;

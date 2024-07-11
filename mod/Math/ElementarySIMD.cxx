@@ -11,8 +11,8 @@ module;
 #include <limits>
 
 #ifndef USE_MODULE
-#include "SIMD/SIMD.cxx"
 #include "Bit/Float.cxx"
+#include "SIMD/SIMD.cxx"
 #else
 export module Elementary;
 

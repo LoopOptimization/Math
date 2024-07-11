@@ -9,8 +9,8 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Utilities/Invariant.cxx"
 #else
 export module Flat;
 

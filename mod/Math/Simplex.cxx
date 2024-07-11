@@ -18,22 +18,22 @@ module;
 #include <ostream>
 
 #ifndef USE_MODULE
-#include "SIMD/SIMD.cxx"
-#include "Math/Rational.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/NormalForm.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/Constraints.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/Constraints.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/NormalForm.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/Rational.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/Invariant.cxx"
 #else
 export module Simplex;
 

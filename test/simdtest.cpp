@@ -2,10 +2,10 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
-#include "Math/ManagedArray.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/ElementarySIMD.cxx"
 #include "Math/AxisTypes.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/ManagedArray.cxx"
 #else
 
 import AxisTypes;

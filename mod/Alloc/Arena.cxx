@@ -39,9 +39,9 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include "Utilities/Valid.cxx"
-#include "Utilities/Invariant.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/Valid.cxx"
 #else
 export module Arena;
 

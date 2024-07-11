@@ -13,18 +13,18 @@
 #include <tuple>
 #include <type_traits>
 #ifndef USE_MODULE
-#include "Math/UniformScaling.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include "Containers/Tuple.cxx"
-#include "Containers/TinyVector.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Math/SmallSparseMatrix.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Utilities/MatrixStringParse.cxx"
 #include "Alloc/Arena.cxx"
+#include "Containers/TinyVector.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/SmallSparseMatrix.cxx"
+#include "Math/StaticArrays.cxx"
+#include "Math/UniformScaling.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 
 import Arena;

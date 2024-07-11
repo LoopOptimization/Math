@@ -9,11 +9,11 @@ module;
 #include <cstdint>
 
 #ifndef USE_MODULE
-#include "SIMD/Vec.cxx"
-#include "SIMD/Unroll.cxx"
-#include "SIMD/Masks.cxx"
-#include "SIMD/Intrin.cxx"
 #include "SIMD/Indexing.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/Vec.cxx"
 #else
 export module SIMD:UnrollIndex;
 

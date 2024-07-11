@@ -3,6 +3,8 @@ module;
 #else
 #pragma once
 #endif
+
+#include "Owner.hxx"
 #include <array>
 #include <concepts>
 #include <cstddef>
@@ -14,15 +16,15 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Utilities/TypeCompression.cxx"
-#include "Containers/Storage.cxx"
-#include "Containers/Pair.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Math/ArrayConcepts.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Containers/Pair.cxx"
+#include "Containers/Storage.cxx"
 #include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 export module ManagedArray;
 export import Array;
@@ -42,9 +44,11 @@ export namespace math {
 namespace math {
 #endif
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-template <typename T> using DefaultAlloc = std::allocator<utils::compressed_t<T>>;
+template <typename T>
+using DefaultAlloc = std::allocator<utils::compressed_t<T>>;
 #else
-template <typename T> using DefaultAlloc = alloc::Mallocator<utils::compressed_t<T>>;
+template <typename T>
+using DefaultAlloc = alloc::Mallocator<utils::compressed_t<T>>;
 #endif
 
 /// Stores memory, then pointer.
@@ -59,7 +63,7 @@ template <typename T> using DefaultAlloc = alloc::Mallocator<utils::compressed_t
 template <class T, Dimension S,
           ptrdiff_t StackStorage = containers::PreAllocStorage<T, S>(),
           alloc::FreeAllocator A = DefaultAlloc<T>>
-struct [[gsl::Owner(T)]] ManagedArray : ResizeableView<T, S> {
+struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   // static_assert(std::is_trivially_destructible_v<T>);
   using BaseT = ResizeableView<T, S>;
   using U = containers::default_capacity_type_t<S>;

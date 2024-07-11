@@ -3,11 +3,11 @@
 #include <gtest/gtest.h>
 #include <ostream>
 #ifndef USE_MODULE
-#include "Math/StaticArrays.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Utilities/MatrixStringParse.cxx"
 #include "Math/Array.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/StaticArrays.cxx"
+#include "Utilities/MatrixStringParse.cxx"
 #else
 
 import Array;

@@ -17,9 +17,9 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Math/Rational.cxx"
-#include "Containers/Flat.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Containers/Flat.cxx"
+#include "Math/Rational.cxx"
 #else
 export module ArrayPrint;
 

@@ -10,11 +10,11 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "SIMD/SIMD.cxx"
+#include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/Ranges.cxx"
+#include "SIMD/SIMD.cxx"
 #include "Utilities/Reference.cxx"
-#include "Math/AxisTypes.cxx"
 #else
 export module Indexing;
 
@@ -506,10 +506,10 @@ calcNewDim(StridedDims<> d, simd::index::Unroll<R, W, M> r, ptrdiff_t) {
     return simd::index::UnrollDims<R, 1, 1, M>{r.mask_, RowStride(d)};
   else return simd::index::UnrollDims<1, R, W, M, true>{r.mask_, RowStride(d)};
 }
-template <ptrdiff_t R, ptrdiff_t W, typename M>
+template <ptrdiff_t C, ptrdiff_t W, typename M>
 [[gnu::always_inline]] constexpr auto
-calcNewDim(StridedDims<> d, simd::index::Unroll<R, W, M> r) {
-  return simd::index::UnrollDims<1, R, W, M, true>{r.mask_, RowStride(d)};
+calcNewDim(StridedDims<> d, simd::index::Unroll<C, W, M> c) {
+  return simd::index::UnrollDims<1, C, W, M>{c.mask_, RowStride(d)};
 }
 
 template <ptrdiff_t U, ptrdiff_t W, typename M, ptrdiff_t L>

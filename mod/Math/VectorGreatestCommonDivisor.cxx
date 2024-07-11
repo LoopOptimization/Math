@@ -8,9 +8,9 @@ module;
 #include <cstdint>
 
 #ifndef USE_MODULE
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
 #include "Containers/Pair.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
 #include "Math/GreatestCommonDivisor.cxx"
 #else
 export module VGCD;

@@ -19,12 +19,12 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
-#include "Math/Ranges.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Math/AxisTypes.cxx"
 #include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "Utilities/Invariant.cxx"
 #else
 export module BitSet;
 

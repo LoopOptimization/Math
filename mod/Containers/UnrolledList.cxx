@@ -7,8 +7,8 @@ module;
 #include <memory>
 
 #ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
 #include "Alloc/Arena.cxx"
+#include "Utilities/Invariant.cxx"
 #else
 export module UnrolledList;
 

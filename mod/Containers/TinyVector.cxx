@@ -17,9 +17,9 @@ module;
 
 #ifndef USE_MODULE
 #include "Containers/Storage.cxx"
+#include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Utilities/Invariant.cxx"
-#include "Math/AxisTypes.cxx"
 #else
 export module TinyVector;
 

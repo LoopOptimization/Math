@@ -6,8 +6,8 @@ module;
 #include <cstddef>
 
 #ifndef USE_MODULE
-#include "Math/AxisTypes.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
 #else
 export module EmptyMatrix;
 

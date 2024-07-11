@@ -10,6 +10,7 @@ module;
 #include <type_traits>
 
 #ifndef USE_MODULE
+#include "Math/ArrayConcepts.cxx"
 #include "SIMD/SIMD.cxx"
 #else
 export module Comparisons;

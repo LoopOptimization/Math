@@ -4,20 +4,20 @@
 #include <gtest/gtest.h>
 #include <random>
 #ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Containers/TinyVector.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Dual.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Reductions.cxx"
+#include "Math/StaticArrays.cxx"
 #include "Math/UniformScaling.cxx"
 #include "Utilities/TypeCompression.cxx"
-#include "Containers/Tuple.cxx"
-#include "Containers/TinyVector.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Math/Reductions.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/Dual.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
-#include "Alloc/Arena.cxx"
 #else
 
 import Arena;

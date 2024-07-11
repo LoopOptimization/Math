@@ -87,11 +87,11 @@ else()
   target_include_directories(
     ${PROJECT_NAME}
     INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-           $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+              $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
   target_include_directories(
     ${PROJECT_NAME}
     INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/mod>
-           $<INSTALL_INTERFACE:mod/${PROJECT_NAME}-${PROJECT_VERSION}>)
+              $<INSTALL_INTERFACE:mod/${PROJECT_NAME}-${PROJECT_VERSION}>)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)

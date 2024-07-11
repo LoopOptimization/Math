@@ -8,8 +8,8 @@ module;
 #include <cstddef>
 
 #ifndef USE_MODULE
-#include "Math/ArrayConcepts.cxx"
 #include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
 #else
 export module Reductions;
 

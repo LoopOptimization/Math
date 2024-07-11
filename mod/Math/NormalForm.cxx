@@ -12,21 +12,21 @@ module;
 #include <utility>
 
 #ifndef USE_MODULE
-#include "Math/VectorGreatestCommonDivisor.cxx"
-#include "Containers/Tuple.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Math/Rational.cxx"
-#include "Math/Ranges.cxx"
-#include "Containers/Pair.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/GenericConstructors.cxx"
-#include "Math/EmptyArrays.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Constructors.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Array.cxx"
 #include "Alloc/Arena.cxx"
+#include "Containers/Pair.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/EmptyArrays.cxx"
+#include "Math/GenericConstructors.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/Rational.cxx"
+#include "Math/VectorGreatestCommonDivisor.cxx"
+#include "SIMD/SIMD.cxx"
 #else
 export module NormalForm;
 

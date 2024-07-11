@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
-#include "Containers/UnrolledList.cxx"
 #include "Alloc/Arena.cxx"
+#include "Containers/UnrolledList.cxx"
 #else
 
 import Arena;

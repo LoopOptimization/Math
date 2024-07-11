@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
+#include "Owner.hxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -29,25 +30,25 @@ module;
 #include <version>
 
 #ifndef USE_MODULE
-#include "Utilities/Valid.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include "Containers/Storage.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Math/Rational.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Containers/Pair.cxx"
-#include "Utilities/Optional.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Utilities/Reference.cxx"
-#include "Utilities/ArrayPrint.cxx"
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ArrayOps.cxx"
+#include "Containers/Pair.cxx"
+#include "Containers/Storage.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/ArrayOps.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/Rational.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/Optional.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/TypeCompression.cxx"
+#include "Utilities/Valid.cxx"
 #else
 export module Array;
 
@@ -91,9 +92,9 @@ static_assert(!MatrixDimension<DenseDims<3, 1>>);
 using utils::Valid, utils::Optional;
 
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
-struct [[gsl::Pointer(T)]] Array;
+struct MATH_GSL_POINTER Array;
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
-struct [[gsl::Pointer(T)]] MutArray;
+struct MATH_GSL_POINTER MutArray;
 
 // Cases we need to consider:
 // 1. Slice-indexing
@@ -941,7 +942,7 @@ static_assert(std::is_same_v<ITEST, MutArray<int64_t, StridedRange<>, false>>);
 /// Non-owning view of a managed array, capable of resizing,
 /// but not of re-allocating in case the capacity is exceeded.
 template <class T, Dimension S>
-struct [[gsl::Pointer(T)]] ResizeableView : MutArray<T, S> {
+struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   using BaseT = MutArray<T, S>;
   using U = containers::default_capacity_type_t<S>;
   using storage_type = typename BaseT::storage_type;

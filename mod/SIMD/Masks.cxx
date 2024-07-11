@@ -15,9 +15,9 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include "Utilities/Widen.cxx"
-#include "Utilities/Invariant.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/Widen.cxx"
 #else
 export module SIMD:Mask;
 
@@ -333,13 +333,15 @@ using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
 
 template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
-  using I = utils::signed_integer_t<VECTORWIDTH / W>;
+  static constexpr ptrdiff_t R = VECTORWIDTH / W;
+  using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
 constexpr auto
 create(ptrdiff_t i, ptrdiff_t len) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
-  using I = utils::signed_integer_t<VECTORWIDTH / W>;
+  static constexpr ptrdiff_t R = VECTORWIDTH / W;
+  using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
 template <ptrdiff_t W, typename I = int64_t> using Mask = Vector<W, sizeof(I)>;
