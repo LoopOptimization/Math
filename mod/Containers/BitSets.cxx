@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -14,6 +18,14 @@ module;
 #include <string>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Math/Ranges.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Array.cxx"
+#else
 export module BitSet;
 
 import Array;
@@ -22,8 +34,13 @@ import Invariant;
 import ManagedArray;
 import MatDim;
 import Range;
+#endif
 
+#ifdef USE_MODULE
 export namespace containers {
+#else
+namespace containers {
+#endif
 using utils::invariant;
 
 struct EndSentinel {

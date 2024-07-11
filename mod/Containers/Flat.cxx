@@ -1,15 +1,28 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include "Owner.hxx"
 #include <cstddef>
 #include <memory>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#include "Alloc/Mallocator.cxx"
+#else
 export module Flat;
 
 import Allocator;
 import Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace containers {
+#else
+namespace containers {
+#endif
 template <typename T> struct MATH_GSL_OWNER Flat {
   static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
   explicit constexpr Flat(ptrdiff_t len)

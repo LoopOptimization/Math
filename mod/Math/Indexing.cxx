@@ -1,10 +1,21 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "Utilities/Reference.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 export module Indexing;
 
 import AxisTypes;
@@ -12,8 +23,13 @@ import CompressReference;
 import Range;
 import MatDim;
 import SIMD;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 /// TODO: remove `OffsetBegin`
 /// We probably won't support non-zero-based indexing
@@ -268,7 +284,7 @@ calcOffset(Length<> len, simd::index::Unroll<U, W, M> i) {
 }
 template <ptrdiff_t U, ptrdiff_t W, typename M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
-calcOffset(Length<1> len, simd::index::Unroll<U, W, M> i) {
+calcOffset(Length<1>, simd::index::Unroll<U, W, M> i) {
   if constexpr (std::same_as<M, simd::mask::None<W>>)
     invariant((i.index_ + U * W - 1) == 0);
   else invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 == 0);

@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <bit>
 #include <cmath>
 #include <concepts>
@@ -6,10 +10,15 @@ module;
 #include <cstdint>
 #include <limits>
 
+#ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#include "Bit/Float.cxx"
+#else
 export module Elementary;
 
 import BitHack;
 import SIMD;
+#endif
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 constexpr double J_TABLE[256] = {1.0,
@@ -477,7 +486,11 @@ exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
   }
 }
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 constexpr auto exp(double x) -> double { return exp_impl<3>(x); }
 constexpr auto exp2(double x) -> double { return exp_impl<2>(x); }
 constexpr auto exp10(double x) -> double { return exp_impl<10>(x); }

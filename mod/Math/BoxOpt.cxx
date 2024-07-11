@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include "LoopMacros.hxx"
 #include <algorithm>
 #include <array>
@@ -10,6 +14,22 @@ module;
 #include <type_traits>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Containers/Tuple.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/Reductions.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Containers/Pair.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/Dual.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#include "Alloc/Mallocator.cxx"
+#else
 export module BoxOpt;
 
 import Allocator;
@@ -26,8 +46,13 @@ import Param;
 import Reductions;
 import SIMD;
 import Tuple;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 constexpr double EXTREME = 8.0;
 

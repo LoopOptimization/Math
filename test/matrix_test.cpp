@@ -12,6 +12,20 @@
 #include <sstream>
 #include <tuple>
 #include <type_traits>
+#ifndef USE_MODULE
+#include "Math/UniformScaling.cxx"
+#include "Utilities/TypeCompression.cxx"
+#include "Containers/Tuple.cxx"
+#include "Containers/TinyVector.cxx"
+#include "Math/StaticArrays.cxx"
+#include "Math/SmallSparseMatrix.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#include "Alloc/Arena.cxx"
+#else
 
 import Arena;
 import ArrayParse;
@@ -25,6 +39,7 @@ import TinyVector;
 import Tuple;
 import TypeCompression;
 import UniformScaling;
+#endif
 
 using namespace math;
 using utils::operator""_mat;

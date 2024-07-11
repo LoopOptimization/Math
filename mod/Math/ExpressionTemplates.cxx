@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 // We'll follow Julia style, so anything that's not a constructor, destructor,
 // nor an operator will be outside of the struct/class.
 
@@ -15,6 +19,16 @@ module;
 #include <type_traits>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Math/Ranges.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/CheckSizes.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ArrayConcepts.cxx"
+#else
 export module ExprTemplates;
 
 import ArrayConcepts;
@@ -25,6 +39,7 @@ import Param;
 import Range;
 import ScalarizeViaCast;
 import SIMD;
+#endif
 
 using utils::TriviallyCopyable;
 
@@ -92,7 +107,11 @@ using argtyp_t =
                         std::floating_point<utils::eltype_t<B>>),
                      utils::eltype_t<B>, A>;
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 constexpr auto elementwise(A, Op) -> Elementwise<A, Op>;
 
@@ -157,7 +176,11 @@ struct AbstractSelect {
 
 // constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <typename T, typename A> class Expr {
   constexpr auto v() const { return static_cast<const A *>(this)->view(); }
@@ -692,7 +715,11 @@ struct MatMatMul : public math::Expr<
   };
 };
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 constexpr auto elementwise(A a, Op op) -> Elementwise<A, Op> {

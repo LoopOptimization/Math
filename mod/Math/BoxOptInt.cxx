@@ -1,16 +1,30 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 
+#ifndef USE_MODULE
+#include "Math/BoxOpt.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#else
 export module BoxOptInt;
 
 import Arena;
 import Array;
 import BoxOpt;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 // recursive branch and bound
 constexpr auto branch(alloc::Arena<> *alloc, BoxTransform &box, double upper,

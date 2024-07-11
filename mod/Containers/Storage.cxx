@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <bit>
 #include <concepts>
@@ -6,10 +10,15 @@ module;
 #include <cstdint>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
+#include "Math/MatrixDimensions.cxx"
+#else
 export module Storage;
 
 import MatDim;
 import AxisTypes;
+#endif
 
 template <class T>
 concept SizeMultiple8 = (sizeof(T) % 8) == 0;
@@ -38,7 +47,11 @@ consteval auto bisectFindSquare(uint64_t l, uint64_t h,
   return bisectFindSquare(m + 1, h, N);
 }
 
+#ifdef USE_MODULE
 export namespace containers {
+#else
+namespace containers {
+#endif
 template <class S>
 using default_capacity_type_t = typename DefaultCapacityType<S>::type;
 static_assert(sizeof(default_capacity_type_t<uint32_t>) == 4);

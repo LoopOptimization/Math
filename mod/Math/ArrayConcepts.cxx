@@ -1,14 +1,27 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
+#include "Math/MatrixDimensions.cxx"
+#else
 export module ArrayConcepts;
 
 export import MatDim;
 import AxisTypes;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <typename T, typename S = utils::eltype_t<T>>
 concept LinearlyIndexable = requires(T t, ptrdiff_t i) {

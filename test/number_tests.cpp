@@ -1,8 +1,12 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <limits>
+#ifndef USE_MODULE
+#include "Numbers/Int8.cxx"
+#else
 
 import Int8;
+#endif
 
 using numbers::i8, numbers::u8, numbers::Flag8;
 

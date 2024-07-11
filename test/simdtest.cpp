@@ -1,11 +1,18 @@
 #include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
+#ifndef USE_MODULE
+#include "Math/ManagedArray.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 
 import AxisTypes;
 import Elementary;
 import ExprTemplates;
 import ManagedArray;
+#endif
 
 TEST(ElementarySIMD, BasicAssertions) {
 

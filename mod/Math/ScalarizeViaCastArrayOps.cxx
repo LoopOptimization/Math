@@ -1,14 +1,26 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <functional>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Math/MatrixDimensions.cxx"
+#else
 export module ScalarizeViaCast;
 
 import MatDim;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 template <typename T> struct ScalarizeViaCast {
   using type = void;
 };

@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "LoopMacros.hxx"
 #include <array>
@@ -9,6 +13,13 @@ module;
 #include <functional>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/Indexing.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Vec.cxx"
+#else
 export module SIMD:Unroll;
 
 import :Vec;
@@ -16,8 +27,13 @@ import :Intrin;
 import :Index;
 import :Mask;
 import AxisTypes;
+#endif
 
+#ifdef USE_MODULE
 export namespace simd {
+#else
+namespace simd {
+#endif
 // template <typename T, ptrdiff_t W, typename S>
 // [[gnu::always_inline]] constexpr auto vcvt(Vec<W, S> v) {
 //   if constexpr (std::same_as<T, S>) return v;

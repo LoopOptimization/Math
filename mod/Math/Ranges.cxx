@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <cstddef>
@@ -6,12 +10,21 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 export module Range;
 
 import AxisTypes;
 import Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 template <ptrdiff_t M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 standardizeRangeBound(math::Row<M> x) {

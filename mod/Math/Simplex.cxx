@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -13,6 +17,24 @@ module;
 #include <new>
 #include <ostream>
 
+#ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#include "Math/Rational.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/NormalForm.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/Constraints.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#include "Alloc/Mallocator.cxx"
+#else
 export module Simplex;
 
 import Allocator;
@@ -31,8 +53,13 @@ import NormalForm;
 import Range;
 import Rational;
 import SIMD;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 // #define VERBOSESIMPLEX
 
 /// Tableau for the Simplex algorithm.

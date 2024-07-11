@@ -1,12 +1,22 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <cstddef>
 #include <ostream>
 #include <type_traits>
 #include <utility>
 
+#ifdef USE_MODULE
 export module Pair;
+#endif
 
+#ifdef USE_MODULE
 export namespace containers {
+#else
+namespace containers {
+#endif
 
 template <typename To, typename From>
 concept ConvertibleFrom = std::is_convertible_v<From, To>;

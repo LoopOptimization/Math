@@ -2,8 +2,12 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <random>
+#ifndef USE_MODULE
+#include "Bit/Float.cxx"
+#else
 
 import BitHack;
+#endif
 
 TEST(BitTest, BasicAssertions) {
   for (int i = 0; i < 63; ++i) {

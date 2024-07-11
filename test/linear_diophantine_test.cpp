@@ -4,8 +4,12 @@
 #include <iostream>
 #include <random>
 #include <vector>
+#ifndef USE_MODULE
+#include "Math/LinearDiophantine.cxx"
+#else
 
 import LinearDiophantine;
+#endif
 
 using namespace math;
 

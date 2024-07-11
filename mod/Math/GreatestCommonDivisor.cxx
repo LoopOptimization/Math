@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <algorithm>
 #include <array>
@@ -8,12 +12,21 @@ module;
 #include <cstdint>
 #include <limits>
 
+#ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#include "Utilities/Invariant.cxx"
+#else
 export module GCD;
 
 import Invariant;
 import SIMD;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 using utils::invariant;
 constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;

@@ -1,14 +1,26 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "Owner.hxx"
 #include <cstddef>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#else
 export module Valid;
 
 import Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 // TODO: communicate not-null to the compiler somehow?
 template <typename T> class MATH_GSL_POINTER Valid {
   [[no_unique_address]] T *value;

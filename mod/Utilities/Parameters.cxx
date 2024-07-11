@@ -1,10 +1,20 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <type_traits>
 
+#ifdef USE_MODULE
 export module Param;
+#endif
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 concept TriviallyCopyable =
   std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
@@ -17,7 +27,11 @@ template <utils::TriviallyCopyable T> struct InParameter<T> {
   using type = T;
 };
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 
 /// This can be used like
 /// auto foo_impl(inparam_t<T> x, ...);

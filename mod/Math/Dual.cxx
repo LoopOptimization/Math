@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include "LoopMacros.hxx"
 #include <bit>
 #include <concepts>
@@ -9,6 +13,23 @@ module;
 #include <type_traits>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Utilities/TypeCompression.cxx"
+#include "Math/StaticArrays.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Utilities/Reference.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#include "Math/ElementarySIMD.cxx"
+#else
 export module Dual;
 
 export import Elementary;
@@ -26,8 +47,13 @@ import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
 import TypeCompression;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
   static_assert(Compress);

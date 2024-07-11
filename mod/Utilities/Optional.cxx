@@ -1,14 +1,26 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <concepts>
 #include <limits>
 #include <optional>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Utilities/Valid.cxx"
+#else
 export module Optional;
 import Invariant;
 import Valid;
+#endif
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 /// Optional<T>
 /// This type uses sentinels to indicate empty-optionals as an optimization for
 /// certain types, oterhwise it falls back to `std::optional<T>`. Users may

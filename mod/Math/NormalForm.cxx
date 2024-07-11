@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <algorithm>
 #include <array>
@@ -7,6 +11,23 @@ module;
 #include <limits>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Math/VectorGreatestCommonDivisor.cxx"
+#include "Containers/Tuple.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/Rational.cxx"
+#include "Math/Ranges.cxx"
+#include "Containers/Pair.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/GenericConstructors.cxx"
+#include "Math/EmptyArrays.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#else
 export module NormalForm;
 
 import Arena;
@@ -24,6 +45,7 @@ import Rational;
 import SIMD;
 import Tuple;
 import VGCD;
+#endif
 
 using alloc::Arena, containers::Tuple, containers::tie;
 
@@ -130,7 +152,11 @@ constexpr auto pivotRowsPair(std::array<MutPtrMatrix<int64_t>, 2> AK, Col<> i,
   }
   return false;
 }
+#ifdef USE_MODULE
 export namespace math::NormalForm {
+#else
+namespace math::NormalForm {
+#endif
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> K,
                          ptrdiff_t i, Row<> M) -> bool {
   MutPtrMatrix<int64_t> B = K;
@@ -427,7 +453,11 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   return {std::move(K), std::move(included)};
 }
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 namespace NormalForm {
 // update a reduced matrix for a new row
 // doesn't reduce last row (assumes you're solving for it)

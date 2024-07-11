@@ -3,9 +3,14 @@
 #include <gtest/gtest.h>
 #include <ranges>
 #include <vector>
+#ifndef USE_MODULE
+#include "Utilities/ListRanges.cxx"
+#include "Alloc/Arena.cxx"
+#else
 
 import Arena;
 import ListRange;
+#endif
 
 template <typename T> class List {
   T data;

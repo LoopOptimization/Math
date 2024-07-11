@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <array>
 #include <concepts>
 #include <cstddef>
@@ -9,6 +13,17 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/TypeCompression.cxx"
+#include "Containers/Storage.cxx"
+#include "Containers/Pair.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Alloc/Mallocator.cxx"
+#include "Math/Array.cxx"
+#else
 export module ManagedArray;
 export import Array;
 import Allocator;
@@ -19,12 +34,17 @@ import MatDim;
 import Pair;
 import Storage;
 import TypeCompression;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
-template <typename T> using DefaultAlloc = std::allocator<compressed_t<T>>;
 #else
-template <typename T> using DefaultAlloc = alloc::Mallocator<compressed_t<T>>;
+namespace math {
+#endif
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+template <typename T> using DefaultAlloc = std::allocator<utils::compressed_t<T>>;
+#else
+template <typename T> using DefaultAlloc = alloc::Mallocator<utils::compressed_t<T>>;
 #endif
 
 /// Stores memory, then pointer.

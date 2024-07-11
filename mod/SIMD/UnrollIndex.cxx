@@ -1,9 +1,20 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include "LoopMacros.hxx"
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 
+#ifndef USE_MODULE
+#include "SIMD/Vec.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Indexing.cxx"
+#else
 export module SIMD:UnrollIndex;
 
 import :Index;
@@ -11,8 +22,13 @@ import :Intrin;
 import :Mask;
 import :Unroll;
 import :Vec;
+#endif
 
+#ifdef USE_MODULE
 export namespace simd::index {
+#else
+namespace simd::index {
+#endif
 // Unroll rows by a factor of `R` and cols by `C`, vectorizing with width `W`
 template <ptrdiff_t U, ptrdiff_t W = 1, typename M = mask::None<W>>
 struct Unroll {

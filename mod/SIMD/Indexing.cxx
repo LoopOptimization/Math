@@ -1,14 +1,27 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <cstddef>
 
+#ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
+#include "SIMD/Masks.cxx"
+#else
 export module SIMD:Index;
 
 import :Mask;
 import AxisTypes;
+#endif
 
+#ifdef USE_MODULE
 export namespace simd::index {
+#else
+namespace simd::index {
+#endif
 
 // template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, ptrdiff_t X>
 // constexpr auto unroll(ptrdiff_t index, M mask, RowStride<X> rs){

@@ -1,9 +1,23 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <memory>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Containers/Storage.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#include "Alloc/Mallocator.cxx"
+#include "Math/Constructors.cxx"
+#else
 export module GenericArrayConstructors;
 
 export import ArrayConstructors;
@@ -14,11 +28,16 @@ import AxisTypes;
 import ManagedArray;
 import MatDim;
 import Storage;
+#endif
 
 template <typename T>
 concept NonEmpty = !std::is_empty_v<T>;
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 using alloc::Arena, alloc::WArena, alloc::OwningArena, utils::eltype_t;
 
@@ -30,78 +49,78 @@ using rebound_alloc_t =
 // using alloc_type = typename std::allocator_traits<A>::value_type;
 
 template <alloc::FreeAllocator A>
-constexpr auto vector(A a, ptrdiff_t M)
+constexpr auto vector(A, ptrdiff_t M)
   -> ManagedArray<eltype_t<A>, Length<>,
                   containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
-  return {length(M), a};
+  return {length(M), A{}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto vector(A a, ptrdiff_t M, eltype_t<A> x)
+constexpr auto vector(A, ptrdiff_t M, eltype_t<A> x)
   -> ManagedArray<eltype_t<A>, Length<>,
                   containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
-  return {length(M), x, a};
+  return {length(M), x, A{}};
 }
 
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto vector(A a, ptrdiff_t M) {
-  if constexpr (std::same_as<T, eltype_t<A>>) return vector(a, M);
+constexpr auto vector(A, ptrdiff_t M) {
+  if constexpr (std::same_as<T, eltype_t<A>>) return vector(A{}, M);
   else return vector(rebound_alloc_t<A, T>{}, M);
 }
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto vector(A a, ptrdiff_t M, std::type_identity_t<T> x) {
-  if constexpr (std::same_as<T, eltype_t<A>>) return vector<A>(a, M, x);
+constexpr auto vector(A, ptrdiff_t M, std::type_identity_t<T> x) {
+  if constexpr (std::same_as<T, eltype_t<A>>) return vector<A>(A{}, M, x);
   else return vector<A>(rebound_alloc_t<A, T>{}, M, x);
 }
 
 template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A a, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
-  return {DenseDims{M, N}, a};
+constexpr auto matrix(A, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
+  return {DenseDims{M, N}, A{}};
 }
 template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A a, Row<R> M, Col<C> N,
+constexpr auto matrix(A, Row<R> M, Col<C> N,
                       eltype_t<A> x) -> DenseMatrixAlloc<A, R, C> {
-  return {DenseDims{M, N}, x, a};
+  return {DenseDims{M, N}, x, A{}};
 }
 
 template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A a, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
+constexpr auto matrix(A , Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, rebound_alloc_t<A, T>{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
-constexpr auto matrix(A a, Row<R> M, Col<C> N,
+constexpr auto matrix(A , Row<R> M, Col<C> N,
                       std::type_identity_t<T> x) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, rebound_alloc_t<A, T>{}};
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A a, ptrdiff_t M) -> SquareMatrixAlloc<A> {
+constexpr auto square_matrix(A , ptrdiff_t M) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, A{}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A a, ptrdiff_t M,
+constexpr auto square_matrix(A , ptrdiff_t M,
                              utils::eltype_t<A> x) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, x, A{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto
-square_matrix(A a, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
+square_matrix(A, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, rebound_alloc_t<A, T>{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto square_matrix(A a, ptrdiff_t M, std::type_identity_t<T> x)
+constexpr auto square_matrix(A, ptrdiff_t M, std::type_identity_t<T> x)
   -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, x, rebound_alloc_t<A, T>{}};
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto identity(A a, ptrdiff_t M) -> SquareMatrixAlloc<A> {
-  SquareMatrixAlloc<A> B{SquareDims<>{row(M)}, utils::eltype_t<A>{}, a};
+constexpr auto identity(A, ptrdiff_t M) -> SquareMatrixAlloc<A> {
+  SquareMatrixAlloc<A> B{SquareDims<>{row(M)}, utils::eltype_t<A>{}, A{}};
   B.diag() << eltype_t<A>{1};
   return B;
 }
 template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto
-identity(A a, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
+identity(A, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return identity<rebound_alloc_t<A, T>>(rebound_alloc_t<A, T>{}, M);
 }
 template <typename T, typename I>

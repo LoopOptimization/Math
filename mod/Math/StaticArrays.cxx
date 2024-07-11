@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "LoopMacros.hxx"
 #include <algorithm>
@@ -15,6 +19,19 @@ module;
 #include <type_traits>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Utilities/TypeCompression.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/Ranges.cxx"
+#include "Containers/Pair.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Utilities/Reference.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#else
 export module StaticArray;
 
 import Array;
@@ -28,6 +45,7 @@ import Pair;
 import Range;
 import SIMD;
 import TypeCompression;
+#endif
 
 template <typename T, ptrdiff_t L>
 consteval auto paddedSize() -> std::array<ptrdiff_t, 2> {
@@ -47,7 +65,11 @@ template <typename T, ptrdiff_t L> consteval auto alignSIMD() -> size_t {
   else return alignof(simd::Vec<simd::VecLen<L, T>, T>);
 }
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<
@@ -118,7 +140,7 @@ struct [[gsl::Owner(T)]] StaticArray
     std::copy_n(list.begin(), list.size(), data());
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
-    this->vcopyTo(b, CopyAssign{});
+    this->vcopyTo(b, arrayop::detail::CopyAssign{});
   }
 
   constexpr void compress(compressed_type *p) const
@@ -404,7 +426,7 @@ struct [[gsl::Owner(T)]] StaticArray<T, M, N, false>
     return {*this};
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
-    this->vcopyTo(b, CopyAssign{});
+    this->vcopyTo(b, arrayop::detail::CopyAssign{});
   }
   constexpr explicit StaticArray(T x) {
     simd::Vec<W, T> v = simd::vbroadcast<W, T>(x);

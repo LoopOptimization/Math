@@ -6,6 +6,20 @@
 #include <optional>
 #include <random>
 #include <utility>
+#ifndef USE_MODULE
+#include "Math/UniformScaling.cxx"
+#include "Containers/Pair.cxx"
+#include "Math/NormalForm.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/Comparisons.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#else
 
 import Arena;
 import Array;
@@ -19,6 +33,7 @@ import MatDim;
 import NormalForm;
 import Pair;
 import UniformScaling;
+#endif
 
 using namespace math;
 using utils::operator""_mat;

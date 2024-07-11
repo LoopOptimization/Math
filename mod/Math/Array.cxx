@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "LoopMacros.hxx"
 #include <algorithm>
@@ -24,6 +28,27 @@ module;
 #include <utility>
 #include <version>
 
+#ifndef USE_MODULE
+#include "Utilities/Valid.cxx"
+#include "Utilities/TypeCompression.cxx"
+#include "Containers/Storage.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Math/Rational.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Containers/Pair.cxx"
+#include "Utilities/Optional.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Alloc/Arena.cxx"
+#include "Alloc/Mallocator.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ArrayOps.cxx"
+#include "Math/ArrayConcepts.cxx"
+#else
 export module Array;
 
 export import ArrayConcepts;
@@ -45,8 +70,13 @@ import SIMD;
 import Storage;
 import TypeCompression;
 import Valid;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 using utils::compressed_t, utils::decompressed_t;
 
 static_assert(Dimension<Length<>>);

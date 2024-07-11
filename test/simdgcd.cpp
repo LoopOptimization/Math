@@ -5,10 +5,16 @@
 #include <limits>
 #include <numeric>
 #include <random>
+#ifndef USE_MODULE
+#include "Containers/Tuple.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#else
 
 import GCD;
 import SIMD;
 import Tuple;
+#endif
 
 template <ptrdiff_t W>
 constexpr auto vecget(simd::Vec<W, int64_t> v, ptrdiff_t i) -> int64_t {

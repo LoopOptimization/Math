@@ -5,9 +5,14 @@
 #include <iostream>
 #include <ostream>
 #include <print>
+#ifndef USE_MODULE
+#include "Math/ManagedArray.cxx"
+#include "Containers/BitSets.cxx"
+#else
 
 import BitSet;
 import ManagedArray;
+#endif
 
 using containers::BitSet, math::Vector;
 

@@ -1,9 +1,14 @@
 
 #include <cstdint>
 #include <gtest/gtest.h>
+#ifndef USE_MODULE
+#include "Containers/UnrolledList.cxx"
+#include "Alloc/Arena.cxx"
+#else
 
 import Arena;
 import UnrolledList;
+#endif
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(UListTest, BasicAssertions) {

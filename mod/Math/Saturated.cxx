@@ -1,13 +1,25 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <limits>
 
+#ifndef USE_MODULE
+#include "Utilities/Widen.cxx"
+#else
 export module Saturated;
 
 import Widen;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 template <std::unsigned_integral T> constexpr auto add_sat(T x, T y) -> T {
   T res = x + y;
   return res | -(res < x);

@@ -1,12 +1,24 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <concepts>
 #include <cstddef>
 
+#ifndef USE_MODULE
+#include "Utilities/TypeCompression.cxx"
+#else
 export module CompressReference;
 
 import TypeCompression;
+#endif
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T> struct Reference {
   using C = utils::compressed_t<T>;
   static_assert(!std::same_as<C, T>);
@@ -222,7 +234,7 @@ private:
     std::swap(*x.c, *y.c);
   }
   friend constexpr auto value(Reference x) {
-    if constexpr (requires(C *c) { c->value(); })
+    if constexpr (requires(C *cc) { cc->value(); })
       return math::value(x.c->value());
     else return math::value(*x.c);
   }

@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <cstddef>
@@ -37,11 +41,19 @@ module;
 #include <memory>
 #endif
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#else
 export module Allocator;
 
 import Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace alloc {
+#else
+namespace alloc {
+#endif
 
 #ifdef __cpp_lib_allocate_at_least
 template <class Pointer> using AllocResult = std::allocation_result<Pointer *>;

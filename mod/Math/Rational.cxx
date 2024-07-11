@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <cstddef>
@@ -9,12 +13,21 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Widen.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#else
 export module Rational;
 
 import GCD;
 import Widen;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 struct Rational {
   [[no_unique_address]] int64_t numerator{0};
@@ -242,7 +255,11 @@ constexpr auto gcd(Rational x, Rational y) -> std::optional<Rational> {
                   lcm(x.denominator, y.denominator)};
 }
 } // namespace math
+#ifdef USE_MODULE
 export namespace std {
+#else
+namespace std {
+#endif
 template <> struct common_type<math::Rational, int> {
   using type = math::Rational;
 };

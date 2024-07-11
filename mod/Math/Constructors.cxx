@@ -1,17 +1,32 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <cstddef>
 #include <cstring>
 #include <memory>
 
+#ifndef USE_MODULE
+#include "Math/MatrixDimensions.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#else
 export module ArrayConstructors;
 
 import Arena;
 import Array;
 import AxisTypes;
 import MatDim;
+#endif
 
 using utils::eltype_t;
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <class T>
 constexpr auto vector(alloc::WArena<T> alloc,

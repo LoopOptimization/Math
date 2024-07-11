@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "LoopMacros.hxx"
 #include <array>
@@ -10,14 +14,25 @@ module;
 #include <immintrin.h>
 #endif
 
+#ifndef USE_MODULE
+#include "SIMD/Vec.cxx"
+#include "SIMD/Masks.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 export module SIMD:Intrin;
 
 import AxisTypes;
 import Invariant;
 import :Mask;
 import :Vec;
+#endif
 
+#ifdef USE_MODULE
 export namespace simd {
+#else
+namespace simd {
+#endif
 
 // Supported means by this library currently; more types may be added in the
 // future as needed.

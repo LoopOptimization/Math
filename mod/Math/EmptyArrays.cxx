@@ -1,12 +1,25 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <cstddef>
 
+#ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
+#include "Math/ArrayConcepts.cxx"
+#else
 export module EmptyMatrix;
 
 import ArrayConcepts;
 import AxisTypes;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <typename T> struct EmptyMatrix {
   using value_type = T;

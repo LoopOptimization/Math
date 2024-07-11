@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "Owner.hxx"
 #include <algorithm>
@@ -11,14 +15,25 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Containers/Storage.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 export module TinyVector;
 
 import AxisTypes;
 import Invariant;
 import MatDim;
 import Storage;
+#endif
 
+#ifdef USE_MODULE
 export namespace containers {
+#else
+namespace containers {
+#endif
 using utils::invariant;
 
 template <class T, size_t N, std::signed_integral L = ptrdiff_t>

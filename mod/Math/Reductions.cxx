@@ -1,14 +1,27 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "LoopMacros.hxx"
 #include <cstddef>
 
+#ifndef USE_MODULE
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#else
 export module Reductions;
 
 import Array;
 import ArrayConcepts;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 constexpr auto abs2(auto x) { return x * x; }
 template <AbstractTensor B> constexpr auto norm2(const B &A) {
   utils::eltype_t<B> s = 0;

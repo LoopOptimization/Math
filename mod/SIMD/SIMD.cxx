@@ -1,5 +1,17 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
+#ifndef USE_MODULE
+#include "SIMD/Vec.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Indexing.cxx"
+#else
 export module SIMD;
 
 export import :Index;
@@ -8,3 +20,4 @@ export import :Mask;
 export import :Unroll;
 export import :UnrollIndex;
 export import :Vec;
+#endif

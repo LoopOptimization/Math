@@ -1,15 +1,27 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#else
 export module Comparisons;
 import ArrayConcepts;
 import SIMD;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 // constexpr auto allZero(const auto &x) -> bool {
 //   return std::all_of(x.begin(), x.end(), [](auto a) { return a == 0; });
 //   // return std::ranges::all_of(x, [](auto x) { return x == 0; });

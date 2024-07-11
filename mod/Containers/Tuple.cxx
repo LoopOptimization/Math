@@ -1,14 +1,26 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Containers/Pair.cxx"
+#else
 export module Tuple;
 
 import Pair;
+#endif
 
+#ifdef USE_MODULE
 export namespace containers {
+#else
+namespace containers {
+#endif
 
 template <typename T, typename... Ts> struct Tuple;
 template <typename T, typename... Ts>

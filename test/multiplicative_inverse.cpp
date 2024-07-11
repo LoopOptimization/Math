@@ -1,7 +1,11 @@
 #include <cstdint>
 #include <gtest/gtest.h>
+#ifndef USE_MODULE
+#include "Math/MultiplicativeInverse.cxx"
+#else
 
 import MultiplicativeInverse;
+#endif
 
 using math::MultiplicativeInverse, math::cld;
 

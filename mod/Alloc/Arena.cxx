@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <algorithm>
 #include <bit>
@@ -34,11 +38,17 @@ module;
 #define MATH_NO_SANITIZE_MEMORY_ATTRIBUTE
 #endif
 
+#ifndef USE_MODULE
+#include "Utilities/Valid.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Alloc/Mallocator.cxx"
+#else
 export module Arena;
 
 import Allocator;
 import Invariant;
 import Valid;
+#endif
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 #if !__has_include(<sanitizer/asan_interface.h>)
@@ -51,7 +61,11 @@ void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
 #endif
 #endif
 
+#ifdef USE_MODULE
 export namespace alloc {
+#else
+namespace alloc {
+#endif
 
 using utils::invariant, utils::Valid;
 

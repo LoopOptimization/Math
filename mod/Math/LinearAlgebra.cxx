@@ -1,8 +1,24 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <concepts>
 #include <cstddef>
 #include <ranges>
 
+#ifndef USE_MODULE
+#include "Utilities/TypeCompression.cxx"
+#include "Math/Rational.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Containers/Pair.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/GenericConstructors.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#else
 export module LinearAlgebra;
 
 import Array;
@@ -15,13 +31,18 @@ import Pair;
 import Param;
 import Rational;
 import TypeCompression;
+#endif
 
 template <typename T>
 concept TrivialVec = utils::TriviallyCopyable<T> && math::AbstractVector<T>;
 // template <typename T>
 // concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
 //
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 namespace LU {
 [[nodiscard]] constexpr auto ldivrat(SquarePtrMatrix<Rational> F,
                                      PtrVector<unsigned> ipiv,

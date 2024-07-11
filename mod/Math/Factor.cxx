@@ -1,11 +1,21 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <array>
 #include <cmath>
 
+#ifdef USE_MODULE
 export module Factor;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 /// Tested from [1..32]
 /// returns integer valued `double`s such that

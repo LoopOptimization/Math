@@ -2,8 +2,12 @@
 #include <gtest/gtest.h>
 #include <limits>
 #include <random>
+#ifndef USE_MODULE
+#include "Math/Saturated.cxx"
+#else
 
 import Saturated;
+#endif
 
 TEST(SaturatedArithmetic, BasicAssertions) {
 

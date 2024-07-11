@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <cstddef>
@@ -6,14 +10,25 @@ module;
 #include <ostream>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Array.cxx"
+#else
 export module SmallSparseMatrix;
 
 import Array;
 import AxisTypes;
 import ManagedArray;
 import MatDim;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 // this file is not used at the moment
 template <typename T> class SmallSparseMatrix {
   // non-zeros

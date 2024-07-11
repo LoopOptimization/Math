@@ -1,9 +1,23 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 
+#ifndef USE_MODULE
+#include "Math/NormalForm.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/GenericConstructors.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#include "Math/EmptyArrays.cxx"
+#include "Math/Comparisons.cxx"
+#include "Containers/BitSets.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 export module Constraints;
 import ArrayConcepts;
 import AxisTypes;
@@ -14,8 +28,13 @@ import GCD;
 import GenericArrayConstructors;
 import ManagedArray;
 import NormalForm;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 inline auto printConstraint(std::ostream &os, PtrVector<int64_t> a,
                             ptrdiff_t numSyms, bool inequality) {
   ptrdiff_t numVar = a.size();

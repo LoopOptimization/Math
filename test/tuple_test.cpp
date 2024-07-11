@@ -1,8 +1,12 @@
 #include <concepts>
 #include <cstdint>
 #include <gtest/gtest.h>
+#ifndef USE_MODULE
+#include "Containers/Tuple.cxx"
+#else
 
 import Tuple;
+#endif
 
 using containers::Tuple, containers::tie;
 

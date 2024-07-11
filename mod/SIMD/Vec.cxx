@@ -1,14 +1,24 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <cstddef>
 #include <type_traits>
 
+#ifdef USE_MODULE
 export module SIMD:Vec;
+#endif
 
 template <ptrdiff_t W, typename T>
 using Vec_ [[gnu::vector_size(W * sizeof(T))]] = T;
 
+#ifdef USE_MODULE
 export namespace simd {
+#else
+namespace simd {
+#endif
 template <ptrdiff_t W, typename T>
 using Vec = std::conditional_t<W == 1, T, Vec_<W, T>>;
 #ifdef __x86_64__

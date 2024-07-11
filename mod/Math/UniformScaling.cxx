@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include "LoopMacros.hxx"
 #include <concepts>
@@ -7,6 +11,13 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Widen.cxx"
+#include "SIMD/SIMD.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ArrayConcepts.cxx"
+#else
 export module UniformScaling;
 
 import ArrayConcepts;
@@ -14,8 +25,13 @@ import AxisTypes;
 import ExprTemplates;
 import SIMD;
 import Widen;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 template <class T> struct UniformScaling {
   using value_type = T;

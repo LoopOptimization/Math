@@ -4,6 +4,14 @@
 #include <iostream>
 #include <ostream>
 #include <random>
+#ifndef USE_MODULE
+#include "Math/Reductions.cxx"
+#include "Math/Rational.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Utilities/Invariant.cxx"
+#else
 
 import Invariant;
 import LinearAlgebra;
@@ -11,6 +19,7 @@ import ManagedArray;
 import MatDim;
 import Rational;
 import Reductions;
+#endif
 
 using namespace math;
 

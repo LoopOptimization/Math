@@ -3,6 +3,16 @@
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <iostream>
+#ifndef USE_MODULE
+#include "Math/ManagedArray.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/Dual.cxx"
+#include "Math/BoxOptInt.cxx"
+#include "Math/BoxOpt.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/Array.cxx"
+#include "Alloc/Arena.cxx"
+#else
 
 import Arena;
 import Array;
@@ -12,6 +22,7 @@ import BoxOptInt;
 import Dual;
 import Elementary;
 import ManagedArray;
+#endif
 
 constexpr auto fcore(auto u1, auto u2) {
   return (2.0 * u1 + u2 + u1 * u2) / (u1 * u2);

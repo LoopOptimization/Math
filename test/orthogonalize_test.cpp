@@ -1,9 +1,15 @@
 #include <gtest/gtest.h>
 #include <random>
+#ifndef USE_MODULE
+#include "Math/NormalForm.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#else
 
 import ManagedArray;
 import MatDim;
 import NormalForm;
+#endif
 
 using math::DenseMatrix, math::DenseDims, math::row, math::col;
 

@@ -2,12 +2,20 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <ostream>
+#ifndef USE_MODULE
+#include "Math/StaticArrays.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#include "Math/Array.cxx"
+#else
 
 import Array;
 import ArrayParse;
 import ManagedArray;
 import MatDim;
 import StaticArray;
+#endif
 
 using namespace math;
 using utils::operator""_mat;

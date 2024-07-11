@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <algorithm>
 #include <array>
@@ -12,11 +16,17 @@ module;
 #include <limits>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Math/Rational.cxx"
+#include "Containers/Flat.cxx"
+#include "Alloc/Mallocator.cxx"
+#else
 export module ArrayPrint;
 
 import Allocator;
 import Flat;
 import Rational;
+#endif
 
 template <std::integral T> consteval auto maxPow10() -> size_t {
   if constexpr (sizeof(T) == 1) return 3;
@@ -107,7 +117,11 @@ constexpr auto getMaxDigits(const T *A, ptrdiff_t M, ptrdiff_t N, ptrdiff_t X)
   return max_digits;
 }
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
   { os << x } -> std::same_as<std::ostream &>;

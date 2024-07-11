@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #ifdef NDEBUG
 #ifdef __cpp_lib_unreachable
@@ -12,9 +16,15 @@ module;
 #include <cstdlib>
 #define TRAP() abort()
 // #endif
+#ifdef USE_MODULE
 export module Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 
 [[gnu::artificial, gnu::always_inline]] constexpr inline void
 invariant(bool condition) {

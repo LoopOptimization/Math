@@ -50,16 +50,15 @@ else()
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
 endif()
-# message(STATUS "Headers: ${headers}") message(STATUS "Modules: ${modules}")
+message(STATUS "Headers: ${headers}")
+# message(STATUS "Modules: ${modules}")
 
 # ---- Create library ----
 
 # Note: for header-only libraries change all PUBLIC flags to INTERFACE and
-# create an interface target:
-add_library(${PROJECT_NAME} OBJECT) # ${headers})
-# add_library(${PROJECT_NAME} INTERFACE ${headers})
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
+# create an interface target: add_library(${PROJECT_NAME} INTERFACE ${headers})
 if(USE_MODULES)
+  add_library(${PROJECT_NAME} OBJECT) # ${headers})
   target_sources(
     ${PROJECT_NAME}
     PUBLIC FILE_SET CXX_MODULES FILES ${modules}
@@ -81,11 +80,21 @@ if(USE_MODULES)
     target_compile_definitions(${PROJECT_NAME}
                                PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
+  target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 else()
-  target_sources(${PROJECT_NAME} INTERFACE FILE_SET HEADERS FILES ${headers})
+  add_library(${PROJECT_NAME} INTERFACE ${headers})
+  target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
+  target_include_directories(
+    ${PROJECT_NAME}
+    INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+           $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
+  target_include_directories(
+    ${PROJECT_NAME}
+    INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/mod>
+           $<INSTALL_INTERFACE:mod/${PROJECT_NAME}-${PROJECT_VERSION}>)
 endif()
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
 # being a cross-platform target, we enforce standards conformance on MSVC
 # target_compile_options( ${PROJECT_NAME} INTERFACE
@@ -143,7 +152,11 @@ if(ENABLE_NATIVE_COMPILATION)
       endif()
     endif()
   else()
-    target_compile_options(${PROJECT_NAME} PUBLIC -march=native)
+    if(USE_MODULES)
+      target_compile_options(${PROJECT_NAME} PUBLIC -march=native)
+    else()
+      target_compile_options(${PROJECT_NAME} INTERFACE -march=native)
+    endif()
     if(ENABLE_WIDE_VECTORS)
       include(CheckCXXCompilerFlag)
       check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)

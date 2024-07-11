@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <compare>
 #include <concepts>
@@ -6,11 +10,19 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#else
 export module Int8;
 
 import Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace numbers {
+#else
+namespace numbers {
+#endif
 
 template <std::integral I, bool nowrap = false, int alias = 0>
 struct IntWrapper {

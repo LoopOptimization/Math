@@ -1,11 +1,21 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <concepts>
 #include <type_traits>
 
+#ifdef USE_MODULE
 export module TypeCompression;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 constexpr auto value(std::floating_point auto x) { return x; }
 } // namespace math
 
@@ -25,7 +35,11 @@ constexpr auto value(std::floating_point auto x) { return x; }
 ///
 
 /// `T` is the canonical type, which may define `compress`
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 concept Compressible =
   (!std::same_as<T, typename T::compressed_type>) &&
@@ -43,7 +57,11 @@ template <typename T> struct Uncompressed {
 template <utils::Compressible T> struct Uncompressed<T> {
   using compressed = typename T::compressed_type;
 };
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 using compressed_t = typename Uncompressed<std::remove_cvref_t<T>>::compressed;
 }
@@ -59,7 +77,11 @@ template <typename T> struct Compressed {
 template <Decompressible T> struct Compressed<T> {
   using uncompressed = typename T::decompressed_type;
 };
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 using decompressed_t =
   typename Compressed<std::remove_cvref_t<T>>::uncompressed;

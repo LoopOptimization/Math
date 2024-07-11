@@ -1,15 +1,28 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <cstddef>
 #include <ranges>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Valid.cxx"
+#include "Utilities/Invariant.cxx"
+#else
 export module ListRange;
 
 import Invariant;
 import Valid;
+#endif
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 
 class GetNext {
 public:

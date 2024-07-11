@@ -1,9 +1,15 @@
 #include <gtest/gtest.h>
 #include <ostream>
+#ifndef USE_MODULE
+#include "Math/Unimodularization.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#else
 
 import ArrayParse;
 import ManagedArray;
 import Unimodularization;
+#endif
 
 using namespace math;
 using utils::operator""_mat;

@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <algorithm>
 #include <concepts>
@@ -6,12 +10,21 @@ module;
 #include <ostream>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#include "Math/AxisTypes.cxx"
+#else
 export module MatDim;
 
 import AxisTypes;
 import Invariant;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 using utils::invariant;
 
@@ -485,7 +498,11 @@ concept StaticInt =
 
 } // namespace math
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 concept HasEltype = requires(T) {
   typename T::value_type;
@@ -501,7 +518,11 @@ template <utils::HasEltype A> struct GetEltype<A> {
   using value_type = typename A::value_type;
 };
 
+#ifdef USE_MODULE
 export namespace utils {
+#else
+namespace utils {
+#endif
 template <typename T>
 using eltype_t = typename GetEltype<std::remove_reference_t<T>>::value_type;
 

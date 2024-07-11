@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <algorithm>
 #include <bit>
@@ -10,13 +14,23 @@ module;
 #include <immintrin.h>
 #endif
 
+#ifndef USE_MODULE
+#include "Utilities/Widen.cxx"
+#include "Utilities/Invariant.cxx"
+#include "SIMD/Vec.cxx"
+#else
 export module SIMD:Mask;
 
 import :Vec;
 import Invariant;
 import Widen;
+#endif
 
+#ifdef USE_MODULE
 export namespace simd {
+#else
+namespace simd {
+#endif
 template <ptrdiff_t W,
           typename I = std::conditional_t<W == 2, int64_t, int32_t>>
 consteval auto range() -> Vec<W, I> {

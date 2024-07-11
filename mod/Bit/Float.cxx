@@ -1,12 +1,22 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 
 #include <bit>
 #include <concepts>
 #include <cstdint>
 
+#ifdef USE_MODULE
 export module BitHack;
+#endif
 
+#ifdef USE_MODULE
 export namespace bit {
+#else
+namespace bit {
+#endif
 
 constexpr auto exp2unchecked(std::integral auto x) {
   return std::bit_cast<double>(static_cast<int64_t>(1023 + x) << 52);

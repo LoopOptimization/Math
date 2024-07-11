@@ -1,9 +1,20 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>
 
+#ifndef USE_MODULE
+#include "Containers/Pair.cxx"
+#include "Math/NormalForm.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/Array.cxx"
+#else
 export module Unimodularization;
 
 import Array;
@@ -11,8 +22,13 @@ import ManagedArray;
 import MatDim;
 import NormalForm;
 import Pair;
+#endif
 
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 // if `A` can be unimodularized, returns the inverse of the unimodularized `A`
 [[nodiscard]] inline auto
 unimodularize(IntMatrix<> A) -> std::optional<SquareMatrix<int64_t>> {

@@ -1,4 +1,8 @@
+#ifdef USE_MODULE
 module;
+#else
+#pragma once
+#endif
 #include <compare>
 #include <concepts>
 #include <cstddef>
@@ -6,9 +10,13 @@ module;
 #include <limits>
 #include <type_traits>
 
+#ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
+#else
 export module AxisTypes;
 
 import Invariant;
+#endif
 
 /// LinAlg
 ///
@@ -31,7 +39,11 @@ import Invariant;
 /// All the PtrVector/PtrMatrix types are trivially destructible, copyable, etc
 /// Their lifetimes are governed by the Arena or RAII type used to back
 /// them.
+#ifdef USE_MODULE
 export namespace math {
+#else
+namespace math {
+#endif
 
 using utils::invariant;
 
