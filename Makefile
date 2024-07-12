@@ -85,4 +85,4 @@ clangmodules: buildclang/modules/
 	cmake --build buildclang/modules/ --target test
 
 clean:
-	rm -rf buildclang #buildgcc
+	rm -rf buildclang buildgcc

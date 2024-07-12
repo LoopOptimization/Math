@@ -25,7 +25,7 @@ export namespace containers {
 #else
 namespace containers {
 #endif
-namespace detail{
+namespace detail {
 template <class T>
 concept SizeMultiple8 = (sizeof(T) % 8) == 0;
 
@@ -53,7 +53,7 @@ consteval auto bisectFindSquare(uint64_t l, uint64_t h,
   return bisectFindSquare(m + 1, h, N);
 }
 
-}
+} // namespace detail
 
 template <class S>
 using default_capacity_type_t = typename detail::DefaultCapacityType<S>::type;

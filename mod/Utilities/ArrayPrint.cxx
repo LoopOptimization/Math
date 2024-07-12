@@ -28,6 +28,12 @@ import Flat;
 import Rational;
 #endif
 
+#ifdef USE_MODULE
+export namespace utils {
+#else
+namespace utils {
+#endif
+namespace detail {
 template <std::integral T> consteval auto maxPow10() -> size_t {
   if constexpr (sizeof(T) == 1) return 3;
   else if constexpr (sizeof(T) == 2) return 5;
@@ -117,15 +123,12 @@ constexpr auto getMaxDigits(const T *A, ptrdiff_t M, ptrdiff_t N, ptrdiff_t X)
   return max_digits;
 }
 
-#ifdef USE_MODULE
-export namespace utils {
-#else
-namespace utils {
-#endif
+} // namespace detail
+
 template <typename T>
 concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
   { os << x } -> std::same_as<std::ostream &>;
-  { countDigits(x) } -> std::integral;
+  { detail::countDigits(x) } -> std::integral;
 };
 static_assert(Printable<math::Rational>);
 
@@ -148,14 +151,15 @@ inline auto printMatrix(std::ostream &os, const T *A, ptrdiff_t M, ptrdiff_t N,
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
   if ((!M) || (!N)) return os << "[ ]";
   // first, we determine the number of digits needed per column
-  auto max_digits{getMaxDigits(A, M, N, X)};
-  using U = decltype(countDigits(std::declval<T>()));
+  auto max_digits{detail::getMaxDigits(A, M, N, X)};
+  using U = decltype(detail::countDigits(std::declval<T>()));
   for (ptrdiff_t i = 0; i < M; i++) {
     if (i) os << "  ";
     else os << "\n[ ";
     for (ptrdiff_t j = 0; j < N; j++) {
       auto Aij = A[i * X + j];
-      for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); k++) os << " ";
+      for (U k = 0; k < U(max_digits[j]) - detail::countDigits(Aij); k++)
+        os << " ";
       os << Aij;
       if (j != ptrdiff_t(N) - 1) os << " ";
       else if (i != ptrdiff_t(M) - 1) os << "\n";

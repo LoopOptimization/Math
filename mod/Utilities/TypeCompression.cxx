@@ -58,10 +58,10 @@ template <typename T> struct Uncompressed {
 template <utils::Compressible T> struct Uncompressed<T> {
   using compressed = typename T::compressed_type;
 };
-}
+} // namespace detail
 template <typename T>
-using compressed_t = typename detail::Uncompressed<std::remove_cvref_t<T>>::compressed;
-
+using compressed_t =
+  typename detail::Uncompressed<std::remove_cvref_t<T>>::compressed;
 
 template <typename T>
 concept Decompressible =
@@ -75,7 +75,7 @@ template <typename T> struct Compressed {
 template <Decompressible T> struct Compressed<T> {
   using uncompressed = typename T::decompressed_type;
 };
-}
+} // namespace detail
 template <typename T>
 using decompressed_t =
   typename detail::Compressed<std::remove_cvref_t<T>>::uncompressed;
@@ -95,4 +95,4 @@ constexpr auto decompress(const utils::compressed_t<T> *p) -> decltype(auto) {
 static_assert(std::same_as<utils::decompressed_t<double>, double>);
 static_assert(!utils::Decompressible<double>);
 static_assert(!utils::Compressible<double>);
-static_assert(std::same_as<utils::decompressed_t<unsigned>,unsigned>);
+static_assert(std::same_as<utils::decompressed_t<unsigned>, unsigned>);

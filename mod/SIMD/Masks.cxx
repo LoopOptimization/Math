@@ -210,7 +210,7 @@ template <ptrdiff_t W>
 constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Bit<W> {
   static_assert(std::popcount(size_t(W)) == 1);
   uint64_t x;
-  if (__builtin_sub_overflow(len, i, &x)) return {0};
+  if (__builtin_usubl_overflow(len, i, &x)) return {0};
   if (x >= 64) return {0xffffffffffffffff};
   return {_bzhi_u64(0xffffffffffffffff, x)};
 };

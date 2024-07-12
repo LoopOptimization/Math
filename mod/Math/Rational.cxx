@@ -15,8 +15,8 @@ module;
 
 #ifndef USE_MODULE
 #include "Math/GreatestCommonDivisor.cxx"
-#include "Utilities/Widen.cxx"
 #include "Utilities/TypeCompression.cxx"
+#include "Utilities/Widen.cxx"
 #else
 export module Rational;
 
@@ -71,10 +71,10 @@ struct Rational {
   safeAdd(Rational y) const -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator, y.denominator);
     int64_t a, b, n, d;
-    bool o1 = __builtin_mul_overflow(numerator, yd, &a);
-    bool o2 = __builtin_mul_overflow(y.numerator, xd, &b);
-    bool o3 = __builtin_mul_overflow(denominator, yd, &d);
-    bool o4 = __builtin_add_overflow(a, b, &n);
+    bool o1 = __builtin_smull_overflow(numerator, yd, &a);
+    bool o2 = __builtin_smull_overflow(y.numerator, xd, &b);
+    bool o3 = __builtin_smull_overflow(denominator, yd, &d);
+    bool o4 = __builtin_saddl_overflow(a, b, &n);
     if ((o1 | o2) | (o3 | o4)) return {};
     if (!n) return Rational{0, 1};
     auto [nn, nd] = divgcd(n, d);
@@ -93,10 +93,10 @@ struct Rational {
   safeSub(Rational y) const -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator, y.denominator);
     int64_t a, b, n, d;
-    bool o1 = __builtin_mul_overflow(numerator, yd, &a);
-    bool o2 = __builtin_mul_overflow(y.numerator, xd, &b);
-    bool o3 = __builtin_mul_overflow(denominator, yd, &d);
-    bool o4 = __builtin_sub_overflow(a, b, &n);
+    bool o1 = __builtin_smull_overflow(numerator, yd, &a);
+    bool o2 = __builtin_smull_overflow(y.numerator, xd, &b);
+    bool o3 = __builtin_smull_overflow(denominator, yd, &d);
+    bool o4 = __builtin_ssubl_overflow(a, b, &n);
     if ((o1 | o2) | (o3 | o4)) return {};
     if (!n) return Rational{0, 1};
     auto [nn, nd] = divgcd(n, d);
@@ -124,8 +124,8 @@ struct Rational {
     auto [xn, yd] = divgcd(numerator, y.denominator);
     auto [xd, yn] = divgcd(denominator, y.numerator);
     int64_t n, d;
-    bool o1 = __builtin_mul_overflow(xn, yn, &n);
-    bool o2 = __builtin_mul_overflow(xd, yd, &d);
+    bool o1 = __builtin_smull_overflow(xn, yn, &n);
+    bool o2 = __builtin_smull_overflow(xd, yd, &d);
     if (o1 | o2) return {};
     return Rational{n, d};
   }
@@ -279,4 +279,5 @@ static_assert(
   std::same_as<std::common_type_t<math::Rational, int>, math::Rational>);
 static_assert(
   std::same_as<std::common_type_t<int, math::Rational>, math::Rational>);
-static_assert(std::same_as<utils::decompressed_t<math::Rational>,math::Rational>);
+static_assert(
+  std::same_as<utils::decompressed_t<math::Rational>, math::Rational>);
