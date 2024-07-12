@@ -508,8 +508,8 @@ concept HasEltype = requires(T) {
   typename T::value_type;
   // std::is_scalar_v<typename std::remove_reference_t<T>::value_type>;
 };
-} // namespace utils
 
+namespace detail{
 template <typename A> struct GetEltype {
   // static_assert(!HasEltype<A>);
   using value_type = A;
@@ -517,14 +517,10 @@ template <typename A> struct GetEltype {
 template <utils::HasEltype A> struct GetEltype<A> {
   using value_type = typename A::value_type;
 };
+}
 
-#ifdef USE_MODULE
-export namespace utils {
-#else
-namespace utils {
-#endif
 template <typename T>
-using eltype_t = typename GetEltype<std::remove_reference_t<T>>::value_type;
+using eltype_t = typename detail::GetEltype<std::remove_reference_t<T>>::value_type;
 
 template <class T, class C>
 concept ElementOf = std::convertible_to<T, eltype_t<C>>;

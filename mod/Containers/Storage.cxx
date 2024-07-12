@@ -20,6 +20,12 @@ import MatDim;
 import AxisTypes;
 #endif
 
+#ifdef USE_MODULE
+export namespace containers {
+#else
+namespace containers {
+#endif
+namespace detail{
 template <class T>
 concept SizeMultiple8 = (sizeof(T) % 8) == 0;
 
@@ -47,13 +53,10 @@ consteval auto bisectFindSquare(uint64_t l, uint64_t h,
   return bisectFindSquare(m + 1, h, N);
 }
 
-#ifdef USE_MODULE
-export namespace containers {
-#else
-namespace containers {
-#endif
+}
+
 template <class S>
-using default_capacity_type_t = typename DefaultCapacityType<S>::type;
+using default_capacity_type_t = typename detail::DefaultCapacityType<S>::type;
 static_assert(sizeof(default_capacity_type_t<uint32_t>) == 4);
 static_assert(sizeof(default_capacity_type_t<uint64_t>) == 8);
 
@@ -94,11 +97,11 @@ template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
     constexpr auto UN = uint64_t(N);
     // a fairly naive algorirthm for computing the next square `N`
     // sqrt(x) = x^(1/2) = exp2(log2(x)/2)
-    constexpr uint64_t R = log2Floor(UN) / 2;
+    constexpr uint64_t R = detail::log2Floor(UN) / 2;
     static_assert(R < 63);
     constexpr uint64_t L = uint64_t(1) << R;
-    constexpr uint64_t H = uint64_t(1) << ((log2Ceil(N) + 1) / 2);
-    return ptrdiff_t(bisectFindSquare(L, H, UN));
+    constexpr uint64_t H = uint64_t(1) << ((detail::log2Ceil(N) + 1) / 2);
+    return ptrdiff_t(detail::bisectFindSquare(L, H, UN));
   } else return N;
 }
 } // namespace containers

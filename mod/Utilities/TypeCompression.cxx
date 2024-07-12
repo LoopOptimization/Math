@@ -49,7 +49,8 @@ concept Compressible =
     { t = *p }; // need generic code to work reasonably well with pointers `p`
     { T{*p} };  // and value_type `T`
   };
-} // namespace utils
+
+namespace detail {
 
 template <typename T> struct Uncompressed {
   using compressed = T;
@@ -57,19 +58,16 @@ template <typename T> struct Uncompressed {
 template <utils::Compressible T> struct Uncompressed<T> {
   using compressed = typename T::compressed_type;
 };
-#ifdef USE_MODULE
-export namespace utils {
-#else
-namespace utils {
-#endif
-template <typename T>
-using compressed_t = typename Uncompressed<std::remove_cvref_t<T>>::compressed;
 }
+template <typename T>
+using compressed_t = typename detail::Uncompressed<std::remove_cvref_t<T>>::compressed;
+
 
 template <typename T>
 concept Decompressible =
   utils::Compressible<typename T::decompressed_type> &&
   std::same_as<T, utils::compressed_t<typename T::decompressed_type>>;
+namespace detail {
 
 template <typename T> struct Compressed {
   using uncompressed = T;
@@ -77,14 +75,10 @@ template <typename T> struct Compressed {
 template <Decompressible T> struct Compressed<T> {
   using uncompressed = typename T::decompressed_type;
 };
-#ifdef USE_MODULE
-export namespace utils {
-#else
-namespace utils {
-#endif
+}
 template <typename T>
 using decompressed_t =
-  typename Compressed<std::remove_cvref_t<T>>::uncompressed;
+  typename detail::Compressed<std::remove_cvref_t<T>>::uncompressed;
 
 template <typename T>
 constexpr void compress(const T &x, utils::compressed_t<T> *p) {
@@ -99,5 +93,6 @@ constexpr auto decompress(const utils::compressed_t<T> *p) -> decltype(auto) {
 } // namespace utils
 
 static_assert(std::same_as<utils::decompressed_t<double>, double>);
-static_assert(!Decompressible<double>);
+static_assert(!utils::Decompressible<double>);
 static_assert(!utils::Compressible<double>);
+static_assert(std::same_as<utils::decompressed_t<unsigned>,unsigned>);

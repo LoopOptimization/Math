@@ -1391,3 +1391,4 @@ inline constexpr bool
 template <class T, math::Dimension S, bool Compress>
 inline constexpr bool
   std::ranges::enable_borrowed_range<math::MutArray<T, S, Compress>> = true;
+static_assert(std::same_as<utils::eltype_t<math::Array<unsigned, math::Length<>>>,unsigned>);

@@ -16,11 +16,13 @@ module;
 #ifndef USE_MODULE
 #include "Math/GreatestCommonDivisor.cxx"
 #include "Utilities/Widen.cxx"
+#include "Utilities/TypeCompression.cxx"
 #else
 export module Rational;
 
 import GCD;
 import Widen;
+import TypeCompression;
 #endif
 
 #ifdef USE_MODULE
@@ -277,3 +279,4 @@ static_assert(
   std::same_as<std::common_type_t<math::Rational, int>, math::Rational>);
 static_assert(
   std::same_as<std::common_type_t<int, math::Rational>, math::Rational>);
+static_assert(std::same_as<utils::decompressed_t<math::Rational>,math::Rational>);
