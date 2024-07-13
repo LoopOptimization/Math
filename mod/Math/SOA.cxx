@@ -1,4 +1,3 @@
-#include <compare>
 #ifdef USE_MODULE
 module;
 #else
@@ -8,6 +7,7 @@ module;
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <compare>
 #include <concepts>
 #include <cstddef>
 #include <memory>
@@ -433,11 +433,11 @@ ManagedSOA(std::type_identity<T>, S) -> ManagedSOA<T, S>;
 
 } // namespace math
 
-template <ConstructibleFromMembers T, size_t... II>
+template <math::ConstructibleFromMembers T, size_t... II>
 struct std::tuple_size<math::SOAReference<T, II...>>
   : public std::tuple_size<T> {};
 
-template <size_t I, ConstructibleFromMembers T, size_t... II>
+template <size_t I, math::ConstructibleFromMembers T, size_t... II>
 struct std::tuple_element<I, math::SOAReference<T, II...>> {
   using type = typename std::tuple_element<I, T>::type;
 };
