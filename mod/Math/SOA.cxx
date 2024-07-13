@@ -206,6 +206,7 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
     std::is_trivially_destructible_v<T>;
   static_assert(trivial);
   using value_type = T;
+  using reference_type = SOAReference<T, II...>;
   auto operator[](ptrdiff_t i) const -> T {
     char *p = std::assume_aligned<16>(data_);
     ptrdiff_t stride = capacity_(sz_);
@@ -213,7 +214,7 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
       p + (CumSizeOf_v<II, T> * stride) +
       (sizeof(std::tuple_element_t<II, T>) * i))...);
   }
-  auto operator[](ptrdiff_t i) -> SOAReference<T, II...> {
+  auto operator[](ptrdiff_t i) -> reference_type {
     return {data_, capacity_(sz_), i};
   }
   static constexpr auto totalSizePer() -> size_t {
