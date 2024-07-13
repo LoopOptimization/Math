@@ -2,7 +2,7 @@ Diagnostics:
   ClangTidy:
     FastCheckFilter: Loose
     Add: [performance*, modernize*, readability*, clang-diagnostic-*, clang-analyzer-*, bugprone-*, cpp-core-guidelines-*, cert-*, misc-*, llvm-namespace-comment,llvm-prefer-isa-or-dyn-cast-in-conditionals,portability-*,bugprone-unused-local-non-trivial-variable]
-    Remove: [bugprone-easily-swappable-parameters, readability-braces-around-statements,readability-identifier-length,readability-isolate-declaration,readability-implicit-bool-conversion,readability-magic-numbers,readability-function-cognitive-complexity,readability-named-parameter,misc-non-private-member-variables-in-classes,modernize-avoid-c-arrays]
+    Remove: [bugprone-easily-swappable-parameters, readability-braces-around-statements,readability-identifier-length,readability-isolate-declaration,readability-implicit-bool-conversion,readability-magic-numbers,readability-function-cognitive-complexity,readability-named-parameter,misc-non-private-member-variables-in-classes,modernize-avoid-c-arrays,bugprone-suspicious-include]
     CheckOptions:
       bugprone-unused-local-non-trivial-variable.IncludeTypes: '.*'
       bugprone-unused-local-non-trivial-variable.ExcludeTypes: '::poly::alloc::Arena<>::ScopeLifetime.*'
