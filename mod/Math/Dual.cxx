@@ -1129,18 +1129,22 @@ struct ScalarizeEltViaCast<Dual<T, N, true>> {
 
 } // namespace math
 
-namespace std {
-template <> struct tuple_size<math::HessianResult> {
-  static constexpr size_t value = 3;
-};
-template <> struct tuple_element<size_t(0), math::HessianResult> {
-  using type = double;
-};
-template <> struct tuple_element<size_t(1), math::HessianResult> {
-  using type = math::MutPtrVector<double>;
-};
-template <> struct tuple_element<size_t(2), math::HessianResult> {
-  using type = math::MutSquarePtrMatrix<double>;
-};
+#ifdef USE_MODULE
+export {
+#endif
+  template <> struct std::tuple_size<math::HessianResult> {
+    static constexpr size_t value = 3;
+  };
+  template <> struct std::tuple_element<size_t(0), math::HessianResult> {
+    using type = double;
+  };
+  template <> struct std::tuple_element<size_t(1), math::HessianResult> {
+    using type = math::MutPtrVector<double>;
+  };
+  template <> struct std::tuple_element<size_t(2), math::HessianResult> {
+    using type = math::MutSquarePtrMatrix<double>;
+  };
 
+#ifdef USE_MODULE
 } // namespace std
+#endif
