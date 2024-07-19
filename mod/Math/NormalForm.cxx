@@ -47,9 +47,11 @@ import Tuple;
 import VGCD;
 #endif
 
+namespace math::NormalForm {
 using alloc::Arena, containers::Tuple, containers::tie;
 
 using namespace math;
+namespace detail {
 
 constexpr auto gcdxScale(int64_t a, int64_t b) -> std::array<int64_t, 4> {
   if (constexpr_abs(a) == 1) return {a, 0, a, b};
@@ -152,6 +154,9 @@ constexpr auto pivotRowsPair(std::array<MutPtrMatrix<int64_t>, 2> AK, Col<> i,
   }
   return false;
 }
+} // namespace detail
+} // namespace math::NormalForm
+
 #ifdef USE_MODULE
 export namespace math::NormalForm {
 #else
@@ -160,7 +165,7 @@ namespace math::NormalForm {
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> K,
                          ptrdiff_t i, Row<> M) -> bool {
   MutPtrMatrix<int64_t> B = K;
-  return pivotRowsPair({A, B}, col(i), M, row(i));
+  return detail::pivotRowsPair({A, B}, col(i), M, row(i));
 }
 constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M,
                          Row<> piv) -> bool {
@@ -183,6 +188,7 @@ constexpr auto numNonZeroRows(PtrMatrix<int64_t> A) -> Row<> {
   return newM;
 }
 } // namespace math::NormalForm
+namespace math::NormalForm::detail {
 
 constexpr void dropCol(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> M, Col<> N) {
   // if any rows are left, we shift them up to replace it
@@ -379,7 +385,7 @@ constexpr void zeroColumnPair(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
   for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
     int64_t Arc = A[r, c], Ajc = A[j, c];
     if (!Ajc) continue;
-    const auto [p, q, Arcr, Ajcr] = gcdxScale(Arc, Ajc);
+    const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Ajc);
     // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
     // tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
     // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
@@ -406,7 +412,7 @@ constexpr void zeroColumn(MutPtrMatrix<int64_t> A, Col<> c, Row<> r) {
   for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
     int64_t Arc = A[r, c], Ajc = A[j, c];
     if (!Ajc) continue;
-    const auto [p, q, Arcr, Ajcr] = gcdxScale(Arc, Ajc);
+    const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Ajc);
     MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
     tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
   }
@@ -452,6 +458,7 @@ constexpr auto orthogonalizeBang(MutDensePtrMatrix<int64_t> &A)
   }
   return {std::move(K), std::move(included)};
 }
+} // namespace math::NormalForm::detail
 
 #ifdef USE_MODULE
 export namespace math {
@@ -509,16 +516,16 @@ constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
 constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<int64_t>, 2> AB) {
   auto [M, N] = shape(AB[0]);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
-    if (!pivotRowsPair(AB, col(c), row(M), row(r)))
-      reduceColumn(AB, col(c), row(r++));
+    if (!detail::pivotRowsPair(AB, col(c), row(M), row(r)))
+      detail::reduceColumn(AB, col(c), row(r++));
 }
 
 // treats A as stacked on top of B
 constexpr void reduceColumnStack(MutPtrMatrix<int64_t> A,
                                  MutPtrMatrix<int64_t> B, ptrdiff_t c,
                                  ptrdiff_t r) {
-  zeroSupDiagonal(B, col(c), row(r));
-  reduceSubDiagonalStack(B, A, c, r);
+  detail::zeroSupDiagonal(B, col(c), row(r));
+  detail::reduceSubDiagonalStack(B, A, c, r);
 }
 // pass by value, returns number of rows to truncate
 constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
@@ -526,7 +533,7 @@ constexpr auto simplifySystemImpl(MutPtrMatrix<int64_t> A,
   auto [M, N] = shape(A);
   for (ptrdiff_t r = 0, c = colInit; c < N && r < M; ++c)
     if (!pivotRows(A, col(c), row(M), row(r)))
-      reduceColumn(A, col(c), row(r++));
+      detail::reduceColumn(A, col(c), row(r++));
   return numNonZeroRows(A);
 }
 
@@ -649,7 +656,7 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
   invariant(ptrdiff_t(pivots.size()), std::min(M, N));
   int64_t prev = 1, pivInd = 0;
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
-    if (auto piv = pivotRowsBareiss(A, c, row(M), row(r))) {
+    if (auto piv = detail::pivotRowsBareiss(A, c, row(M), row(r))) {
       pivots[pivInd++] = *piv;
       auto j{_(c + 1, N)};
       for (ptrdiff_t k = r + 1; k < M; ++k) {
@@ -676,20 +683,22 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
 constexpr void solveSystem(MutPtrMatrix<int64_t> A, MutPtrMatrix<int64_t> B) {
   const auto [M, N] = shape(A);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
-    if (!pivotRowsPair({A, B}, col(c), row(M), row(r)))
-      zeroColumnPair({A, B}, col(c), row(r++));
+    if (!detail::pivotRowsPair({A, B}, col(c), row(M), row(r)))
+      detail::zeroColumnPair({A, B}, col(c), row(r++));
 }
 // diagonalizes A(0:K,0:K)
 constexpr void solveSystem(MutPtrMatrix<int64_t> A, ptrdiff_t K) {
   Row M = A.numRow();
   for (ptrdiff_t r = 0, c = 0; c < K && r < M; ++c)
-    if (!pivotRows(A, col(c), M, row(r))) zeroColumn(A, col(c), row(r++));
+    if (!pivotRows(A, col(c), M, row(r)))
+      detail::zeroColumn(A, col(c), row(r++));
 }
 // diagonalizes A(0:K,1:K+1)
 constexpr void solveSystemSkip(MutPtrMatrix<int64_t> A) {
   const auto [M, N] = shape(A);
   for (ptrdiff_t r = 0, c = 1; c < N && r < M; ++c)
-    if (!pivotRows(A, col(c), row(M), row(r))) zeroColumn(A, col(c), row(r++));
+    if (!pivotRows(A, col(c), row(M), row(r)))
+      detail::zeroColumn(A, col(c), row(r++));
 }
 
 // returns `true` if the solve failed, `false` otherwise
@@ -766,7 +775,7 @@ nullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
 // FIXME: why do we have two?
 constexpr auto orthogonalize(IntMatrix<> A)
   -> containers::Pair<SquareMatrix<int64_t>, Vector<unsigned>> {
-  return orthogonalizeBang(A);
+  return detail::orthogonalizeBang(A);
 }
 
 } // namespace NormalForm

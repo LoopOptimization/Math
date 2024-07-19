@@ -4,12 +4,9 @@ module;
 #pragma once
 #endif
 
-#include "LoopMacros.hxx"
 #include "Owner.hxx"
 #include <algorithm>
 #include <array>
-#include <bit>
-#include <charconv>
 #include <compare>
 #include <concepts>
 #include <cstddef>
@@ -17,21 +14,16 @@ module;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 #include <iostream>
 #include <iterator>
-#include <limits>
 #include <memory>
 #include <ranges>
-#include <string_view>
-#include <system_error>
 #include <type_traits>
 #include <utility>
 #include <version>
 
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
-#include "Alloc/Mallocator.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Storage.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -40,9 +32,7 @@ module;
 #include "Math/ExpressionTemplates.cxx"
 #include "Math/Indexing.cxx"
 #include "Math/Ranges.cxx"
-#include "Math/Rational.cxx"
 #include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "SIMD/SIMD.cxx"
 #include "Utilities/ArrayPrint.cxx"
 #include "Utilities/Optional.cxx"
 #include "Utilities/Parameters.cxx"

@@ -46,7 +46,7 @@ template <class R, class C> struct CartesianIndex {
   {
     invariant(row_idx_ >= 0);
     invariant(col_idx_ >= 0);
-    return {ptrdiff_t(row_idx_), ptrdiff_t(col_idx_)};
+    return {.row_idx_ = ptrdiff_t(row_idx_), .col_idx_ = ptrdiff_t(col_idx_)};
   }
   // FIXME: Do we need this??
   // Either document why, or delete this method.

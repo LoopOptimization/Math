@@ -4,8 +4,6 @@ module;
 #pragma once
 #endif
 #include <cstddef>
-#include <cstring>
-#include <memory>
 
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"

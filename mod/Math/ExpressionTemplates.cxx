@@ -7,15 +7,10 @@ module;
 // nor an operator will be outside of the struct/class.
 
 #include "LoopMacros.hxx"
-#include <algorithm>
-#include <array>
-#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <ostream>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -23,10 +18,12 @@ module;
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/CheckSizes.cxx"
-#include "Math/Indexing.cxx"
+#include "Math/MatrixDimensions.cxx"
 #include "Math/Ranges.cxx"
 #include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "SIMD/SIMD.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
 #include "Utilities/Parameters.cxx"
 #else
 export module ExprTemplates;

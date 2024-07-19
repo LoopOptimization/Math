@@ -59,13 +59,8 @@ TEST(SparseIndexingTest, BasicAssertions) {
     MA2 << sparseA;
     EXPECT_EQ(A, A2);
   }
-  for (ptrdiff_t i = 0; i < 3; ++i) {
-    for (ptrdiff_t j = 0; j < 4; ++j) {
-      int64_t a = A[i, j], b = sparseA[i, j];
-      EXPECT_EQ(a, b);
-    }
-  }
-  // EXPECT_EQ(A(i, j), Asparse(i, j));
+  for (ptrdiff_t i = 0; i < 3; ++i)
+    for (ptrdiff_t j = 0; j < 4; ++j) EXPECT_EQ((A[i, j]), (sparseA[i, j]));
   ManagedArray B(std::type_identity<int64_t>{}, DenseDims<>{row(4), col(5)});
   EXPECT_FALSE(B.isSquare());
   B[0, 0] = 3;
@@ -107,21 +102,26 @@ TEST(SparseIndexingTest, BasicAssertions) {
   EXPECT_EQ(A.numRow(), (A * B).numRow());
   EXPECT_EQ(B.numCol(), (A * B).numCol());
   EXPECT_TRUE(C == A * B);
-  IntMatrix<> C2{A * B};
-  std::cout << "C=" << C << "\nC2=" << C2 << "\n";
-  EXPECT_TRUE(C == C2);
-  IntMatrix<> At{DenseDims<>{math::asrow(A.numCol()), math::ascol(A.numRow())}},
-    Bt{B.t()};
-  At[_(0, end), _(0, end)] << A.t();
-  // At << A.t();
-  // Bt << B.t();
-  C2 += At.t() * Bt.t();
-  EXPECT_EQ(C * 2, C2);
-  EXPECT_EQ(C, At.t() * B);
-  EXPECT_EQ(C, A * Bt.t());
-  EXPECT_EQ(C, At.t() * Bt.t());
-  C2 -= A * Bt.t();
-  EXPECT_EQ(C, C2);
+  {
+    IntMatrix<> C2{A * B};
+    std::cout << "C=" << C << "\nC2=" << C2 << "\n";
+    EXPECT_TRUE(C == C2);
+    IntMatrix<> Bt{B.t()};
+    {
+      IntMatrix<> At{
+        DenseDims<>{math::asrow(A.numCol()), math::ascol(A.numRow())}};
+      At[_(0, end), _(0, end)] << A.t();
+      // At << A.t();
+      // Bt << B.t();
+      C2 += At.t() * Bt.t();
+      EXPECT_EQ(C * 2, C2);
+      EXPECT_EQ(C, At.t() * B);
+      EXPECT_EQ(C, A * Bt.t());
+      EXPECT_EQ(C, At.t() * Bt.t());
+    }
+    C2 -= A * Bt.t();
+    EXPECT_EQ(C, C2);
+  }
   int64_t i = 0;
   IntMatrix<> D{C};
   std::cout << "C=" << C << "\n";
