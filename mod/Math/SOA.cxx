@@ -217,9 +217,6 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   auto operator[](ptrdiff_t i) -> reference_type {
     return {data_, capacity_(sz_), i};
   }
-  static constexpr auto totalSizePer() -> size_t {
-    return CumSizeOf_v<sizeof...(II), T>;
-  }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
     return ptrdiff_t(sz_);
   }
@@ -249,14 +246,6 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
     return {reinterpret_cast<const std::tuple_element_t<I, T> *>(
               data_ + (CumSizeOf_v<I, T> * capacity_(sz_))),
             sz_};
-  }
-  void destroy(ptrdiff_t i) {
-    char *p = std::assume_aligned<16>(data_);
-    ptrdiff_t stride = capacity_(sz_);
-    (std::destroy_at(reinterpret_cast<std::tuple_element_t<II, T> *>(
-       p + (CumSizeOf_v<II, T> * stride) +
-       (sizeof(std::tuple_element_t<II, T>) * i))),
-     ...);
   }
   template <bool Const> struct Iterator {
     using RefType = std::conditional_t<Const, const SOA &, SOA &>;
@@ -311,6 +300,19 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   constexpr auto end() const -> Iterator<true> {
     return {*this, ptrdiff_t(sz_)};
   }
+
+protected:
+  static constexpr auto totalSizePer() -> size_t {
+    return CumSizeOf_v<sizeof...(II), T>;
+  }
+  void destroy(ptrdiff_t i) {
+    char *p = std::assume_aligned<16>(data_);
+    ptrdiff_t stride = capacity_(sz_);
+    (std::destroy_at(reinterpret_cast<std::tuple_element_t<II, T> *>(
+       p + (CumSizeOf_v<II, T> * stride) +
+       (sizeof(std::tuple_element_t<II, T>) * i))),
+     ...);
+  }
 };
 
 template <typename T, typename S = Length<>,
@@ -339,9 +341,6 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     } else this->data_ = nullptr;
   }
 
-  void free(ptrdiff_t stride) {
-    if (this->data_) A::deallocate(this->data_, stride * Base::totalSizePer());
-  }
   static auto alloc(ptrdiff_t stride) -> char * {
     return A::allocate(stride * Base::totalSizePer());
   }
@@ -426,6 +425,11 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
       this->destroy(N);
     }
     resize(N);
+  }
+
+private:
+  void free(ptrdiff_t stride) {
+    if (this->data_) A::deallocate(this->data_, stride * Base::totalSizePer());
   }
 };
 template <typename T, typename S>

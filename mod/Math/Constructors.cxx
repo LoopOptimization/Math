@@ -4,6 +4,8 @@ module;
 #pragma once
 #endif
 #include <cstddef>
+#include <cstring>
+#include <type_traits>
 
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
@@ -117,6 +119,15 @@ constexpr auto matrix(alloc::Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N,
   MutArray<T, DenseDims<R, C>> A{
     alloc->template allocate<compressed_t<T>>(memamt), DenseDims{M, N}};
   A.fill(x);
+  return A;
+}
+template <class T, size_t SlabSize, bool BumpUp, ptrdiff_t R, ptrdiff_t C>
+constexpr auto matrix(alloc::Arena<SlabSize, BumpUp> *alloc, Row<R> M, Col<C> N,
+                      std::false_type) -> MutArray<T, DenseDims<R, C>> {
+  auto memamt = size_t(ptrdiff_t(M) * ptrdiff_t(N));
+  MutArray<T, DenseDims<R, C>> A{
+    alloc->template allocate<compressed_t<T>>(memamt), DenseDims{M, N}};
+  std::memset(A.data(), 0, memamt);
   return A;
 }
 
