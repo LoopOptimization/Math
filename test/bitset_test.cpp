@@ -67,12 +67,15 @@ TEST(BitSetInsert, BasicAssertions) {
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(DynSizeBitSetTest, BasicAssertions) {
-  BitSet bs;
+  BitSet bs, bsd{BitSet<>::dense(11)};
   EXPECT_EQ(bs.data_.size(), 0);
   bs[4] = true;
   bs[10] = true;
   EXPECT_EQ(bs.data_.size(), 1);
   EXPECT_EQ(bs.data_.front(), 1040);
+  for (ptrdiff_t i = 0; i < 11; ++i)
+    if (!bs.contains(i)) EXPECT_TRUE(bsd.remove(i));
+  EXPECT_EQ(bs, bsd);
   Vector<size_t> sv;
   for (auto i : bs) sv.push_back(i);
   EXPECT_EQ(sv.size(), 2);

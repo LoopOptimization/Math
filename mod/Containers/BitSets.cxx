@@ -139,13 +139,6 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     if constexpr (CanResize<T>) data_.resize(numElementsNeeded(N));
     else invariant(N <= std::ssize(data_) * usize);
   }
-  constexpr void resize(ptrdiff_t N, U x) {
-    if constexpr (CanResize<T>) data_.resize(numElementsNeeded(N), x);
-    else {
-      invariant(N <= std::ssize(data_) * usize);
-      std::fill(data_.begin(), data_.end(), x);
-    }
-  }
   constexpr void maybeResize(ptrdiff_t N) {
     if constexpr (CanResize<T>) {
       math::Length<> M = numElementsNeeded(N);
@@ -153,21 +146,20 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     } else invariant(N <= std::ssize(data_) * ptrdiff_t(usize));
   }
   static constexpr auto dense(ptrdiff_t N) -> BitSet {
-    BitSet b;
+    BitSet b{};
     math::Length M = numElementsNeeded(N);
     if (!M) return b;
     U maxval = std::numeric_limits<U>::max();
-    if constexpr (CanResize<T>) b.data_.resize(M--, maxval);
-    else {
-      --M;
-      for (ptrdiff_t i = 0z; i < M; ++i) b.data_[i] = maxval;
-    }
-    if (ptrdiff_t rem = N & usize) b.data_[M] = (1z << rem) - 1z;
+    if constexpr (CanResize<T>) b.data_.resizeForOverwrite(M);
+    --M;
+    for (ptrdiff_t i = 0z; i < M; ++i) b.data_[i] = maxval;
+    if (ptrdiff_t rem = N & (usize - 1))
+      b.data_[ptrdiff_t(M)] = (1z << rem) - 1z;
     return b;
   }
   [[nodiscard]] constexpr auto maxValue() const -> ptrdiff_t {
     ptrdiff_t N = std::ssize(data_);
-    return N ? (usize * N - std::countl_zero(data_[N - 1])) : 0;
+    return N ? ((usize * N) - std::countl_zero(data_[N - 1])) : 0;
   }
   // BitSet::Iterator(std::vector<std::U> &seta)
   //     : set(seta), didx(0), offset(0), state(seta[0]), count(0) {};
@@ -185,7 +177,7 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   };
   [[nodiscard]] constexpr auto front() const -> ptrdiff_t {
     for (ptrdiff_t i = 0; i < std::ssize(data_); ++i)
-      if (data_[i]) return usize * i + std::countr_zero(data_[i]);
+      if (data_[i]) return (usize * i) + std::countr_zero(data_[i]);
     return std::numeric_limits<ptrdiff_t>::max();
   }
   static constexpr auto contains(math::PtrVector<U> data, ptrdiff_t x) -> U {
@@ -195,6 +187,7 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     U mask = U(1) << r;
     return (data[d] & (mask));
   }
+  /// Returns `true` if `i` is in the `BitSet`
   [[nodiscard]] constexpr auto contains(ptrdiff_t i) const -> U {
     return contains(data_, i);
   }
@@ -223,7 +216,8 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     if (d >= std::ssize(data_)) resizeData(d + 1);
     data_[d] |= (mask);
   }
-
+  // returns `true` the bitset contained `x`, i.e. if the
+  // removal was succesful.
   constexpr auto remove(ptrdiff_t x) -> bool {
     ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;
