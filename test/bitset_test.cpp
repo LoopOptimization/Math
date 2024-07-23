@@ -74,7 +74,7 @@ TEST(DynSizeBitSetTest, BasicAssertions) {
   EXPECT_EQ(bs.data_.size(), 1);
   EXPECT_EQ(bs.data_.front(), 1040);
   for (ptrdiff_t i = 0; i < 11; ++i)
-    if (!bs.contains(i)) EXPECT_TRUE(bsd.remove(i));
+    if (!bs.contains(i)) { EXPECT_TRUE(bsd.remove(i)); }
   EXPECT_EQ(bs, bsd);
   Vector<size_t> sv;
   for (auto i : bs) sv.push_back(i);
