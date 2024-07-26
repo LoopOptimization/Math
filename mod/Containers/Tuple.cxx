@@ -46,13 +46,18 @@ template <typename T, typename... Ts> struct Tuple {
   constexpr Tuple(T head, Tuple<Ts...> tail) : head_(head), tail_(tail) {};
 
   constexpr Tuple(const Tuple &) = default;
-  template <size_t I> auto get() -> auto & {
+  template <size_t I> [[gnu::always_inline]] auto get() -> auto & {
     if constexpr (I == 0) return head_;
-    else return tail_.template get<I - 1>();
+    else if constexpr (I == 1) return tail_.head_;
+    else if constexpr (I == 2) return tail_.tail_.head_;
+    else return tail_.tail_.tail_.template get<I - 3>();
   }
-  template <size_t I> [[nodiscard]] auto get() const -> const auto & {
+  template <size_t I>
+  [[nodiscard, gnu::always_inline]] auto get() const -> const auto & {
     if constexpr (I == 0) return head_;
-    else return tail_.template get<I - 1>();
+    else if constexpr (I == 1) return tail_.head_;
+    else if constexpr (I == 2) return tail_.tail_.head_;
+    else return tail_.tail_.tail_.template get<I - 3>();
   }
   constexpr void apply(const auto &f) {
     f(head_);
