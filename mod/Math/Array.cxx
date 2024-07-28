@@ -498,14 +498,16 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  friend auto operator<<(std::ostream &os, Array x)
-    -> std::ostream &requires(utils::Printable<T>) {
+  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
                                 ptrdiff_t(x.numCol()),
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
-  } [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  }
+  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
@@ -708,6 +710,12 @@ struct MutArray : Array<T, S, Compress>,
   }
   constexpr void fill(T value) {
     std::fill_n(this->data(), ptrdiff_t(this->dim()), value);
+  }
+  constexpr void zero() {
+    if constexpr (std::is_trivially_default_constructible_v<T> &&
+                  std::is_trivially_destructible_v<T>)
+      std::memset(data(), 0, this->size());
+    else std::fill_n(this->data(), ptrdiff_t(this->dim()), T{});
   }
   [[nodiscard]] constexpr auto diag() noexcept {
     Length l =

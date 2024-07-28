@@ -50,7 +50,7 @@ else()
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
 endif()
-message(STATUS "Headers: ${headers}")
+# message(STATUS "Headers: ${headers}")
 # message(STATUS "Modules: ${modules}")
 
 # ---- Create library ----

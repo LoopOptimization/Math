@@ -4,6 +4,7 @@
 #include "Alloc/Arena.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/Comparisons.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/Rational.cxx"
@@ -17,6 +18,7 @@ import Array;
 import ArrayConcepts;
 import ArrayParse;
 import ArrayPrint;
+import Comparisons;
 import ManagedArray;
 import MatDim;
 import Rational;
@@ -1033,7 +1035,8 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     // test that we didn't invalidate the simplex
     // note that we do not initiate feasible
     auto C{simp->getCost()};
-    C[_(0, end - 36)] << 0;
+    C[_(0, end - 36)].zero();
+    EXPECT_TRUE(math::allZero(C[_(0, end - 36)]));
     C[_(end - 36, end)] << 1;
     EXPECT_EQ(simp->run(), -3);
     Vector<Rational> sol2 = simp->getSolution();
