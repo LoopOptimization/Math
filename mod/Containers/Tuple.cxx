@@ -46,14 +46,14 @@ template <typename T, typename... Ts> struct Tuple {
   constexpr Tuple(T head, Tuple<Ts...> tail) : head_(head), tail_(tail) {};
 
   constexpr Tuple(const Tuple &) = default;
-  template <size_t I> [[gnu::always_inline]] auto get() -> auto & {
+  template <size_t I> [[gnu::always_inline]] constexpr auto get() -> auto & {
     if constexpr (I == 0) return head_;
     else if constexpr (I == 1) return tail_.head_;
     else if constexpr (I == 2) return tail_.tail_.head_;
     else return tail_.tail_.tail_.template get<I - 3>();
   }
   template <size_t I>
-  [[nodiscard, gnu::always_inline]] auto get() const -> const auto & {
+  [[nodiscard, gnu::always_inline]] constexpr auto get() const -> const auto & {
     if constexpr (I == 0) return head_;
     else if constexpr (I == 1) return tail_.head_;
     else if constexpr (I == 2) return tail_.tail_.head_;
@@ -149,11 +149,11 @@ template <typename T> struct Tuple<T> {
   // template <std::convertible_to<T> U>
   // constexpr Tuple(U &&head) : head_(std::forward<U>(head)){};
   constexpr Tuple(const Tuple &) = default;
-  template <size_t I> auto get() -> T & {
+  template <size_t I> constexpr auto get() -> T & {
     static_assert(I == 0);
     return head_;
   }
-  template <size_t I> [[nodiscard]] auto get() const -> const T & {
+  template <size_t I> [[nodiscard]] constexpr auto get() const -> const T & {
     static_assert(I == 0);
     return head_;
   }
