@@ -82,6 +82,23 @@ if(USE_MODULES)
   endif()
   target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
   target_compile_definitions(${PROJECT_NAME} PRIVATE MATHTESTSTLDEFINITIONS)
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(
+      ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics
+                              -fstack-protector-strong -ftime-trace)
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(
+      ${PROJECT_NAME}
+      PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4
+              -fno-semantic-interposition -fdiagnostics-color=always
+              -Wno-comma-subscript)
+    if(NOT ((USE_SANITIZER MATCHES "([Aa]ddress)")
+            OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)")))
+      target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
+    endif()
+  endif()
+
 else()
   add_library(${PROJECT_NAME} INTERFACE ${headers})
   target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
