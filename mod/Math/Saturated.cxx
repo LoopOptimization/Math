@@ -4,14 +4,15 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <limits>
 
-#ifndef USE_MODULE
 #include "Utilities/Widen.cxx"
 #else
 export module Saturated;
 
+import STL;
 import Widen;
 #endif
 

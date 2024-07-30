@@ -3,19 +3,20 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/ArrayConcepts.cxx"
 #include "SIMD/SIMD.cxx"
 #else
 export module Comparisons;
 import ArrayConcepts;
 import SIMD;
+import STL;
 #endif
 
 #ifdef USE_MODULE

@@ -4,11 +4,11 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <memory>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Storage.cxx"
@@ -28,6 +28,7 @@ import AxisTypes;
 import ManagedArray;
 import MatDim;
 import Storage;
+import STL;
 #endif
 
 template <typename T>

@@ -3,13 +3,15 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <cstddef>
 #include <ostream>
 #include <type_traits>
 #include <utility>
 
-#ifdef USE_MODULE
+#else
 export module Pair;
+import STL;
 #endif
 
 #ifdef USE_MODULE

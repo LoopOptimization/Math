@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -15,7 +16,6 @@ module;
 #include <type_traits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
@@ -30,6 +30,7 @@ import Array;
 import AxisTypes;
 import MatDim;
 import Pair;
+import STL;
 import Tuple;
 #endif
 

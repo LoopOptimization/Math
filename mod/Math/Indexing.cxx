@@ -3,13 +3,13 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/Ranges.cxx"
@@ -23,6 +23,7 @@ import CompressReference;
 import Range;
 import MatDim;
 import SIMD;
+import STL;
 #endif
 
 #ifdef USE_MODULE

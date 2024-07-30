@@ -4,11 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <cstddef>
 #include <type_traits>
 
-#ifdef USE_MODULE
+#else
 export module SIMD:Vec;
+import STL;
 #endif
 
 template <ptrdiff_t W, typename T>

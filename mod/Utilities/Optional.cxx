@@ -3,16 +3,17 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <concepts>
 #include <limits>
 #include <optional>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Utilities/Valid.cxx"
 #else
 export module Optional;
 import Invariant;
+import STL;
 import Valid;
 #endif
 

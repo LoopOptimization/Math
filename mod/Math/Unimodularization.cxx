@@ -3,12 +3,12 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ManagedArray.cxx"
@@ -22,6 +22,7 @@ import ManagedArray;
 import MatDim;
 import NormalForm;
 import Pair;
+import STL;
 #endif
 
 #ifdef USE_MODULE

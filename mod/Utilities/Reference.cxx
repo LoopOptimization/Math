@@ -3,15 +3,16 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 
-#ifndef USE_MODULE
 #include "Utilities/TypeCompression.cxx"
 #else
 export module CompressReference;
 
 import TypeCompression;
+import STL;
 #endif
 
 #ifdef USE_MODULE

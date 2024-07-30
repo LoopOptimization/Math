@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -14,7 +15,6 @@ module;
 #include <type_traits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Pair.cxx"
@@ -45,6 +45,7 @@ import Pair;
 import Param;
 import Reductions;
 import SIMD;
+import STL;
 import Tuple;
 #endif
 

@@ -4,13 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
@@ -22,6 +22,7 @@ import Array;
 import AxisTypes;
 import ManagedArray;
 import MatDim;
+import STL;
 #endif
 
 #ifdef USE_MODULE

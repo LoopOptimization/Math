@@ -4,11 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <array>
 #include <cmath>
 
-#ifdef USE_MODULE
+#else
 export module Factor;
+import STL;
 #endif
 
 #ifdef USE_MODULE

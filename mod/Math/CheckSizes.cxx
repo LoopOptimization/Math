@@ -3,11 +3,11 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
 #include "Utilities/Parameters.cxx"
 #else
@@ -15,6 +15,7 @@ export module CheckSizes;
 
 import Invariant;
 import Param;
+import STL;
 #endif
 
 template <typename T>

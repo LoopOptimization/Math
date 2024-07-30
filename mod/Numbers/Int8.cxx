@@ -4,18 +4,19 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <compare>
 #include <concepts>
 #include <limits>
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
 #else
 export module Int8;
 
 import Invariant;
+import STL;
 #endif
 
 #ifdef USE_MODULE

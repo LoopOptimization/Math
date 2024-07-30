@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <bit>
 #include <concepts>
 #include <cstddef>
@@ -13,8 +14,8 @@ module;
 #include <type_traits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
+#include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
@@ -42,10 +43,12 @@ import CompressReference;
 import ExprTemplates;
 import Invariant;
 import MatDim;
+import Pair;
 import Param;
 import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
+import STL;
 import TypeCompression;
 #endif
 
@@ -1054,8 +1057,9 @@ struct ScaledIncrement {
   constexpr void operator()(double &x, double y) const { x += scale * y; }
 };
 
-constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
-                        const auto &f) {
+constexpr auto
+gradient(alloc::Arena<> *arena, PtrVector<double> x,
+         const auto &f) -> containers::Pair<double, MutPtrVector<double>> {
   constexpr ptrdiff_t U = 8;
   using D = Dual<double, U>;
   ptrdiff_t N = x.size();
@@ -1065,7 +1069,7 @@ constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
     D fx = alloc::call(*arena, f, dual<U>(x, i));
     for (ptrdiff_t j = 0; ((j < U) && (i + j < N)); ++j)
       grad[i + j] = fx.gradient()[j];
-    if (i + U >= N) return std::make_pair(fx.value(), grad);
+    if (i + U >= N) return {fx.value(), grad};
   }
 }
 //

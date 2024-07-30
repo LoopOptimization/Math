@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -16,7 +17,6 @@ module;
 #include <limits>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Flat.cxx"
 #include "Math/Rational.cxx"
@@ -26,6 +26,7 @@ export module ArrayPrint;
 import Allocator;
 import Flat;
 import Rational;
+import STL;
 #endif
 
 #ifdef USE_MODULE
@@ -79,7 +80,7 @@ template <std::signed_integral T> constexpr auto countDigits(T x) -> T {
 }
 
 template <typename T> inline auto countDigits(T *x) -> int {
-  return countDigits(std::bit_cast<uintptr_t>(x));
+  return countDigits(std::bit_cast<size_t>(x));
 }
 constexpr auto countDigits(math::Rational x) -> ptrdiff_t {
   ptrdiff_t num = countDigits(x.numerator);
@@ -224,7 +225,7 @@ inline auto printMatrix(std::ostream &os, const double *A, ptrdiff_t M,
     for (ptrdiff_t j = 0; j < N; j++) {
       ptrdiff_t nD = num_digits[i * N + j];
       for (ptrdiff_t k = 0; k < max_digits[j] - nD; k++) os << " ";
-      os << std::string_view(ptr, nD);
+      for (ptrdiff_t n = 0; n < nD; ++n) os << ptr[n];
       if (j != ptrdiff_t(N) - 1) os << " ";
       else if (i != ptrdiff_t(M) - 1) os << "\n";
       ptr += nD;

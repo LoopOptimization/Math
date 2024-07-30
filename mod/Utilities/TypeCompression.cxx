@@ -4,11 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <type_traits>
 
-#ifdef USE_MODULE
+#else
 export module TypeCompression;
+import STL;
 #endif
 
 #ifdef USE_MODULE

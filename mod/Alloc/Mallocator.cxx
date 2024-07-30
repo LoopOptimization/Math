@@ -4,11 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <memory>
 #include <new>
 #include <version>
+#endif
 
 #ifndef __has_feature      // Optional of course.
 #define __has_feature(x) 0 // Compatibility with non-clang compilers.
@@ -34,18 +36,19 @@ module;
 #elif USE_JEMALLOC
 // #include "jemalloc-new-delete.hpp"
 #include <jemalloc/jemalloc.h>
-#else
+#elifndef USE_MODULE
 #include <cstdlib>
 #endif
+#ifndef USE_MODULE
 #ifdef __cpp_lib_allocate_at_least
 #include <memory>
 #endif
 
-#ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
 #else
 export module Allocator;
 
+import STL;
 import Invariant;
 #endif
 

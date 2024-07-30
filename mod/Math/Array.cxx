@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "Owner.hxx"
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <compare>
@@ -22,7 +23,6 @@ module;
 #include <utility>
 #include <version>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Storage.cxx"
@@ -58,6 +58,7 @@ import Param;
 import Rational;
 import ScalarizeViaCast;
 import SIMD;
+import STL;
 import Storage;
 import TypeCompression;
 import Valid;

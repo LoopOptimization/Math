@@ -3,16 +3,17 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <array>
 #include <cstdint>
 #include <optional>
 
-#ifndef USE_MODULE
 #include "Math/GreatestCommonDivisor.cxx"
 #else
 export module LinearDiophantine;
 
 import GCD;
+import STL;
 #endif
 
 #ifdef USE_MODULE

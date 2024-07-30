@@ -4,13 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <iterator>
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
 #include "Utilities/Invariant.cxx"
 #else
@@ -18,6 +18,7 @@ export module Range;
 
 import AxisTypes;
 import Invariant;
+import STL;
 #endif
 
 #ifdef USE_MODULE

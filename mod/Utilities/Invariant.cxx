@@ -4,20 +4,24 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #ifdef NDEBUG
 #ifdef __cpp_lib_unreachable
 #include <utility>
 #include <version>
 #endif
 #endif
+#include <cstdlib>
+#endif
 // #if __has_builtin(__builtin_trap)
 // #define TRAP() __builtin_trap()
 // #else
-#include <cstdlib>
-#define TRAP() abort()
+#define TRAP() std::abort()
 // #endif
+
 #ifdef USE_MODULE
 export module Invariant;
+import STL;
 #endif
 
 #ifdef USE_MODULE

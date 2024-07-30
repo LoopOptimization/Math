@@ -4,10 +4,10 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <cstddef>
 #include <cstdint>
 
-#ifndef USE_MODULE
 #include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -19,6 +19,7 @@ export import GCD;
 import Pair;
 import Array;
 import ArrayConcepts;
+import STL;
 #endif
 
 #ifdef USE_MODULE

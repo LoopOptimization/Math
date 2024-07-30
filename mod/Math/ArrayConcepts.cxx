@@ -3,11 +3,12 @@ module;
 #else
 #pragma once
 #endif
+
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
 #else
@@ -15,6 +16,7 @@ export module ArrayConcepts;
 
 export import MatDim;
 import AxisTypes;
+import STL;
 #endif
 
 #ifdef USE_MODULE

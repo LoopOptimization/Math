@@ -4,10 +4,10 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 
-#ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
 #include "SIMD/Masks.cxx"
 #else
@@ -15,6 +15,7 @@ export module SIMD:Index;
 
 import :Mask;
 import AxisTypes;
+import STL;
 #endif
 
 #ifdef USE_MODULE

@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <array>
 #include <bit>
 #include <concepts>
@@ -13,7 +14,6 @@ module;
 #include <functional>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
 #include "SIMD/Indexing.cxx"
 #include "SIMD/Intrin.cxx"
@@ -27,6 +27,7 @@ import :Intrin;
 import :Index;
 import :Mask;
 import AxisTypes;
+import STL;
 #endif
 
 #ifdef USE_MODULE

@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "Owner.hxx"
+#ifndef USE_MODULE
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -15,7 +16,6 @@ module;
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Containers/Storage.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
@@ -27,6 +27,7 @@ import AxisTypes;
 import Invariant;
 import MatDim;
 import Storage;
+import STL;
 #endif
 
 #ifdef USE_MODULE

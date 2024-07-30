@@ -3,12 +3,12 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Math/Array.cxx"
 #include "Math/BoxOpt.cxx"
@@ -18,6 +18,7 @@ export module BoxOptInt;
 import Arena;
 import Array;
 import BoxOpt;
+import STL;
 #endif
 
 #ifdef USE_MODULE

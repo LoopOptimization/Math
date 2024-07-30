@@ -5,16 +5,17 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
-#include <array>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
 
 #ifndef USE_MODULE
+#include <array>
+#include <bit>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+
 #include "Math/AxisTypes.cxx"
 #include "SIMD/Masks.cxx"
 #include "SIMD/Vec.cxx"
@@ -24,6 +25,7 @@ export module SIMD:Intrin;
 
 import AxisTypes;
 import Invariant;
+import STL;
 import :Mask;
 import :Vec;
 #endif

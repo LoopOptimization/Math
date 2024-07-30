@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <array>
 #include <bit>
 #include <cmath>
@@ -11,7 +12,6 @@ module;
 #include <limits>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Numbers/Int8.cxx"
 #include "Utilities/Invariant.cxx"
 #include "Utilities/Widen.cxx"
@@ -20,6 +20,7 @@ export module MultiplicativeInverse;
 
 import Int8;
 import Invariant;
+import STL;
 import Widen;
 #endif
 

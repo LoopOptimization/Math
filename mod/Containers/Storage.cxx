@@ -4,13 +4,13 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
 #else
@@ -18,6 +18,7 @@ export module Storage;
 
 import MatDim;
 import AxisTypes;
+import STL;
 #endif
 
 #ifdef USE_MODULE
@@ -33,7 +34,7 @@ template <class S> struct DefaultCapacityType {
   using type = math::Capacity<-1, int>;
 };
 template <SizeMultiple8 S> struct DefaultCapacityType<S> {
-  using type = math::Capacity<-1, std::ptrdiff_t>;
+  using type = math::Capacity<-1, ptrdiff_t>;
 };
 static_assert(!SizeMultiple8<uint32_t>);
 static_assert(SizeMultiple8<uint64_t>);

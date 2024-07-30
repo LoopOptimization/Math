@@ -6,6 +6,8 @@ module;
 
 #include "LoopMacros.hxx"
 #include "Owner.hxx"
+
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -20,7 +22,6 @@ module;
 #include <type_traits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -45,6 +46,7 @@ import MatDim;
 import Pair;
 import Range;
 import SIMD;
+import STL;
 import TypeCompression;
 #endif
 
@@ -314,9 +316,8 @@ struct MATH_GSL_OWNER StaticArray
   // (requires((M==1)||(N==1))){
   //   if ((rhs.numRow() != M)||(rhs.numCol() != N)) return false;
   // }
-  template <std::size_t I> constexpr auto get() -> T & { return memory_[I]; }
-  template <std::size_t I>
-  [[nodiscard]] constexpr auto get() const -> const T & {
+  template <size_t I> constexpr auto get() -> T & { return memory_[I]; }
+  template <size_t I> [[nodiscard]] constexpr auto get() const -> const T & {
     return memory_[I];
   }
   constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) { memory_[r * N + c] = x; }
@@ -590,7 +591,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       if (simd::cmp::ne<W, T>(memory_[i], other.memory_[i])) return false;
     return true;
   }
-  template <std::size_t I> [[nodiscard]] constexpr auto get() const -> T {
+  template <size_t I> [[nodiscard]] constexpr auto get() const -> T {
     return memory_[I / W][I % W];
   }
   friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
@@ -778,7 +779,7 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   constexpr auto operator==(const StaticArray &other) const -> bool {
     return bool(simd::cmp::eq<W, T>(data_, other.data_));
   }
-  template <std::size_t I> [[nodiscard]] constexpr auto get() const -> T {
+  template <size_t I> [[nodiscard]] constexpr auto get() const -> T {
     return data_[I];
   }
   constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {

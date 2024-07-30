@@ -4,23 +4,24 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
-#ifndef USE_MODULE
 #include "Math/StaticArrays.cxx"
 #else
 export module ArrayParse;
 
 import StaticArray;
+import STL;
 #endif
 
 // #if !defined(__clang__)
 #define CONSTEVAL_LITERAL_ARRAYS
 // #endif
-template <std::size_t N> struct String {
+template <size_t N> struct String {
   char data_[N];
 
   static constexpr auto size() -> size_t { return N; }

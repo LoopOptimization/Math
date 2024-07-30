@@ -4,10 +4,11 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <type_traits>
-
-#ifdef USE_MODULE
+#else
 export module Param;
+import STL;
 #endif
 
 #ifdef USE_MODULE

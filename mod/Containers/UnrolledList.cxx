@@ -3,10 +3,10 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <cstddef>
 #include <memory>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Utilities/Invariant.cxx"
 #else
@@ -14,6 +14,7 @@ export module UnrolledList;
 
 import Arena;
 import Invariant;
+import STL;
 #endif
 
 #ifdef USE_MODULE

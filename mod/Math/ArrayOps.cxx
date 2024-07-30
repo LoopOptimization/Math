@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -12,7 +13,6 @@ module;
 #include <functional>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Containers/Tuple.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/CheckSizes.cxx"
@@ -31,6 +31,7 @@ import Indexing;
 import Invariant;
 import ScalarizeViaCast;
 import SIMD;
+import STL;
 import Tuple;
 import TypeCompression;
 import UniformScaling;

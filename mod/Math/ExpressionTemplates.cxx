@@ -7,6 +7,7 @@ module;
 // nor an operator will be outside of the struct/class.
 
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -14,7 +15,6 @@ module;
 #include <type_traits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/CheckSizes.cxx"
@@ -36,6 +36,7 @@ import Param;
 import Range;
 import ScalarizeViaCast;
 import SIMD;
+import STL;
 #endif
 
 using utils::TriviallyCopyable;

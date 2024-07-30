@@ -4,16 +4,17 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <functional>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/MatrixDimensions.cxx"
 #else
 export module ScalarizeViaCast;
 
 import MatDim;
+import STL;
 #endif
 
 #ifdef USE_MODULE

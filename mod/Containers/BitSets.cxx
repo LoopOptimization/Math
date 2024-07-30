@@ -3,6 +3,7 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -18,7 +19,6 @@ module;
 #include <string>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
@@ -34,6 +34,7 @@ import Invariant;
 import ManagedArray;
 import MatDim;
 import Range;
+import STL;
 #endif
 
 #ifdef USE_MODULE
@@ -107,8 +108,8 @@ public:
 
 template <typename T>
 concept Collection = requires(T t) {
-  { std::size(t) } -> std::convertible_to<std::size_t>;
-  { std::ssize(t) } -> std::convertible_to<std::ptrdiff_t>;
+  { std::size(t) } -> std::convertible_to<size_t>;
+  { std::ssize(t) } -> std::convertible_to<ptrdiff_t>;
   { *t.begin() } -> std::convertible_to<uint64_t>;
 };
 

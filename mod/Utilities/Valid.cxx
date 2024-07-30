@@ -5,8 +5,10 @@ module;
 #endif
 
 #include "Owner.hxx"
+#ifndef USE_MODULE
 #include <cstddef>
 #include <type_traits>
+#endif
 
 #ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
@@ -14,6 +16,7 @@ module;
 export module Valid;
 
 import Invariant;
+import STL;
 #endif
 
 #ifdef USE_MODULE

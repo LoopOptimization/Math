@@ -3,9 +3,10 @@ module;
 #else
 #pragma once
 #endif
-#include <cstddef>
 
 #ifndef USE_MODULE
+#include <cstddef>
+
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #else
@@ -13,6 +14,7 @@ export module EmptyMatrix;
 
 import ArrayConcepts;
 import AxisTypes;
+import STL;
 #endif
 
 #ifdef USE_MODULE

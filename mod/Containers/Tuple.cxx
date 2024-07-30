@@ -3,17 +3,18 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Containers/Pair.cxx"
 #else
 export module Tuple;
 
 import Pair;
+import STL;
 #endif
 
 #ifdef USE_MODULE

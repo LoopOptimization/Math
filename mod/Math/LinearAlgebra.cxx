@@ -3,11 +3,11 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <ranges>
 
-#ifndef USE_MODULE
 #include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -30,6 +30,7 @@ import ManagedArray;
 import Pair;
 import Param;
 import Rational;
+import STL;
 import TypeCompression;
 #endif
 

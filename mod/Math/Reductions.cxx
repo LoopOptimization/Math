@@ -5,9 +5,10 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
-#include <cstddef>
 
 #ifndef USE_MODULE
+#include <cstddef>
+
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
 #else
@@ -15,6 +16,7 @@ export module Reductions;
 
 import Array;
 import ArrayConcepts;
+import STL;
 #endif
 
 #ifdef USE_MODULE

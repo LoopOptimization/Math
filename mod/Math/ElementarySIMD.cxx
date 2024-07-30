@@ -3,6 +3,7 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <bit>
 #include <cmath>
 #include <concepts>
@@ -10,7 +11,6 @@ module;
 #include <cstdint>
 #include <limits>
 
-#ifndef USE_MODULE
 #include "Bit/Float.cxx"
 #include "SIMD/SIMD.cxx"
 #else
@@ -18,6 +18,7 @@ export module Elementary;
 
 import BitHack;
 import SIMD;
+import STL;
 #endif
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)

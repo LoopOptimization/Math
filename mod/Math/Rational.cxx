@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +14,6 @@ module;
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/GreatestCommonDivisor.cxx"
 #include "Utilities/TypeCompression.cxx"
 #include "Utilities/Widen.cxx"
@@ -22,6 +22,7 @@ export module Rational;
 
 import GCD;
 import Widen;
+import STL;
 import TypeCompression;
 #endif
 

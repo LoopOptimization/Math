@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -12,7 +13,6 @@ module;
 #include <cstdint>
 #include <limits>
 
-#ifndef USE_MODULE
 #include "SIMD/SIMD.cxx"
 #include "Utilities/Invariant.cxx"
 #else
@@ -20,6 +20,7 @@ export module GCD;
 
 import Invariant;
 import SIMD;
+import STL;
 #endif
 
 #ifdef USE_MODULE

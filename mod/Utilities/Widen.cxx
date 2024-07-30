@@ -4,13 +4,15 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#else
 
-#ifdef USE_MODULE
 export module Widen;
+import STL;
 #endif
 
 #ifdef USE_MODULE

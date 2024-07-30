@@ -4,11 +4,11 @@ module;
 #pragma once
 #endif
 #include "Owner.hxx"
+#ifndef USE_MODULE
 #include <cstddef>
 #include <memory>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Alloc/Mallocator.cxx"
 #include "Utilities/Invariant.cxx"
 #else
@@ -16,6 +16,7 @@ export module Flat;
 
 import Allocator;
 import Invariant;
+import STL;
 #endif
 
 #ifdef USE_MODULE

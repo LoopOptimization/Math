@@ -4,17 +4,18 @@ module;
 #pragma once
 #endif
 
+#ifdef __x86_64__
+#include <immintrin.h>
+#endif
+
+#ifndef USE_MODULE
 #include <algorithm>
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-#ifdef __x86_64__
-#include <immintrin.h>
-#endif
 
-#ifndef USE_MODULE
 #include "SIMD/Vec.cxx"
 #include "Utilities/Invariant.cxx"
 #include "Utilities/Widen.cxx"
@@ -23,6 +24,7 @@ export module SIMD:Mask;
 
 import :Vec;
 import Invariant;
+import STL;
 import Widen;
 #endif
 

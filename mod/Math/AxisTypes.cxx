@@ -3,6 +3,7 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <compare>
 #include <concepts>
 #include <cstddef>
@@ -10,12 +11,12 @@ module;
 #include <limits>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
 #else
 export module AxisTypes;
 
 import Invariant;
+import STL;
 #endif
 
 /// LinAlg

@@ -4,11 +4,11 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 
-#ifndef USE_MODULE
 #include "SIMD/Indexing.cxx"
 #include "SIMD/Intrin.cxx"
 #include "SIMD/Masks.cxx"
@@ -22,6 +22,7 @@ import :Intrin;
 import :Mask;
 import :Unroll;
 import :Vec;
+import STL;
 #endif
 
 #ifdef USE_MODULE

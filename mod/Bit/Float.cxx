@@ -4,12 +4,14 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <bit>
 #include <concepts>
 #include <cstdint>
 
-#ifdef USE_MODULE
+#else
 export module BitHack;
+import STL;
 #endif
 
 #ifdef USE_MODULE

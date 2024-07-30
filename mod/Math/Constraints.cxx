@@ -4,11 +4,11 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 
-#ifndef USE_MODULE
 #include "Containers/BitSets.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/Comparisons.cxx"
@@ -28,6 +28,7 @@ import GCD;
 import GenericArrayConstructors;
 import ManagedArray;
 import NormalForm;
+import STL;
 #endif
 
 #ifdef USE_MODULE

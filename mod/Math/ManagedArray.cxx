@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "Owner.hxx"
+#ifndef USE_MODULE
 #include <array>
 #include <concepts>
 #include <cstddef>
@@ -15,7 +16,6 @@ module;
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Storage.cxx"
@@ -35,6 +35,7 @@ import AxisTypes;
 import MatDim;
 import Pair;
 import Storage;
+import STL;
 import TypeCompression;
 #endif
 
@@ -710,8 +711,8 @@ private:
   [[no_unique_address]] containers::Storage<storage_type, StackStorage> memory_;
 };
 
-static_assert(std::move_constructible<ManagedArray<intptr_t, Length<>>>);
-static_assert(std::copyable<ManagedArray<intptr_t, Length<>>>);
+static_assert(std::move_constructible<ManagedArray<int64_t, Length<>>>);
+static_assert(std::copyable<ManagedArray<int64_t, Length<>>>);
 // Check that `[[no_unique_address]]` is working.
 // sizes should be:
 // [ptr, dims, capacity, array]
@@ -780,9 +781,8 @@ static_assert(
 static_assert(std::same_as<IntMatrix<>::value_type, int64_t>);
 static_assert(AbstractMatrix<IntMatrix<>>);
 static_assert(std::copyable<IntMatrix<>>);
-static_assert(std::move_constructible<Vector<intptr_t>>);
-static_assert(std::copy_constructible<Vector<intptr_t>>);
-static_assert(std::copyable<Vector<intptr_t>>);
+static_assert(std::move_constructible<Vector<int64_t>>);
+static_assert(std::copyable<Vector<int64_t>>);
 static_assert(AbstractVector<Vector<int64_t>>);
 static_assert(!std::is_trivially_copyable_v<Vector<int64_t>>);
 static_assert(!std::is_trivially_destructible_v<Vector<int64_t>>);

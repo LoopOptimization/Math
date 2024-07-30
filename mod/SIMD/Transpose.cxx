@@ -4,8 +4,8 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
-#include <cstddef>
 #ifndef USE_MODULE
+#include <cstddef>
 #include "SIMD/Unroll.cxx"
 #include "SIMD/Vec.cxx"
 #else
@@ -13,6 +13,7 @@ module SIMD:Tranpose;
 
 import :Unroll;
 import :Vec;
+import STL;
 #endif
 
 #ifdef USE_MODULE

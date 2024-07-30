@@ -5,13 +5,13 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
+#ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ExpressionTemplates.cxx"
@@ -24,6 +24,7 @@ import ArrayConcepts;
 import AxisTypes;
 import ExprTemplates;
 import SIMD;
+import STL;
 import Widen;
 #endif
 

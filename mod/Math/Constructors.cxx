@@ -3,11 +3,11 @@ module;
 #else
 #pragma once
 #endif
+#ifndef USE_MODULE
 #include <cstddef>
 #include <cstring>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
@@ -19,6 +19,7 @@ import Arena;
 import Array;
 import AxisTypes;
 import MatDim;
+import STL;
 #endif
 
 using utils::eltype_t;

@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <algorithm>
 #include <bit>
 #include <concepts>
@@ -16,6 +17,7 @@ module;
 #include <type_traits>
 #include <utility>
 #include <version>
+#endif
 
 // taken from LLVM, to avoid needing to include
 /// \macro LLVM_ADDRESS_SANITIZER_BUILD
@@ -47,6 +49,7 @@ export module Arena;
 
 import Allocator;
 import Invariant;
+import STL;
 import Valid;
 #endif
 
@@ -116,8 +119,8 @@ public:
 #ifndef NDEBUG
   constexpr void fillWithJunk(void *p, size_t Size) {
     if ((Size & 7) == 0) {
-      std::fill_n(static_cast<std::int64_t *>(p), Size >> 3,
-                  std::numeric_limits<std::int64_t>::min());
+      std::fill_n(static_cast<int64_t *>(p), Size >> 3,
+                  std::numeric_limits<int64_t>::min());
     } else std::fill_n(static_cast<char *>(p), Size, -1);
   }
 #endif

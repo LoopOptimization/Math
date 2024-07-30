@@ -3,9 +3,11 @@ module;
 #else
 #pragma once
 #endif
+#include <cassert>
+
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -17,7 +19,6 @@ module;
 #include <new>
 #include <ostream>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
 #include "Math/Array.cxx"
@@ -53,6 +54,7 @@ import NormalForm;
 import Range;
 import Rational;
 import SIMD;
+import STL;
 #endif
 
 #ifdef USE_MODULE

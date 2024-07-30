@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -11,7 +12,6 @@ module;
 #include <limits>
 #include <utility>
 
-#ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
@@ -43,6 +43,7 @@ import Pair;
 import Range;
 import Rational;
 import SIMD;
+import STL;
 import Tuple;
 import VGCD;
 #endif

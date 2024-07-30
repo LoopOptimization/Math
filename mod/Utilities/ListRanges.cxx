@@ -4,17 +4,18 @@ module;
 #pragma once
 #endif
 
+#ifndef USE_MODULE
 #include <cstddef>
 #include <ranges>
 #include <type_traits>
 
-#ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
 #include "Utilities/Valid.cxx"
 #else
 export module ListRange;
 
 import Invariant;
+import STL;
 import Valid;
 #endif
 
