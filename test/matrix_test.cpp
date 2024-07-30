@@ -1,10 +1,12 @@
+#include <gtest/gtest.h>
+
+#ifndef USE_MODULE
 #include <algorithm>
 #include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <gtest/gtest.h>
 #include <iostream>
 #include <iterator>
 #include <ostream>
@@ -12,7 +14,7 @@
 #include <sstream>
 #include <tuple>
 #include <type_traits>
-#ifndef USE_MODULE
+
 #include "Alloc/Arena.cxx"
 #include "Containers/TinyVector.cxx"
 #include "Containers/Tuple.cxx"
@@ -35,6 +37,7 @@ import ManagedArray;
 import MatDim;
 import SmallSparseMatrix;
 import StaticArray;
+import STL;
 import TinyVector;
 import Tuple;
 import TypeCompression;

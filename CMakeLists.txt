@@ -9,6 +9,7 @@ option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_MODULES "Use C++ Modules" OFF)
+option(FOR_TESTING "Build for testing" OFF)
 
 # ---- Project ----
 
@@ -50,8 +51,7 @@ else()
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
 endif()
-# message(STATUS "Headers: ${headers}")
-# message(STATUS "Modules: ${modules}")
+# message(STATUS "Headers: ${headers}") message(STATUS "Modules: ${modules}")
 
 # ---- Create library ----
 
@@ -81,6 +81,7 @@ if(USE_MODULES)
                                PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
   target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE MATHTESTSTLDEFINITIONS)
 else()
   add_library(${PROJECT_NAME} INTERFACE ${headers})
   target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)

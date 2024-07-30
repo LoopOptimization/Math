@@ -499,16 +499,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
             ptrdiff_t(Col(this->sz))};
   }
-  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
-  requires(utils::Printable<T>)
-  {
+  friend auto operator<<(std::ostream &os, Array x)
+    -> std::ostream &requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
                                 ptrdiff_t(x.numCol()),
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
-  }
-  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  } [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {

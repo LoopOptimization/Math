@@ -1,9 +1,10 @@
+#include <gtest/gtest.h>
+#ifndef USE_MODULE
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <random>
-#ifndef USE_MODULE
+
 #include "Alloc/Arena.cxx"
 #include "Containers/TinyVector.cxx"
 #include "Containers/Tuple.cxx"
@@ -30,6 +31,7 @@ import ManagedArray;
 import MatDim;
 import Reductions;
 import StaticArray;
+import STL;
 import TinyVector;
 import Tuple;
 import TypeCompression;

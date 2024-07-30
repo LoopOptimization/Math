@@ -1,11 +1,11 @@
-#include <cstddef>
 #include <gtest/gtest.h>
-#include <limits>
 #ifndef USE_MODULE
 #include "Utilities/Optional.cxx"
+#include <cstddef>
+#include <limits>
 #else
-
 import Optional;
+import STL;
 #endif
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

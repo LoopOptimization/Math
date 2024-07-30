@@ -1,12 +1,15 @@
+#include <gtest/gtest.h>
+
+#ifndef USE_MODULE
 #include <cmath>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <random>
-#ifndef USE_MODULE
+
 #include "Bit/Float.cxx"
 #else
 
 import BitHack;
+import STL;
 #endif
 
 TEST(BitTest, BasicAssertions) {

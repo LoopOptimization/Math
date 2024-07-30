@@ -69,6 +69,9 @@ else()
       ON
       CACHE BOOL "Use stack potection")
 endif()
+set(FOR_TESTING
+    ON
+    CACHE BOOL "Build for testing")
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----

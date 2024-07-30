@@ -1,9 +1,10 @@
+#include <gtest/gtest.h>
+#ifndef USE_MODULE
 #include <array>
 #include <cstdint>
 #include <cstdlib>
-#include <gtest/gtest.h>
 #include <iostream>
-#ifndef USE_MODULE
+
 #include "Alloc/Arena.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -22,6 +23,7 @@ import BoxOptInt;
 import Dual;
 import Elementary;
 import ManagedArray;
+import STL;
 #endif
 
 constexpr auto fcore(auto u1, auto u2) {

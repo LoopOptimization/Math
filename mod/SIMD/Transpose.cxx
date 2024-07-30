@@ -5,9 +5,9 @@ module;
 #endif
 #include "LoopMacros.hxx"
 #ifndef USE_MODULE
-#include <cstddef>
 #include "SIMD/Unroll.cxx"
 #include "SIMD/Vec.cxx"
+#include <cstddef>
 #else
 module SIMD:Tranpose;
 

@@ -1,15 +1,19 @@
+#include <gtest/gtest.h>
+
+#ifndef USE_MODULE
 #include <algorithm>
 #include <concepts>
-#include <gtest/gtest.h>
 #include <ranges>
-#include <vector>
-#ifndef USE_MODULE
+
 #include "Alloc/Arena.cxx"
+#include "Math/ManagedArray.cxx"
 #include "Utilities/ListRanges.cxx"
 #else
 
 import Arena;
 import ListRange;
+import ManagedArray;
+import STL;
 #endif
 
 template <typename T> class List {
@@ -125,6 +129,8 @@ TEST(ListRangeTest, BasicAssertions) {
     //               std::ranges::filter_view<decltype(tmp), decltype(pred)>>);
     auto outer =
       utils::ListRange{listList, utils::GetNext{}} | std::views::filter(pred);
+    // auto outer = ::operator|(utils::ListRange{listList, utils::GetNext{}},
+    //                          std::views::filter(pred));
     static_assert(std::ranges::input_range<decltype(outer)>);
     static_assert(std::is_trivially_destructible_v<decltype(outer)>);
     static_assert(std::ranges::view<decltype(outer)>);
@@ -139,7 +145,7 @@ TEST(ListRangeTest, BasicAssertions) {
     EXPECT_EQ(s, 450045);
   }
   {
-    std::vector<int> destination;
+    math::Vector<int> destination;
     utils::NestedList nlr{utils::ListRange{listList, utils::GetNext{}}, g};
     static_assert(std::input_iterator<decltype(nlr.begin())>);
     static_assert(std::ranges::input_range<decltype(nlr)>);

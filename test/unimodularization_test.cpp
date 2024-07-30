@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include <ostream>
 #ifndef USE_MODULE
 #include "Math/ManagedArray.cxx"
 #include "Math/Unimodularization.cxx"
 #include "Utilities/MatrixStringParse.cxx"
+#include <ostream>
 #else
-
 import ArrayParse;
 import ManagedArray;
+import STL;
 import Unimodularization;
 #endif
 

@@ -1,12 +1,13 @@
+#include <gtest/gtest.h>
+#ifndef USE_MODULE
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <iostream>
 #include <optional>
 #include <random>
 #include <utility>
-#ifndef USE_MODULE
+
 #include "Alloc/Arena.cxx"
 #include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
@@ -32,6 +33,7 @@ import ManagedArray;
 import MatDim;
 import NormalForm;
 import Pair;
+import STL;
 import UniformScaling;
 #endif
 

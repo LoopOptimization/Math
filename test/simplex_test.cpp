@@ -1,4 +1,3 @@
-#include <cstddef>
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
@@ -11,8 +10,8 @@
 #include "Math/Simplex.cxx"
 #include "Utilities/ArrayPrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
+#include <cstddef>
 #else
-
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -23,6 +22,7 @@ import ManagedArray;
 import MatDim;
 import Rational;
 import Simplex;
+import STL;
 #endif
 
 using namespace math;

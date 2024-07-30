@@ -1,7 +1,4 @@
-#include <concepts>
-#include <cstddef>
 #include <gtest/gtest.h>
-#include <type_traits>
 #ifndef USE_MODULE
 #include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
@@ -10,14 +7,17 @@
 #include "Math/ManagedArray.cxx"
 #include "Math/Ranges.cxx"
 #include "Math/SOA.cxx"
+#include <concepts>
+#include <cstddef>
+#include <type_traits>
 #else
-
 import Array;
 import AxisTypes;
 import ManagedArray;
 import Pair;
 import Range;
 import SOA;
+import STL;
 import Tuple;
 #endif
 

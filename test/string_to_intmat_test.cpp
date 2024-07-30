@@ -1,20 +1,20 @@
-#include <cstddef>
-#include <cstdint>
 #include <gtest/gtest.h>
-#include <ostream>
 #ifndef USE_MODULE
 #include "Math/Array.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/StaticArrays.cxx"
 #include "Utilities/MatrixStringParse.cxx"
+#include <cstddef>
+#include <cstdint>
+#include <ostream>
 #else
-
 import Array;
 import ArrayParse;
 import ManagedArray;
 import MatDim;
 import StaticArray;
+import STL;
 #endif
 
 using namespace math;

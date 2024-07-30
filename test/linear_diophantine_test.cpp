@@ -1,14 +1,16 @@
+#include <gtest/gtest.h>
+#ifndef USE_MODULE
 #include <algorithm>
 #include <cstdint>
-#include <gtest/gtest.h>
 #include <iostream>
 #include <random>
 #include <vector>
-#ifndef USE_MODULE
+
 #include "Math/LinearDiophantine.cxx"
 #else
 
 import LinearDiophantine;
+import STL;
 #endif
 
 using namespace math;
