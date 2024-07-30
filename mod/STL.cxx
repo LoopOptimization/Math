@@ -111,6 +111,7 @@ export using ::std::input_iterator;
 export using ::std::input_or_output_iterator;
 export using ::std::integral;
 export using ::std::integral_constant;
+export using ::std::invocable;
 export using ::std::is_constructible_v;
 export using ::std::is_const_v;
 export using ::std::is_convertible_v;

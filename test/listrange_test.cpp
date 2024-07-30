@@ -17,32 +17,34 @@ import STL;
 #endif
 
 template <typename T> class List {
-  T data;
-  List *next{nullptr};
-  List *prev{nullptr};
+  T data_;
+  List *next_{nullptr};
+  List *prev_{nullptr};
 
 public:
   List(const List &) = delete;
-  constexpr List(T d) : data(d) {}
-  constexpr auto getData() -> T & { return data; }
-  [[nodiscard]] constexpr auto getNext() const -> List * { return next; }
-  constexpr auto getPrev() -> List * { return prev; }
-  constexpr void setData(T d) { data = d; }
+  constexpr List(T d) : data_(d) {}
+  constexpr auto getData() -> T & { return data_; }
+  [[nodiscard]] constexpr auto getNext() const -> List * { return next_; }
+  constexpr auto getPrev() -> List * { return prev_; }
+  constexpr void setData(T d) { data_ = d; }
   constexpr auto setNext(List *n) -> List * {
-    next = n;
-    if (n) n->prev = this;
+    next_ = n;
+    if (n) n->prev_ = this;
     return this;
   }
   constexpr auto setPrev(List *p) -> List * {
-    prev = p;
-    if (p) p->next = this;
+    prev_ = p;
+    if (p) p->next_ = this;
     return this;
   }
 };
 
+namespace {
 auto g = [](List<List<int> *> *l) {
   return utils::ListRange{l->getData(), utils::GetNext{}};
 };
+} // namespace
 using LI = utils::ListIterator<List<int>, utils::GetNext, utils::Identity>;
 using LR = utils::ListRange<List<int>, utils::GetNext, utils::Identity>;
 using LIO = utils::ListIterator<List<List<int> *>, utils::GetNext, decltype(g)>;
@@ -72,20 +74,20 @@ TEST(ListRangeTest, BasicAssertions) {
   for (int i = 0; i < 100000; i += 10000)
     list10000 = arena.create<List<int>>(i)->setNext(list10000);
 
-  auto *listList = arena.create<List<List<int> *>>(list);
-  listList = arena.create<List<List<int> *>>(list100)->setNext(listList);
-  listList = arena.create<List<List<int> *>>(list10000)->setNext(listList);
+  auto *list_list = arena.create<List<List<int> *>>(list);
+  list_list = arena.create<List<List<int> *>>(list100)->setNext(list_list);
+  list_list = arena.create<List<List<int> *>>(list10000)->setNext(list_list);
 
   {
     int s = 0;
-    for (auto *outer = listList; outer; outer = outer->getNext())
+    for (auto *outer = list_list; outer; outer = outer->getNext())
       for (auto *v : utils::ListRange{outer->getData(), utils::GetNext{}})
         s += v->getData();
     EXPECT_EQ(s, 454545);
   }
   {
     int s = 0;
-    for (auto *outer = listList; outer; outer = outer->getNext())
+    for (auto *outer = list_list; outer; outer = outer->getNext())
       for (auto v : utils::ListRange{outer->getData(), utils::GetNext{},
                                      [](auto *v) { return 2 * v->getData(); }})
         s += v;
@@ -94,7 +96,7 @@ TEST(ListRangeTest, BasicAssertions) {
   {
     int s = 0;
     List<List<int> *> *zll =
-      arena.create<List<List<int> *>>(nullptr)->setNext(listList);
+      arena.create<List<List<int> *>>(nullptr)->setNext(list_list);
     utils::ListRange outer{zll, utils::GetNext{}};
     utils::NestedList nlr{outer, g};
     static_assert(std::input_iterator<decltype(nlr.begin())>);
@@ -113,7 +115,7 @@ TEST(ListRangeTest, BasicAssertions) {
   {
     int s = 0;
     auto tmp =
-      std::ranges::owning_view{utils::ListRange{listList, utils::GetNext{}}};
+      std::ranges::owning_view{utils::ListRange{list_list, utils::GetNext{}}};
     static_assert(std::ranges::input_range<decltype(tmp)>);
     static_assert(std::is_trivially_copyable_v<decltype(tmp)>);
     static_assert(std::is_trivially_destructible_v<decltype(tmp)>);
@@ -128,9 +130,7 @@ TEST(ListRangeTest, BasicAssertions) {
     // static_assert(std::is_trivially_copyable_v<
     //               std::ranges::filter_view<decltype(tmp), decltype(pred)>>);
     auto outer =
-      utils::ListRange{listList, utils::GetNext{}} | std::views::filter(pred);
-    // auto outer = ::operator|(utils::ListRange{listList, utils::GetNext{}},
-    //                          std::views::filter(pred));
+      utils::ListRange{list_list, utils::GetNext{}} | std::views::filter(pred);
     static_assert(std::ranges::input_range<decltype(outer)>);
     static_assert(std::is_trivially_destructible_v<decltype(outer)>);
     static_assert(std::ranges::view<decltype(outer)>);
@@ -146,7 +146,7 @@ TEST(ListRangeTest, BasicAssertions) {
   }
   {
     math::Vector<int> destination;
-    utils::NestedList nlr{utils::ListRange{listList, utils::GetNext{}}, g};
+    utils::NestedList nlr{utils::ListRange{list_list, utils::GetNext{}}, g};
     static_assert(std::input_iterator<decltype(nlr.begin())>);
     static_assert(std::ranges::input_range<decltype(nlr)>);
     std::ranges::transform(nlr, std::back_inserter(destination),

@@ -5,6 +5,7 @@ module;
 #endif
 
 #ifndef USE_MODULE
+#include <concepts>
 #include <cstddef>
 #include <ranges>
 #include <type_traits>
@@ -146,6 +147,12 @@ public:
   constexpr ListRange(ListRange &&) noexcept = default;
   constexpr auto operator=(const ListRange &) noexcept -> ListRange & = default;
   constexpr auto operator=(ListRange &&) noexcept -> ListRange & = default;
+  // constexpr auto operator|(std::invocable<ListRange> auto&&x) {
+  //     return x(*this);
+  // }
+  constexpr auto operator|(std::invocable<ListRange> auto &&x) const {
+    return x(*this);
+  }
 };
 template <typename T, class Op, class Proj>
 ListRange(T *, Op, Proj) -> ListRange<T, Op, Proj>;
