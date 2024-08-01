@@ -117,7 +117,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     ${PROJECT_NAME}
     PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4
             -fno-semantic-interposition -fdiagnostics-color=always
-            -Wno-comma-subscript)
+            -Wno-comma-subscript -Wno-psabi)
   if(NOT ((USE_SANITIZER MATCHES "([Aa]ddress)")
           OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)")))
     target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
