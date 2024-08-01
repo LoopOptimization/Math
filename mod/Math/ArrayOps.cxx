@@ -17,11 +17,12 @@ module;
 #include "Math/ArrayConcepts.cxx"
 #include "Math/CheckSizes.cxx"
 #include "Math/Indexing.cxx"
+#include "Math/MatrixDimensions.cxx"
 #include "Math/ScalarizeViaCastArrayOps.cxx"
 #include "Math/UniformScaling.cxx"
-#include "SIMD/SIMD.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/UnrollIndex.cxx"
 #include "Utilities/Invariant.cxx"
-#include "Utilities/TypeCompression.cxx"
 #else
 export module AssignExprTemplates;
 
@@ -62,11 +63,18 @@ assign(D &&d, const S &s, Op op) {
   else d = op(d, s);
 }
 
+template <typename S, typename D, typename Op>
+concept Assignable = requires(D &dst, S src, Op op) {
+  { assign(dst, src, op) };
+};
+
 template <typename D, typename S, typename R, typename C, typename Op>
 [[gnu::artificial, gnu::always_inline]] inline constexpr void
 assign(D d, const S &s, R r, C c, Op op) {
   constexpr bool no_row_ind = std::same_as<R, NoRowIndex>;
-  if constexpr (std::convertible_to<S, utils::eltype_t<D>>)
+  if constexpr (std::is_assignable_v<utils::eltype_t<D> &, S>)
+    // if constexpr (Assignable<S, utils::eltype_t<D>, Op>)
+    // if constexpr (std::convertible_to<S, utils::eltype_t<D>>)
     if constexpr (no_row_ind) assign(d[c], s, op);
     else assign(d[r, c], s, op);
   else if constexpr (math::RowVector<S>)

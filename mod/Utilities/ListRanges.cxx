@@ -150,8 +150,8 @@ public:
   // constexpr auto operator|(std::invocable<ListRange> auto&&x) {
   //     return x(*this);
   // }
-  constexpr auto operator|(std::invocable<ListRange> auto &&x) const {
-    return x(*this);
+  template <std::invocable<ListRange> F> constexpr auto operator|(F &&f) const {
+    return std::forward<F>(f)(*this);
   }
 };
 template <typename T, class Op, class Proj>

@@ -942,16 +942,17 @@ gather(const T *p, mask::Vector<4, sizeof(T)> m,
        Vec<4, int32_t> indv) -> Vec<4, T> {
   auto x = std::bit_cast<__m128i>(indv);
   static constexpr auto z = mmzero<4, T>();
-  if constexpr (std::same_as<T, double>)
+  if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<4, double>>(
       _mm256_mask_i32gather_pd(z, p, x, m, 8));
-  else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(_mm256_mask_i32gather_epi64(z, p, x, m, 8));
-  else if constexpr (std::same_as<T, float>)
+  } else if constexpr (sizeof(T) == 8) {
+    const long long int *l = reinterpret_cast<const long long int *>(p);
+    return std::bit_cast<Vec<4, T>>(_mm256_mask_i32gather_epi64(z, l, x, m, 8));
+  } else if constexpr (std::same_as<T, float>) {
     return std::bit_cast<Vec<4, float>>(_mm_mask_i32gather_ps(z, p, x, m, 4));
-  else if constexpr (sizeof(T) == 4)
+  } else if constexpr (sizeof(T) == 4) {
     return std::bit_cast<Vec<4, T>>(_mm_mask_i32gather_epi32(z, p, x, m, 4));
-  else static_assert(false);
+  } else static_assert(false);
 }
 template <typename T>
 [[gnu::always_inline, gnu::artificial]] inline auto

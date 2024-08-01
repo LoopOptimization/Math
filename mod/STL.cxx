@@ -112,6 +112,7 @@ export using ::std::input_or_output_iterator;
 export using ::std::integral;
 export using ::std::integral_constant;
 export using ::std::invocable;
+export using ::std::is_assignable_v;
 export using ::std::is_constructible_v;
 export using ::std::is_const_v;
 export using ::std::is_convertible_v;
@@ -220,6 +221,8 @@ export using ::std::ranges::reverse_view;
 export using ::std::ranges::transform;
 namespace views {
 export using ::std::ranges::views::filter;
+export using ::std::ranges::views::reverse;
+export using ::std::ranges::views::zip;
 } // namespace views
 #endif
 } // namespace ranges

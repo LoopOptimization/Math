@@ -140,7 +140,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
     D[_, c] += ptrdiff_t(c) + ptrdiff_t(D.numRow()) + 1;
   for (auto c : C.eachCol()) c += (++i);
   EXPECT_EQ(C, D);
-  for (auto c : std::ranges::reverse_view(C.eachCol())) c -= (i--);
+  for (auto c : C.eachCol() | std::views::reverse) c -= (i--);
   EXPECT_EQ(C, oldD);
 }
 

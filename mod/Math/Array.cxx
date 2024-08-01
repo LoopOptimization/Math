@@ -231,6 +231,10 @@ template <typename T, bool Column = false> struct SliceRange {
     if constexpr (Column) return col(stop_);
     else return row(stop_);
   }
+  template <std::invocable<SliceRange> F>
+  constexpr auto operator|(F &&f) const {
+    return std::forward<F>(f)(*this);
+  }
 };
 /// Constant Array
 template <class T, Dimension S, bool Compress>
@@ -308,7 +312,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
   [[nodiscard]] constexpr auto back() const noexcept -> const T & {
     if constexpr (flatstride) return *(end() - 1);
-    else return ptr[sride(sz) * ptrdiff_t(row(sz)) - 1];
+    else return ptr[(sride(sz) * ptrdiff_t(row(sz))) - 1];
   }
   // indexing has two components:
   // 1. offsetting the pointer
