@@ -221,6 +221,9 @@ calcOffset(DenseDims<>, ptrdiff_t i) -> ptrdiff_t {
 }
 
 template <ptrdiff_t L = -1, ptrdiff_t X = -1> struct StridedRange {
+  static constexpr ptrdiff_t nrow = L;
+  static constexpr ptrdiff_t ncol = 1;
+  static constexpr ptrdiff_t nstride = X;
   Length<L> len_;
   RowStride<X> stride_;
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
@@ -246,17 +249,17 @@ template <ptrdiff_t L = -1, ptrdiff_t X = -1> struct StridedRange {
 private:
   [[nodiscard, gnu::artificial,
     gnu::always_inline]] friend inline constexpr auto
-  row(StridedRange<> r) -> Row<> {
+  row(StridedRange r) -> Row<> {
     return row(ptrdiff_t(r.len_));
   }
   [[nodiscard, gnu::artificial,
     gnu::always_inline]] friend inline constexpr auto
-  col(StridedRange<>) -> Col<1> {
+  col(StridedRange) -> Col<1> {
     return {};
   }
   [[nodiscard, gnu::artificial,
     gnu::always_inline]] friend inline constexpr auto
-  stride(StridedRange<> r) -> RowStride<> {
+  stride(StridedRange r) -> RowStride<> {
     return r.stride_;
   }
 

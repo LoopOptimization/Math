@@ -41,6 +41,8 @@ export using std::uint16_t;
 export using std::uint32_t;
 export using std::uint64_t;
 export using std::uint8_t;
+export using i64 = signed long long int;
+export using u64 = unsigned long long int;
 
 namespace std {
 

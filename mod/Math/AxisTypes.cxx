@@ -49,7 +49,9 @@ namespace math {
 using utils::invariant;
 
 template <ptrdiff_t M = -1, std::signed_integral I = ptrdiff_t> struct Length {
-  // static constexpr ptrdiff_t len = M;
+  static constexpr ptrdiff_t nrow = 1;
+  static constexpr ptrdiff_t ncol = M;
+  static constexpr ptrdiff_t nstride = M;
   static_assert(M >= 0);
   static_assert(M <= std::numeric_limits<I>::max());
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
@@ -122,6 +124,9 @@ private:
   }
 };
 template <std::signed_integral I> struct Length<-1, I> {
+  static constexpr ptrdiff_t nrow = 1;
+  static constexpr ptrdiff_t ncol = -1;
+  static constexpr ptrdiff_t nstride = -1;
   enum class len : I {};
   len value_;
   [[gnu::artificial, gnu::always_inline]] explicit inline constexpr
@@ -886,6 +891,12 @@ stride(std::integral_constant<I, x>) -> RowStride<ptrdiff_t(x)> {
 template <ptrdiff_t M>
 [[gnu::artificial, gnu::always_inline]] inline constexpr auto
 aslength(Col<M> len) -> Length<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Length<-1>::len>(ptrdiff_t(len))};
+}
+template <ptrdiff_t M>
+[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+aslength(Row<M> len) -> Length<M> {
   if constexpr (M != -1) return {};
   else return {static_cast<Length<-1>::len>(ptrdiff_t(len))};
 }

@@ -31,6 +31,7 @@ module;
 #include "Math/AxisTypes.cxx"
 #include "Math/ExpressionTemplates.cxx"
 #include "Math/Indexing.cxx"
+#include "Math/MatrixDimensions.cxx"
 #include "Math/Ranges.cxx"
 #include "Math/ScalarizeViaCastArrayOps.cxx"
 #include "Utilities/ArrayPrint.cxx"
@@ -145,8 +146,9 @@ static_assert(
   std::same_as<StridedDims<3>, decltype(calcNewDim(
                                  std::declval<StridedDims<3>>(), _, _(1, 5)))>);
 
-template <typename T, bool Column = false> struct SliceIterator {
-  using dim_type = std::conditional_t<Column, StridedRange<>, Length<>>;
+template <typename T, bool Column, ptrdiff_t L, ptrdiff_t X>
+struct SliceIterator {
+  using dim_type = std::conditional_t<Column, StridedRange<L, X>, Length<L>>;
   using value_type =
     std::conditional_t<std::is_const_v<T>,
                        Array<std::remove_cvref_t<T>, dim_type>,
@@ -155,8 +157,8 @@ template <typename T, bool Column = false> struct SliceIterator {
     std::conditional_t<std::is_const_v<T>, const compressed_t<T>,
                        compressed_t<T>>;
   storage_type *data_;
-  Length<> len_;
-  RowStride<> row_stride_;
+  [[no_unique_address]] Length<L> len_;
+  [[no_unique_address]] RowStride<X> row_stride_;
   ptrdiff_t idx_;
   // constexpr auto operator=(const SliceIterator &) -> SliceIterator & =
   // default;
@@ -185,7 +187,7 @@ template <typename T, bool Column = false> struct SliceIterator {
     return a.idx_ - b.idx_;
   }
   friend constexpr auto operator+(SliceIterator a,
-                                  ptrdiff_t i) -> SliceIterator<T, Column> {
+                                  ptrdiff_t i) -> SliceIterator {
     return {a.data_, a.len_, a.row_stride_, a.idx_ + i};
   }
   friend constexpr auto operator==(SliceIterator a, SliceIterator b) -> bool {
@@ -219,12 +221,13 @@ template <typename T, bool Column = false> struct SliceIterator {
   }
 };
 
-template <typename T, bool Column = false> struct SliceRange {
+template <typename T, bool Column, ptrdiff_t L = -1, ptrdiff_t X = -1>
+struct SliceRange {
   T *data_;
-  Length<> len_;
-  RowStride<> row_stride_;
+  [[no_unique_address]] Length<L> len_;
+  [[no_unique_address]] RowStride<X> row_stride_;
   ptrdiff_t stop_;
-  [[nodiscard]] constexpr auto begin() const -> SliceIterator<T, Column> {
+  [[nodiscard]] constexpr auto begin() const -> SliceIterator<T, Column, L, X> {
     return {data_, len_, row_stride_, 0};
   }
   [[nodiscard]] constexpr auto end() const {
@@ -256,7 +259,8 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     std::is_trivially_default_constructible_v<T> &&
     std::is_trivially_destructible_v<T>;
   static constexpr bool isdense = DenseLayout<S>;
-  static constexpr bool flatstride = isdense || std::same_as<S, StridedRange<>>;
+  static constexpr bool flatstride =
+    isdense || std::same_as<S, StridedRange<S::nrow, S::nstride>>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
   explicit constexpr Array() = default;
@@ -284,7 +288,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
 
   [[nodiscard]] constexpr auto
   begin() const noexcept -> StridedIterator<const T>
-  requires(std::is_same_v<S, StridedRange<>>)
+  requires(std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
   {
     const storage_type *p = ptr;
     return StridedIterator{p, sz.stride_};
@@ -330,6 +334,10 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   operator[](R r, C c) const noexcept -> decltype(auto) {
     return index<T>(ptr, sz, r, c);
   }
+  template <size_t I>
+  [[nodiscard]] constexpr auto get() const
+    -> const T &requires(VectorDimension<S>) { return index<T>(ptr, sz, I); }
+
   [[nodiscard]] constexpr auto minRowCol() const -> ptrdiff_t {
     return std::min(ptrdiff_t(numRow()), ptrdiff_t(numCol()));
   }
@@ -491,17 +499,19 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
     return M <=> N;
   };
-  [[nodiscard]] constexpr auto eachRow() const -> SliceRange<const T, false>
+  [[nodiscard]] constexpr auto
+  eachRow() const -> SliceRange<const T, false, S::ncol, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), length(ptrdiff_t(Col(this->sz))), RowStride(this->sz),
-            ptrdiff_t(Row(this->sz))};
+    return {data(), aslength(col(this->sz)), stride(this->sz),
+            ptrdiff_t(row(this->sz))};
   }
-  [[nodiscard]] constexpr auto eachCol() const -> SliceRange<const T, true>
+  [[nodiscard]] constexpr auto
+  eachCol() const -> SliceRange<const T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
-            ptrdiff_t(Col(this->sz))};
+    return {data(), aslength(row(this->sz)), stride(this->sz),
+            ptrdiff_t(col(this->sz))};
   }
   friend auto operator<<(std::ostream &os, Array x)
     -> std::ostream &requires(utils::Printable<T>) {
@@ -681,13 +691,14 @@ struct MutArray : Array<T, S, Compress>,
   }
 
   [[nodiscard]] constexpr auto begin() noexcept -> StridedIterator<T>
-  requires(std::is_same_v<S, StridedRange<>>)
+  requires(std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
   {
     return StridedIterator{const_cast<storage_type *>(this->ptr),
                            this->sz.stride_};
   }
-  [[nodiscard]] constexpr auto begin() noexcept
-    -> storage_type *requires(!std::is_same_v<S, StridedRange<>>) {
+  [[nodiscard]] constexpr auto
+  begin() noexcept -> storage_type *requires(
+                     !std::is_same_v<S, StridedRange<S::nrow, S::nstride>>) {
     return const_cast<storage_type *>(this->ptr);
   }
 
@@ -711,6 +722,12 @@ struct MutArray : Array<T, S, Compress>,
   operator[](R r, C c) noexcept -> decltype(auto) {
     return index<T>(data(), this->sz, r, c);
   }
+
+  template <size_t I>
+  [[nodiscard]] constexpr auto get() -> T &requires(VectorDimension<S>) {
+    return index<T>(data(), this->sz, I);
+  }
+
   constexpr void fill(T value) {
     std::fill_n(this->data(), ptrdiff_t(this->dim()), value);
   }
@@ -757,7 +774,7 @@ struct MutArray : Array<T, S, Compress>,
            new_row = ptrdiff_t{Row(this->sz)} - 1;
       this->sz.set(row(new_row));
       if ((col == 0) || (r == new_row)) return;
-      storage_type *dst = data() + ptrdiff_t(r) * col;
+      storage_type *dst = data() + (ptrdiff_t(r) * col);
       std::copy_n(dst + col, (new_row - ptrdiff_t(r)) * col, dst);
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
@@ -768,14 +785,14 @@ struct MutArray : Array<T, S, Compress>,
       if ((col == 0) || (r == new_row)) return;
       invariant(col <= stride);
       if ((col + (512 / (sizeof(T)))) <= stride) {
-        storage_type *dst = data() + ptrdiff_t(r) * stride;
+        storage_type *dst = data() + (ptrdiff_t(r) * stride);
         for (auto m = ptrdiff_t(r); m < new_row; ++m) {
           storage_type *src = dst + stride;
           std::copy_n(src, col, dst);
           dst = src;
         }
       } else {
-        storage_type *dst = data() + ptrdiff_t(r) * stride;
+        storage_type *dst = data() + (ptrdiff_t(r) * stride);
         std::copy_n(dst + stride, (new_row - ptrdiff_t(r)) * stride, dst);
       }
     }
@@ -793,8 +810,8 @@ struct MutArray : Array<T, S, Compress>,
       if ((cols_to_copy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
       for (ptrdiff_t m = 0; m < row; ++m) {
-        storage_type *dst = data() + m * new_col + ptrdiff_t(c);
-        storage_type *src = data() + m * old_col + ptrdiff_t(c) + 1;
+        storage_type *dst = data() + (m * new_col) + ptrdiff_t(c);
+        storage_type *src = data() + (m * old_col) + ptrdiff_t(c) + 1;
         std::copy_n(src, cols_to_copy, dst);
       }
     } else {
@@ -807,7 +824,7 @@ struct MutArray : Array<T, S, Compress>,
       if ((cols_to_copy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
       for (ptrdiff_t m = 0; m < row; ++m) {
-        storage_type *dst = data() + m * stride + ptrdiff_t(c);
+        storage_type *dst = data() + (m * stride) + ptrdiff_t(c);
         std::copy_n(dst + 1, cols_to_copy, dst);
       }
     }
@@ -825,17 +842,17 @@ struct MutArray : Array<T, S, Compress>,
       (*this)[m, Nd] = x;
     }
   }
-  constexpr auto eachRow() -> SliceRange<T, false>
+  constexpr auto eachRow() -> SliceRange<T, false, S::ncol, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), length(ptrdiff_t(Col(this->sz))), RowStride(this->sz),
-            ptrdiff_t(Row(this->sz))};
+    return {data(), aslength(col(this->sz)), stride(this->sz),
+            ptrdiff_t(row(this->sz))};
   }
-  constexpr auto eachCol() -> SliceRange<T, true>
+  constexpr auto eachCol() -> SliceRange<T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), length(ptrdiff_t(Row(this->sz))), RowStride(this->sz),
-            ptrdiff_t(Col(this->sz))};
+    return {data(), aslength(row(this->sz)), stride(this->sz),
+            ptrdiff_t(col(this->sz))};
   }
   template <typename U> [[nodiscard]] auto reinterpretImpl() {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
@@ -918,12 +935,12 @@ static_assert(RowVector<Transpose<int64_t, Array<int64_t, StridedRange<>>>>);
 //   if constexpr (Column) return {data + idx, StridedRange<>{len, rowStride}};
 //   else return {data + rowStride * idx, len};
 // }
-template <typename T, bool Column>
-constexpr auto SliceIterator<T, Column>::operator*() const
-  -> SliceIterator<T, Column>::value_type {
+template <typename T, bool Column, ptrdiff_t L, ptrdiff_t X>
+constexpr auto SliceIterator<T, Column, L, X>::operator*() const
+  -> SliceIterator<T, Column, L, X>::value_type {
   if constexpr (Column)
-    return {data_ + idx_, StridedRange<>{len_, row_stride_}};
-  else return {data_ + ptrdiff_t(row_stride_) * idx_, len_};
+    return {data_ + idx_, StridedRange<L, X>{len_, row_stride_}};
+  else return {data_ + (ptrdiff_t(row_stride_) * idx_), len_};
 }
 // template <typename T, bool Column>
 // inline constexpr auto operator*(SliceIterator<T, Column> it)
@@ -933,11 +950,12 @@ constexpr auto SliceIterator<T, Column>::operator*() const
 //   else return {it.data + it.rowStride * it.idx, it.len};
 // }
 
-static_assert(std::weakly_incrementable<SliceIterator<int64_t, false>>);
-static_assert(std::forward_iterator<SliceIterator<int64_t, false>>);
+static_assert(std::weakly_incrementable<SliceIterator<int64_t, false, -1, -1>>);
+static_assert(std::forward_iterator<SliceIterator<int64_t, false, -1, -1>>);
 static_assert(std::ranges::forward_range<SliceRange<int64_t, false>>);
 static_assert(std::ranges::range<SliceRange<int64_t, false>>);
-using ITEST = std::iter_rvalue_reference_t<SliceIterator<int64_t, true>>;
+using ITEST =
+  std::iter_rvalue_reference_t<SliceIterator<int64_t, true, -1, -1>>;
 static_assert(std::is_same_v<ITEST, MutArray<int64_t, StridedRange<>, false>>);
 
 /// Non-owning view of a managed array, capable of resizing,
@@ -1371,11 +1389,12 @@ static_assert(
 // static_assert(!std::common_with<math::MutArray<double, math::StridedRange<-1,
 // -1>, false>, double>);
 
-template <typename T> auto countNonZero(PtrMatrix<T> x) -> ptrdiff_t {
-  ptrdiff_t count = 0;
-  for (ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x(r, _));
-  return count;
-}
+// template <typename T> constexpr auto countNonZero(PtrMatrix<T> x) ->
+// ptrdiff_t {
+//   ptrdiff_t count = 0;
+//   for (ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x[r, _]);
+//   return count;
+// }
 
 template <typename T, typename S> struct ScalarizeViaCast<Array<T, S, true>> {
   using type = scalarize_elt_cast_t<utils::compressed_t<T>>;
@@ -1395,3 +1414,39 @@ inline constexpr bool
 static_assert(
   std::same_as<utils::eltype_t<math::Array<unsigned, math::Length<>>>,
                unsigned>);
+
+template <class T, ptrdiff_t L>
+requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::tuple_size<::math::Array<T, ::math::Length<L>>>
+  : std::integral_constant<ptrdiff_t, L> {};
+
+template <size_t I, class T, ptrdiff_t L>
+requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::tuple_element<I, ::math::Array<T, ::math::Length<L>>> {
+  using type = T;
+};
+
+template <class T, ptrdiff_t L,
+          ptrdiff_t X>
+requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::tuple_size<::math::Array<T, ::math::StridedRange<L, X>>>
+  : std::integral_constant<ptrdiff_t, L> {};
+
+template <size_t I, class T, ptrdiff_t L,
+          ptrdiff_t X>
+requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::tuple_element<I, ::math::Array<T, ::math::StridedRange<L, X>>> {
+  using type = T;
+};
+template <class T, ptrdiff_t L,
+          ptrdiff_t X>
+requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::tuple_size<::math::MutArray<T, ::math::StridedRange<L, X>>>
+  : std::integral_constant<ptrdiff_t, L> {};
+
+template <size_t I, class T, ptrdiff_t L,
+          ptrdiff_t X>
+requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::tuple_element<I, ::math::MutArray<T, ::math::StridedRange<L, X>>> {
+  using type = T;
+};

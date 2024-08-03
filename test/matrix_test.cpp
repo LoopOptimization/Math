@@ -86,7 +86,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   B[3, 2] = 2;
   B[3, 3] = -3;
   B[3, 4] = 5;
-  IntMatrix<> C{DenseDims<>{row(3), col(5)}};
+  ManagedArray<int64_t, DenseDims<3>> C{DenseDims<3>{Row<3>{}, col(5)}};
   C[0, 0] = -20;
   C[0, 1] = 25;
   C[0, 2] = -5;
@@ -138,7 +138,13 @@ TEST(SparseIndexingTest, BasicAssertions) {
   auto oldD{D};
   for (ptrdiff_t c : _(0, D.numCol()))
     D[_, c] += ptrdiff_t(c) + ptrdiff_t(D.numRow()) + 1;
-  for (auto c : C.eachCol()) c += (++i);
+  // for (auto c : C.eachCol()) c += (++i);
+  // test structured binding
+  for (auto &&[a, b, c] : C.eachCol()) {
+    a += (++i);
+    b += i;
+    c += i;
+  }
   EXPECT_EQ(C, D);
   for (auto c : C.eachCol() | std::views::reverse) c -= (i--);
   EXPECT_EQ(C, oldD);
