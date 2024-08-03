@@ -115,17 +115,17 @@ template <typename T, typename... Ts> struct Tuple {
   template <typename U, typename... Us>
   constexpr auto operator=(Tuple<U, Us...> x)
     -> Tuple &requires(
-      std::assignable_from<T, U> &&... &&std::assignable_from<Ts, Us>) {
+      std::is_assignable_v<T, U> &&... &&std::is_assignable_v<Ts, Us>) {
     head_ = x.head_;
     tail_ = x.tail_;
     return *this;
   }
 
   template <typename U, typename V>
-  constexpr auto operator=(Pair<U, V> x) -> Tuple &
-  requires((sizeof...(Ts) == 1) &&
-           (std::assignable_from<T, U> && ... && std::assignable_from<Ts, V>))
-  {
+  constexpr auto operator=(Pair<U, V> x)
+    -> Tuple &requires((sizeof...(Ts) == 1) &&
+                       (std::is_assignable_v<T, U> && ... &&
+                        std::is_assignable_v<Ts, V>)) {
     head_ = x.first;
     tail_.head_ = x.second;
     return *this;
@@ -179,17 +179,15 @@ template <typename T> struct Tuple<T> {
   template <typename U> constexpr void operator*=(const Tuple<U> &);
   template <typename U> constexpr void operator/=(const Tuple<U> &);
 
-  template <typename U>
-  constexpr auto operator=(Tuple<U> x) -> Tuple &
-  requires((!std::same_as<T, U>) && std::assignable_from<T, U>)
-  {
-    head_ = x.head_;
-    return *this;
-  }
+template <typename U>
+constexpr auto operator=(Tuple<U> x)
+  -> Tuple &requires((!std::same_as<T, U>) && std::is_assignable_v<T, U>) {
+  head_ = x.head_;
+  return *this;
+}
 
-private:
-  template <typename U>
-  friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
+private : template <typename U>
+          friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
     dst << src;
   }
   template <typename U>
@@ -208,9 +206,13 @@ template <typename T> struct Add {
   }
 };
 
-template <typename... Ts> constexpr auto tie(Ts &...x) -> Tuple<Ts &...> {
+template <typename... Ts> constexpr auto tie(Ts &&...x) -> Tuple<Ts...> {
   return {x...};
 }
+
+// template <typename F, typename S>
+// using Pair = Tuple<F,S>;
+
 } // namespace containers
 
 template <typename T, typename... Ts>
