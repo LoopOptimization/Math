@@ -112,22 +112,23 @@ template <typename T, typename... Ts> struct Tuple {
     (*this) << map(src, [](const auto &d, const auto &s) { return d / s; });
   }
   constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  constexpr auto operator=(Tuple &&) -> Tuple & = default;
   template <typename U, typename... Us>
   constexpr auto operator=(Tuple<U, Us...> x)
     -> Tuple &requires(
       std::is_assignable_v<T, U> &&... &&std::is_assignable_v<Ts, Us>) {
-    head_ = x.head_;
-    tail_ = x.tail_;
+    head_ = std::move(x.head_);
+    tail_ = std::move(x.tail_);
     return *this;
   }
 
   template <typename U, typename V>
-  constexpr auto operator=(Pair<U, V> x)
-    -> Tuple &requires((sizeof...(Ts) == 1) &&
-                       (std::is_assignable_v<T, U> && ... &&
-                        std::is_assignable_v<Ts, V>)) {
-    head_ = x.first;
-    tail_.head_ = x.second;
+  constexpr auto operator=(Pair<U, V> x) -> Tuple &
+  requires((sizeof...(Ts) == 1) &&
+           (std::is_assignable_v<T, U> && ... && std::is_assignable_v<Ts, V>))
+  {
+    head_ = std::move(x.first);
+    tail_.head_ = std::move(x.second);
     return *this;
   }
 
@@ -159,6 +160,7 @@ template <typename T> struct Tuple<T> {
     return head_;
   }
   constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  constexpr auto operator=(Tuple &&) -> Tuple & = default;
   constexpr void apply(const auto &f) { f(head_); }
   template <typename U> constexpr void apply(const Tuple<U> &x, const auto &f) {
     f(head_, x.head_);
@@ -179,15 +181,17 @@ template <typename T> struct Tuple<T> {
   template <typename U> constexpr void operator*=(const Tuple<U> &);
   template <typename U> constexpr void operator/=(const Tuple<U> &);
 
-template <typename U>
-constexpr auto operator=(Tuple<U> x)
-  -> Tuple &requires((!std::same_as<T, U>) && std::is_assignable_v<T, U>) {
-  head_ = x.head_;
-  return *this;
-}
+  template <typename U>
+  constexpr auto operator=(Tuple<U> x) -> Tuple &
+  requires((!std::same_as<T, U>) && std::is_assignable_v<T, U>)
+  {
+    head_ = std::move(x.head_);
+    return *this;
+  }
 
-private : template <typename U>
-          friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
+private:
+  template <typename U>
+  friend constexpr void operator<<(Tuple<T> &dst, const Tuple<U> &src) {
     dst << src;
   }
   template <typename U>
