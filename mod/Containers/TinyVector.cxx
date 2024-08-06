@@ -18,7 +18,6 @@ module;
 
 #include "Containers/Storage.cxx"
 #include "Math/AxisTypes.cxx"
-#include "Math/MatrixDimensions.cxx"
 #include "Utilities/Invariant.cxx"
 #else
 export module TinyVector;
@@ -163,6 +162,8 @@ public:
   {
     std::destroy_n(data_.data(), size());
   }
+
+private:
   friend auto operator<<(std::ostream &os,
                          const TinyVector &x) -> std::ostream & {
     os << "[";

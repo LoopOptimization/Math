@@ -32,8 +32,9 @@ import Widen;
 #else
 #define CLANGNOUBSAN
 #endif
-CLANGNOUBSAN constexpr auto _mul_high(__uint128_t a,
-                                      __uint128_t b) -> __uint128_t {
+namespace math::detail {
+CLANGNOUBSAN constexpr auto mul_high(__uint128_t a,
+                                     __uint128_t b) -> __uint128_t {
   static constexpr auto shift = 16 * 4;
   __uint128_t mask = std::numeric_limits<__uint128_t>::max();
   __uint128_t a1 = a >> shift, a2 = a & mask;
@@ -43,20 +44,19 @@ CLANGNOUBSAN constexpr auto _mul_high(__uint128_t a,
     ((a1b2 & mask) + (a2b1 & mask) + (a2b2 >> shift)) >> shift;
   return a1b1 + (a1b2 >> shift) + (a2b1 >> shift) + carry;
 }
-CLANGNOUBSAN constexpr auto _mul_high(__int128_t a,
-                                      __int128_t b) -> __int128_t {
+CLANGNOUBSAN constexpr auto mul_high(__int128_t a, __int128_t b) -> __int128_t {
   static constexpr auto shift = 16 * 8 - 1;
   auto t1 = std::bit_cast<__uint128_t>((a >> shift) & b),
        t2 = std::bit_cast<__uint128_t>((b >> shift) & a);
   return std::bit_cast<__int128_t>(
-    _mul_high(std::bit_cast<__uint128_t>(a), std::bit_cast<__uint128_t>(b)) -
+    mul_high(std::bit_cast<__uint128_t>(a), std::bit_cast<__uint128_t>(b)) -
     t1 - t2);
 }
-template <std::integral T>
-CLANGNOUBSAN constexpr auto _mul_high(T a, T b) -> T {
+template <std::integral T> CLANGNOUBSAN constexpr auto mul_high(T a, T b) -> T {
   return T((utils::widen(a) * utils::widen(b)) >> (8 * sizeof(T)));
 }
 #undef CLANGNOUBSAN
+} // namespace math::detail
 
 #ifdef USE_MODULE
 export namespace math {
@@ -132,7 +132,7 @@ template <std::integral T> class MultiplicativeInverse<T> {
     return a.divisor_ * b;
   }
   friend constexpr auto operator/(T a, MultiplicativeInverse b) -> T {
-    T x = _mul_high(a, b.multiplier_);
+    T x = ::math::detail::mul_high(a, b.multiplier_);
     if constexpr (issigned) {
       x += a * T(b.addmul_);
       return ((b.divisor_ == 1) || (b.divisor_ == -1))
