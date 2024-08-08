@@ -209,6 +209,20 @@ template <typename T> struct Add {
     return *this;
   }
 };
+template <typename T> struct And {
+  T &x_;
+  constexpr auto operator=(T y) -> And & {
+    x_ &= y;
+    return *this;
+  }
+};
+template <typename T> struct Or {
+  T &x_;
+  constexpr auto operator=(T y) -> Or & {
+    x_ |= y;
+    return *this;
+  }
+};
 
 template <typename... Ts> constexpr auto tie(Ts &&...x) -> Tuple<Ts...> {
   return {x...};
