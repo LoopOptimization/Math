@@ -441,6 +441,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     } else return flatview() == other.flatview();
     return true;
   }
+  template <MatrixDimension D>
+  [[nodiscard]] constexpr auto
+  operator==(Array<T, D, Compress> other) const noexcept -> bool
+  requires(MatrixDimension<S> && (((S::ncol != -1) && (D::ncol == -1)) ||
+                                  ((S::nrow != -1) && (D::nrow == -1)) ||
+                                  ((S::nstride != -1) && (D::nstride == -1))))
+  {
+    return Expr<T, Array<T, S, Compress>>::operator==(other);
+  }
   // FIXME: strided should skip over elements
   [[nodiscard]] constexpr auto norm2() const noexcept -> value_type {
     static_assert(DenseLayout<S>);
