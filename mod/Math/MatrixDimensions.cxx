@@ -94,6 +94,18 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     : m_{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
       n_{Col<C>(col(std::integral_constant<ptrdiff_t, N>{}))},
       stride_m_{RowStride<X>(stride(std::integral_constant<ptrdiff_t, N>{}))} {}
+
+  template <ptrdiff_t A, ptrdiff_t B, ptrdiff_t S>
+  constexpr StridedDims(StridedDims<A, B, S> other)
+  requires((R != -1 && A == -1) || (C != -1 && B == -1) || (X != -1 && S == -1))
+    : m_{}, n_{}, stride_m_{} {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+    if constexpr (C != -1) utils::invariant(col(other) == C);
+    else n_ = other.n_;
+    if constexpr (X != -1) utils::invariant(stride(other) == X);
+    else stride_m_ = other.stride_m_;
+  }
   constexpr explicit operator int() const {
     return int(ptrdiff_t(m_) * ptrdiff_t(stride_m_));
   }
@@ -131,16 +143,22 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t X> struct StridedDims {
     invariant(c <= n_);
     return similar(c);
   }
-  constexpr auto set(Row<> r) -> StridedDims &requires(R == -1) {
+  constexpr auto set(Row<> r) -> StridedDims &
+  requires(R == -1)
+  {
     invariant(n_ <= stride_m_);
     m_ = r;
     return *this;
-  } constexpr auto set(Col<> c) -> StridedDims &requires(C == -1) {
+  }
+  constexpr auto set(Col<> c) -> StridedDims &
+  requires(C == -1)
+  {
     n_ = c;
     stride_m_ = stride(std::max(ptrdiff_t(stride_m_), ptrdiff_t(n_)));
     return *this;
-  } template <ptrdiff_t S> [[nodiscard]] constexpr auto similar(Row<S> r) const
-    -> StridedDims {
+  }
+  template <ptrdiff_t S>
+  [[nodiscard]] constexpr auto similar(Row<S> r) const -> StridedDims {
     invariant(n_ <= stride_m_);
     return {r, n_, stride_m_};
   }
@@ -192,6 +210,15 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
   constexpr DenseDims(Length<1>)
     : m_{Row<R>(row(std::integral_constant<ptrdiff_t, 1>{}))},
       n_{Col<C>(col(std::integral_constant<ptrdiff_t, 1>{}))} {}
+  template <ptrdiff_t A, ptrdiff_t B>
+  constexpr DenseDims(DenseDims<A, B> other)
+  requires((R != -1 && A == -1) || (C != -1 && B == -1))
+    : m_{}, n_{} {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+    if constexpr (C != -1) utils::invariant(col(other) == C);
+    else n_ = other.n_;
+  }
   constexpr explicit operator int() const {
     return int(ptrdiff_t(m_) * ptrdiff_t(n_));
   }
@@ -228,14 +255,20 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     invariant(c <= Col{m_});
     return {m_, c, {ptrdiff_t(n_)}};
   }
-  constexpr auto set(Row<> r) -> DenseDims &requires(R == -1) {
+  constexpr auto set(Row<> r) -> DenseDims &
+  requires(R == -1)
+  {
     m_ = r;
     return *this;
-  } constexpr auto set(Col<> c) -> DenseDims &requires(C == -1) {
+  }
+  constexpr auto set(Col<> c) -> DenseDims &
+  requires(C == -1)
+  {
     n_ = c;
     return *this;
-  } template <ptrdiff_t S> [[nodiscard]] constexpr auto similar(Row<S> r) const
-    -> DenseDims {
+  }
+  template <ptrdiff_t S>
+  [[nodiscard]] constexpr auto similar(Row<S> r) const -> DenseDims {
     return {r, n_};
   }
   template <ptrdiff_t S>
@@ -388,6 +421,8 @@ private:
     return os << x.m_ << " x " << x.m_;
   }
 };
+
+static_assert(std::is_convertible_v<StridedDims<>, StridedDims<2>>);
 
 template <ptrdiff_t R> Row(SquareDims<R>) -> Row<R>;
 template <ptrdiff_t R> Col(SquareDims<R>) -> Col<R>;
