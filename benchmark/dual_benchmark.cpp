@@ -1,14 +1,14 @@
 
-#include "Math/Iterators.hpp"
-#include "SIMD/Vec.hpp"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/Dual.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/StaticArrays.cxx"
+#include "SIMD/Vec.cxx"
+#include "Utilities/Invariant.cxx"
 #include "include/randdual.hpp"
-#include <Containers/Tuple.hpp>
-#include <Math/Array.hpp>
-#include <Math/Dual.hpp>
-#include <Math/LinearAlgebra.hpp>
-#include <Math/Matrix.hpp>
-#include <Math/StaticArrays.hpp>
-#include <Utilities/Invariant.hpp>
 #include <array>
 #include <benchmark/benchmark.h>
 #include <bit>
@@ -194,7 +194,8 @@ BENCHMARK(BM_dualprod_simdarray_tuple<8, 2>);
 template <ptrdiff_t M, ptrdiff_t N>
 void BM_dualdivsum(benchmark::State &state) {
   std::mt19937_64 rng0;
-  using D = Dual<Dual<double, M>, N>;
+  using D =
+    std::conditional_t<(N > 0), Dual<Dual<double, M>, N>, Dual<double, M>>;
   ptrdiff_t len = state.range(0);
   Vector<std::array<D, 4>> x{math::length(len)};
   for (ptrdiff_t i = 0; i < len; ++i) {
@@ -208,6 +209,8 @@ void BM_dualdivsum(benchmark::State &state) {
   }
 }
 
+BENCHMARK(BM_dualdivsum<7, 0>)->RangeMultiplier(2)->Range(1, 1 << 10);
+BENCHMARK(BM_dualdivsum<8, 0>)->RangeMultiplier(2)->Range(1, 1 << 10);
 BENCHMARK(BM_dualdivsum<7, 2>)->RangeMultiplier(2)->Range(1, 1 << 10);
 BENCHMARK(BM_dualdivsum<8, 2>)->RangeMultiplier(2)->Range(1, 1 << 10);
 BENCHMARK(BM_dualdivsum<7, 4>)->RangeMultiplier(2)->Range(1, 1 << 10);

@@ -70,7 +70,7 @@ template <String S> consteval auto matrix_from_string() {
   //     (dims[0] > 1) && (dims[1] % simd::VecLen<dims[1], int64_t>) != 0;
   //   math::StaticArray<int64_t, dims[0], dims[1], compress> A(int64_t(0));
   // #else
-  math::StaticArray<int64_t, dims[0], dims[1], true> A(int64_t(0));
+  math::StaticArray<int64_t, dims[0], dims[1], true> A{};
   // #endif
   const char *s = S.data_;
   for (ptrdiff_t i = 0; i < dims[0]; ++i) {

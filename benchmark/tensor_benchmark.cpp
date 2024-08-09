@@ -1,16 +1,16 @@
 
-#include "Math/Iterators.hpp"
-#include "Math/UniformScaling.hpp"
-#include "SIMD/Intrin.hpp"
-#include "Utilities/LoopMacros.hpp"
-#include "Utilities/TypeCompression.hpp"
+#include "LoopMacros.hxx"
+#include "Math/Array.cxx"
+#include "Math/Dual.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/StaticArrays.cxx"
+#include "Math/UniformScaling.cxx"
+#include "SIMD/Intrin.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/TypeCompression.cxx"
 #include "include/randdual.hpp"
-#include <Math/Array.hpp>
-#include <Math/Dual.hpp>
-#include <Math/LinearAlgebra.hpp>
-#include <Math/Matrix.hpp>
-#include <Math/StaticArrays.hpp>
-#include <Utilities/Invariant.hpp>
 #include <array>
 #include <benchmark/benchmark.h>
 #include <cstddef>

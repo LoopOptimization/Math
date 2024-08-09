@@ -5,11 +5,15 @@ module;
 #endif
 #include "LoopMacros.hxx"
 #ifndef USE_MODULE
+#include "Math/Indexing.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Vec.cxx"
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <ostream>
 #include <type_traits>
 #include <utility>
@@ -25,8 +29,6 @@ module;
 #include "Math/MatrixDimensions.cxx"
 #include "Math/ScalarizeViaCastArrayOps.cxx"
 #include "Math/StaticArrays.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Utilities/Invariant.cxx"
 #include "Utilities/Parameters.cxx"
 #include "Utilities/Reference.cxx"
 #include "Utilities/TypeCompression.cxx"
@@ -60,8 +62,9 @@ namespace math {
 
 template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
   static_assert(Compress);
-  utils::compressed_t<T> val{};
-  SVector<T, N, true> partials{T{}};
+  using CT = utils::compressed_t<T>;
+  CT val{};
+  SVector<T, N, true> partials{CT{}};
 
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
   [[gnu::always_inline]] constexpr operator decompressed_type() const {
@@ -148,7 +151,8 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   T val{};
   data_type partials{T{}};
 
-  using compressed_type = Dual<utils::compressed_t<T>, N, true>;
+  // using compressed_type = Dual<utils::compressed_t<T>, N, true>;
+  using compressed_type = Dual<T, N, true>;
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
   static_assert(std::same_as<Dual, decompressed_type>);
 
@@ -205,7 +209,7 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
       return ret;
     } else
 #endif
-      return {val * other.val, val * other.partials + other.val * partials};
+      return {val * other.val, (val * other.partials) + (other.val * partials)};
   }
   [[gnu::always_inline]] constexpr auto
   operator/(const Dual &other) const -> Dual {
@@ -247,7 +251,7 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   }
   [[gnu::always_inline]] constexpr auto
   operator*=(const Dual &other) -> Dual & {
-    partials << val * other.partials + other.val * partials;
+    partials << (val * other.partials) + (other.val * partials);
     val *= other.val;
     return *this;
   }
@@ -377,6 +381,10 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   }
 
 private:
+  friend constexpr auto value(const Dual &x) -> T { return x.value(); }
+  friend constexpr auto extractvalue(const Dual &x) {
+    return extractvalue(x.value());
+  }
   [[gnu::always_inline]] friend constexpr auto operator>(double other,
                                                          Dual x) -> bool {
     return other > x.value();
@@ -715,6 +723,8 @@ struct Dual<T, N, false> {
   }
 
 private:
+  friend constexpr auto value(const Dual &x) -> T { return x.value(); }
+  friend constexpr auto extractvalue(const Dual &x) -> T { return x.value(); }
   friend constexpr auto exp(Dual x) -> Dual {
     return {conditional(std::multiplies<>{},
                         elementwise_not_equal(_(0, N + 1), value_idx),
@@ -878,16 +888,14 @@ private:
   }
 };
 
-/// Extract the value of a `Dual` number
-template <class T, ptrdiff_t N, bool Compress>
-constexpr auto value(const Dual<T, N, Compress> &x) {
-  return value(x.value());
-}
-
 static_assert(!std::convertible_to<Array<Dual<double, 7, true>, Length<2>>,
                                    Dual<double, 7, false>>);
 static_assert(utils::Compressible<Dual<double, 7>>);
 static_assert(utils::Compressible<Dual<double, 8>>);
+static_assert(sizeof(Dual<Dual<double, 8, true>, 2, true>) ==
+              sizeof(double) * 9UL * 3UL);
+static_assert(sizeof(Dual<Dual<double, 8>, 2>) ==
+              sizeof(double) * (8 + simd::Width<double>)*3UL);
 // static_assert(
 //   AbstractVector<Conditional<
 //     ::math::ElementwiseBinaryOp<::math::Range<long, long>, long,
@@ -953,13 +961,14 @@ constexpr auto log1p(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return log1p(Dual<T, N>{x});
 }
 template <int l = 8> constexpr auto smax(auto x, auto y, auto z) {
-  double m = std::max(std::max(value(x), value(y)), value(z));
+  double m =
+    std::max(std::max(extractvalue(x), extractvalue(y)), extractvalue(z));
   static constexpr double f = l, i = 1 / f;
   return m + i * log(exp(f * (x - m)) + exp(f * (y - m)) + exp(f * (z - m)));
 }
 template <int l = 8> constexpr auto smax(auto w, auto x, auto y, auto z) {
-  double m =
-    std::max(std::max(value(w), value(y)), std::max(value(x), value(z)));
+  double m = std::max(std::max(extractvalue(w), extractvalue(y)),
+                      std::max(extractvalue(x), extractvalue(z)));
   static constexpr double f = l, i = 1 / f;
   return m + i * log(exp(f * (w - m)) + exp(f * (x - m)) + exp(f * (y - m)) +
                      exp(f * (z - m)));
@@ -968,8 +977,8 @@ template <int l = 8, typename T, ptrdiff_t N>
 constexpr auto smax(SVector<T, N> x) -> T {
   static_assert(!std::is_integral_v<T>);
   static constexpr double f = l, i = 1 / f;
-  double m = -std::numeric_limits<double>::infinity();
-  for (ptrdiff_t n = 0; n < N; ++n) m = std::max(m, value(x[n]));
+  double m = -std::numeric_limits<double>::max();
+  for (ptrdiff_t n = 0; n < N; ++n) m = std::max(m, extractvalue(x[n]));
   T a{};
   for (ptrdiff_t n = 0; n < N; ++n) a += exp(f * (x[n] - m));
   return m + i * log(a);
@@ -1121,6 +1130,8 @@ constexpr auto hessian(alloc::Arena<> *arena, PtrVector<double> x,
   return hr;
 }
 static_assert(MatrixDimension<SquareDims<>>);
+static_assert(std::same_as<utils::compressed_t<Dual<Dual<double, 8>, 2>>,
+                           Dual<Dual<double, 8>, 2, true>>);
 
 template <typename T, ptrdiff_t N, bool Compress>
 struct IsDualImpl<::math::Dual<T, N, Compress>> : std::true_type {};
@@ -1128,7 +1139,7 @@ struct IsDualImpl<::math::Dual<T, N, Compress>> : std::true_type {};
 template <typename T, ptrdiff_t N>
 struct ScalarizeEltViaCast<Dual<T, N, true>> {
   using type = std::conditional_t<std::same_as<T, double>, double,
-                                  scalarize_elt_cast_t<T>>;
+                                  scalarize_elt_cast_t<utils::compressed_t<T>>>;
 };
 
 } // namespace math

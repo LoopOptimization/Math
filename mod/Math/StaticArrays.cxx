@@ -117,7 +117,7 @@ struct MATH_GSL_OWNER StaticArray
 
   // if Compress=false, we have a compressed_t
   // if Compress=true, we should already be compressed
-  using compressed_type = StaticArray<utils::compressed_t<T>, M, N, true>;
+  using compressed_type = StaticArray<T, M, N, true>;
   using decompressed_type = StaticArray<value_type, M, N, false>;
   using S = StaticDims<T, M, N, Compress>;
   using Expr<T, StaticArray<T, M, N, Compress>>::operator==;
@@ -137,6 +137,7 @@ struct MATH_GSL_OWNER StaticArray
   constexpr explicit StaticArray(StaticArray &&) noexcept = default;
   constexpr explicit StaticArray(const std::initializer_list<T> &list) {
     if (list.size() == 1) {
+
       (*this) << *list.begin();
       return;
     }
@@ -157,10 +158,12 @@ struct MATH_GSL_OWNER StaticArray
   {
     return StaticArray{*p};
   }
-  [[nodiscard]] constexpr auto data() const noexcept -> const T * {
-    return static_cast<const T *>(memory_);
+  [[nodiscard]] constexpr auto data() const noexcept -> const storage_type * {
+    return static_cast<const storage_type *>(memory_);
   }
-  constexpr auto data() noexcept -> T * { return static_cast<T *>(memory_); }
+  constexpr auto data() noexcept -> storage_type * {
+    return static_cast<storage_type *>(memory_);
+  }
 
   constexpr auto operator=(StaticArray const &) -> StaticArray & = default;
   constexpr auto operator=(StaticArray &&) noexcept -> StaticArray & = default;

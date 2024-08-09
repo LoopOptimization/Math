@@ -48,10 +48,7 @@ add_executable(${PROJECT_NAME} ${benchmarks})
 
 message(STATUS "PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
-target_include_directories(
-  ${PROJECT_NAME}
-  PRIVATE ${PROJECT_SOURCE_DIR}/../include # ${PROJECT_SOURCE_DIR}/include
-)
+add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 if(ENABLE_OPENMP)
   find_package(OpenMP)
   target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
@@ -65,7 +62,7 @@ else()
   message(STATUS "Use SIMD Array operations")
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE benchmark::benchmark_main)
+target_link_libraries(${PROJECT_NAME} PRIVATE Math benchmark::benchmark_main)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES
                                                "IntelLLVM"))

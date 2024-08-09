@@ -1,13 +1,24 @@
 #include <benchmark/benchmark.h>
+
+#ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/Simplex.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#include "Utilities/Valid.cxx"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-
+#else
 import Arena;
 import Array;
 import ArrayParse;
 import Simplex;
+import STL;
 import Valid;
+#endif
 
 using utils::operator""_mat, math::_;
 

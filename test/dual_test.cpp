@@ -87,14 +87,14 @@ constexpr void evalpoly(MutSquarePtrMatrix<T> B, MutSquarePtrMatrix<T> A,
 }
 
 template <AbstractMatrix T> constexpr auto opnorm1(const T &A) {
-  using S = decltype(value(std::declval<eltype_t<T>>()));
+  using S = decltype(extractvalue(std::declval<eltype_t<T>>()));
   auto [M, N] = shape(A);
   invariant(M > 0);
   invariant(N > 0);
   S a{};
   for (ptrdiff_t n = 0; n < N; ++n) {
     S s{};
-    for (ptrdiff_t m = 0; m < M; ++m) s += std::abs(value(A[m, n]));
+    for (ptrdiff_t m = 0; m < M; ++m) s += std::abs(extractvalue(A[m, n]));
     a = std::max(a, s);
   }
   return a;

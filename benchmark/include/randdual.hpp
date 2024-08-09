@@ -2,7 +2,7 @@
 #ifndef randdual_hpp_INCLUDED
 #define randdual_hpp_INCLUDED
 
-#include <Math/Dual.hpp>
+#include "Math/Dual.cxx"
 #include <cstddef>
 #include <random>
 

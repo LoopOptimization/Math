@@ -19,6 +19,7 @@ export namespace math {
 namespace math {
 #endif
 constexpr auto value(std::floating_point auto x) { return x; }
+constexpr auto extractvalue(std::floating_point auto x) { return x; }
 } // namespace math
 
 /// The idea here is that some types may have a compression/decompression that

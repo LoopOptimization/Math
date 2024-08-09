@@ -30,21 +30,23 @@ export namespace utils {
 namespace utils {
 #endif
 
+#ifndef NDEBUG
 [[gnu::artificial, gnu::always_inline]] constexpr inline void
 invariant(bool condition) {
-#ifndef NDEBUG
   if (!condition) [[unlikely]]
     TRAP();
-#endif
 }
 template <typename T>
 [[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T x,
                                                                         T y) {
-#ifndef NDEBUG
   if (x != y) [[unlikely]]
     TRAP();
-#endif
 }
+#else
+[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(bool) {}
+template <typename T>
+[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T, T) {}
+#endif
 
 [[gnu::artificial, gnu::always_inline]] constexpr inline void
 assume(bool condition) {
@@ -65,8 +67,8 @@ assume(bool condition) {
 #endif
 #endif
 #endif // __cpp_lib_unreachable
+  }
 #endif // assume
-}
 #endif // NDEBUG
 }
 template <typename T>
@@ -77,7 +79,7 @@ template <typename T>
     TRAP();
 #else
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
-  [[assume(condition)]];
+  [[assume(x == y)]];
 #else
   if (x != y) {
 #ifdef __cpp_lib_unreachable
@@ -89,8 +91,8 @@ template <typename T>
 #endif
 #endif
 #endif // __cpp_lib_unreachable
+  }
 #endif // assume
-}
 #endif // NDEBUG
 }
 

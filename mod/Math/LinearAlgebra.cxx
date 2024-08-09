@@ -235,14 +235,14 @@ fact(const SquareMatrix<int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
   return Fact<Rational, L>{std::move(A), std::move(ipiv)};
 }
 template <typename S> constexpr auto factImpl(MutSquarePtrMatrix<S> A) {
-  using V = decltype(value(S{}));
+  using V = decltype(extractvalue(S{}));
   Row M = A.numRow();
   auto ipiv{vector(math::DefaultAlloc<unsigned>{}, ptrdiff_t(M))};
   invariant(ptrdiff_t(ipiv.size()), ptrdiff_t(M));
   for (ptrdiff_t k = 0;; ++k) {
     containers::Pair<ptrdiff_t, V> mi{-1, {}};
     for (ptrdiff_t i = k; i < M; ++i)
-      if (V v = std::abs(value(A[i, k])); v > mi.second) mi = {i, v};
+      if (V v = std::abs(extractvalue(A[i, k])); v > mi.second) mi = {i, v};
     invariant(mi.first >= 0); // TODO: return info?
     ipiv[k] = mi.first;
     if (mi.first != k)
