@@ -406,8 +406,9 @@ template <ScalarIndex R, ScalarIndex C>
 [[gnu::always_inline]] constexpr auto calcNewDim(StridedDims<>, R, C) -> Empty {
   return {};
 }
-[[gnu::always_inline]] constexpr auto calcNewDim(Length<> len,
-                                                 Colon) -> Length<> {
+template <ptrdiff_t L>
+[[gnu::always_inline]] constexpr auto calcNewDim(Length<L> len,
+                                                 Colon) -> Length<L> {
   return len;
 };
 [[gnu::always_inline]] constexpr auto calcNewDim(StaticInt auto len, Colon) {
@@ -419,40 +420,39 @@ template <ScalarIndex R, ScalarIndex C>
 };
 
 template <AbstractSlice B, ScalarIndex C>
-[[gnu::always_inline]] constexpr auto calcNewDim(StridedDims<> d, B b,
-                                                 C) -> StridedRange<> {
-  Length<> rowDims = calcNewDim(length(ptrdiff_t(Row(d))), b);
-  return StridedRange<>{rowDims, RowStride(d)};
+[[gnu::always_inline]] constexpr auto calcNewDim(MatrixDimension auto d, B b,
+                                                 C) {
+  return StridedRange{calcNewDim(aslength(row(d)), b), stride(d)};
 }
 
 template <ScalarIndex R, AbstractSlice C>
 [[gnu::always_inline]] constexpr auto calcNewDim(StridedDims<> d, R, C c) {
-  return calcNewDim(length(ptrdiff_t(Col(d))), c);
+  return calcNewDim(aslength(col(d)), c);
 }
 
 template <AbstractSlice B, AbstractSlice C>
 [[gnu::always_inline]] constexpr auto calcNewDim(StridedDims<> d, B r, C c) {
   auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
   auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-  return StridedDims(asrow(rowDims), ascol(colDims), RowStride(d));
+  return StridedDims(asrow(rowDims), ascol(colDims), stride(d));
 }
 template <ptrdiff_t NR, ptrdiff_t NC, AbstractSlice B, AbstractSlice C>
 [[gnu::always_inline]] constexpr auto calcNewDim(DenseDims<NR, NC> d, B r,
                                                  C c) {
-  if constexpr ((NR >= 0) && std::same_as<B, Colon>) {
-    if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
-      return DenseDims(Row<NR>{}, Col<NC>{});
+  if constexpr (std::same_as<B, Colon>) {
+    if constexpr (std::same_as<C, Colon>) {
+      return DenseDims(row(d), col(d));
     } else {
-      auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-      return StridedDims(Row<NR>{}, ascol(colDims), stride(unwrapCol(Col(d))));
+      auto col_dims = calcNewDim(length(ptrdiff_t(Col(d))), c);
+      return StridedDims(row(d), ascol(col_dims), stride(unwrapCol(Col(d))));
     }
-  } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
-    auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return DenseDims(asrow(rowDims), Col<NC>{});
+  } else if constexpr (std::same_as<C, Colon>) {
+    auto row_dims = calcNewDim(length(ptrdiff_t(Row(d))), r);
+    return DenseDims(asrow(row_dims), col(d));
   } else {
-    auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-    auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return StridedDims(asrow(rowDims), ascol(colDims), RowStride(d));
+    auto col_dims = calcNewDim(length(ptrdiff_t(Col(d))), c);
+    auto row_dims = calcNewDim(length(ptrdiff_t(Row(d))), r);
+    return StridedDims(asrow(row_dims), ascol(col_dims), stride(d));
   }
 }
 template <ptrdiff_t NR, ptrdiff_t NC, ptrdiff_t X, AbstractSlice B,
@@ -461,24 +461,24 @@ template <ptrdiff_t NR, ptrdiff_t NC, ptrdiff_t X, AbstractSlice B,
                                                  C c) {
   if constexpr ((NR >= 0) && std::same_as<B, Colon>) {
     if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
-      return StridedDims(Row<NR>{}, Col<NC>{}, RowStride(d));
+      return StridedDims(row(d), col(d), stride(d));
     } else {
-      auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-      return StridedDims(Row<NR>{}, ascol(colDims), RowStride(d));
+      auto col_dims = calcNewDim(length(ptrdiff_t(Col(d))), c);
+      return StridedDims(row(d), ascol(col_dims), stride(d));
     }
-  } else if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
-    auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return StridedDims(asrow(rowDims), Col<NC>{}, RowStride(d));
+  } else if constexpr (std::same_as<C, Colon>) {
+    auto row_dims = calcNewDim(length(ptrdiff_t(Row(d))), r);
+    return StridedDims(asrow(row_dims), col(d), stride(d));
   } else {
-    auto colDims = calcNewDim(length(ptrdiff_t(Col(d))), c);
-    auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-    return StridedDims(asrow(rowDims), ascol(colDims), RowStride(d));
+    auto col_dims = calcNewDim(length(ptrdiff_t(Col(d))), c);
+    auto row_dims = calcNewDim(length(ptrdiff_t(Row(d))), r);
+    return StridedDims(asrow(row_dims), ascol(col_dims), stride(d));
   }
 }
 template <AbstractSlice B>
 [[gnu::always_inline]] constexpr auto calcNewDim(DenseDims<> d, B r, Colon) {
   auto rowDims = calcNewDim(length(ptrdiff_t(Row(d))), r);
-  return DenseDims(asrow(rowDims), Col(d));
+  return DenseDims(asrow(rowDims), col(d));
 }
 template <AbstractSlice B>
 [[gnu::always_inline]] constexpr auto calcNewDim(SquareDims<> d, B r, Colon) {
@@ -489,31 +489,31 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
 [[gnu::always_inline]] constexpr auto
 calcNewDim(StridedDims<> d, simd::index::Unroll<R>,
            simd::index::Unroll<C, W, M> c) {
-  return simd::index::UnrollDims<R, C, W, M>{c.mask_, RowStride(d)};
+  return simd::index::UnrollDims<R, C, W, M>{c.mask_, stride(d)};
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
 [[gnu::always_inline]] constexpr auto calcNewDim(StridedDims<> d,
                                                  simd::index::Unroll<C, W, M> r,
                                                  simd::index::Unroll<R>) {
-  return simd::index::UnrollDims<R, C, W, M, true>{r.mask_, RowStride(d)};
+  return simd::index::UnrollDims<R, C, W, M, true>{r.mask_, stride(d)};
 }
 
 template <ptrdiff_t C, ptrdiff_t W, typename M>
 [[gnu::always_inline]] constexpr auto
 calcNewDim(StridedDims<> d, ptrdiff_t, simd::index::Unroll<C, W, M> c) {
-  return simd::index::UnrollDims<1, C, W, M>{c.mask_, RowStride(d)};
+  return simd::index::UnrollDims<1, C, W, M>{c.mask_, stride(d)};
 }
 template <ptrdiff_t R, ptrdiff_t W, typename M>
 [[gnu::always_inline]] constexpr auto
 calcNewDim(StridedDims<> d, simd::index::Unroll<R, W, M> r, ptrdiff_t) {
   if constexpr (W == 1)
-    return simd::index::UnrollDims<R, 1, 1, M>{r.mask_, RowStride(d)};
-  else return simd::index::UnrollDims<1, R, W, M, true>{r.mask_, RowStride(d)};
+    return simd::index::UnrollDims<R, 1, 1, M>{r.mask_, stride(d)};
+  else return simd::index::UnrollDims<1, R, W, M, true>{r.mask_, stride(d)};
 }
 template <ptrdiff_t C, ptrdiff_t W, typename M>
 [[gnu::always_inline]] constexpr auto
 calcNewDim(StridedDims<> d, simd::index::Unroll<C, W, M> c) {
-  return simd::index::UnrollDims<1, C, W, M>{c.mask_, RowStride(d)};
+  return simd::index::UnrollDims<1, C, W, M>{c.mask_, stride(d)};
 }
 
 template <ptrdiff_t U, ptrdiff_t W, typename M, ptrdiff_t L>
