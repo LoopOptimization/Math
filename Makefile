@@ -50,6 +50,12 @@ buildclang/nosimdarrayop/:
 buildclang/modules/:
 	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
 
+buildclang/bench/:
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B buildclang/bench/ -DCMAKE_BUILD_TYPE=Release
+
+buildgcc/bench/:
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S benchmark -B buildgcc/bench/ -DCMAKE_BUILD_TYPE=Release
+
 
 gccnosan: buildgcc/nosan/
 	cmake --build buildgcc/nosan/
@@ -90,6 +96,12 @@ clangmodules: buildclang/modules/
 gccmodules: buildgcc/modules/
 	cmake --build buildgcc/modules/
 	cmake --build buildgcc/modules/ --target test
+
+clangbench: buildclang/bench/
+	cmake --build buildclang/bench
+
+gccbench: buildgcc/bench/
+	cmake --build buildgcc/bench
 
 clean:
 	rm -rf buildclang buildgcc
