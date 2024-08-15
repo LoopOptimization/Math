@@ -88,16 +88,16 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     T x = a * b.inverse_;
     // push away from zero, before flooring to zero
     // hacky attempt to accomodate rounding error
-    return std::trunc(std::numeric_limits<T>::epsilon() * x + x);
+    return std::trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   friend constexpr auto cld(T a, MultiplicativeInverse b) -> T {
     T x = a * b.inverse_;
     // push towards -infinity, before rounding up
     // hacky attempt to accomodate rounding error
-    return std::ceil(x - std::numeric_limits<T>::epsilon() * std::abs(x));
+    return std::ceil(x - (std::numeric_limits<T>::epsilon() * std::abs(x)));
   }
   friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
-    return std::round(a - (a / b) * b.divisor_);
+    return std::round(a - ((a / b) * b.divisor_));
   }
 
 public:
@@ -111,10 +111,11 @@ public:
   explicit constexpr operator U() const { return U(I(divisor_)); }
   constexpr auto divrem(T a) -> std::array<T, 2> {
     T d = a / (*this);
-    return {d, std::round(a - d / inverse_)};
+    return {d, std::round(a - (d / inverse_))};
   }
   constexpr MultiplicativeInverse(T d) : divisor_(d), inverse_{T{1} / d} {}
   constexpr MultiplicativeInverse() = default;
+  [[nodiscard]] constexpr auto inv() const -> T { return inverse_; }
 };
 
 template <std::integral T> class MultiplicativeInverse<T> {
