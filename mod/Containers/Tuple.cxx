@@ -221,6 +221,22 @@ template <typename T> struct Or {
     return *this;
   }
 };
+template <typename T> struct Max {
+  T &x_;
+  constexpr auto operator=(T y) -> Max & {
+    x_ = x_ >= y ? x_ : y;
+    // x_ = std::max(x_, y);
+    return *this;
+  }
+};
+template <typename T> struct Min {
+  T &x_;
+  constexpr auto operator=(T y) -> Min & {
+    x_ = x_ >= y ? y : x_;
+    // x_ = std::min(x_, y);
+    return *this;
+  }
+};
 inline constexpr struct IgnoreImpl {
   // NOLINTNEXTLINE
   constexpr auto operator=(const auto &) const -> const IgnoreImpl & {
