@@ -1,6 +1,20 @@
 #include <gtest/gtest.h>
 
 #ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Containers/TinyVector.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/SmallSparseMatrix.cxx"
+#include "Math/StaticArrays.cxx"
+#include "Math/UniformScaling.cxx"
+#include "Utilities/MatrixStringParse.cxx"
+#include "Utilities/TypeCompression.cxx"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -14,21 +28,7 @@
 #include <sstream>
 #include <tuple>
 #include <type_traits>
-
-#include "Alloc/Arena.cxx"
-#include "Containers/TinyVector.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/SmallSparseMatrix.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Math/UniformScaling.cxx"
-#include "Utilities/MatrixStringParse.cxx"
-#include "Utilities/TypeCompression.cxx"
 #else
-
 import Arena;
 import ArrayParse;
 import AxisTypes;
@@ -97,11 +97,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   C[1, 2] = 6;
   C[1, 3] = -9;
   C[1, 4] = 15;
-  C[2, 0] = -21;
-  C[2, 1] = 17;
-  C[2, 2] = 6;
-  C[2, 3] = -3;
-  C[2, 4] = -11;
+  C[last, _] << "[-21 17 6 -3 -11]"_mat;
   EXPECT_EQ(A.numRow(), (A * B).numRow());
   EXPECT_EQ(B.numCol(), (A * B).numCol());
   EXPECT_TRUE(C == A * B);

@@ -128,7 +128,7 @@ public:
   }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
     auto l = ptrdiff_t(L(len_));
-    invariant(l <= ptrdiff_t(N));
+    utils::assume(l <= ptrdiff_t(N));
     return l;
   }
   [[nodiscard]] constexpr auto empty() const -> bool { return len_ == 0z; }
