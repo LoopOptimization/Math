@@ -13,6 +13,9 @@ using numbers::i8, numbers::u8, numbers::Flag8;
 
 TEST(Int8Test, BasicAssertions) {
   for (uint8_t x = 0; x < std::numeric_limits<uint8_t>::max(); ++x) {
+    auto fx = static_cast<Flag8>(x);
+    if (x) EXPECT_TRUE(bool(fx));
+    else EXPECT_FALSE(bool(fx));
     auto ux = static_cast<u8>(x);
     for (uint8_t y = 0; y < std::numeric_limits<uint8_t>::max(); ++y) {
       auto uy = static_cast<u8>(y);
@@ -89,7 +92,7 @@ TEST(Int8Test, BasicAssertions) {
           EXPECT_EQ(x / uy, z);
         }
       }
-      auto fx = static_cast<Flag8>(x), fy = static_cast<Flag8>(y);
+      auto fy = static_cast<Flag8>(y);
       EXPECT_EQ(fx & fy, static_cast<Flag8>(x & y));
       EXPECT_EQ(fx & y, static_cast<Flag8>(x & y));
       EXPECT_EQ(x & fy, static_cast<Flag8>(x & y));
