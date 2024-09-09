@@ -86,13 +86,16 @@ template <typename T> struct Storage<T, 0> {
 
 template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
   static constexpr ptrdiff_t total_bytes = 128;
+  static constexpr ptrdiff_t nrow = S::nrow;
+  static constexpr ptrdiff_t nstride = S::nstride;
   // constexpr ptrdiff_t remainingBytes =
   //   totalBytes - sizeof(T *) - sizeof(S) -
   //   sizeof(default_capacity_type_t<S>);
   // constexpr ptrdiff_t N = remainingBytes / ptrdiff_t(sizeof(T));
   constexpr ptrdiff_t N = total_bytes / ptrdiff_t(sizeof(T));
   static_assert(N <= 128);
-  if constexpr (N <= 0) return 0;
+  if constexpr (nrow > 0 && nstride > 0) return nrow * nstride;
+  else if constexpr (N <= 0) return 0;
   // else if constexpr (!math::MatrixDimension<S>) return N;
   else if constexpr (std::convertible_to<S, math::SquareDims<>>) {
     constexpr auto UN = uint64_t(N);
@@ -103,6 +106,10 @@ template <class T, class S> consteval auto PreAllocStorage() -> ptrdiff_t {
     constexpr uint64_t L = uint64_t(1) << R;
     constexpr uint64_t H = uint64_t(1) << ((detail::log2Ceil(N) + 1) / 2);
     return ptrdiff_t(detail::bisectFindSquare(L, H, UN));
+  } else if (nrow > 0) {
+    return (N / nrow) * nrow;
+  } else if (nstride > 0) {
+    return (N / nstride) * nstride;
   } else return N;
 }
 } // namespace containers

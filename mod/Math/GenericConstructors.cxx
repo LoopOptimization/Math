@@ -5,10 +5,6 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include <concepts>
-#include <memory>
-#include <type_traits>
-
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Storage.cxx"
@@ -17,6 +13,11 @@ module;
 #include "Math/Constructors.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <type_traits>
 #else
 export module GenericArrayConstructors;
 
@@ -40,7 +41,7 @@ export namespace math {
 namespace math {
 #endif
 
-using alloc::Arena, alloc::WArena, alloc::OwningArena, utils::eltype_t;
+using alloc::Arena, utils::eltype_t;
 
 template <alloc::Allocator A, typename T>
 using rebound_alloc_t =
@@ -52,7 +53,7 @@ using rebound_alloc_t =
 template <alloc::FreeAllocator A>
 constexpr auto vector(A, ptrdiff_t M)
   -> ManagedArray<eltype_t<A>, Length<>,
-                  containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
+                  containers::PreAllocStorage<eltype_t<A>, Length<>>(), A> {
   return {length(M), A{}};
 }
 template <alloc::FreeAllocator A>

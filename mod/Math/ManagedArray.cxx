@@ -125,16 +125,6 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     : ManagedArray(SquareDims<>{row(s)}) {};
   constexpr ManagedArray(S s, T x, A) noexcept : ManagedArray(s, x) {};
 
-  // constexpr ManagedArray(std::type_identity<T>) noexcept :
-  // ManagedArray(A{}){};
-  constexpr ManagedArray(std::type_identity<T>, S s) noexcept
-    : ManagedArray(s) {};
-  constexpr ManagedArray(std::type_identity<T>, S s, A) noexcept
-    : ManagedArray(s) {};
-  // constexpr ManagedArray(std::type_identity<T>, A a) noexcept :
-  // ManagedArray(a){}; constexpr ManagedArray(std::type_identity<T>, S s, A
-  // a) noexcept
-  //   : ManagedArray(s, a){};
   constexpr ManagedArray(T x) noexcept
   requires(std::same_as<S, Length<>>)
     : BaseT{S{}, capacity(StackStorage)} {
@@ -732,7 +722,7 @@ static_assert(
   sizeof(ManagedArray<int64_t, SquareDims<>, 64, alloc::Mallocator<int64_t>>) ==
   536);
 
-template <class T, ptrdiff_t N = containers::PreAllocStorage<T, ptrdiff_t>()>
+template <class T, ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
 using Vector = ManagedArray<T, Length<>, N>;
 
 template <class T,
@@ -762,9 +752,6 @@ template <VectorDimension S = ptrdiff_t>
 using IntVector = ManagedArray<int64_t, S>;
 template <MatrixDimension S = DenseDims<>>
 using IntMatrix = ManagedArray<int64_t, S>;
-
-template <class T, class S>
-ManagedArray(std::type_identity<T>, S s) -> ManagedArray<T, S>;
 
 static_assert(sizeof(ManagedArray<int32_t, DenseDims<3, 5>, 15>) ==
               sizeof(int32_t *) + 16 * sizeof(int32_t));

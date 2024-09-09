@@ -64,7 +64,7 @@ TEST(SparseIndexingTest, BasicAssertions) {
   }
   for (ptrdiff_t i = 0; i < 3; ++i)
     for (ptrdiff_t j = 0; j < 4; ++j) EXPECT_EQ((A[i, j]), (sparseA[i, j]));
-  ManagedArray B(std::type_identity<int64_t>{}, DenseDims<>{row(4), col(5)});
+  DenseMatrix<int64_t> B(DenseDims<>{row(4), col(5)});
   EXPECT_FALSE(B.isSquare());
   B[0, 0] = 3;
   B[0, 1] = -1;
