@@ -59,7 +59,7 @@ constexpr auto vector(A, ptrdiff_t M)
 template <alloc::FreeAllocator A>
 constexpr auto vector(A, ptrdiff_t M, eltype_t<A> x)
   -> ManagedArray<eltype_t<A>, Length<>,
-                  containers::PreAllocStorage<eltype_t<A>, ptrdiff_t>(), A> {
+                  containers::PreAllocStorage<eltype_t<A>, Length<>>(), A> {
   return {length(M), x, A{}};
 }
 

@@ -6,6 +6,24 @@ module;
 
 #include "Owner.hxx"
 #ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Containers/Pair.cxx"
+#include "Containers/Storage.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/ArrayOps.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/Invariant.cxx"
+#include "Utilities/Optional.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/TypeCompression.cxx"
+#include "Utilities/Valid.cxx"
 #include <algorithm>
 #include <array>
 #include <compare>
@@ -22,24 +40,6 @@ module;
 #include <type_traits>
 #include <utility>
 #include <version>
-
-#include "Alloc/Arena.cxx"
-#include "Containers/Pair.cxx"
-#include "Containers/Storage.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/ArrayOps.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/Optional.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Utilities/Reference.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include "Utilities/Valid.cxx"
 #else
 export module Array;
 
@@ -335,8 +335,11 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return index<T>(ptr, sz, r, c);
   }
   template <size_t I>
-  [[nodiscard]] constexpr auto get() const
-    -> const T &requires(VectorDimension<S>) { return index<T>(ptr, sz, I); }
+  [[nodiscard]] constexpr auto get() const -> const T &
+  requires(VectorDimension<S>)
+  {
+    return index<T>(ptr, sz, I);
+  }
 
   [[nodiscard]] constexpr auto minRowCol() const -> ptrdiff_t {
     return std::min(ptrdiff_t(numRow()), ptrdiff_t(numCol()));
@@ -522,14 +525,16 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), aslength(row(this->sz)), stride(this->sz),
             ptrdiff_t(col(this->sz))};
   }
-  friend auto operator<<(std::ostream &os, Array x)
-    -> std::ostream &requires(utils::Printable<T>) {
+  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
+  requires(utils::Printable<T>)
+  {
     if constexpr (MatrixDimension<S>)
       return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
                                 ptrdiff_t(x.numCol()),
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
-  } [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  }
+  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
@@ -720,8 +725,14 @@ struct MutArray : Array<T, S, Compress>,
   [[nodiscard]] constexpr auto rend() noexcept {
     return std::reverse_iterator(begin());
   }
-  constexpr auto front() noexcept -> T & { return *begin(); }
-  constexpr auto back() noexcept -> T & { return *(end() - 1); }
+  constexpr auto front() noexcept -> T & {
+    utils::assume(this->size() > 0);
+    return *begin();
+  }
+  constexpr auto back() noexcept -> T & {
+    utils::assume(this->size() > 0);
+    return *(end() - 1);
+  }
   [[gnu::flatten, gnu::always_inline]] constexpr auto
   operator[](Index<S> auto i) noexcept -> decltype(auto) {
     return index<T>(data(), this->sz, i);
@@ -733,7 +744,9 @@ struct MutArray : Array<T, S, Compress>,
   }
 
   template <size_t I>
-  [[nodiscard]] constexpr auto get() -> T &requires(VectorDimension<S>) {
+  [[nodiscard]] constexpr auto get() -> T &
+  requires(VectorDimension<S>)
+  {
     return index<T>(data(), this->sz, I);
   }
 
