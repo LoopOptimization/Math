@@ -199,6 +199,7 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
   c << A[_, 1];
   Vector<int64_t> d(std::array<int64_t, 6>{-5, 6, -2, -7, -8, -8});
   EXPECT_EQ(c, d);
+  EXPECT_EQ(b * c[_(0, 3)].t(), 152);
   IntMatrix<> dA1x1(DenseDims<>{row(1), col(1)}, 0);
   EXPECT_TRUE(dA1x1.isSquare());
   IntMatrix<> dA2x2(DenseDims<>{row(2), col(2)}, 0);

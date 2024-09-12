@@ -8,23 +8,23 @@ module;
 
 #include "LoopMacros.hxx"
 #ifndef USE_MODULE
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/CheckSizes.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "Math/Reductions.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
+#include "Utilities/Parameters.cxx"
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <type_traits>
 #include <utility>
-
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/CheckSizes.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "SIMD/Unroll.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/Parameters.cxx"
 #else
 export module ExprTemplates;
 
@@ -34,6 +34,7 @@ import CheckSizes;
 import Indexing;
 import Param;
 import Range;
+import Reductions;
 import ScalarizeViaCast;
 import SIMD;
 import STL;

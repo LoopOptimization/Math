@@ -7,14 +7,10 @@ module;
 #include "LoopMacros.hxx"
 
 #ifndef USE_MODULE
-#include <cstddef>
-
-#include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include <cstddef>
 #else
 export module Reductions;
-
-import Array;
 import ArrayConcepts;
 import STL;
 #endif
@@ -50,6 +46,7 @@ constexpr auto norm2(const auto &a) {
   }
   return s;
 }
+// TODO: SIMD?
 constexpr auto dot(const auto &a, const auto &b) {
   ptrdiff_t L = a.size();
   invariant(L, b.size());

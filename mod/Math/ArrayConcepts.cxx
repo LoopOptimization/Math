@@ -5,12 +5,10 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <type_traits>
-
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
+#include <concepts>
+#include <cstddef>
 #else
 export module ArrayConcepts;
 

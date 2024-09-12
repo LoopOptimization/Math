@@ -5,14 +5,13 @@ module;
 #endif
 
 #ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
+#include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <ostream>
 #include <type_traits>
-
-#include "Math/AxisTypes.cxx"
-#include "Utilities/Invariant.cxx"
 #else
 export module MatDim;
 

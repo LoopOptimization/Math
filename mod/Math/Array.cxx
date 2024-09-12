@@ -53,6 +53,7 @@ import Arena;
 import ArrayPrint;
 import CompressReference;
 import ExprTemplates;
+import Invariant;
 import Optional;
 import Pair;
 import Param;
