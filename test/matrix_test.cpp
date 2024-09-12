@@ -463,6 +463,8 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
   x.resizeForOverwrite(23);
   z -= 2 * (45 - x.size());
   EXPECT_EQ(x.pop_back_val(), z);
+  x.zero();
+  EXPECT_TRUE(allZero(x));
 }
 
 TEST(StringMat1x1, BasicAssertions) {

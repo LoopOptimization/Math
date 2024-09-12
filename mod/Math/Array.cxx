@@ -757,8 +757,8 @@ struct MutArray : Array<T, S, Compress>,
   constexpr void zero() {
     if constexpr (std::is_trivially_default_constructible_v<T> &&
                   std::is_trivially_destructible_v<T>)
-      std::memset(data(), 0, this->size());
-    else std::fill_n(this->data(), ptrdiff_t(this->dim()), T{});
+      std::memset(data(), 0, this->size() * sizeof(storage_type));
+    else std::fill_n(this->data(), this->size(), T{});
   }
   [[nodiscard]] constexpr auto diag() noexcept {
     Length l =

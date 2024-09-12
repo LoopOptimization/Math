@@ -275,29 +275,33 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 #endif
 
   template <class D>
-  constexpr auto
-  operator=(const ManagedArray<T, D, StackStorage, A> &b) noexcept
-    -> ManagedArray &requires(!std::same_as<S, D>) {
+  constexpr auto operator=(
+    const ManagedArray<T, D, StackStorage, A> &b) noexcept -> ManagedArray &
+  requires(!std::same_as<S, D>)
+  {
     // this condition implies `this->data() == nullptr`
     if (this->data() == b.data()) return *this;
     resizeCopyTo(b);
     return *this;
-  } template <class D>
-    constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
-      -> ManagedArray &requires(!std::same_as<S, D>) {
-      // this condition implies `this->data() == nullptr`
-      if (this->data() == b.data()) return *this;
-      // here, we commandeer `b`'s memory
-      S d = b.dim();
-      // if `b` is small, we need to copy memory
-      // no need to shrink our capacity
-      if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
-      else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
-      b.resetNoFree();
-      this->sz = d;
-      return *this;
-    } constexpr auto
-      operator=(const ManagedArray &b) noexcept -> ManagedArray & {
+  }
+  template <class D>
+  constexpr auto
+  operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept -> ManagedArray &
+  requires(!std::same_as<S, D>)
+  {
+    // this condition implies `this->data() == nullptr`
+    if (this->data() == b.data()) return *this;
+    // here, we commandeer `b`'s memory
+    S d = b.dim();
+    // if `b` is small, we need to copy memory
+    // no need to shrink our capacity
+    if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
+    else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
+    b.resetNoFree();
+    this->sz = d;
+    return *this;
+  }
+  constexpr auto operator=(const ManagedArray &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     resizeCopyTo(b);
     return *this;
@@ -668,7 +672,8 @@ private:
   void resizeCopyTo(const auto &b) {
     S d = b.dim();
     auto len = ptrdiff_t(d);
-    storage_type *old_ptr = this->data(), *bptr = b.data();
+    storage_type *old_ptr = this->data();
+    const storage_type *bptr = b.data();
     if constexpr (trivialelt) {
       this->growUndef(len);
       std::copy_n(bptr, len, old_ptr);
