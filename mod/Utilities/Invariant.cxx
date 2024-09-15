@@ -13,11 +13,11 @@ module;
 #endif
 #include <cstdlib>
 #endif
-// #if __has_builtin(__builtin_trap)
-// #define TRAP() __builtin_trap()
-// #else
+#if __has_builtin(__builtin_trap)
+#define TRAP() __builtin_trap()
+#else
 #define TRAP() std::abort()
-// #endif
+#endif
 
 #ifdef USE_MODULE
 export module Invariant;

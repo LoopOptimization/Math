@@ -41,6 +41,7 @@ export using std::uint16_t;
 export using std::uint32_t;
 export using std::uint64_t;
 export using std::uint8_t;
+export using std::uint_fast16_t;
 export using i64 = signed long long int;
 export using u64 = unsigned long long int;
 
@@ -160,6 +161,7 @@ export using ::std::numeric_limits;
 export using ::std::optional;
 export using ::std::ostream;
 export using ::std::output_iterator;
+export using ::std::partial_ordering;
 export using ::std::plus;
 export using ::std::popcount;
 export using ::std::print;
