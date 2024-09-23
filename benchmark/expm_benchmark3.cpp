@@ -1,10 +1,11 @@
-#include "include/expm.hpp"
+import ExpMat;
+import Nanobench;
+import std;
 
-static void BM_expm_dual3(benchmark::State &state) {
+void BM_expm_dual3(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<double, 3>;
-  SquareMatrix<D> A{SquareDims{math::row(state.range(0))}};
+  SquareMatrix<D> A{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  for (auto b : state) expbench(A);
+  bench.run("BM_expm_dual3_size=" + std::to_string(size), [&] { expbench(A); });
 }
-BENCHMARK(BM_expm_dual3)->DenseRange(2, 10, 1);

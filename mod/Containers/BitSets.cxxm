@@ -1,0 +1,969 @@
+module;
+#include "Macros.hxx"
+export module BitSet;
+
+import Arena;
+import Array;
+import AssignExprTemplates;
+import AxisTypes;
+import BaseUtils;
+import CorePrint;
+import ManagedArray;
+import MatDim;
+import Range;
+import SIMD;
+import std;
+export namespace containers {
+
+using utils::invariant;
+
+template <typename T>
+concept CanResize = requires(T t) { t.resize(0); };
+
+struct Chunk {
+  std::ptrdiff_t begin_;
+  std::ptrdiff_t len_;
+  TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return len_;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto begin() const -> std::ptrdiff_t {
+    return begin_;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto end() const -> std::ptrdiff_t {
+    return begin_ + len_;
+  }
+};
+template <std::unsigned_integral U> class BitSetChunkedIterator {
+  [[no_unique_address]] const U *it_;
+  [[no_unique_address]] const U *end_;
+  [[no_unique_address]] U istate_;
+  std::ptrdiff_t chunk_start_{0};
+  std::ptrdiff_t chunk_len_{0};
+  static constexpr std::ptrdiff_t num_bits = 8 * sizeof(U);
+
+public:
+  constexpr explicit BitSetChunkedIterator(const U *it, const U *end)
+    : it_{it}, end_{end} {
+    if (it == end) {
+      istate_ = 0;
+      return;
+    }
+    istate_ = *it;
+    advanceToChunk();
+  }
+
+  using value_type = Chunk;
+
+  TRIVIAL constexpr auto operator*() const -> value_type {
+    return Chunk{.begin_ = chunk_start_, .len_ = chunk_len_};
+  }
+
+  constexpr auto operator++() -> BitSetChunkedIterator & {
+
+    // (a) Skip current chunk
+    istate_ = chunk_len_ < num_bits ? istate_ >> chunk_len_ : 0;
+    // istate_ >>= chunk_len_;
+    chunk_start_ += chunk_len_;
+
+    // (b) Skip zeros and advance chunks if needed
+    if (!istate_) {
+      if (!(chunk_start_ & (num_bits - 1))) chunk_start_ -= num_bits;
+      do {
+        if (++it_ == end_) return *this;
+        chunk_start_ = (chunk_start_ & (-num_bits)) + num_bits;
+      } while ((istate_ = *it_, !istate_));
+    }
+
+    // (c) Skip leading zeros in current chunk
+    std::ptrdiff_t zeros = std::countr_zero(istate_);
+    istate_ >>= zeros;
+    chunk_start_ += zeros;
+
+    // Set up for next chunk
+    chunk_len_ = std::countr_one(istate_);
+
+    return *this;
+  }
+
+  TRIVIAL constexpr auto operator++(int) -> BitSetChunkedIterator {
+    BitSetChunkedIterator temp = *this;
+    this->operator++();
+    return temp;
+  }
+
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+    return it_ == end_ && (istate_ == 0);
+  }
+
+  TRIVIAL constexpr auto operator!=(std::default_sentinel_t) const -> bool {
+    return it_ != end_ || (istate_ != 0);
+  }
+
+private:
+  constexpr void advanceToChunk() {
+
+    // Skip leading zeros across chunks
+    while (!istate_) {
+      if (++it_ == end_) return;
+      chunk_start_ = (chunk_start_ & (-num_bits)) + num_bits;
+      istate_ = *it_;
+    }
+
+    // Skip leading zeros in current chunk
+    std::ptrdiff_t zeros = std::countr_zero(istate_);
+    istate_ >>= zeros;
+    chunk_start_ += zeros;
+
+    // Set up canonical state with trailing ones
+    chunk_len_ = std::countr_one(istate_);
+  }
+};
+
+template <std::unsigned_integral U> class BitSetIterator {
+  [[no_unique_address]] const U *it_;
+  [[no_unique_address]] const U *end_;
+  [[no_unique_address]] U istate_;
+  // value == cstate0_ + cstate1_
+  std::ptrdiff_t cstate_{0}; // cumulative offset w/in chunk
+  TRIVIAL friend constexpr auto operator==(std::default_sentinel_t,
+                                           BitSetIterator x) -> bool {
+    return (x.istate_ == 0) && (x.it_ == x.end_);
+  }
+  TRIVIAL friend constexpr auto operator!=(std::default_sentinel_t,
+                                           BitSetIterator x) -> bool {
+    return (x.istate_ != 0) || (x.it_ != x.end_);
+  }
+
+public:
+  constexpr explicit BitSetIterator(const U *it, const U *end)
+    : it_{it}, end_{end} {
+    bool is_empty = it == end;
+    istate_ = is_empty ? 0 : *it;
+    if (it == end) return;
+    this->operator++();
+    if (it_ == it) --cstate_;
+  }
+  using value_type = std::ptrdiff_t;
+  TRIVIAL constexpr auto operator*() const -> std::ptrdiff_t { return cstate_; }
+  TRIVIAL constexpr auto operator++() -> BitSetIterator & {
+    static constexpr std::ptrdiff_t num_bits = 8 * sizeof(U);
+    if (!istate_) {
+      do {
+        if (++it_ == end_) return *this;
+        cstate_ = (cstate_ & (-num_bits)) + num_bits;
+      } while (!(istate_ = *it_));
+      --cstate_;
+    }
+    std::ptrdiff_t tzp1 = std::countr_zero(istate_);
+    cstate_ += ++tzp1;
+    istate_ = tzp1 >= 64 ? 0 : istate_ >> tzp1;
+    return *this;
+  }
+  TRIVIAL constexpr auto operator++(int) -> BitSetIterator {
+    BitSetIterator temp = *this;
+    this->operator++();
+    return temp;
+  }
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+    return it_ == end_ && (istate_ == 0);
+  }
+  TRIVIAL constexpr auto operator!=(std::default_sentinel_t) const -> bool {
+    return it_ != end_ || (istate_ != 0);
+  }
+  TRIVIAL constexpr auto operator==(BitSetIterator j) const -> bool {
+    return (it_ == j.it_) && (istate_ == j.istate_);
+  }
+  constexpr auto operator-(const BitSetIterator &other) const
+    -> std::ptrdiff_t {
+    std::ptrdiff_t pct = std::popcount(istate_),
+                   pco = std::popcount(other.istate_), diff = pco - pct;
+    if (it_ > other.it_)
+      for (const U *it = other.it_; it < it_;) diff += std::popcount(*++it);
+    else if (it_ < other.it_)
+      for (const U *it = it_; it < other.it_;) diff -= std::popcount(*++it);
+    return diff;
+  }
+  constexpr auto operator+(std::ptrdiff_t n) -> BitSetIterator {
+    if (n <= 0) return *this;
+
+    BitSetIterator result = *this;
+
+    // Simply use the existing operator++ n times - it's correct and handles all
+    // edge cases
+    for (std::ptrdiff_t i = 0; i < n; ++i) {
+      ++result;
+      if (result == std::default_sentinel) return result;
+    }
+
+    return result;
+  }
+};
+static_assert(std::weakly_incrementable<BitSetIterator<std::uint64_t>>);
+
+template <typename T>
+concept BitCollection = requires(T t) {
+  { std::size(t) } -> std::convertible_to<std::size_t>;
+  { std::ssize(t) } -> std::convertible_to<std::ptrdiff_t>;
+  { *t.begin() } -> std::convertible_to<std::uint64_t>;
+};
+
+/// A set of `std::ptrdiff_t` elements.
+/// Initially constructed
+template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
+  using U = utils::eltype_t<T>;
+  static constexpr U usize = 8 * sizeof(U);
+  static constexpr U umask = usize - 1;
+  static constexpr U ushift = std::countr_zero(usize);
+  [[no_unique_address]] T data_{};
+  // std::ptrdiff_t operator[](std::ptrdiff_t i) const {
+  //     return data[i];
+  // } // allow `getindex` but not `setindex`
+  TRIVIAL constexpr BitSet() = default;
+  TRIVIAL constexpr explicit BitSet(T &&_data) : data_{std::move(_data)} {}
+  TRIVIAL constexpr explicit BitSet(const T &_data) : data_{_data} {}
+  TRIVIAL static constexpr auto numElementsNeeded(std::ptrdiff_t N)
+    -> std::ptrdiff_t {
+    return ((N + (usize - 1)) >> ushift);
+  }
+  TRIVIAL constexpr void zero() {
+    std::memset(&*data_.begin(), 0, usize * std::ssize(data_));
+  }
+  TRIVIAL constexpr explicit BitSet(std::ptrdiff_t N)
+    requires(!std::is_trivially_destructible_v<T>)
+    : data_{math::length(numElementsNeeded(N)), 0} {}
+  TRIVIAL static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
+  TRIVIAL constexpr void resizeData(std::ptrdiff_t N) {
+    if constexpr (CanResize<T>) data_.resize(N);
+    else invariant(N <= std::ssize(data_));
+  }
+  TRIVIAL constexpr void resize(std::ptrdiff_t N) {
+    if constexpr (CanResize<T>)
+      data_.resize(math::length(numElementsNeeded(N)));
+    else invariant(N <= std::ssize(data_) * usize);
+  }
+  TRIVIAL constexpr void maybeResize(std::ptrdiff_t N) {
+    if constexpr (CanResize<T>) {
+      math::Length<> M = math::length(numElementsNeeded(N));
+      if (M > std::ssize(data_)) data_.resize(std::ptrdiff_t(M));
+    } else invariant(N <= std::ssize(data_) * std::ptrdiff_t(usize));
+  }
+  /// Behavior is undefined if N <= 0
+  TRIVIAL constexpr void makeDense(std::ptrdiff_t N) {
+    invariant(N > 0);
+    U maxval = std::numeric_limits<U>::max(), *ptr = &*data_.begin();
+    for (; N > usize; N -= usize, ++ptr) *ptr = maxval;
+    *ptr = (U(1UL) << N) - U(1UL);
+  }
+  TRIVIAL static constexpr auto dense(std::ptrdiff_t N) -> BitSet {
+    BitSet b{};
+    math::Length M = math::length(numElementsNeeded(N));
+    if (!M) return b;
+    if constexpr (CanResize<T>) b.data_.resizeForOverwrite(M);
+    b.makeDense(N);
+    return b;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto maxValue() const -> std::ptrdiff_t {
+    for (std::ptrdiff_t N = std::ssize(data_); N;)
+      if (U x = data_[--N]) return (usize * N + 63z) - std::countl_zero(x);
+    return 0;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto begin() const -> BitSetIterator<U> {
+    const U *b(&*data_.begin());
+    const U *e(&*data_.end());
+    return BitSetIterator<U>{b, e};
+  }
+  TRIVIAL [[nodiscard]] static constexpr auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
+  };
+
+  struct ChunkedRange {
+    const U *begin_;
+    const U *end_;
+
+    TRIVIAL [[nodiscard]] constexpr auto begin() const
+      -> BitSetChunkedIterator<U> {
+      return BitSetChunkedIterator<U>{begin_, end_};
+    }
+    TRIVIAL [[nodiscard]] static constexpr auto end()
+      -> std::default_sentinel_t {
+      return std::default_sentinel;
+    }
+  };
+
+  /// For now, these are split across 64-bit boundaries.
+  /// TODO: don't split.
+  TRIVIAL [[nodiscard]] constexpr auto chunks() const -> ChunkedRange {
+    const U *b(&*data_.begin());
+    const U *e(&*data_.end());
+    return ChunkedRange{b, e};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto front() const -> std::ptrdiff_t {
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+      if (data_[i]) return (usize * i) + std::countr_zero(data_[i]);
+    return std::numeric_limits<std::ptrdiff_t>::max();
+  }
+  TRIVIAL static constexpr auto contains(math::PtrVector<U> data,
+                                         std::ptrdiff_t x) -> U {
+    if (data.empty()) return 0;
+    std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
+    U r = U(x) & umask;
+    U mask = U(1) << r;
+    return (data[d] & (mask));
+  }
+  /// Returns `true` if `i` is in the `BitSet`
+  TRIVIAL [[nodiscard]] constexpr auto contains(std::ptrdiff_t i) const -> U {
+    return contains(data_, i);
+  }
+  struct Contains {
+    const T &d_;
+    TRIVIAL constexpr auto operator()(std::ptrdiff_t i) const -> U {
+      return contains(d_, i);
+    }
+  };
+  TRIVIAL [[nodiscard]] constexpr auto contains() const -> Contains {
+    return Contains{data_};
+  }
+  /// returns `true` if `x` already in the collection.
+  /// Inserts it otherwise.
+  TRIVIAL constexpr auto insert(std::ptrdiff_t x) -> bool {
+    std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
+    U r = U(x) & umask;
+    U mask = U(1) << r;
+    if (d >= std::ssize(data_)) resizeData(d + 1);
+    bool contained = ((data_[d] & mask) != 0);
+    if (!contained) data_[d] |= (mask);
+    return contained;
+  }
+  TRIVIAL constexpr void uncheckedInsert(std::ptrdiff_t x) {
+    std::ptrdiff_t d = x >> ushift;
+    U r = U(x) & umask;
+    U mask = U(1) << r;
+    if (d >= std::ssize(data_)) resizeData(d + 1);
+    data_[d] |= (mask);
+  }
+  // returns `true` the bitset contained `x`, i.e. if the
+  // removal was succesful.
+  TRIVIAL constexpr auto remove(std::ptrdiff_t x) -> bool {
+    std::ptrdiff_t d = x >> ushift;
+    U r = U(x) & umask;
+    U mask = U(1) << r;
+    bool contained = ((data_[d] & mask) != 0);
+    if (contained) data_[d] &= (~mask);
+    return contained;
+  }
+  TRIVIAL static constexpr void set(U &d, std::ptrdiff_t r, bool b) {
+    U mask = U(1) << r;
+    if (b == ((d & mask) != 0)) return;
+    if (b) d |= mask;
+    else d &= (~mask);
+  }
+  TRIVIAL static constexpr void set(math::MutPtrVector<U> data,
+                                    std::ptrdiff_t x, bool b) {
+    std::ptrdiff_t d = x >> ushift;
+    U r = U(x) & umask;
+    set(data[d], r, b);
+  }
+
+  class Reference {
+    [[no_unique_address]] math::MutPtrVector<U> data_;
+    [[no_unique_address]] std::ptrdiff_t i_;
+
+  public:
+    TRIVIAL constexpr explicit Reference(math::MutPtrVector<U> dd,
+                                         std::ptrdiff_t ii)
+      : data_(dd), i_(ii) {}
+    TRIVIAL constexpr operator bool() const { return contains(data_, i_); }
+    TRIVIAL constexpr auto operator=(bool b) -> Reference & {
+      BitSet::set(data_, i_, b);
+      return *this;
+    }
+  };
+
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> bool {
+    return contains(data_, i);
+  }
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) -> Reference {
+    maybeResize(i + 1);
+    math::MutPtrVector<U> d{data_};
+    return Reference{d, i};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    std::ptrdiff_t s = 0;
+    for (U u : data_) s += std::popcount(u);
+    return s;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto empty() const -> bool {
+    return std::ranges::all_of(data_, [] TRIVIAL(auto u) { return u == 0; });
+  }
+  TRIVIAL [[nodiscard]] constexpr auto any() const -> bool {
+    return std::ranges::any_of(data_, [] TRIVIAL(auto u) { return u != 0; });
+    // for (auto u : data)
+    //   if (u) return true;
+    // return false;
+  }
+  template <typename V> TRIVIAL constexpr void setUnion(const BitSet<V> &bs) {
+    std::ptrdiff_t O = std::ssize(bs.data_), N = std::ssize(data_);
+    if (O > N) resizeData(O);
+    for (std::ptrdiff_t i = 0; i < O; ++i) {
+      U d = data_[i] | bs.data_[i];
+      data_[i] = d;
+    }
+  }
+  template <typename V>
+  TRIVIAL constexpr auto operator&=(const BitSet<V> &bs) -> BitSet & {
+    if (std::ssize(bs.data_) < std::ssize(data_))
+      resizeData(std::ssize(bs.data_));
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+      data_[i] &= bs.data_[i];
+    return *this;
+  }
+  /// a -= b is the same as a &= ~b
+  template <typename V>
+  TRIVIAL constexpr auto operator-=(const BitSet<V> &bs) -> BitSet & {
+    if (std::ssize(bs.data_) < std::ssize(data_))
+      resizeData(std::ssize(bs.data_));
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+      data_[i] &= (~bs.data_[i]);
+    return *this;
+  }
+  template <typename V>
+  TRIVIAL constexpr auto countSetDiff(const BitSet<V> &bs) -> std::ptrdiff_t {
+    std::ptrdiff_t c = 0, I = std::ssize(data_), J = std::ssize(bs.data_),
+                   L = std::min(I, J);
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c += std::popcount(data_[i] & ~bs.data_[i]);
+    for (std::ptrdiff_t i = L; i < I; ++i) c += std::popcount(data_[i]);
+    return c;
+  }
+  /// a - b is the same as a & ~b
+  template <typename V>
+  TRIVIAL constexpr auto operator-(const BitSet<V> &bs) const -> BitSet {
+    BitSet cpy(*this); // TODO: avoid 2 passes
+    cpy -= bs;
+    return cpy;
+  }
+  template <typename V>
+  TRIVIAL constexpr auto operator|=(const BitSet<V> &bs) -> BitSet & {
+    if (std::ssize(bs.data_) > std::ssize(data_))
+      resizeData(std::ssize(bs.data_));
+    for (std::ptrdiff_t i = 0; i < std::ssize(bs.data_); ++i)
+      data_[i] |= bs.data_[i];
+    return *this;
+  }
+  template <typename V>
+  TRIVIAL constexpr auto operator&(const BitSet<V> &bs) const -> BitSet {
+    BitSet r = *this;
+    return r &= bs;
+  }
+  template <typename V>
+  TRIVIAL constexpr auto operator|(const BitSet<V> &bs) const -> BitSet {
+    BitSet r = *this;
+    return r |= bs;
+  }
+  template <typename V>
+  TRIVIAL constexpr auto operator==(const BitSet<V> &bs) const -> bool {
+    return data_ == bs.data_;
+  }
+  TRIVIAL constexpr auto operator~() const -> BitSet {
+    BitSet r = *this;
+    for (U &u : r.data_) u = ~u;
+    return r;
+  }
+  /// returns the index at which the value appears when iterating.
+  /// e.g.,
+  /// ```
+  /// std::ptrdiff_t i = 0;
+  /// for (std::ptrdiff_t j : bitset)
+  ///   bitset.getIterationIdx(j) == i++;
+  [[nodiscard]] constexpr auto getIterationIdx(std::ptrdiff_t v) const
+    -> std::ptrdiff_t {
+    std::ptrdiff_t idx = 0, i = 0, L = data_.size();
+    while (v >= usize && i < L) idx += std::popcount(data_[i++]), v -= usize;
+    return (i < L) ? idx + std::popcount(data_[i] & ((1ULL << v) - 1ULL)) : idx;
+  }
+  /// x.isSubSet(y);
+  /// is equivalent to
+  /// (y | x) == y;
+  template <typename V>
+  TRIVIAL constexpr auto isSubSet(const BitSet<V> &superset) const -> bool {
+    std::ptrdiff_t S = data_.size(), L = superset.data_.size(),
+                   M = std::min(S, L);
+    for (std::ptrdiff_t i = 0; i < M; ++i)
+      if (U y = superset.data_[i]; (y | data_[i]) != y) return false;
+    for (std::ptrdiff_t i = M; i < S; ++i)
+      if (data_[i]) return false;
+    return true;
+  }
+  /// y.isSuperSet(x);
+  /// is equivalent to
+  /// (x & y) == x;
+  template <typename V>
+  TRIVIAL constexpr auto isSuperSet(const BitSet<V> &subset) const -> bool {
+    return subset.isSubSet(*this);
+  }
+
+  template <typename U>
+  TRIVIAL [[nodiscard]] constexpr auto
+  emptyIntersection(const BitSet<U> &other) const -> bool {
+    for (std::ptrdiff_t i = 0, L = std::min(other.data_.size(), data_.size());
+         i < L; ++i)
+      if (data_[i] & other.data_[i]) return false;
+    return true;
+  }
+  // Ranks higher elements as more important, thus iterating
+  // backwards.
+  template <typename U>
+  TRIVIAL constexpr auto operator<=>(const BitSet<U> &other) const
+    -> std::strong_ordering {
+    std::ptrdiff_t ntd = data_.size(), nod = other.data_.size();
+    if (ntd != nod) {
+      bool larger = ntd > nod;
+      std::ptrdiff_t l = std::min(ntd, nod), L = std::max(ntd, nod);
+      const T &d = larger ? data_ : other.data_;
+      // The other is effectively all `0`, thus we may as well iterate forwards.
+      for (std::ptrdiff_t i = l; i < L; ++i)
+        if (d[i])
+          return larger ? std::strong_ordering::greater
+                        : std::strong_ordering::less;
+      ntd = l;
+    }
+    for (std::ptrdiff_t i = ntd; i--;)
+      if (auto cmp = data_[i] <=> other.data_[i]; cmp != 0) return cmp;
+    return std::strong_ordering::equal;
+  }
+
+  DEBUGUSED void print() const { printCore(), utils::flush(); }
+  DEBUGUSED void println() const {
+    printCore(), utils::println(), utils::flush();
+  }
+  TRIVIAL constexpr void clear() {
+    std::fill_n(data_.begin(), std::ssize(data_), 0);
+  }
+  TRIVIAL [[nodiscard]] constexpr auto isEmpty() const -> bool {
+    return std::ranges::all_of(data_, [](auto u) { return u == 0; });
+    // for (auto u : data)
+    //   if (u) return false;
+    // return true;
+  }
+  TRIVIAL constexpr auto findFirstZero() -> std::ptrdiff_t {
+    std::ptrdiff_t offset = 0;
+    for (U x : data_) {
+      U c = std::countr_one(x);
+      offset += c;
+      if (c != usize) return offset;
+    }
+    return usize;
+  }
+
+  // Expression template assignment operator for BitSet
+  template <typename Expr>
+  TRIVIAL constexpr auto operator<<(const Expr &expr)
+    -> BitSet & requires requires {
+      { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+      { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+    } {
+    assignFromExpression(*this, expr);
+    return *this;
+  }
+
+  // Expression template OR assignment operator for BitSet
+  template <typename Expr>
+  TRIVIAL constexpr auto operator|=(const Expr &expr)
+    -> BitSet & requires requires {
+      { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+      { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+    } {
+    orAssignFromExpression(*this, expr);
+    return *this;
+  }
+
+  // Expression template AND assignment operator for BitSet
+  template <typename Expr>
+  TRIVIAL constexpr auto operator&=(const Expr &expr)
+    -> BitSet & requires requires {
+      { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+      { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+    } {
+    andAssignFromExpression(*this, expr);
+    return *this;
+  }
+
+  // Expression template XOR assignment operator for BitSet
+  template <typename Expr>
+  TRIVIAL constexpr auto operator^=(const Expr &expr)
+    -> BitSet & requires requires {
+      { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+      { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+    } {
+    xorAssignFromExpression(*this, expr);
+    return *this;
+  }
+
+private:
+  void printCore() const {
+    utils::print("BitSet[");
+    auto it = begin();
+    if (it != std::default_sentinel) {
+      utils::print(*(it++));
+      for (; it != std::default_sentinel; ++it) utils::print(", ", *it);
+    }
+    utils::print(']');
+  }
+};
+
+template <unsigned N>
+using FixedSizeBitSet = BitSet<std::array<std::uint64_t, N>>;
+// BitSet with length 64
+using BitSet64 = FixedSizeBitSet<1>;
+static_assert(std::is_trivially_destructible_v<BitSet64>);
+static_assert(std::is_trivially_destructible_v<FixedSizeBitSet<2>>);
+
+} // namespace containers
+export template <containers::BitCollection T>
+inline constexpr bool
+  std::ranges::enable_borrowed_range<containers::BitSet<T>> =
+    enable_borrowed_range<T>;
+
+export namespace containers {
+static_assert(
+  std::same_as<BitSetIterator<std::uint64_t>,
+               decltype(std::ranges::begin(
+                 std::declval<BitSet<math::MutPtrVector<std::uint64_t>>>()))>);
+static_assert(
+  std::same_as<std::default_sentinel_t,
+               decltype(std::ranges::end(
+                 std::declval<BitSet<math::MutPtrVector<std::uint64_t>>>()))>);
+static_assert(
+  std::same_as<BitSetIterator<std::uint64_t>,
+               decltype(std::ranges::begin(std::declval<const BitSet<> &>()))>);
+
+static_assert(std::input_or_output_iterator<
+              decltype(std::declval<FixedSizeBitSet<2>>().begin())>);
+static_assert(std::ranges::range<FixedSizeBitSet<2>>);
+static_assert(std::ranges::range<BitSet<>>);
+static_assert(std::ranges::range<BitSet<math::MutPtrVector<std::uint64_t>>>);
+
+template <typename T, typename B = BitSet<>> struct BitSliceView {
+  [[no_unique_address]] math::MutPtrVector<T> a_;
+  [[no_unique_address]] const B &i_;
+  struct Iterator {
+    [[no_unique_address]] math::MutPtrVector<T> a_;
+    [[no_unique_address]] BitSetIterator<std::uint64_t> it_;
+    TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return it_ == std::default_sentinel;
+    }
+    TRIVIAL constexpr auto operator++() -> Iterator & {
+      ++it_;
+      return *this;
+    }
+    TRIVIAL constexpr auto operator++(int) -> Iterator {
+      Iterator temp = *this;
+      ++it_;
+      return temp;
+    }
+    TRIVIAL constexpr auto operator*() -> T & { return a_[*it_]; }
+    TRIVIAL constexpr auto operator*() const -> const T & { return a_[*it_]; }
+    TRIVIAL constexpr auto operator->() -> T * { return &a_[*it_]; }
+    TRIVIAL constexpr auto operator->() const -> const T * { return &a_[*it_]; }
+  };
+  TRIVIAL constexpr auto begin() -> Iterator { return {a_, i_.begin()}; }
+  struct ConstIterator {
+    [[no_unique_address]] math::PtrVector<T> a_;
+    [[no_unique_address]] BitSetIterator<std::uint64_t> it_;
+    TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return it_ == std::default_sentinel_t{};
+    }
+    TRIVIAL constexpr auto operator==(ConstIterator c) const -> bool {
+      return (it_ == c.it_) && (a_.data() == c.a_.data());
+    }
+    TRIVIAL constexpr auto operator++() -> ConstIterator & {
+      ++it_;
+      return *this;
+    }
+    TRIVIAL constexpr auto operator++(int) -> ConstIterator {
+      ConstIterator temp = *this;
+      ++it_;
+      return temp;
+    }
+    TRIVIAL constexpr auto operator*() const -> const T & { return a_[*it_]; }
+    TRIVIAL constexpr auto operator->() const -> const T * { return &a_[*it_]; }
+  };
+  TRIVIAL [[nodiscard]] constexpr auto begin() const -> ConstIterator {
+    return {a_, i_.begin()};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto end() const -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return i_.size();
+  }
+};
+template <typename T, typename B>
+BitSliceView(math::MutPtrVector<T>, const B &) -> BitSliceView<T, B>;
+
+static_assert(std::movable<BitSliceView<std::int64_t>::Iterator>);
+static_assert(std::movable<BitSliceView<std::int64_t>::ConstIterator>);
+
+// SIMD-optimized expression template assignment function for BitSet
+template <BitCollection T, typename Expr, typename Op>
+TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op)
+  requires requires {
+    { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+    { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+  } {
+  using U = utils::eltype_t<T>;
+  static constexpr std::ptrdiff_t usize = 8 * sizeof(U);
+  static constexpr U ushift = std::countr_zero(U(usize));
+
+  std::ptrdiff_t size = expr.size();
+
+  // Resize the bitset if needed to accommodate the expression size
+  bitset.maybeResize(size);
+
+  std::ptrdiff_t num_words = (size + usize - 1) >> ushift;
+
+  // Resize data if needed to accommodate all words
+  if constexpr (requires { bitset.data_.resize(num_words); }) {
+    if (bitset.data_.size() < num_words) bitset.data_.resize(num_words);
+  }
+
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
+  // Use SIMD when expression supports vectorized evaluation
+  using T_eval = decltype(expr[std::ptrdiff_t{}]);
+  if constexpr (simd::SIMDSupported<T_eval>) {
+    constexpr std::ptrdiff_t W = simd::Width<T_eval>;
+
+    // Process elements in SIMD chunks word by word
+    for (std::ptrdiff_t word_idx = 0; word_idx < num_words; ++word_idx) {
+      U new_word = 0;
+      std::ptrdiff_t base = word_idx << ushift;
+      std::ptrdiff_t end = std::min(base + usize, size);
+      std::ptrdiff_t word_size = end - base;
+
+      // Process the word using SIMD when possible
+      std::ptrdiff_t i = 0;
+      for (; i <= word_size - W; i += W) {
+        simd::index::Unroll<1, W> u{base + i};
+        auto mask = expr[u]; // SIMD evaluation
+
+        // Use intmask() to get integer bitmask for bulk operations
+        if constexpr (requires { mask.intmask(); }) {
+          auto intmask = mask.intmask();
+          // Shift the mask to the correct position within the word
+          new_word |= U(intmask) << i;
+        } else {
+          // Fallback: extract individual bits
+          for (std::ptrdiff_t j = 0; j < W; ++j)
+            if (mask.data_[j]) new_word |= (U(1) << (i + j));
+        }
+      }
+
+      // Handle remaining elements using tailmask
+      if (std::ptrdiff_t M = word_size - i) {
+        auto u{simd::index::tailmask<W>(base + i, M)};
+        auto mask = expr[u]; // SIMD evaluation with tailmask
+
+        if constexpr (requires { mask.intmask(); }) {
+          auto intmask = mask.intmask();
+          new_word |= U(intmask) << i;
+        } else {
+          // Fallback: extract individual bits for remaining elements
+          for (std::ptrdiff_t j = 0; j < M; ++j)
+            if (mask.data_[j]) new_word |= (U(1) << (i + j));
+        }
+      }
+
+      // Apply the operation
+      if constexpr (std::same_as<Op, math::detail::CopyAssign>)
+        bitset.data_[word_idx] = new_word;
+      else bitset.data_[word_idx] = op(bitset.data_[word_idx], new_word);
+    }
+    return;
+  }
+#endif
+
+  // Fallback to scalar processing
+  for (std::ptrdiff_t word_idx = 0; word_idx < num_words; ++word_idx) {
+    U new_word = 0;
+    std::ptrdiff_t base = word_idx << ushift;
+    std::ptrdiff_t end = std::min(base + usize, size);
+
+    // Build up the word bit by bit
+    for (std::ptrdiff_t bit_pos = 0, idx = base; idx < end; ++bit_pos, ++idx)
+      if (expr[idx]) new_word |= (U(1) << bit_pos);
+
+    // Apply the operation
+    if constexpr (std::same_as<Op, math::detail::CopyAssign>)
+      bitset.data_[word_idx] = new_word;
+    else bitset.data_[word_idx] = op(bitset.data_[word_idx], new_word);
+  }
+}
+
+// Expression template assignment function for BitSet
+template <BitCollection T, typename Expr>
+TRIVIAL constexpr void assignFromExpression(BitSet<T> &bitset, const Expr &expr)
+  requires requires {
+    { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+    { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+  } {
+  vopToBitSet(bitset, expr, math::detail::CopyAssign{});
+}
+
+// Expression template OR assignment function for BitSet
+template <BitCollection T, typename Expr>
+TRIVIAL constexpr void orAssignFromExpression(BitSet<T> &bitset,
+                                              const Expr &expr)
+  requires requires {
+    { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+    { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+  } {
+  vopToBitSet(bitset, expr, [](auto a, auto b) { return a | b; });
+}
+
+// Expression template AND assignment function for BitSet
+template <BitCollection T, typename Expr>
+TRIVIAL constexpr void andAssignFromExpression(BitSet<T> &bitset,
+                                               const Expr &expr)
+  requires requires {
+    { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+    { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+  } {
+  vopToBitSet(bitset, expr, [](auto a, auto b) { return a & b; });
+}
+
+// Expression template XOR assignment function for BitSet
+template <BitCollection T, typename Expr>
+TRIVIAL constexpr void xorAssignFromExpression(BitSet<T> &bitset,
+                                               const Expr &expr)
+  requires requires {
+    { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
+    { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
+  } {
+  vopToBitSet(bitset, expr, [](auto a, auto b) { return a ^ b; });
+}
+
+struct BitSets {
+  using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
+  using reference = value_type;
+  std::uint64_t *data_;
+  std::uint32_t num_sets_, num_chunks_per_;
+
+  static constexpr auto from(value_type x) -> BitSets {
+    return {.data_ = x.data_.data(),
+            .num_sets_ = 1,
+            .num_chunks_per_ = std::uint32_t(x.data_.size())};
+  }
+  struct Iterator {
+    using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
+    std::uint64_t *data_;
+    std::uint32_t num_chunks_per_;
+    constexpr auto operator*() const -> value_type {
+      return value_type{{data_, math::length(num_chunks_per_)}};
+    }
+    constexpr auto operator+(std::ptrdiff_t i) -> Iterator {
+      return {.data_ = data_ + (num_chunks_per_ * i),
+              .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator-(std::ptrdiff_t i) -> Iterator {
+      return {.data_ = data_ - (num_chunks_per_ * i),
+              .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator-(Iterator i) const -> std::ptrdiff_t {
+      std::ptrdiff_t diff = data_ - i.data_, nc = diff / num_chunks_per_;
+      utils::assume(nc * num_chunks_per_ == diff);
+      return nc;
+    }
+    constexpr auto operator++() -> Iterator & {
+      data_ += num_chunks_per_;
+      return *this;
+    }
+    constexpr auto operator++(int) -> Iterator {
+      std::uint64_t *data = data_;
+      data_ += num_chunks_per_;
+      return {.data_ = data, .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator--() -> Iterator & {
+      data_ -= num_chunks_per_;
+      return *this;
+    }
+    constexpr auto operator--(int) -> Iterator {
+      std::uint64_t *data = data_;
+      data_ -= num_chunks_per_;
+      return {.data_ = data, .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator==(Iterator other) const -> bool {
+      return data_ == other.data_;
+    }
+    constexpr auto operator<=>(Iterator other) const -> std::strong_ordering {
+      return data_ <=> other.data_;
+    }
+  };
+  [[nodiscard]] constexpr auto begin() const -> Iterator {
+    return {.data_ = data_, .num_chunks_per_ = num_chunks_per_};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto totalElements() const -> std::ptrdiff_t {
+    std::ptrdiff_t num_sets = num_sets_, num_chunks = num_chunks_per_;
+    return num_sets * num_chunks;
+  }
+  [[nodiscard]] constexpr auto end() const -> Iterator {
+    return {.data_ = data_ + totalElements(),
+            .num_chunks_per_ = num_chunks_per_};
+  }
+
+  static constexpr auto undef(alloc::Arena<> *alloc, std::uint32_t num_sets,
+                              std::uint32_t num_elts) -> BitSets {
+    std::uint32_t num_chunks = (num_elts + 63) >> 6;
+    std::ptrdiff_t total_chunks = std::ptrdiff_t(num_sets) * num_chunks;
+    return {.data_ = alloc->allocate<std::uint64_t>(total_chunks),
+            .num_sets_ = num_sets,
+            .num_chunks_per_ = num_chunks};
+  }
+  static constexpr auto empty(alloc::Arena<> *alloc, std::uint32_t num_sets,
+                              std::uint32_t num_elts) -> BitSets {
+    std::uint32_t num_chunks = (num_elts + 63) >> 6;
+    std::ptrdiff_t total_chunks = std::ptrdiff_t(num_sets) * num_chunks;
+    auto *d = alloc->allocate<std::uint64_t>(total_chunks);
+    std::memset(d, 0, 8 * total_chunks);
+    return {.data_ = d, .num_sets_ = num_sets, .num_chunks_per_ = num_chunks};
+  }
+
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return num_sets_;
+  }
+  /// returns maximum size // 64
+  [[nodiscard]] constexpr auto maximumNumChunks() const -> std::ptrdiff_t {
+    return num_chunks_per_;
+  }
+  [[nodiscard]] constexpr auto maximumSize() const -> std::ptrdiff_t {
+    return 64Z * maximumNumChunks();
+  }
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
+    std::ptrdiff_t sz = num_chunks_per_;
+    return value_type{{data_ + (sz * i), math::length(sz)}};
+  }
+  DEBUGUSED [[nodiscard]] auto get(std::ptrdiff_t i) const -> value_type {
+    return (*this)[i];
+  }
+  /// returns the number of bytes freed
+  auto resize(std::uint32_t new_size) -> std::ptrdiff_t {
+    invariant(new_size <= num_sets_);
+    std::ptrdiff_t diff = num_sets_ - new_size;
+    num_sets_ = new_size;
+    return (8Z * num_chunks_per_) * diff;
+  }
+  TRIVIAL constexpr auto mview() -> BitSets { return *this; }
+  constexpr auto operator==(BitSets other) const -> bool {
+    if (num_sets_ != other.num_sets_ ||
+        num_chunks_per_ != other.num_chunks_per_)
+      return false;
+    std::ptrdiff_t len = totalElements();
+    return math::PtrVector<std::uint64_t>(data_, math::length(len)) ==
+           math::PtrVector<std::uint64_t>(other.data_, math::length(len));
+  }
+  DEBUGUSED void print() const {
+    for (value_type bs : *this) bs.println();
+  }
+};
+static_assert(std::bidirectional_iterator<BitSets::Iterator>);
+
+} // namespace containers

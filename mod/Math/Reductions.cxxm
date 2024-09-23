@@ -1,0 +1,115 @@
+module;
+
+#include "LoopMacros.hxx"
+#include "Macros.hxx"
+
+export module Reductions;
+import ArrayConcepts;
+import ExprTemplateUtils;
+import SIMD;
+import std;
+
+export namespace math {
+TRIVIAL constexpr auto abs2(auto x) { return x * x; }
+
+template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
+  auto A = flatten_if_possible(untransposed_view(A_arg));
+  using T = utils::eltype_t<decltype(A)>;
+
+  if constexpr (simd::SIMDSupported<T>) {
+    auto [M, N] = shape(A);
+    constexpr std::ptrdiff_t W = simd::Width<T>;
+    simd::Vec<W, T> vsum{};
+
+    if constexpr (!LinearlyIndexable<decltype(A), T>) {
+      // Matrix case with SIMD
+      for (std::ptrdiff_t i = 0; i < M; ++i) {
+        for (std::ptrdiff_t j = 0; j < N; j += W) {
+          POLYMATHFAST
+          auto u = simd::index::unrollmask<1, W>(N, j);
+          if (!u) break;
+          auto vals = A[i, u];
+          vsum += vals * vals;
+        }
+      }
+    } else {
+      // Vector case with SIMD
+      std::ptrdiff_t L = std::ptrdiff_t(A.size());
+      for (std::ptrdiff_t j = 0; j < L; j += W) {
+        POLYMATHFAST
+        auto u = simd::index::unrollmask<1, W>(L, j);
+        if (!u) break;
+        auto vals = A[u];
+        vsum += vals * vals;
+      }
+    }
+
+    return simd::reduce::sum<W, T>(vsum);
+  } else {
+    // Fallback to scalar implementation
+    T s = 0;
+    if constexpr (!LinearlyIndexable<decltype(A), T>) {
+      for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) {
+        for (std::ptrdiff_t j = 0; j < A.numCol(); ++j) {
+          POLYMATHFAST
+          s += abs2(A[i, j]);
+        }
+      }
+    } else
+      for (std::ptrdiff_t j = 0, L = std::ptrdiff_t(A.size()); j < L; ++j) {
+        POLYMATHFAST
+        s += abs2(A[j]);
+      }
+    return s;
+  }
+}
+
+TRIVIAL constexpr auto norm2(const auto &a) {
+  decltype((a[0] * a[0]) + (a[1] * a[1])) s{};
+  for (auto x : a) {
+    POLYMATHFAST
+    s += abs2(x, x);
+  }
+  return s;
+}
+template <typename A, typename B>
+TRIVIAL constexpr auto dot(const A &a_arg, const B &b_arg)
+  -> decltype(utils::eltype_t<A>{} * utils::eltype_t<B>{}) {
+  if constexpr (are_all_transposed<decltype(a_arg), decltype(b_arg)>()) {
+    return dot(untransposed_view(a_arg), untransposed_view(b_arg));
+  } else if constexpr (can_flatten_together<decltype(a_arg),
+                                            decltype(b_arg)>()) {
+    return dot(flatten_if_possible(a_arg), flatten_if_possible(b_arg));
+  } else {
+    const auto a = a_arg.view();
+    const auto b = b_arg.view();
+    auto L = check_sizes(a.size(), b.size());
+    using T = decltype((a[1] * b[1]) + (a[0] * b[0]));
+
+    if constexpr (simd::SIMDSupported<std::remove_cvref_t<decltype(a[0])>>) {
+      constexpr std::ptrdiff_t W =
+        simd::getWidth<std::remove_cvref_t<T>, decltype(L)>();
+      if constexpr (W != 1) {
+        simd::Vec<W, std::remove_cvref_t<decltype(a[0])>> vsum{};
+
+        for (std::ptrdiff_t i = 0; i < L; i += W) {
+          POLYMATHFAST
+          auto u = simd::index::unrollmask<1, W>(L, i);
+          if (!u) break;
+          auto vals_a = a[u];
+          auto vals_b = b[u];
+          vsum += vals_a * vals_b;
+        }
+        return simd::reduce::sum<W, T>(vsum);
+      } else return a[0] * b[0];
+    } else {
+      T s{};
+      for (std::ptrdiff_t i = 0; i < L; ++i) {
+        POLYMATHFAST
+        s += a[i] * b[i];
+      }
+      return s;
+    }
+  }
+}
+} // namespace math

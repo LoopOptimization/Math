@@ -1,0 +1,227 @@
+export module ArrayPrint;
+
+import Allocator;
+import CorePrint;
+import Rational;
+import std;
+
+template <std::integral T> consteval auto maxPow10() -> std::size_t {
+  if constexpr (sizeof(T) == 1) return 3;
+  else if constexpr (sizeof(T) == 2) return 5;
+  else if constexpr (sizeof(T) == 4) return 10;
+  else if constexpr (std::signed_integral<T>) return 19;
+  else return 20;
+}
+
+inline constexpr struct DigitsCounter {
+  template <std::unsigned_integral T>
+  static constexpr auto operator()(T x) -> int {
+    if constexpr (!std::same_as<T, bool>) {
+      std::array<T, maxPow10<T>() + 1> powers;
+      powers[0] = 0;
+      powers[1] = 10;
+      for (std::ptrdiff_t i = 2; i < std::ssize(powers); i++)
+        powers[i] = powers[i - 1] * 10;
+      std::array<T, (sizeof(T) * 8) + 1> bits;
+      if constexpr (sizeof(T) == 8) {
+        bits = {1,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,
+                4,  5,  5,  5,  6,  6,  6,  7,  7,  7,  7,  8,  8,
+                8,  9,  9,  9,  10, 10, 10, 10, 11, 11, 11, 12, 12,
+                12, 13, 13, 13, 13, 14, 14, 14, 15, 15, 15, 16, 16,
+                16, 16, 17, 17, 17, 18, 18, 18, 19, 19, 19, 19, 20};
+      } else if constexpr (sizeof(T) == 4) {
+        bits = {1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4,  5,  5, 5,
+                6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10};
+      } else if constexpr (sizeof(T) == 2) {
+        bits = {1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5};
+      } else if constexpr (sizeof(T) == 1) {
+        bits = {1, 1, 1, 1, 2, 2, 2, 3, 3};
+      }
+      T digits;
+      if constexpr (std::same_as<T, char>)
+        digits = bits[(8 * sizeof(unsigned char)) -
+                      std::countl_zero((unsigned char)x)];
+      else digits = bits[(8 * sizeof(T)) - std::countl_zero(x)];
+      return int(digits - (x < powers[digits - 1]));
+    } else return 1;
+  }
+
+  template <std::signed_integral T>
+  static constexpr auto operator()(T x) -> int {
+    using U = std::make_unsigned_t<T>;
+    if (x == std::numeric_limits<T>::min()) return T(sizeof(T) == 8 ? 20 : 11);
+    return operator()(U(std::abs(x))) + int{x < 0};
+  }
+  template <typename T> static constexpr auto operator()(T *x) -> int {
+    return operator()(std::bit_cast<std::size_t>(x));
+  }
+  static constexpr auto operator()(math::Rational x) -> int {
+    std::ptrdiff_t num = operator()(x.numerator_);
+    return (x.denominator_ == 1) ? num : num + operator()(x.denominator_) + 2;
+  }
+} countDigits;
+
+template <typename T> using Flat = std::vector<T, alloc::Mallocator<T>>;
+
+/// \brief Returns the maximum number of digits per column of a matrix.
+constexpr auto getMaxDigits(const math::Rational *A, std::ptrdiff_t M,
+                            std::ptrdiff_t N, std::ptrdiff_t X) -> Flat<int> {
+  Flat<int> max_digits(N, 0);
+  // this is slow, because we count the digits of every element
+  // we could optimize this by reducing the number of calls to countDigits
+  for (std::ptrdiff_t i = 0; i < M; i++) {
+    for (std::ptrdiff_t j = 0; j < N; j++) {
+      int c = countDigits(A[(i * X) + j]);
+      max_digits[j] = std::max(max_digits[j], c);
+    }
+  }
+  return max_digits;
+}
+
+/// Returns the number of digits of the largest number in the matrix.
+template <std::integral T>
+constexpr auto getMaxDigits(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
+                            std::ptrdiff_t X) -> Flat<T> {
+  Flat<T> max_digits(N, 0);
+  // first, we find the digits with the maximum value per column
+  for (std::ptrdiff_t i = 0; i < M; i++) {
+    for (std::ptrdiff_t j = 0; j < N; j++) {
+      // negative numbers need one more digit
+      // first, we find the maximum value per column,
+      // dividing positive numbers by -10
+      T Aij = A[(i * X) + j];
+      if constexpr (std::signed_integral<T>)
+        max_digits[j] = std::min(max_digits[j], Aij > 0 ? Aij / -10 : Aij);
+      else max_digits[j] = std::max(max_digits[j], Aij);
+    }
+  }
+  // then, we count the digits of the maximum value per column
+  for (T &max_digit : max_digits) max_digit = countDigits(max_digit);
+  return max_digits;
+}
+
+export namespace utils {
+
+template <typename T>
+concept ColumnPrintable =
+  Printable<T> &&
+  (std::same_as<T, double> || std::is_invocable_r_v<int, DigitsCounter, T>);
+static_assert(ColumnPrintable<math::Rational>);
+static_assert(ColumnPrintable<std::int64_t>);
+
+inline void printVector(auto B, auto E)
+  requires(Printable<std::remove_reference_t<decltype(*B)>>) {
+  print("[ ");
+  if (B != E) {
+    print(*B);
+    for (; ++B != E;) print(", ", *B);
+  }
+  print(" ]");
+}
+
+template <typename T>
+inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
+                        std::ptrdiff_t X) {
+  if ((!M) || (!N)) return print("[ ]");
+  // first, we determine the number of digits needed per column
+  auto max_digits{getMaxDigits(A, M, N, X)};
+  using U = decltype(countDigits(std::declval<T>()));
+  for (std::ptrdiff_t i = 0; i < M; ++i) {
+    if (i) print("  ");
+    else print("[ ");
+    for (std::ptrdiff_t j = 0; j < N; j++) {
+      T Aij = A[(i * X) + j];
+      for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); ++k) print(' ');
+      print(Aij);
+      if (j != N - 1) print(' ');
+      else if (i != M - 1) print('\n');
+    }
+  }
+  print(" ]");
+}
+
+inline void printMatrix(const bool *A, std::ptrdiff_t M, std::ptrdiff_t N,
+                        std::ptrdiff_t X) {
+  if ((!M) || (!N)) return print("[ ]");
+  // first, we determine the number of digits needed per column
+  for (std::ptrdiff_t i = 0; i < M; ++i) {
+    if (i) print("  ");
+    else print("[ ");
+    for (std::ptrdiff_t j = 0; j < N; j++) {
+      print(static_cast<char>('0' + A[(i * X) + j]));
+      if (j != N - 1) print(' ');
+      else if (i != M - 1) print('\n');
+    }
+  }
+  print(" ]");
+}
+// We mirror `A` with a matrix of integers indicating sizes, and a vectors of
+// chars. We fill the matrix with the number of digits of each element, and
+// the vector with the characters of each element. We could use a vector of
+// vectors of chars to avoid needing to copy memory on reallocation, but this
+// would yield more complicated management. We should also generally be able
+// to avoid allocations. We can use a Vector with a lot of initial capacity,
+// and then resize based on a conservative estimate of the number of chars per
+// elements.
+inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
+                        std::ptrdiff_t X) {
+  if ((!M) || (!N)) return print("[ ]");
+  // first, we determine the number of digits needed per column
+  // we can't have more than 255 digits
+  Flat<std::uint8_t> num_digits(M * N);
+  char smem[512];
+  char *p0 = smem, *ptr = p0, *p_end = p0 + 512;
+  for (std::ptrdiff_t m = 0; m < M; m++) {
+    for (std::ptrdiff_t n = 0; n < N; n++) {
+      auto Aij = A[(m * X) + n];
+      while (true) {
+        auto [p, ec] = std::to_chars(ptr, p_end, Aij);
+        if (ec == std::errc()) [[likely]] {
+          num_digits[(m * N) + n] = std::distance(ptr, p);
+          ptr = p;
+          break;
+        }
+        // we need more space
+        std::ptrdiff_t elem_so_far = (m * N) + n,
+                       char_so_far = std::distance(p0, ptr),
+                       char_per_elem = // cld
+                       (char_so_far + elem_so_far - 1) / elem_so_far,
+                       new_capacity =
+                         (1 + char_per_elem) * M * N; // +1 for good measure
+        char *pnew = alloc::Mallocator<char>::allocate(new_capacity);
+        std::memcpy(pnew, p0, char_so_far);
+        if (smem != p0)
+          alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
+        p0 = pnew;
+        ptr = pnew + char_so_far;
+        p_end = pnew + new_capacity;
+      }
+    }
+  }
+  Flat<std::uint8_t> max_digits{num_digits.begin(), num_digits.begin() + N};
+  for (std::ptrdiff_t m = 0; ++m < M;)
+    for (std::ptrdiff_t n = 0; n < N; n++)
+      max_digits[n] = std::max(max_digits[n], num_digits[(m * N) + n]);
+  // we will allocate 512 bytes at a time
+  ptr = p0;
+  for (std::ptrdiff_t i = 0; i < M; i++) {
+    if (i) print("  ");
+    else print("[ ");
+    for (std::ptrdiff_t j = 0; j < N; j++) {
+      std::ptrdiff_t nD = num_digits[(i * N) + j];
+      for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) print(' ');
+      for (std::ptrdiff_t n = 0; n < nD; ++n) print(ptr[n]);
+      if (j != N - 1) print(' ');
+      else if (i != M - 1) print('\n');
+      ptr += nD;
+    }
+  }
+  if (smem != p0)
+    alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
+  print(" ]");
+}
+
+template void printMatrix<std::int64_t>(const std::int64_t *A, std::ptrdiff_t M,
+                                        std::ptrdiff_t N, std::ptrdiff_t X);
+
+} // namespace utils

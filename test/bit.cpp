@@ -1,28 +1,25 @@
-#include <gtest/gtest.h>
+import boost.ut;
+import BaseUtils;
+import std;
 
-#ifndef USE_MODULE
-#include <cmath>
-#include <cstdint>
-#include <random>
+using namespace boost::ut;
 
-#include "Bit/Float.cxx"
-#else
-
-import BitHack;
-import STL;
-#endif
-
-TEST(BitTest, BasicAssertions) {
-  for (int i = 0; i < 63; ++i) {
-    auto e2 = double(uint64_t(1) << i);
-    EXPECT_EQ(bit::exp2unchecked(i), e2);
-    EXPECT_EQ(bit::exp2unchecked(-i), 1.0 / e2);
-  }
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::exponential_distribution<double> dist(15.6);
-  for (int i = 0; i < 10000; ++i) {
-    double x = dist(gen);
-    EXPECT_EQ(bit::next_pow2(x), std::exp2(std::ceil(std::log2(x))));
-  }
+int main() {
+  "BitTest"_test = [] {
+    for (int i = 0; i < 63; ++i) {
+      auto e2 = double(std::uint64_t(1) << i);
+      expect(bit::exp2unchecked(i) == e2);
+      expect(bit::exp2unchecked(-i) == 1.0 / e2);
+    }
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::exponential_distribution<double> dist(15.6);
+    for (int i = 0; i < 10000; ++i) {
+      double x = dist(gen);
+      expect(bit::next_pow2(x) == std::exp2(std::ceil(std::log2(x))));
+    }
+    expect(eq(bit::scale(2.5, 5), 80.0));
+    expect(eq(bit::scale(80.0, -5), 2.5));
+  };
+  return 0;
 }

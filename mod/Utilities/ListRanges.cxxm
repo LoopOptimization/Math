@@ -1,0 +1,349 @@
+module;
+
+#include "Macros.hxx"
+export module ListRange;
+import BaseUtils;
+import std;
+import Valid;
+export namespace utils {
+
+class GetNext {
+public:
+  template <typename T>
+  TRIVIAL constexpr auto operator()(T *state) const noexcept {
+    return state->getNext();
+  }
+};
+class GetPrev {
+public:
+  template <typename T>
+  TRIVIAL constexpr auto operator()(T *state) const noexcept {
+    return state->getPrev();
+  }
+};
+class GetChild {
+public:
+  template <typename T>
+  TRIVIAL constexpr auto operator()(T *state) const noexcept {
+    return state->getChild();
+  }
+};
+class GetParent {
+public:
+  template <typename T>
+  TRIVIAL constexpr auto operator()(T *state) const noexcept {
+    return state->getParent();
+  }
+};
+class Identity {
+public:
+  template <typename T>
+  TRIVIAL constexpr auto operator()(T *state) const noexcept {
+    return state;
+  }
+};
+
+/// Safe for removing current iter from `list` while iterating.
+template <typename T, class Op, class Proj> class ListIterator {
+  T *state_;
+  T *next_{nullptr};
+  [[no_unique_address]] Op op_{};
+  [[no_unique_address]] Proj p_{};
+
+public:
+  using value_type = decltype(p_(state_));
+  TRIVIAL constexpr auto operator*() const noexcept -> value_type {
+    invariant(state_ != next_);
+    return p_(state_);
+  }
+  // TRIVIAL constexpr auto operator->() const noexcept -> T * { return state_;
+  // }
+  TRIVIAL constexpr auto getState() const noexcept -> T * { return state_; }
+  TRIVIAL constexpr auto operator++() noexcept -> ListIterator & {
+    invariant(state_ != next_);
+    state_ = next_;
+    if (next_) next_ = op_(next_);
+    return *this;
+  }
+  TRIVIAL constexpr auto operator++(int) noexcept -> ListIterator {
+    invariant(state_ != next_);
+    ListIterator tmp{*this};
+    state_ = next_;
+    if (next_) next_ = op_(next_);
+    return tmp;
+  }
+  TRIVIAL constexpr auto operator-(ListIterator const &other) const noexcept
+    -> std::ptrdiff_t {
+    std::ptrdiff_t count = 0;
+    for (auto iter = other; iter != *this; ++iter) ++count;
+    return count;
+  }
+  TRIVIAL constexpr auto operator==(ListIterator const &other) const noexcept
+    -> bool {
+    return state_ == other.state_;
+  }
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const noexcept
+    -> bool {
+    invariant((state_ == nullptr) || (state_ != next_));
+    return state_ == nullptr;
+  }
+  TRIVIAL constexpr ListIterator(T *state) noexcept
+    : state_{state}, next_{state ? Op{}(state) : nullptr} {}
+  TRIVIAL constexpr ListIterator(T *state, Op op, Proj p) noexcept
+    : state_{state}, next_{state ? op(state) : nullptr}, op_{op}, p_{p} {}
+  TRIVIAL constexpr ListIterator() noexcept = default;
+  TRIVIAL constexpr ListIterator(const ListIterator &) noexcept = default;
+  TRIVIAL constexpr ListIterator(ListIterator &&) noexcept = default;
+  TRIVIAL constexpr auto operator=(const ListIterator &) noexcept
+    -> ListIterator & = default;
+  TRIVIAL constexpr auto operator=(ListIterator &&) noexcept
+    -> ListIterator & = default;
+};
+template <typename T, class Op, class Proj>
+ListIterator(T *, Op, Proj) -> ListIterator<T, Op, Proj>;
+template <typename T, class Op>
+ListIterator(T *, Op) -> ListIterator<T, Op, Identity>;
+
+template <typename T, class Op = GetChild, class Proj = Identity>
+class ListRange
+  : public std::ranges::view_interface<ListIterator<T, Op, Proj>> {
+  T *begin_;
+  [[no_unique_address]] Op next_{};
+  [[no_unique_address]] Proj projection_{};
+
+public:
+  TRIVIAL constexpr auto begin() noexcept -> ListIterator<T, Op, Proj> {
+    return {begin_, next_, projection_};
+  }
+  TRIVIAL constexpr auto begin() const noexcept
+    -> ListIterator<const T, Op, Proj> {
+    return {begin_, next_, projection_};
+  }
+  TRIVIAL static constexpr auto end() noexcept -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+  TRIVIAL constexpr ListRange(T *begin, Op next, Proj projection) noexcept
+    : begin_{begin}, next_{next}, projection_{projection} {}
+  TRIVIAL constexpr ListRange(T *begin, Op next) noexcept
+    : begin_{begin}, next_{next} {}
+  TRIVIAL constexpr ListRange(T *begin) noexcept : begin_{begin} {}
+  TRIVIAL constexpr ListRange() noexcept = default;
+  TRIVIAL constexpr ListRange(const ListRange &) noexcept = default;
+  TRIVIAL constexpr ListRange(ListRange &&) noexcept = default;
+  TRIVIAL constexpr auto operator=(const ListRange &) noexcept
+    -> ListRange & = default;
+  TRIVIAL constexpr auto operator=(ListRange &&) noexcept
+    -> ListRange & = default;
+  // TRIVIAL constexpr auto operator|(std::invocable<ListRange> auto&&x) {
+  //     return x(*this);
+  // }
+  template <std::invocable<ListRange> F>
+  TRIVIAL constexpr auto operator|(F &&f) const {
+    return std::forward<F>(f)(*this);
+  }
+};
+template <typename T, class Op, class Proj>
+ListRange(T *, Op, Proj) -> ListRange<T, Op, Proj>;
+template <typename T, class Op, class Proj>
+ListRange(Valid<T>, Op, Proj) -> ListRange<T, Op, Proj>;
+
+template <typename T, class Op>
+ListRange(T *, Op) -> ListRange<T, Op, Identity>;
+template <typename T, class Op>
+ListRange(Valid<T>, Op) -> ListRange<T, Op, Identity>;
+
+struct NoInnerObj {};
+struct NoInnerState {};
+struct NoInnerEnd {};
+template <std::forward_iterator O, std::forward_iterator I, class P, class J,
+          class F, class L>
+class NestedIterator {
+  [[no_unique_address]] O outer_;
+  [[no_unique_address]] P outerend_;
+  [[no_unique_address]] F innerfun_;
+  union {
+    [[no_unique_address]] NoInnerObj noobj_{};
+    [[no_unique_address]] L innerobj_; // keep the inner object alive!
+  };
+  union {
+    [[no_unique_address]] NoInnerState nostate_{};
+    [[no_unique_address]] I inner_;
+  };
+  union {
+    [[no_unique_address]] NoInnerEnd noend_{};
+    [[no_unique_address]] J innerend_;
+  };
+
+  TRIVIAL constexpr void initInner() {
+    for (;;) {
+      innerobj_ = innerfun_(*outer_);
+      inner_ = innerobj_.begin();
+      innerend_ = innerobj_.end();
+      if (inner_ != innerend_) break;
+      if (++outer_ == outerend_) break;
+    }
+  }
+  TRIVIAL constexpr void initInnerConstructor() {
+    ::new (&innerobj_) L{innerfun_(*outer_)};
+    ::new (&inner_) I{innerobj_.begin()};
+    ::new (&innerend_) J{innerobj_.end()};
+    if ((inner_ == innerend_) && (++outer_ != outerend_)) initInner();
+  }
+  constexpr void destroyInner() {
+    if constexpr (!std::is_trivially_destructible_v<J>) innerend_.~J();
+    if constexpr (!std::is_trivially_destructible_v<I>) inner_.~I();
+    if constexpr (!std::is_trivially_destructible_v<L>) innerobj_.~L();
+    noend_ = {};
+    nostate_ = {};
+    noobj_ = {};
+  }
+
+public:
+  using value_type = decltype(*inner_);
+
+  TRIVIAL constexpr auto operator==(NestedIterator const &other) const noexcept
+    -> bool {
+    return outer_ == other.outer_ && inner_ == other.inner_;
+  }
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const noexcept
+    -> bool {
+    return outer_ == outerend_;
+  }
+  TRIVIAL constexpr auto operator++() noexcept -> NestedIterator & {
+    if (++inner_ != innerend_) return *this;
+    if (++outer_ != outerend_) initInner();
+    else destroyInner(); // outer == outerend means undef
+    return *this;
+  }
+  TRIVIAL constexpr auto operator++(int) noexcept -> NestedIterator {
+    NestedIterator tmp{*this};
+    ++*this;
+    return tmp;
+  }
+  TRIVIAL constexpr auto operator*() const noexcept -> value_type {
+    return *inner_;
+  }
+  TRIVIAL constexpr auto operator->() const noexcept -> I { return inner_; }
+  TRIVIAL constexpr auto operator-(NestedIterator const &other) const noexcept
+    -> std::ptrdiff_t {
+    std::ptrdiff_t count = 0;
+    for (auto iter = other; iter != *this; ++iter) ++count;
+    return count;
+  }
+  TRIVIAL constexpr NestedIterator() noexcept = default;
+
+  TRIVIAL constexpr NestedIterator(auto &out, auto &innerfun) noexcept
+    : outer_{out.begin()}, outerend_{out.end()}, innerfun_{innerfun} {
+    if (outer_ != outerend_) initInnerConstructor();
+  }
+  TRIVIAL constexpr NestedIterator(const auto &out,
+                                   const auto &innerfun) noexcept
+    : outer_{out.begin()}, outerend_{out.end()}, innerfun_{innerfun} {
+    if (outer_ != outerend_) initInnerConstructor();
+  }
+  TRIVIAL constexpr NestedIterator(const NestedIterator &other) noexcept
+    : outer_{other.outer_}, outerend_{other.outerend_},
+      innerfun_{other.innerfun_} {
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{other.innerobj_};
+      ::new (&inner_) I{other.inner_};
+      ::new (&innerend_) J{other.innerend_};
+    }
+  }
+  TRIVIAL constexpr NestedIterator(NestedIterator &&other) noexcept
+    : outer_{std::move(other.outer_)}, outerend_{std::move(other.outerend_)},
+      innerfun_{std::move(other.innerfun_)} {
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{std::move(other.innerobj_)};
+      ::new (&inner_) I{std::move(other.inner_)};
+      ::new (&innerend_) J{std::move(other.innerend_)};
+    }
+  }
+  TRIVIAL constexpr auto operator=(const NestedIterator &other) noexcept
+    -> NestedIterator & {
+    if (this == &other) return *this;
+    if (outer_ != outerend_) destroyInner();
+    outer_ = other.outer_;
+    outerend_ = other.outerend_;
+    innerfun_ = other.innerfun_;
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{other.innerobj_};
+      ::new (&inner_) I{other.inner_};
+      ::new (&innerend_) J{other.innerend_};
+    }
+  }
+  TRIVIAL constexpr auto operator=(NestedIterator &&other) noexcept
+    -> NestedIterator & {
+    if (this == &other) return *this;
+    if (outer_ != outerend_) destroyInner();
+    outer_ = std::move(other.outer_);
+    outerend_ = std::move(other.outerend_);
+    innerfun_ = std::move(other.innerfun_);
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{std::move(other.innerobj_)};
+      ::new (&inner_) I{std::move(other.inner_)};
+      ::new (&innerend_) J{std::move(other.innerend_)};
+    }
+  }
+  ~NestedIterator() {
+    if (outer_ != outerend_) destroyInner();
+  }
+};
+
+/// NestedList
+/// A range that lets us iterate over a graph via nesting ranges.
+/// This is called a "nested list" because the output of each
+/// range level is the head of the next iteration, i.e. it is useful
+/// for nested list-like data structures, rather than (for example)
+/// cartesian product iterators.
+///
+/// The outer iterator expects...
+template <std::ranges::forward_range O, class F>
+class NestedList : public std::ranges::view_interface<NestedList<O, F>> {
+  static_assert(std::ranges::view<O>);
+  static_assert(std::is_trivially_destructible_v<O>);
+  [[no_unique_address]] O outer_;
+  [[no_unique_address]] F inner_;
+
+public:
+  using InnerType = decltype(inner_(*(outer_.begin())));
+  static_assert(std::ranges::view<InnerType>);
+  static_assert(std::is_trivially_destructible_v<InnerType>);
+
+private:
+  using InnerBegin = decltype(std::declval<InnerType>().begin());
+  using InnerEnd = decltype(std::declval<InnerType>().end());
+  using IteratorType =
+    NestedIterator<decltype(outer_.begin()), InnerBegin, decltype(outer_.end()),
+                   InnerEnd, F, InnerType>;
+
+public:
+  TRIVIAL constexpr auto begin() noexcept -> IteratorType {
+    return IteratorType(outer_, inner_);
+  }
+  TRIVIAL static constexpr auto end() noexcept -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+  TRIVIAL constexpr NestedList(O out, F inn) noexcept
+    : outer_{std::move(out)}, inner_{std::move(inn)} {}
+  TRIVIAL constexpr NestedList(const NestedList &) noexcept = default;
+  TRIVIAL constexpr NestedList(NestedList &&) noexcept = default;
+  TRIVIAL constexpr auto operator=(const NestedList &) noexcept
+    -> NestedList & = default;
+  TRIVIAL constexpr auto operator=(NestedList &&) noexcept
+    -> NestedList & = default;
+};
+template <std::ranges::forward_range O, class F>
+NestedList(O, F) -> NestedList<O, F>;
+
+} // namespace utils
+
+template <typename T, class Op, class Proj>
+inline constexpr bool
+  std::ranges::enable_borrowed_range<utils::ListRange<T, Op, Proj>> = true;
+template <std::ranges::forward_range O, class F>
+inline constexpr bool
+  std::ranges::enable_borrowed_range<utils::NestedList<O, F>> =
+    std::ranges::enable_borrowed_range<O> &&
+    std::ranges::enable_borrowed_range<
+      typename utils::NestedList<O, F>::InnerType>;

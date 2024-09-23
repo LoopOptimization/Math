@@ -1,0 +1,71 @@
+module;
+#include "Macros.hxx"
+export module ExprTemplateUtils;
+
+import BaseUtils;
+import MatDim;
+import std;
+
+export namespace math {
+using utils::invariant;
+// inputs must be `std::ptrdiff_t` or
+// `std::integral_constant<std::ptrdiff_t,value>`
+template <typename X, typename Y> TRIVIAL constexpr auto check_sizes(X x, Y y) {
+  if constexpr (std::same_as<std::ptrdiff_t, X>) {
+    if constexpr (std::same_as<std::ptrdiff_t, Y>) {
+      invariant(x, y);
+      return x;
+    } else if constexpr (y > 1) {
+      constexpr std::ptrdiff_t L = y;
+      invariant(x, L);
+      return std::integral_constant<std::ptrdiff_t, L>{};
+    } else return x;
+  } else if constexpr (x <= 1) return y;
+  else if constexpr (std::same_as<std::ptrdiff_t, Y>) {
+    constexpr std::ptrdiff_t L = x;
+    invariant(L, y);
+    return std::integral_constant<std::ptrdiff_t, L>{};
+  } else if constexpr (y <= 1) return x;
+  else {
+    static_assert(x == y);
+    return std::integral_constant<std::ptrdiff_t, std::ptrdiff_t(x)>{};
+  }
+}
+
+template <typename T> struct ScalarizeViaCast {
+  using type = void;
+};
+template <typename T>
+using scalarize_via_cast_t = typename ScalarizeViaCast<T>::type;
+
+template <typename T> struct IsDualImpl : std::false_type {};
+template <typename T>
+concept IsDual = IsDualImpl<T>::value;
+
+// We want to support casting compressed `Dual` arrays to `double`
+// when possible as a performance optimization.
+// This is possible with
+// 1. Dual<T,N> (+/-) Dual<T,N>
+// 2. Dual<T,N> * double or double * Dual<T,N>
+// 3. Dual<T,N> / double
+// 4. Simple copies
+template <typename T> struct ScalarizeEltViaCast {
+  using type = void;
+};
+template <typename T>
+using scalarize_elt_cast_t = typename ScalarizeEltViaCast<T>::type;
+
+template <typename T>
+concept AdditiveOp =
+  std::same_as<T, std::plus<>> || std::same_as<T, std::minus<>>;
+template <typename T>
+concept MultiplicativeOp =
+  std::same_as<T, std::multiplies<>> || std::same_as<T, std::divides<>>;
+template <typename T>
+concept EltIsDual = IsDual<utils::eltype_t<T>>;
+
+template <typename T>
+concept EltCastableDual =
+  EltIsDual<T> && std::same_as<scalarize_via_cast_t<T>, double>;
+
+} // namespace math

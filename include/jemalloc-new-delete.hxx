@@ -52,42 +52,42 @@ void operator delete[](void *p, std::size_t n) noexcept {
 
 #if (__cplusplus > 201402L || defined(__cpp_aligned_new))
 void operator delete(void *p, std::align_val_t al) noexcept {
-  dallocx(p, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  dallocx(p, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 void operator delete[](void *p, std::align_val_t al) noexcept {
-  dallocx(p, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  dallocx(p, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 void operator delete(void *p, std::size_t n, std::align_val_t al) noexcept {
-  sdallocx(p, n, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  sdallocx(p, n, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 };
 void operator delete[](void *p, std::size_t n, std::align_val_t al) noexcept {
-  sdallocx(p, n, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  sdallocx(p, n, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 };
 void operator delete(void *p, std::align_val_t al,
                      const std::nothrow_t &) noexcept {
-  dallocx(p, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  dallocx(p, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 void operator delete[](void *p, std::align_val_t al,
                        const std::nothrow_t &) noexcept {
-  dallocx(p, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  dallocx(p, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 
 [[using gnu: returns_nonnull, alloc_size(1), alloc_align(2)]] void *
 operator new(std::size_t n, std::align_val_t al) noexcept(false) {
-  return mallocx(n, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  return mallocx(n, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 [[using gnu: returns_nonnull, alloc_size(1), alloc_align(2)]] void *
 operator new[](std::size_t n, std::align_val_t al) noexcept(false) {
-  return mallocx(n, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  return mallocx(n, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 [[using gnu: returns_nonnull, alloc_size(1), alloc_align(2)]] void *
 operator new(std::size_t n, std::align_val_t al,
              const std::nothrow_t &) noexcept {
-  return mallocx(n, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  return mallocx(n, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 [[using gnu: returns_nonnull, alloc_size(1), alloc_align(2)]] void *
 operator new[](std::size_t n, std::align_val_t al,
                const std::nothrow_t &) noexcept {
-  return mallocx(n, MALLOCX_ALIGN(static_cast<size_t>(al)));
+  return mallocx(n, MALLOCX_ALIGN(static_cast<std::size_t>(al)));
 }
 #endif

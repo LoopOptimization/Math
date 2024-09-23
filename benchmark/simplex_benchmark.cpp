@@ -1,29 +1,15 @@
-#include <benchmark/benchmark.h>
-
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/Simplex.cxx"
-#include "Utilities/MatrixStringParse.cxx"
-#include "Utilities/Valid.cxx"
-#include <cassert>
-#include <cstddef>
-#include <cstdint>
-#else
+import Nanobench;
 import Arena;
-import Array;
 import ArrayParse;
+import ManagedArray;
 import Simplex;
-import STL;
+import std;
 import Valid;
-#endif
 
 using utils::operator""_mat, math::_;
 
-static void BM_Simplex0(benchmark::State &state) {
-  math::DenseMatrix<int64_t> tableau{
+void BM_Simplex0(Bench &bench) {
+  math::DenseMatrix<std::int64_t> tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
@@ -892,8 +878,8 @@ static void BM_Simplex0(benchmark::State &state) {
 
   tableau[0, _] << -5859553999884210514;
   alloc::OwningArena<> alloc;
-  ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
-  ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
+  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
+  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
   utils::Valid<math::Simplex> simpBackup{
     math::Simplex::create(&alloc, math::row(numCon), math::col(numVar))};
   simpBackup->getTableau() << tableau;
@@ -902,17 +888,18 @@ static void BM_Simplex0(benchmark::State &state) {
     math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
                           math::col(simpBackup->getNumVars()))};
   // Vector<Rational> sol(37);
-  for (auto b : state) {
+  bench.run("BM_Simplex0", [&] {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();
-    assert(!fail);
+#ifndef NDEBUG
+    if (fail) __builtin_trap();
+#endif
     if (!fail) simp->rLexMinLast(37);
-  }
+  });
   alloc.reset();
 }
-BENCHMARK(BM_Simplex0);
 
-static void BM_Simplex1(benchmark::State &state) {
+void BM_Simplex1(Bench &bench) {
   math::IntMatrix<> tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 "
     "94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 "
@@ -1133,19 +1120,20 @@ static void BM_Simplex1(benchmark::State &state) {
     "0 0 0 0 0 0 0 0 0 ]"_mat};
 
   alloc::OwningArena<> alloc;
-  ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
-  ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
+  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
+  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
   utils::Valid<math::Simplex> simpBackup{
     math::Simplex::create(&alloc, math::row(numCon), math::col(numVar), 0)};
   simpBackup->getTableau() << tableau;
   utils::Valid<math::Simplex> simp{
     math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
                           math::col(simpBackup->getNumVars()), 0)};
-  for (auto b : state) {
+  bench.run("BM_Simplex1", [&] {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();
-    assert(!fail);
+#ifndef NDEBUG
+    if (fail) __builtin_trap();
+#endif
     if (!fail) simp->rLexMinLast(15);
-  }
+  });
 }
-BENCHMARK(BM_Simplex1);

@@ -15,9 +15,14 @@ env:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+        CTEST_PARALLEL_LEVEL: 2
+        cc: /usr/bin/gcc $CFLAGS -fno-semantic-interposition
+        c++: /usr/bin/g++ $CXXFLAGS -fno-semantic-interposition
+
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
       - uses: actions/cache@v4
@@ -25,13 +30,26 @@ jobs:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
-      - name: configure
-        run: cmake -Stest -Bbuild -DCMAKE_BUILD_TYPE=Debug
-
-      - name: build
-        run: cmake --build build -j4
-
-      - name: test
+      - run: brew install boost llvm jemalloc git pipx
+      - run: git submodule update --init --recursive
+      - name: Set up Python and install cmake-format
         run: |
-          cd build
-          ctest --build-config Debug
+            pipx install cmakelang
+      - run: sed -i '' 's/print\-file\-name\=\${\_clang\_modules\_json\_impl}\.modules\.json/print\-file\-name\=\/opt\/homebrew\/opt\/llvm\/lib\/c\+\+\/libc\+\+.modules\.json/' /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
+      - run: grep print-file-name /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
+      - name: Add LLVM to PATH
+        run: |
+            echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+            echo "CPPFLAGS=-I$(brew --prefix llvm)/include" >> $GITHUB_ENV
+            echo "LDFLAGS=-L$LLVM_PREFIX/lib/c++ -Wl,-rpath,$LLVM_PREFIX/lib/c++ -lc++" >> $GITHUB_ENV
+            echo "GPG_TTY=$(tty)" >> $GITHUB_ENV
+            echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
+      - name: Verify LLVM is being used
+        run: |
+            which clang
+            clang --version
+            llvm-config --version
+      - name: no-san
+        run: make clang-no-san
+      - name: san
+        run: make clang-san

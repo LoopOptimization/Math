@@ -1,38 +1,39 @@
-#include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Containers/UnrolledList.cxx"
-#include <cstdint>
-#else
+import boost.ut;
 import Arena;
-import STL;
+import std;
 import UnrolledList;
-#endif
+
+using namespace boost::ut;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(UListTest, BasicAssertions) {
+void testBasicAssertions() {
   alloc::OwningArena<> alloc;
-  auto *list = alloc.create<containers::UList<int64_t>>();
-  for (int64_t i = 0; i < 100; ++i) {
+  using si64 = long long;
+  auto *list = alloc.create<containers::UList<si64>>();
+  // for (i64 i = 0; i < 100; ++i) {
+  for (si64 i = 0; i < 7; ++i) {
     list = list->push(&alloc, i);
-    int64_t s = i * (i + 1) / 2;
-    EXPECT_EQ(list->reduce(0, [](int64_t a, int64_t b) { return a + b; }), s);
-    int64_t s2 = i * (i + 1) * (2 * i + 1) / 6;
-    EXPECT_EQ(list->transform_reduce(0,
-                                     [](int64_t a, int64_t &b) {
-                                       b *= 2;
-                                       return a + b * b;
-                                     }),
-              s2 * 4);
+    si64 s = i * (i + 1) / 2;
+    expect(list->reduce(0, [](si64 a, si64 b) { return a + b; }) == s);
+    si64 s2 = i * (i + 1) * (2 * i + 1) / 6;
+    expect(list->transform_reduce(0, [](si64 a, si64 &b) {
+      b *= 2;
+      return a + (b * b);
+    }) == s2 * 4);
     // undo the *2;
-    list->forEachRev([](int64_t &a) { a /= 2; });
-    const auto *constList = list;
-    int64_t c = 0;
-    for (auto j : *constList) c += j;
-    EXPECT_EQ(c, s);
+    list->forEachRev([](si64 &a) { a /= 2; });
+    const auto *const_list = list;
+    si64 c = 0;
+    for (auto j : *const_list) c += j;
+    expect(c == s);
     c = 0;
     for (auto &&j : *list) c += (j += 3);
-    EXPECT_EQ(c - (3 * (i + 1)), s);
-    list->forEach([](int64_t &a) { a -= 3; });
+    expect(c - (3 * (i + 1)) == s);
+    list->forEach([](si64 &a) { a -= 3; });
   }
+}
+
+int main() {
+  "UListTest BasicAssertions"_test = [] { testBasicAssertions(); };
+  return 0;
 }

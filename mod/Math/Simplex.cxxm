@@ -1,0 +1,313 @@
+module;
+#include "Macros.hxx"
+export module Simplex;
+
+import Arena;
+import Array;
+import ArrayConcepts;
+import ArrayPrint;
+import AxisTypes;
+import BitSet;
+import Comparisons;
+import Constraints;
+import CorePrint;
+import ExprTemplates;
+import GCD;
+import BaseUtils;
+import ManagedArray;
+import MatDim;
+import NormalForm;
+import Range;
+import Rational;
+import SIMD;
+import Valid;
+import Optional;
+import std;
+
+export namespace math {
+
+// Forward declaration of the main Simplex class
+class Simplex {
+public:
+  using index_t = int;
+  using value_type = std::int64_t;
+
+  // Static factory methods
+  static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar)
+    ->Simplex&;
+  static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
+                     Capacity<> conCap, RowStride<> varCap) -> Simplex&;
+  static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
+                     std::ptrdiff_t numSlack) ->Simplex&;
+  static auto malloc(Row<> numCon, Col<> numVar) -> Simplex *;
+  static auto malloc(Row<> numCon, Col<> numVar, Capacity<> conCap,
+                     RowStride<> varCap) -> Simplex *;
+
+  // Static utility methods for creating simplex problems
+  static auto positiveVariables(alloc::Arena<> *alloc,
+                                PtrMatrix<std::int64_t> A)
+    -> Optional<Simplex &>;
+  static auto positiveVariables(alloc::Arena<> *alloc,
+                                PtrMatrix<std::int64_t> A,
+                                PtrMatrix<std::int64_t> B)
+    -> Optional<Simplex &>;
+
+  // Memory access functions
+  [[gnu::returns_nonnull, nodiscard]] auto basicConsPointer() const
+    -> index_t *;
+  [[gnu::returns_nonnull, nodiscard]] auto basicVarsPointer() const
+    -> index_t *;
+  [[gnu::returns_nonnull, nodiscard]] auto tableauPointer() const
+    -> value_type *;
+
+  // Capacity and size queries
+  [[nodiscard]] auto reservedBasicConstraints() const -> std::ptrdiff_t;
+  [[nodiscard]] auto reservedBasicVariables() const -> std::ptrdiff_t;
+  [[nodiscard]] auto getNumConstraints() const -> std::ptrdiff_t;
+  [[nodiscard]] auto getNumVars() const -> std::ptrdiff_t {
+    invariant(num_vars_ >= 0);
+    return std::ptrdiff_t(num_vars_);
+  }
+
+  // Tableau access
+  [[nodiscard]] auto getTableau() const -> PtrMatrix<value_type>;
+  [[nodiscard]] auto getTableau() -> MutPtrMatrix<value_type>;
+  [[nodiscard]] auto getConstraints() const -> PtrMatrix<value_type>;
+  [[nodiscard]] auto getConstraints() -> MutPtrMatrix<value_type>;
+
+  // Basic variable management
+  [[nodiscard]] auto getBasicConstraints() const -> PtrVector<index_t>;
+  [[nodiscard]] auto getBasicConstraints() -> MutPtrVector<index_t>;
+  [[nodiscard]] auto getBasicVariables() const -> PtrVector<index_t>;
+  [[nodiscard]] auto getBasicVariables() -> MutPtrVector<index_t>;
+
+  // Cost vector access
+  [[nodiscard]] auto getCost() const -> PtrVector<value_type>;
+  [[nodiscard]] auto getCost() -> MutPtrVector<value_type>;
+
+  // Individual element access
+  [[nodiscard]] auto getBasicConstraint(std::ptrdiff_t var) const -> index_t;
+  [[nodiscard]] auto getBasicVariable(std::ptrdiff_t constraint) const
+    -> index_t;
+  [[nodiscard]] auto getObjectiveCoefficient(std::ptrdiff_t i) const
+    -> value_type;
+  [[nodiscard]] auto getObjectiveValue() -> value_type &;
+  [[nodiscard]] auto getObjectiveValue() const -> value_type;
+
+  // Utility functions
+  void zeroConstraints();
+  void simplifySystem();
+  void truncateConstraints(std::ptrdiff_t i);
+
+// Debug and helper methods
+#ifndef NDEBUG
+  void assertCanonical() const;
+#endif
+
+  // Additional accessors
+  [[nodiscard]] auto getConstants() -> MutStridedVector<std::int64_t>;
+  [[nodiscard]] auto getConstants() const -> StridedVector<std::int64_t>;
+
+  // Size and capacity management
+  TRIVIAL constexpr void setNumCons(std::ptrdiff_t i) {
+    invariant(i <= constraint_capacity_);
+    num_constraints_ = row(i);
+  }
+  TRIVIAL constexpr void setNumVars(std::ptrdiff_t i) {
+    invariant(i < var_capacity_p1_);
+    num_vars_ = col(i);
+  }
+  TRIVIAL constexpr void truncateVars(std::ptrdiff_t i) {
+    invariant(i <= num_vars_);
+    num_vars_ = col(i);
+  }
+  [[nodiscard]] TRIVIAL constexpr auto getNumCons() const -> std::ptrdiff_t {
+    invariant(num_constraints_ >= 0);
+    return std::ptrdiff_t(num_constraints_);
+  }
+  [[nodiscard]] TRIVIAL constexpr auto getConCap() const -> Capacity<> {
+    invariant(constraint_capacity_ >= 0);
+    return constraint_capacity_;
+  }
+  [[nodiscard]] TRIVIAL constexpr auto getVarCap() const -> RowStride<> {
+    invariant(var_capacity_p1_ > 0);
+    return --auto{var_capacity_p1_};
+  }
+
+  // Constraint management
+  void deleteConstraint(std::ptrdiff_t c);
+
+  // Advanced optimization methods
+  auto maximizeLast(std::ptrdiff_t num_last) -> Rational;
+  auto maximizeLastDrop(std::ptrdiff_t num_last) -> Rational;
+  void pruneBounds(alloc::Arena<> *alloc, std::ptrdiff_t numSlack = 0);
+
+  // Satisfiability checking
+  [[nodiscard]] auto unSatisfiable(alloc::Arena<> alloc,
+                                   PtrVector<std::int64_t> x,
+                                   std::ptrdiff_t off) const -> bool;
+  [[nodiscard]] auto satisfiable(alloc::Arena<> alloc,
+                                 PtrVector<std::int64_t> x,
+                                 std::ptrdiff_t off) const -> bool;
+  [[nodiscard]] auto unSatisfiableZeroRem(alloc::Arena<> alloc,
+                                          PtrVector<std::int64_t> x,
+                                          std::ptrdiff_t off,
+                                          std::ptrdiff_t numRow) const -> bool;
+  [[nodiscard]] auto unSatisfiableZeroRem(alloc::Arena<> alloc,
+                                          std::ptrdiff_t iFree,
+                                          std::array<std::ptrdiff_t, 2> inds,
+                                          std::ptrdiff_t numRow) const -> bool;
+  [[nodiscard]] auto satisfiableZeroRem(alloc::Arena<> alloc,
+                                        PtrVector<std::int64_t> x,
+                                        std::ptrdiff_t off,
+                                        std::ptrdiff_t numRow) const -> bool;
+
+  [[nodiscard]] auto getVarValue(std::ptrdiff_t var) const -> Rational;
+
+  // Debug and utility methods
+  void printResult(std::ptrdiff_t numSlack = 0);
+  auto copy(alloc::Arena<> *alloc) const ->Simplex&;
+  auto operator<<(const Simplex &other) -> Simplex &;
+  void print() const;
+#ifndef NDEBUG
+  [[gnu::used]] void dump() const;
+#endif
+
+  // AbstractVector
+  struct Solution : Expr<Rational, Solution> {
+    using value_type = Rational;
+    // view of tableau dropping const column
+    Valid<const Simplex> simplex_;
+    Length<> skipped_vars_;
+    Length<> num_vars_;
+    class iterator { // NOLINT(readability-identifier-naming)
+      const Solution *sol_;
+      std::ptrdiff_t i_;
+
+    public:
+      using value_type = Rational;
+      TRIVIAL constexpr iterator(const Solution *s, std::ptrdiff_t j)
+        : sol_(s), i_(j) {}
+      iterator() = default;
+      iterator(const iterator &) = default;
+      auto operator=(const iterator &) -> iterator & = default;
+      auto operator*() const -> Rational;
+      TRIVIAL constexpr auto operator++() -> iterator & {
+        ++i_;
+        return *this;
+      }
+      TRIVIAL constexpr auto operator++(int) -> iterator {
+        auto tmp = *this;
+        ++i_;
+        return tmp;
+      }
+      TRIVIAL constexpr auto operator--() -> iterator & {
+        --i_;
+        return *this;
+      }
+      TRIVIAL constexpr auto operator--(int) -> iterator {
+        auto tmp = *this;
+        --i_;
+        return tmp;
+      }
+      TRIVIAL friend constexpr auto operator==(iterator a, iterator b) -> bool {
+        return a.i_ == b.i_;
+      }
+      TRIVIAL friend constexpr auto operator!=(iterator a, iterator b) -> bool {
+        return a.i_ != b.i_;
+      }
+      TRIVIAL constexpr auto operator-(iterator b) const -> std::ptrdiff_t {
+        return std::ptrdiff_t(i_) - b.i_;
+      }
+      TRIVIAL constexpr auto operator+(std::ptrdiff_t n) const -> iterator {
+        return {sol_, i_ + n};
+      }
+    };
+    TRIVIAL [[nodiscard]] constexpr auto begin() const -> iterator {
+      return {this, 0};
+    }
+    [[nodiscard]] auto end() const -> iterator {
+      return {this, std::ptrdiff_t(num_vars_ - skipped_vars_)};
+    }
+
+    [[nodiscard]] auto operator[](std::ptrdiff_t i) const -> Rational;
+    [[nodiscard]] auto operator[](OffsetEnd k) const -> Rational;
+    TRIVIAL [[nodiscard]] constexpr auto
+    operator[](ScalarRelativeIndex auto i) const -> Rational {
+      return (*this)[calcOffset(size(), i)];
+    }
+    template <typename B, typename E>
+    TRIVIAL constexpr auto operator[](Range<B, E> r) const -> Solution {
+      return (*this)[canonicalizeRange(r, size())];
+    }
+    TRIVIAL constexpr auto
+    operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const -> Solution {
+      return {.simplex_ = simplex_,
+              .skipped_vars_ = length(std::ptrdiff_t(skipped_vars_) + r.b_),
+              .num_vars_ = length(std::ptrdiff_t(skipped_vars_) + r.e_)};
+    }
+    [[nodiscard]] TRIVIAL constexpr auto size() const -> std::ptrdiff_t {
+      return std::ptrdiff_t(num_vars_ - skipped_vars_);
+    }
+    [[nodiscard]] TRIVIAL constexpr auto view() const -> Solution {
+      return *this;
+    };
+
+    [[nodiscard]] auto denomLCM() const -> std::int64_t;
+    DEBUGUSED void print() const;
+  };
+
+  // Simplex algorithm core functions
+  [[nodiscard]] auto initiateFeasible() -> bool;
+  auto runCore(std::int64_t f = 1) -> Rational;
+  /// runs, minimizing the system. Returns the negative answer
+  auto run() -> Rational;
+  auto makeBasic(MutPtrMatrix<std::int64_t> C, index_t ev) -> bool;
+  auto makeBasic(MutPtrMatrix<std::int64_t> C, Simplex::index_t enteringVar,
+                 std::int64_t f) -> std::int64_t;
+  void makeBasic(MutPtrMatrix<std::int64_t> C, Simplex::index_t ev,
+                 Simplex::index_t l_var);
+  auto makeBasic(index_t var) -> index_t;
+  void rLexMin(Vector<Rational> &sol);
+  auto rLexMinLast(std::ptrdiff_t n) -> Solution;
+  void rLexCore(PtrMatrix<std::int64_t> C, PtrVector<std::int64_t> costs,
+                std::ptrdiff_t v);
+  auto rLexMin(std::ptrdiff_t v) -> bool;
+  auto makeZeroNonBasic(std::ptrdiff_t v) -> bool;
+  auto rLexMinStop(std::ptrdiff_t skip_first, std::ptrdiff_t skip_last = 0)
+    -> Simplex::Solution;
+  // Solution access
+  [[nodiscard]] auto getSolution() const -> Solution;
+
+  // Constructors and assignment
+  Simplex(char *memory, std::ptrdiff_t cons, std::ptrdiff_t vars);
+  Simplex(const Simplex &) = delete;
+  auto operator=(const Simplex &) -> Simplex & = delete;
+  Simplex(Simplex &&) = delete;
+  auto operator=(Simplex &&) -> Simplex & = delete;
+
+private:
+  Row<> num_constraints_{};
+  Col<> num_vars_{};
+  Capacity<> constraint_capacity_;
+  RowStride<> var_capacity_p1_; // varCapacity + 1
+#ifndef NDEBUG
+  bool in_canonical_form_{false};
+#endif
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#else
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc99-extensions"
+#endif
+  // NOLINTNEXTLINE(modernize-avoid-c-arrays) // FAM
+  alignas(simd::VECTORWIDTH) char memory_[];
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#else
+#pragma clang diagnostic pop
+#endif
+};
+
+} // namespace math

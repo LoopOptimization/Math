@@ -1,0 +1,874 @@
+module;
+#include "Macros.hxx"
+export module AxisTypes;
+
+import CorePrint;
+import BaseUtils;
+import std;
+
+/// LinAlg
+///
+/// This is the namespace for all mathematical functions.
+/// Semantics:
+/// We generally around structs holding pointer/size/stride/capacity information
+/// by value.
+/// For assignments that copy the underlying data, use `<<`
+/// E.g., `A << B + C;`
+/// Updating assignment operators like `+=`, `-=`, and, `*=` are supported.
+///
+/// The choice of `<<` over `=` for copying data is so that `operator=`
+/// can be the usual copy assignment operator, which is useful to use when
+/// we pass arrays/pointers by value to functions that truncate their size.
+///
+/// Operations like `+` and `-` are elementwise, while `*` performs matrix
+/// multiplication. All operations are lazy, building up expression templates
+/// that are evaluated upon assignments, e.g. `<<` or `+=`.
+///
+/// All the PtrVector/PtrMatrix types are trivially destructible, copyable, etc
+/// Their lifetimes are governed by the Arena or RAII type used to back
+/// them.
+export namespace math {
+
+using utils::invariant;
+
+// constexpr auto comptime(auto) -> std::ptrdiff_t { return -1; }
+// template <typename T, T val>
+// constexpr auto comptime(std::integral_constant<T, val>) -> std::ptrdiff_t {
+//   return val;
+// }
+
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Length {
+  static constexpr std::ptrdiff_t nrow = 1;
+  static constexpr std::ptrdiff_t ncol = M;
+  static constexpr std::ptrdiff_t nstride = M;
+  static_assert(M >= 0);
+  static_assert(M <= std::numeric_limits<I>::max());
+  TRIVIAL explicit inline constexpr operator I() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return M;
+  }
+  TRIVIAL explicit inline constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
+  TRIVIAL explicit inline constexpr operator bool() const { return M; }
+  TRIVIAL static inline constexpr auto staticint() {
+    return std::integral_constant<I, M>{};
+  }
+
+  TRIVIAL inline constexpr operator Length<-1>() const;
+  static constexpr auto comptime() -> std::ptrdiff_t { return M; }
+
+  TRIVIAL inline constexpr auto flat() const -> Length { return *this; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length)
+    -> bool {
+    return x == M;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Length, std::ptrdiff_t x)
+    -> bool {
+    return M == x;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Length, Length) -> bool {
+    return true;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Length)
+    -> std::strong_ordering {
+    return x <=> M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Length, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return M <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Length, Length)
+    -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  template <std::ptrdiff_t N>
+  TRIVIAL friend inline constexpr auto operator+(Length, Length<N>)
+    -> Length<M + N> requires(N != -1) {
+    return {};
+  }
+  template <std::ptrdiff_t N>
+  TRIVIAL friend inline constexpr auto operator-(Length, Length<N>)
+    -> Length<M - N> requires(N != -1) {
+    static_assert(M >= N);
+    return {};
+  }
+};
+template <std::signed_integral I> struct Length<-1, I> {
+  static constexpr std::ptrdiff_t nrow = 1;
+  static constexpr std::ptrdiff_t ncol = -1;
+  static constexpr std::ptrdiff_t nstride = -1;
+  enum class len : I {};
+  len value_;
+  TRIVIAL explicit inline constexpr operator I() const {
+    auto m = static_cast<I>(value_);
+    invariant(m >= I(0));
+    return m;
+  }
+  TRIVIAL explicit inline constexpr operator std::ptrdiff_t() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    auto m = static_cast<std::ptrdiff_t>(static_cast<I>(value_));
+    invariant(m >= 0);
+    return m;
+  }
+  TRIVIAL explicit inline constexpr operator bool() const {
+    return static_cast<std::ptrdiff_t>(value_);
+  }
+
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator Length<M, I>() const requires(M != -1) {
+    utils::invariant(value_ == M);
+    return {};
+  }
+
+  TRIVIAL inline constexpr auto operator++() -> Length & {
+    value_ = static_cast<len>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator--() -> Length & {
+    value_ = static_cast<len>(static_cast<std::ptrdiff_t>(value_) - 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator++(int) -> Length {
+    Length tmp{*this};
+    value_ = static_cast<len>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return tmp;
+  }
+  TRIVIAL inline constexpr auto operator--(int) -> Length {
+    Length tmp{*this};
+    value_ = static_cast<len>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return tmp;
+  }
+
+  TRIVIAL inline constexpr operator Length<-1>() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return Length<-1, std::ptrdiff_t>{
+      static_cast<Length<-1, std::ptrdiff_t>::len>(std::ptrdiff_t(I(*this)))};
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
+
+  TRIVIAL [[nodiscard]] inline constexpr auto flat() const -> Length {
+    return *this;
+  }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length y)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Length y, std::ptrdiff_t x)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Length x, Length y) -> bool {
+    return std::ptrdiff_t(x) == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Length y)
+    -> std::strong_ordering {
+    return x <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Length x, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Length x, Length y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator+(Length a, Length b) -> Length {
+    return {
+      static_cast<Length<-1>::len>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
+  }
+  TRIVIAL friend inline constexpr auto operator-(Length a, Length b) -> Length {
+    auto x = std::ptrdiff_t(a), y = std::ptrdiff_t(b);
+    invariant(x >= y);
+    return {static_cast<Length<-1>::len>(x - y)};
+  }
+};
+
+// by default, we promote to `std::ptrdiff_t`; smaller sizes
+// are primarilly in case we want smaller storage
+template <std::ptrdiff_t M, std::signed_integral I>
+TRIVIAL inline constexpr Length<M, I>::operator Length<-1>() const {
+  return {static_cast<Length<-1>::len>(M)};
+}
+
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Capacity {
+  static_assert(M >= 0);
+  static_assert(M <= std::numeric_limits<I>::max());
+  TRIVIAL inline explicit constexpr operator I() const { return M; }
+  TRIVIAL inline explicit constexpr operator bool() const { return M; }
+  TRIVIAL inline constexpr operator Capacity<-1, I>() const;
+  static constexpr auto comptime() -> std::ptrdiff_t { return M; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Capacity)
+    -> bool {
+    return x == M;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Capacity, std::ptrdiff_t x)
+    -> bool {
+    return M == x;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Capacity, Capacity) -> bool {
+    return true;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Capacity)
+    -> std::strong_ordering {
+    return x <=> M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Capacity, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return M <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Length<> x, Capacity)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Capacity, Length<> y)
+    -> std::strong_ordering {
+    return M <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Capacity, Capacity)
+    -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+};
+template <std::integral I> struct Capacity<-1, I> {
+  enum class cap : I {};
+  cap value_;
+  TRIVIAL inline explicit constexpr operator I() const {
+    auto m = static_cast<I>(value_);
+    invariant(m >= 0);
+    return m;
+  }
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    auto m = static_cast<I>(value_);
+    invariant(m >= 0);
+    return m;
+  }
+  TRIVIAL inline explicit constexpr operator bool() const {
+    return static_cast<I>(value_);
+  }
+  template <std::ptrdiff_t M, std::integral J>
+  TRIVIAL inline constexpr operator Capacity<M, J>() const requires(M != -1) {
+    if constexpr (sizeof(J) >= sizeof(I))
+      utils::invariant(static_cast<J>(value_) == M);
+    else utils::invariant(static_cast<I>(value_) == static_cast<I>(M));
+    return {};
+  }
+  TRIVIAL inline constexpr auto operator++() -> Capacity & {
+    value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator--() -> Capacity & {
+    value_ = static_cast<cap>(static_cast<I>(value_) - 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator++(int) -> Capacity {
+    Capacity tmp{*this};
+    value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
+    return tmp;
+  }
+  TRIVIAL inline constexpr auto operator--(int) -> Capacity {
+    Capacity tmp{*this};
+    value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
+    return tmp;
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Capacity y)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Capacity y, std::ptrdiff_t x)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Capacity x, Capacity y)
+    -> bool {
+    return std::ptrdiff_t(x) == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Capacity y)
+    -> std::strong_ordering {
+    return x <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Capacity x, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Length<> x, Capacity y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Capacity x, Length<> y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Capacity x, Capacity y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+};
+template <std::ptrdiff_t M, std::signed_integral I>
+TRIVIAL inline constexpr Capacity<M, I>::operator Capacity<-1, I>() const {
+  static constexpr I cap = M;
+  return {static_cast<Capacity<-1, I>::cap>(cap)};
+}
+
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Row {
+  static_assert(M >= 0 && std::same_as<I, std::ptrdiff_t>);
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
+  TRIVIAL inline explicit constexpr operator bool() const { return M; }
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Row<-1, J>() const;
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Row<M, J>() const
+    requires(!std::same_as<I, J>) {
+    return {};
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return M; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Row)
+    -> bool {
+    return x == M;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Row, std::ptrdiff_t x)
+    -> bool {
+    return M == x;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Row, Row) -> bool {
+    return true;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Row)
+    -> std::strong_ordering {
+    return x <=> M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Row, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return M <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Row, Row)
+    -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  void print() const { utils::print("Row<>{", M, "}"); }
+  template <std::ptrdiff_t N>
+  TRIVIAL friend inline constexpr auto operator+(Row, Row<N>)
+    -> Row<M + N> requires(N != -1) {
+    return {};
+  }
+  template <std::ptrdiff_t N>
+  TRIVIAL friend inline constexpr auto operator-(Row, Row<N>)
+    -> Row<M - N> requires(N != -1) {
+    static_assert(M >= N);
+    return {};
+  }
+};
+template <std::signed_integral I> struct RowEnum {
+  enum class row : I {};
+};
+template <std::signed_integral I> struct Row<-1, I> {
+  using row = RowEnum<I>::row;
+  row value_;
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    auto m = static_cast<std::ptrdiff_t>(value_);
+    invariant(m >= 0);
+    return m;
+  }
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Row<-1, J>() const
+    requires(!std::same_as<I, J>) {
+    return {static_cast<Row<-1, J>::row>(value_)};
+  }
+  TRIVIAL inline constexpr operator typename RowEnum<std::int32_t>::row() const
+    requires(!std::same_as<I, std::int32_t>) {
+    return static_cast<Row<-1, std::int32_t>::row>(value_);
+  }
+  TRIVIAL inline constexpr
+  operator typename RowEnum<std::ptrdiff_t>::row() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return static_cast<Row<-1, std::ptrdiff_t>::row>(value_);
+  }
+  TRIVIAL inline explicit constexpr operator bool() const {
+    return static_cast<std::ptrdiff_t>(value_);
+  }
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator Row<M>() const requires(M != -1) {
+    utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
+    return {};
+  }
+  TRIVIAL inline constexpr auto operator++() -> Row & {
+    value_ = static_cast<row>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator--() -> Row & {
+    value_ = static_cast<row>(static_cast<std::ptrdiff_t>(value_) - 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator++(int) -> Row {
+    Row tmp{*this};
+    value_ = static_cast<row>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return tmp;
+  }
+  TRIVIAL inline constexpr auto operator--(int) -> Row {
+    Row tmp{*this};
+    value_ = static_cast<row>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return tmp;
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Row y)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Row y, std::ptrdiff_t x)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Row x, Row y) -> bool {
+    return std::ptrdiff_t(x) == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Row y)
+    -> std::strong_ordering {
+    return x <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Row x, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Row x, Row y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+  void print() const { utils::print("Row<>{", std::ptrdiff_t(*this), "}"); }
+  TRIVIAL friend inline constexpr auto operator+(Row a, Row b) -> Row {
+    return {static_cast<Row<-1>::row>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
+  }
+  TRIVIAL friend inline constexpr auto operator-(Row a, Row b) -> Row {
+    auto x = std::ptrdiff_t(a), y = std::ptrdiff_t(b);
+    invariant(x >= y);
+    return {static_cast<Row<-1>::row>(x - y)};
+  }
+};
+static_assert(sizeof(Row<>) == sizeof(std::ptrdiff_t));
+static_assert(sizeof(Row<-1, std::int32_t>) == sizeof(std::int32_t));
+template <std::ptrdiff_t M, std::signed_integral I>
+template <std::signed_integral J>
+TRIVIAL inline constexpr Row<M, I>::operator Row<-1, J>() const {
+  return {static_cast<Row<-1, J>::row>(M)};
+}
+
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Col {
+  static_assert(M >= 0 && std::same_as<I, std::ptrdiff_t>);
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
+  TRIVIAL inline explicit constexpr operator bool() const { return M; }
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<-1, J>() const;
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<M, J>() const
+    requires(!std::same_as<I, J>) {
+    return {};
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return M; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Col)
+    -> bool {
+    return x == M;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Col, std::ptrdiff_t x)
+    -> bool {
+    return M == x;
+  }
+  TRIVIAL friend inline constexpr auto operator==(Col, Col) -> bool {
+    return true;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Col)
+    -> std::strong_ordering {
+    return x <=> M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Col, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return M <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Col, Col)
+    -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  TRIVIAL friend inline constexpr auto operator*(Row<> r, Col)
+    -> std::ptrdiff_t {
+    return std::ptrdiff_t(r) * M;
+  }
+  void print() const { utils::print("Col<>{", M, "}"); }
+  template <std::ptrdiff_t N>
+  TRIVIAL friend inline constexpr auto operator+(Col, Col<N>)
+    -> Col<M + N> requires(N != -1) {
+    return {};
+  }
+  template <std::ptrdiff_t N>
+  TRIVIAL friend inline constexpr auto operator-(Col, Col<N>)
+    -> Col<M - N> requires(N != -1) {
+    static_assert(M >= N);
+    return {};
+  }
+};
+template <std::signed_integral I> struct ColEnum {
+  enum class col : I {};
+};
+template <std::signed_integral I> struct Col<-1, I> {
+  using col = ColEnum<I>::col;
+  col value_;
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    auto m = static_cast<std::ptrdiff_t>(value_);
+    invariant(m >= 0);
+    return m;
+  }
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<-1, J>() const
+    requires(!std::same_as<I, J>) {
+    return {static_cast<Col<-1, J>::col>(value_)};
+  }
+  TRIVIAL inline constexpr operator typename ColEnum<std::int32_t>::col() const
+    requires(!std::same_as<I, std::int32_t>) {
+    return static_cast<Col<-1, std::int32_t>::col>(value_);
+  }
+  TRIVIAL inline constexpr
+  operator typename ColEnum<std::ptrdiff_t>::col() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return static_cast<Col<-1, std::ptrdiff_t>::col>(value_);
+  }
+  TRIVIAL inline explicit constexpr operator bool() const {
+    return static_cast<std::ptrdiff_t>(value_);
+  }
+  template <std::ptrdiff_t M, std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<M, J>() const requires(M != -1) {
+    utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
+    return {};
+  }
+  TRIVIAL inline constexpr auto operator++() -> Col & {
+    value_ = static_cast<col>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator--() -> Col & {
+    value_ = static_cast<col>(static_cast<std::ptrdiff_t>(value_) - 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator++(int) -> Col {
+    Col tmp{*this};
+    value_ = static_cast<col>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return tmp;
+  }
+  TRIVIAL inline constexpr auto operator--(int) -> Col {
+    Col tmp{*this};
+    value_ = static_cast<col>(static_cast<std::ptrdiff_t>(value_) - 1z);
+    return tmp;
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Col y)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Col y, std::ptrdiff_t x)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(Col x, Col y) -> bool {
+    return std::ptrdiff_t(x) == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, Col y)
+    -> std::strong_ordering {
+    return x <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Col x, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Col x, Col y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator*(Row<> r, Col c)
+    -> std::ptrdiff_t {
+    return std::ptrdiff_t(r) * std::ptrdiff_t(c);
+  }
+  void print() const { utils::print("Col<>{", std::ptrdiff_t(*this), "}"); }
+  TRIVIAL friend inline constexpr auto operator+(Col a, Col b) -> Col {
+    return {static_cast<Col<-1>::col>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
+  }
+  TRIVIAL friend inline constexpr auto operator-(Col a, Col b) -> Col {
+    auto x = std::ptrdiff_t(a), y = std::ptrdiff_t(b);
+    invariant(x >= y);
+    return {static_cast<Col<-1>::col>(x - y)};
+  }
+};
+static_assert(sizeof(Col<>) == sizeof(std::ptrdiff_t));
+static_assert(sizeof(Col<-1, std::int32_t>) == sizeof(std::int32_t));
+template <std::ptrdiff_t M, std::signed_integral I>
+template <std::signed_integral J>
+TRIVIAL constexpr Col<M, I>::operator Col<-1, J>() const {
+  return {static_cast<Col<-1, J>::col>(M)};
+}
+template <std::ptrdiff_t M = -1> struct RowStride {
+  static_assert(M >= 0);
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
+  TRIVIAL inline explicit constexpr operator bool() const { return M; }
+  TRIVIAL inline constexpr operator RowStride<-1>() const;
+  static constexpr auto comptime() -> std::ptrdiff_t { return M; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, RowStride)
+    -> bool {
+    return x == M;
+  }
+  TRIVIAL friend inline constexpr auto operator==(RowStride, std::ptrdiff_t x)
+    -> bool {
+    return M == x;
+  }
+  TRIVIAL friend inline constexpr auto operator==(RowStride, RowStride)
+    -> bool {
+    return true;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, RowStride)
+    -> std::strong_ordering {
+    return x <=> M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(RowStride, std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return M <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(RowStride, RowStride)
+    -> std::strong_ordering {
+    return std::strong_ordering::equal;
+  }
+  void print() const { utils::print("RowStride<>{", M, "}"); }
+  TRIVIAL friend inline constexpr auto operator==(Col<> c, RowStride) -> bool {
+    return std::ptrdiff_t(c) == M;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Col<> c, RowStride)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(c) <=> M;
+  }
+};
+template <> struct RowStride<-1> {
+  enum class stride : std::ptrdiff_t {};
+  stride value_;
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    auto m = static_cast<std::ptrdiff_t>(value_);
+    invariant(m >= 0);
+    return m;
+  }
+  TRIVIAL inline explicit constexpr operator bool() const {
+    return static_cast<std::ptrdiff_t>(value_);
+  }
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator RowStride<M>() const requires(M != -1) {
+    utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
+    return {};
+  }
+  TRIVIAL inline constexpr auto operator++() -> RowStride & {
+    value_ = static_cast<stride>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator--() -> RowStride & {
+    value_ = static_cast<stride>(static_cast<std::ptrdiff_t>(value_) - 1z);
+    return *this;
+  }
+  TRIVIAL inline constexpr auto operator++(int) -> RowStride {
+    RowStride tmp{*this};
+    value_ = static_cast<stride>(static_cast<std::ptrdiff_t>(value_) + 1z);
+    return tmp;
+  }
+  TRIVIAL inline constexpr auto operator--(int) -> RowStride {
+    RowStride tmp{*this};
+    value_ = static_cast<stride>(static_cast<std::ptrdiff_t>(value_) - 1z);
+    return tmp;
+  }
+  static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
+
+private:
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, RowStride y)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(RowStride y, std::ptrdiff_t x)
+    -> bool {
+    return x == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator==(RowStride x, RowStride y)
+    -> bool {
+    return std::ptrdiff_t(x) == std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x,
+                                                   RowStride y)
+    -> std::strong_ordering {
+    return x <=> std::ptrdiff_t(y);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(RowStride x,
+                                                   std::ptrdiff_t y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> y;
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(RowStride x, RowStride y)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
+  }
+  void print() const {
+    utils::print("RowStride<>{", std::ptrdiff_t(*this), "}");
+  }
+  TRIVIAL friend inline constexpr auto operator==(Col<> c, RowStride x)
+    -> bool {
+    return std::ptrdiff_t(c) == std::ptrdiff_t(x);
+  }
+  TRIVIAL friend inline constexpr auto operator<=>(Col<> c, RowStride x)
+    -> std::strong_ordering {
+    return std::ptrdiff_t(c) <=> std::ptrdiff_t(x);
+  }
+};
+static_assert(sizeof(RowStride<>) == sizeof(std::ptrdiff_t));
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr RowStride<M>::operator RowStride<-1>() const {
+  return {static_cast<RowStride<-1>::stride>(M)};
+}
+
+// constexpr auto max(Row M, Col N) -> std::ptrdiff_t {
+//   return std::max(std::ptrdiff_t(M), std::ptrdiff_t(N));
+// }
+// constexpr auto max(Col N, RowStride X) -> RowStride {
+//   return RowStride{std::max(std::ptrdiff_t(N), std::ptrdiff_t(X))};
+// }
+// constexpr auto min(Col N, Col X) -> Col {
+//   return Col{std::max(Col::V(N), Col::V(X))};
+// }
+// constexpr auto min(Row N, Col X) -> std::ptrdiff_t {
+//   return std::min(std::ptrdiff_t(N), std::ptrdiff_t(X));
+// }
+
+template <std::ptrdiff_t M> TRIVIAL inline constexpr auto unwrapRow(Row<M> x) {
+  if constexpr (M == -1) return std::ptrdiff_t(x);
+  else return std::integral_constant<std::ptrdiff_t, M>{};
+}
+template <std::ptrdiff_t M> TRIVIAL inline constexpr auto unwrapCol(Col<M> x) {
+  if constexpr (M == -1) return std::ptrdiff_t(x);
+  else return std::integral_constant<std::ptrdiff_t, M>{};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto unwrapStride(RowStride<M> x) {
+  if constexpr (M == -1) return std::ptrdiff_t(x);
+  else return std::integral_constant<std::ptrdiff_t, M>{};
+}
+TRIVIAL inline constexpr auto unwrapRow(auto x) { return x; }
+TRIVIAL inline constexpr auto unwrapCol(auto x) { return x; }
+TRIVIAL inline constexpr auto unwrapStride(auto x) { return x; }
+
+TRIVIAL inline constexpr auto row(std::ptrdiff_t x) -> Row<> {
+  invariant(x >= 0);
+  return Row<-1>{static_cast<Row<-1>::row>(x)};
+}
+TRIVIAL inline constexpr auto col(std::ptrdiff_t x) -> Col<> {
+  invariant(x >= 0);
+  return Col<-1>{static_cast<Col<-1>::col>(x)};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto col(Length<M> x) -> Col<M> {
+  if constexpr (M != -1) return Col<M>{};
+  else return Col<-1>{static_cast<Col<-1>::col>(std::ptrdiff_t(x))};
+}
+TRIVIAL inline constexpr auto stride(std::ptrdiff_t x) -> RowStride<> {
+  invariant(x >= 0);
+  return RowStride<-1>{static_cast<RowStride<-1>::stride>(x)};
+}
+template <std::signed_integral Int>
+TRIVIAL inline constexpr auto length(Int x)
+  -> Length<-1, Int> requires(!std::same_as<Int, std::ptrdiff_t>) {
+  invariant(x >= 0);
+  return Length<-1, Int>{static_cast<Length<-1, Int>::len>(x)};
+}
+// Overload resolution should prioritize/favor `std::ptrdiff_t`
+TRIVIAL inline constexpr auto length(std::ptrdiff_t x) -> Length<> {
+  invariant(x >= 0);
+  return Length<>{static_cast<Length<>::len>(x)};
+}
+TRIVIAL inline constexpr auto capacity(std::ptrdiff_t x) -> Capacity<> {
+  invariant(x >= 0);
+  return Capacity<-1>{static_cast<Capacity<-1>::cap>(x)};
+}
+// TRIVIAL inline constexpr auto
+// capacity(std::size_t x) -> Capacity<> {
+//   invariant(x <= std::size_t(std::numeric_limits<std::ptrdiff_t>::max()));
+//   return capacity(std::ptrdiff_t(x));
+// }
+template <std::integral I, I x>
+TRIVIAL inline constexpr auto row(std::integral_constant<I, x>)
+  -> Row<std::ptrdiff_t(x)> {
+  static_assert(x >= 0);
+  return {};
+}
+template <std::integral I, I x>
+TRIVIAL inline constexpr auto col(std::integral_constant<I, x>)
+  -> Col<std::ptrdiff_t(x)> {
+  static_assert(x >= 0);
+  return {};
+}
+template <std::integral I, I x>
+TRIVIAL inline constexpr auto stride(std::integral_constant<I, x>)
+  -> RowStride<std::ptrdiff_t(x)> {
+  static_assert(x >= 0);
+  return {};
+}
+
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto aslength(Col<M> len) -> Length<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Length<-1>::len>(std::ptrdiff_t(len))};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto aslength(Row<M> len) -> Length<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Length<-1>::len>(std::ptrdiff_t(len))};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto asrow(Length<M> len) -> Row<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Row<-1>::row>(std::ptrdiff_t(len))};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto asrow(Col<M> len) -> Row<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Row<-1>::row>(std::ptrdiff_t(len))};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto ascol(Length<M> len) -> Col<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Col<-1>::col>(std::ptrdiff_t(len))};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto ascol(Row<M> len) -> Col<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<Col<-1>::col>(std::ptrdiff_t(len))};
+}
+template <std::ptrdiff_t M>
+TRIVIAL inline constexpr auto asrowStride(Length<M> len) -> RowStride<M> {
+  if constexpr (M != -1) return {};
+  else return {static_cast<RowStride<-1>::stride>(std::ptrdiff_t(len))};
+}
+
+} // namespace math

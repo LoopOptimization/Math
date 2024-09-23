@@ -1,0 +1,150 @@
+module;
+
+#include "Macros.hxx"
+#include "Owner.hxx"
+export module Valid;
+
+import BaseUtils;
+import std;
+export namespace utils {
+template <typename T> struct Mut : T {
+  using T::T;
+};
+
+template <typename T> TRIVIAL constexpr auto as_const(T &x) -> T & { return x; }
+
+template <typename T> TRIVIAL constexpr auto as_const(Mut<T> &x) -> T & {
+  return x;
+}
+// TODO: communicate not-null to the compiler somehow?
+template <typename T> class MATH_GSL_POINTER Valid {
+  [[no_unique_address]] T *value_;
+
+public:
+  Valid() = delete;
+  TRIVIAL constexpr Valid(T *v) : value_(v) { invariant(value_ != nullptr); }
+  TRIVIAL constexpr explicit operator bool() const {
+    invariant(value_ != nullptr);
+    return true;
+  }
+  TRIVIAL constexpr operator Valid<const T>() const {
+    invariant(value_ != nullptr);
+    return Valid<const T>(value_);
+  }
+  TRIVIAL [[gnu::returns_nonnull]] constexpr operator T *() {
+    invariant(value_ != nullptr);
+    return value_;
+  }
+  TRIVIAL [[gnu::returns_nonnull]] constexpr operator T *() const {
+    invariant(value_ != nullptr);
+    return value_;
+  }
+  TRIVIAL [[gnu::returns_nonnull]] constexpr auto operator->() -> T * {
+    invariant(value_ != nullptr);
+    return value_;
+  }
+  TRIVIAL constexpr auto operator*() -> T & {
+    invariant(value_ != nullptr);
+    return *value_;
+  }
+  TRIVIAL [[gnu::returns_nonnull]] constexpr auto operator->() const
+    -> const T * {
+    invariant(value_ != nullptr);
+    return value_;
+  }
+  TRIVIAL constexpr auto operator*() const -> const T & {
+    invariant(value_ != nullptr);
+    return *value_;
+  }
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t index) -> T & {
+    invariant(value_ != nullptr);
+    return value_[index];
+  }
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t index) const -> const T & {
+    invariant(value_ != nullptr);
+    return value_[index];
+  }
+  TRIVIAL constexpr auto operator+(std::ptrdiff_t offset) -> Valid<T> {
+    invariant(value_ != nullptr);
+    return value_ + offset;
+  }
+  TRIVIAL constexpr auto operator-(std::ptrdiff_t offset) -> Valid<T> {
+    invariant(value_ != nullptr);
+    return value_ - offset;
+  }
+  TRIVIAL constexpr auto operator+(std::ptrdiff_t offset) const -> Valid<T> {
+    invariant(value_ != nullptr);
+    return value_ + offset;
+  }
+  TRIVIAL constexpr auto operator-(std::ptrdiff_t offset) const -> Valid<T> {
+    invariant(value_ != nullptr);
+    return value_ - offset;
+  }
+  TRIVIAL constexpr auto operator++() -> Valid<T> & {
+    invariant(value_ != nullptr);
+    ++value_;
+    return *this;
+  }
+  TRIVIAL constexpr auto operator++(int) -> Valid<T> {
+    invariant(value_ != nullptr);
+    return value_++;
+  }
+  TRIVIAL constexpr auto operator--() -> Valid<T> & {
+    invariant(value_ != nullptr);
+    --value_;
+    return *this;
+  }
+  TRIVIAL constexpr auto operator--(int) -> Valid<T> {
+    invariant(value_ != nullptr);
+    return value_--;
+  }
+  TRIVIAL constexpr auto operator+=(std::ptrdiff_t offset) -> Valid<T> & {
+    invariant(value_ != nullptr);
+    value_ += offset;
+    return *this;
+  }
+  TRIVIAL constexpr auto operator-=(std::ptrdiff_t offset) -> Valid<T> & {
+    invariant(value_ != nullptr);
+    value_ -= offset;
+    return *this;
+  }
+  // TRIVIAL constexpr auto operator==(const Valid<T> &other) const -> bool {
+  //   invariant(value != nullptr);
+  //   return value == other.value;
+  // }
+  // TRIVIAL constexpr auto operator!=(const Valid<T> &other) const -> bool {
+  //   invariant(value != nullptr);
+  //   return value != other.value;
+  // }
+  // TRIVIAL constexpr auto operator<(const Valid<T> &other) const -> bool {
+  //   invariant(value != nullptr);
+  //   return value < other.value;
+  // }
+  // TRIVIAL constexpr auto operator<=(const Valid<T> &other) const -> bool {
+  //   invariant(value != nullptr);
+  //   return value <= other.value;
+  // }
+  // TRIVIAL constexpr auto operator>(const Valid<T> &other) const -> bool {
+  //   invariant(value != nullptr);
+  //   return value > other.value;
+  // }
+  // TRIVIAL constexpr auto operator>=(const Valid<T> &other) const -> bool {
+  //   invariant(value != nullptr);
+  //   return value >= other.value;
+  // }
+  TRIVIAL constexpr auto operator-(const Valid<T> &other) const
+    -> std::ptrdiff_t {
+    invariant(value_ != nullptr);
+    return value_ - other.value_;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto isAligned(std::ptrdiff_t x) const
+    -> bool {
+    invariant(value_ != nullptr);
+    return (reinterpret_cast<std::ptrdiff_t>(value_) % x) == 0;
+  }
+};
+template <typename T> Valid(T &) -> Valid<T>;
+template <typename T> Valid(T *) -> Valid<T *>;
+static_assert(std::is_trivially_destructible_v<Valid<std::ptrdiff_t>>);
+static_assert(std::is_trivially_copy_constructible_v<Valid<std::ptrdiff_t>>);
+} // namespace utils

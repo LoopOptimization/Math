@@ -1,0 +1,47 @@
+module;
+export module EmptyMatrix;
+
+import ArrayConcepts;
+import AxisTypes;
+import std;
+export namespace math {
+
+template <typename T> struct EmptyMatrix {
+  using value_type = T;
+  static constexpr auto begin() -> T * { return nullptr; }
+  static constexpr auto end() -> T * { return nullptr; }
+
+  static constexpr auto numRow() -> Row<0> { return {}; }
+  static constexpr auto numCol() -> Col<0> { return {}; }
+  static constexpr auto rowStride() -> RowStride<0> { return {}; }
+  static constexpr auto getConstCol() -> std::ptrdiff_t { return 0; }
+
+  static constexpr auto data() -> T * { return nullptr; }
+  static constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) -> T {
+    return {};
+  }
+  static constexpr auto shape()
+    -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
+    return {};
+  }
+  static constexpr auto view() -> EmptyMatrix<T> { return EmptyMatrix<T>{}; }
+  static constexpr auto dim() -> SquareDims<0> { return {numRow()}; }
+};
+
+static_assert(AbstractMatrix<EmptyMatrix<std::ptrdiff_t>>);
+
+// template <typename T>
+// constexpr auto matmul(EmptyMatrix<T>, PtrMatrix<T>) -> EmptyMatrix<T> {
+//   return EmptyMatrix<T>{};
+// }
+// template <typename T>
+// constexpr auto matmul(PtrMatrix<T>, EmptyMatrix<T>) -> EmptyMatrix<T> {
+//   return EmptyMatrix<T>{};
+// }
+
+template <typename T> struct EmptyVector {
+  static constexpr auto size() -> std::ptrdiff_t { return 0; };
+  static constexpr auto begin() -> T * { return nullptr; }
+  static constexpr auto end() -> T * { return nullptr; }
+};
+} // namespace math

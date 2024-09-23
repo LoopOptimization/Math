@@ -2,18 +2,28 @@ Diagnostics:
   ClangTidy:
     FastCheckFilter: Loose
     Add: [performance*, modernize*, readability*, clang-diagnostic-*, clang-analyzer-*, bugprone-*, cpp-core-guidelines-*, cert-*, misc-*, llvm-namespace-comment,llvm-prefer-isa-or-dyn-cast-in-conditionals,portability-*,bugprone-unused-local-non-trivial-variable]
-    Remove: [bugprone-easily-swappable-parameters, readability-braces-around-statements,readability-identifier-length,readability-isolate-declaration,readability-implicit-bool-conversion,readability-magic-numbers,readability-function-cognitive-complexity,readability-named-parameter,misc-non-private-member-variables-in-classes,modernize-avoid-c-arrays,bugprone-suspicious-include]
+    Remove: [bugprone-easily-swappable-parameters, readability-braces-around-statements,readability-identifier-length,readability-isolate-declaration,readability-implicit-bool-conversion,readability-magic-numbers,readability-function-cognitive-complexity,readability-named-parameter,misc-non-private-member-variables-in-classes,modernize-avoid-c-arrays,bugprone-suspicious-include,readability-math-missing-parentheses]
     CheckOptions:
       bugprone-unused-local-non-trivial-variable.IncludeTypes: '.*'
-      bugprone-unused-local-non-trivial-variable.ExcludeTypes: '::poly::alloc::Arena<>::ScopeLifetime.*'
+      bugprone-unused-local-non-trivial-variable.ExcludeTypes: '::alloc::Arena<>::ScopeLifetime.*'
       readability-avoid-return-with-void-value.StrictMode: false
       readability-identifier-naming.LocalVariableCase: lower_case
-      readability-identifier-naming.LocalVariableIgnoredRegexp: "^[A-Za-z0-9]{1,3}$"
+      readability-identifier-naming.LocalVariableIgnoredRegexp: "^[a-zA-Z0-9]{1,5}$"
       readability-identifier-naming.ClassCase: CamelCase
       readability-identifier-naming.ClassMethodCase: camelBack
       readability-identifier-naming.MemberCase: lower_case
       readability-identifier-naming.MemberSuffix: _
+      readability-identifier-naming.MemberIgnoredRegexp: "^[a-zA-Z0-9_]{1,2}$"
+      modernize-use-trailing-return-type.TransformLambdas: all_except_auto
   UnusedIncludes: Strict
-  MissingIncludes: Strict
+  MissingIncludes: None
 Hover:
   ShowAKA: Yes
+InlayHints:
+  BlockEnd: true
+  DefaultArguments: true
+Documentation:
+  CommentFormat: Doxygen
+Completion:
+  HeaderInsertion: Never
+

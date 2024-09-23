@@ -1,0 +1,600 @@
+module;
+#include "Macros.hxx"
+
+export module MatDim;
+
+import AxisTypes;
+import CorePrint;
+import BaseUtils;
+import std;
+
+export namespace math {
+
+using utils::invariant;
+
+template <std::ptrdiff_t R = -1> struct SquareDims;
+template <std::ptrdiff_t R = -1, std::ptrdiff_t C = -1> struct DenseDims;
+template <std::ptrdiff_t R = -1, std::ptrdiff_t C = -1, std::ptrdiff_t X = -1>
+struct StridedDims;
+
+template <class R, class C> struct CartesianIndex {
+  [[no_unique_address]] R row_idx_;
+  [[no_unique_address]] C col_idx_;
+  TRIVIAL explicit constexpr operator Row<>() const { return row(row_idx_); }
+  TRIVIAL explicit constexpr operator Col<>() const { return col(col_idx_); }
+  TRIVIAL constexpr auto operator==(const CartesianIndex &) const
+    -> bool = default;
+  TRIVIAL constexpr
+  operator CartesianIndex<std::ptrdiff_t, std::ptrdiff_t>() const
+    requires(std::convertible_to<R, std::ptrdiff_t> &&
+             std::convertible_to<C, std::ptrdiff_t> &&
+             (!(std::same_as<R, std::ptrdiff_t> &&
+                std::same_as<C, std::ptrdiff_t>))) {
+    invariant(row_idx_ >= 0);
+    invariant(col_idx_ >= 0);
+    return {.row_idx_ = std::ptrdiff_t(row_idx_),
+            .col_idx_ = std::ptrdiff_t(col_idx_)};
+  }
+  // FIXME: Do we need this??
+  // Either document why, or delete this method.
+  TRIVIAL constexpr operator std::ptrdiff_t() const
+    requires(std::same_as<R, std::integral_constant<std::ptrdiff_t, 1>>) {
+    invariant(col_idx_ >= 0);
+    return col_idx_;
+  }
+  TRIVIAL constexpr operator Length<>() const
+    requires(std::same_as<R, std::integral_constant<std::ptrdiff_t, 1>>) {
+    invariant(col_idx_ >= 0);
+    return length(col_idx_);
+  }
+  constexpr operator SquareDims<>() const
+    requires(std::convertible_to<R, std::ptrdiff_t> &&
+             std::convertible_to<C, std::ptrdiff_t>);
+  constexpr operator DenseDims<>() const
+    requires(std::convertible_to<R, std::ptrdiff_t> &&
+             std::convertible_to<C, std::ptrdiff_t>);
+  constexpr operator StridedDims<>() const
+    requires(std::convertible_to<R, std::ptrdiff_t> &&
+             std::convertible_to<C, std::ptrdiff_t>);
+};
+template <class R, class C> CartesianIndex(R, C) -> CartesianIndex<R, C>;
+
+// To enable conversion, all `canConvert` must be true, and at least one
+// `wantToConvert` must be true.
+consteval auto canConvert(std::ptrdiff_t x, std::ptrdiff_t y) -> bool {
+  return (x == -1) || (y == -1) || (x == y);
+}
+consteval auto wantToConvert(std::ptrdiff_t x, std::ptrdiff_t y) -> bool {
+  return (x == -1) != (y == -1);
+}
+
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+struct StridedDims {
+  static constexpr std::ptrdiff_t nrow = R;
+  static constexpr std::ptrdiff_t ncol = C;
+  static constexpr std::ptrdiff_t nstride = X;
+  [[no_unique_address]] Row<R> m_;
+  [[no_unique_address]] Col<C> n_;
+  [[no_unique_address]] RowStride<X> stride_m_;
+  TRIVIAL explicit constexpr StridedDims() = default;
+  TRIVIAL constexpr StridedDims(Row<R> m, Col<C> n)
+    : m_{m}, n_{n}, stride_m_{stride(std::ptrdiff_t(n))} {}
+  TRIVIAL constexpr StridedDims(Row<R> m, Col<C> n, RowStride<X> x)
+    : m_{m}, n_{n}, stride_m_{x} {
+    invariant(n_ <= stride_m_);
+  }
+  template <std::ptrdiff_t N>
+  TRIVIAL constexpr StridedDims(Length<N>)
+    : m_{Row<R>(row(std::integral_constant<std::ptrdiff_t, 1>{}))},
+      n_{Col<C>(col(std::integral_constant<std::ptrdiff_t, N>{}))},
+      stride_m_{
+        RowStride<X>(stride(std::integral_constant<std::ptrdiff_t, N>{}))} {}
+
+  template <std::ptrdiff_t A, std::ptrdiff_t B, std::ptrdiff_t S>
+  TRIVIAL constexpr StridedDims(StridedDims<A, B, S> other)
+    requires((canConvert(R, A) && canConvert(C, B) && canConvert(X, S)) &&
+             (wantToConvert(R, A) || wantToConvert(C, B) ||
+              wantToConvert(X, S)))
+    : m_{}, n_{}, stride_m_{} {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+    if constexpr (C != -1) utils::invariant(col(other) == C);
+    else n_ = other.n_;
+    if constexpr (X != -1) utils::invariant(stride(other) == X);
+    else stride_m_ = other.stride_m_;
+  }
+  TRIVIAL constexpr explicit operator int() const {
+    return int(std::ptrdiff_t(m_) * std::ptrdiff_t(stride_m_));
+  }
+  TRIVIAL constexpr explicit operator long() const {
+    return long(std::ptrdiff_t(m_) * std::ptrdiff_t(stride_m_));
+  }
+  TRIVIAL constexpr explicit operator long long() const {
+    return (long long)(std::ptrdiff_t(m_) * std::ptrdiff_t(stride_m_));
+  }
+  TRIVIAL constexpr explicit operator unsigned int() const {
+    return (unsigned int)(std::ptrdiff_t(m_) * std::ptrdiff_t(stride_m_));
+  }
+  TRIVIAL constexpr explicit operator unsigned long() const {
+    return (unsigned long)(std::ptrdiff_t(m_) * std::ptrdiff_t(stride_m_));
+  }
+  TRIVIAL constexpr explicit operator unsigned long long() const {
+    return (unsigned long long)(std::ptrdiff_t(m_) * std::ptrdiff_t(stride_m_));
+  }
+  TRIVIAL constexpr auto operator=(DenseDims<R, C> D)
+    -> StridedDims & requires(C == X);
+  TRIVIAL constexpr auto operator=(SquareDims<R> D)
+    -> StridedDims & requires((R == C) && (C == X));
+  [[nodiscard]] constexpr auto operator==(const StridedDims &D) const -> bool {
+    invariant(n_ <= stride_m_);
+    return (m_ == D.m_) && (n_ == D.n_) && (stride_m_ == D.stride_m_);
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto truncate(Row<S> r) const
+    -> StridedDims<S, C, X> {
+    invariant(r <= m_);
+    return similar(r);
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto truncate(Col<S> c) const
+    -> StridedDims<R, S, X> {
+    invariant(c <= n_);
+    return similar(c);
+  }
+  TRIVIAL constexpr auto set(Row<> r) -> StridedDims & requires(R == -1) {
+    invariant(n_ <= stride_m_);
+    m_ = r;
+    return *this;
+  }
+  TRIVIAL constexpr auto set(Col<> c) -> StridedDims & requires(C == -1) {
+    n_ = c;
+    stride_m_ = stride(std::max(std::ptrdiff_t(stride_m_), std::ptrdiff_t(n_)));
+    return *this;
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto similar(Row<S> r) const -> StridedDims {
+    invariant(n_ <= stride_m_);
+    return {r, n_, stride_m_};
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto similar(Col<S> c) const -> StridedDims {
+    invariant(n_ <= stride_m_);
+    invariant(c <= Col{stride_m_});
+    return {m_, c, stride_m_};
+  }
+  TRIVIAL constexpr explicit operator Row<R>() const { return m_; }
+  TRIVIAL constexpr explicit operator Col<C>() const {
+    invariant(n_ <= stride_m_);
+    return n_;
+  }
+  TRIVIAL constexpr explicit operator RowStride<X>() const {
+    invariant(n_ <= stride_m_);
+    return stride_m_;
+  }
+
+private:
+  TRIVIAL friend constexpr auto row(StridedDims d) -> Row<R> { return d.m_; }
+  TRIVIAL friend constexpr auto col(StridedDims d) -> Col<C> {
+    invariant(d.n_ <= d.stride_m_);
+    return d.n_;
+  }
+  TRIVIAL friend constexpr auto stride(StridedDims d) -> RowStride<X> {
+    invariant(d.n_ <= d.stride_m_);
+    return d.stride_m_;
+  }
+  void print() const {
+    utils::print(m_, " x ", n_, " (stride ", stride_m_, ")");
+  }
+}; // namespace math
+static_assert(sizeof(StridedDims<-1, 8, 8>) == sizeof(std::ptrdiff_t));
+
+template <std::ptrdiff_t R, std::ptrdiff_t C> struct DenseDims {
+  static constexpr std::ptrdiff_t nrow = R;
+  static constexpr std::ptrdiff_t ncol = C;
+  static constexpr std::ptrdiff_t nstride = C;
+  using dim_t = std::conditional_t<R==-1&&C==-1, std::int32_t, std::ptrdiff_t>;
+  [[no_unique_address]] Row<R,dim_t> m_;
+  [[no_unique_address]] Col<C,dim_t> n_;
+  TRIVIAL explicit constexpr DenseDims() = default;
+  TRIVIAL constexpr DenseDims(Row<R> m, Col<C> n) : m_{m}, n_{n} {}
+  TRIVIAL constexpr DenseDims(Length<1>)
+    : m_{Row<R>(row(std::integral_constant<std::ptrdiff_t, 1>{}))},
+      n_{Col<C>(col(std::integral_constant<std::ptrdiff_t, 1>{}))} {}
+  template <std::ptrdiff_t A, std::ptrdiff_t B>
+  TRIVIAL constexpr DenseDims(DenseDims<A, B> other)
+    requires((canConvert(R, A) && canConvert(C, B)) &&
+             (wantToConvert(R, A) || wantToConvert(C, B)))
+    : m_{}, n_{} {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+    if constexpr (C != -1) utils::invariant(col(other) == C);
+    else n_ = other.n_;
+  }
+  template <std::ptrdiff_t A, std::ptrdiff_t B>
+  TRIVIAL constexpr DenseDims(StridedDims<A, B, B> other)
+    requires(canConvert(R, A) && (B != -1) && ((C == B) || (C == -1))) {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+    if constexpr (C == -1) n_ = other.n_;
+  }
+
+  TRIVIAL constexpr explicit operator int() const {
+    return int(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+  }
+  TRIVIAL constexpr explicit operator long() const {
+    return long(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+  }
+  TRIVIAL constexpr explicit operator long long() const {
+    return (long long)(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+  }
+  TRIVIAL constexpr explicit operator unsigned int() const {
+    return (unsigned int)(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+  }
+  TRIVIAL constexpr explicit operator unsigned long() const {
+    return (unsigned long)(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+  }
+  TRIVIAL constexpr explicit operator unsigned long long() const {
+    return (unsigned long long)(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+  }
+  // constexpr DenseDims() = default;
+  // constexpr DenseDims(Row<R> m, Col<C> n) : M(unsigned(m)), N(unsigned(n)) {}
+  // template <std::ptrdiff_t X>
+  // constexpr explicit DenseDims(StridedDims<R, C, X> d) : M(d.M), N(d.N) {}
+  // constexpr DenseDims(CartesianIndex<R, C> ind)
+  //   : M(unsigned(ind.row)), N(unsigned(ind.col)) {}
+  TRIVIAL constexpr auto operator=(SquareDims<R> D)
+    -> DenseDims & requires(R == C);
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto truncate(Row<S> r) const -> DenseDims {
+    invariant(r <= Row{m_});
+    return similar(r);
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto truncate(Col<S> c) const
+    -> StridedDims<R, S, C> {
+    invariant(c <= Col{m_});
+    return {m_, c, {std::ptrdiff_t(n_)}};
+  }
+  TRIVIAL constexpr auto set(Row<> r) -> DenseDims & requires(R == -1) {
+    m_ = r;
+    return *this;
+  }
+  TRIVIAL constexpr auto set(Col<> c) -> DenseDims & requires(C == -1) {
+    n_ = c;
+    return *this;
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto similar(Row<S> r) const -> DenseDims {
+    return {r, n_};
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto similar(Col<S> c) const -> DenseDims {
+    return {m_, c};
+  }
+  TRIVIAL constexpr operator StridedDims<R, C, C>() const
+    requires((R != -1) || (C != -1)) {
+    if constexpr (R == -1) return {m_, {}, {}};
+    else if constexpr (C == -1) return {{}, n_, n_};
+    else return StridedDims<R, C, C>{};
+  }
+  TRIVIAL constexpr operator StridedDims<>() const {
+    return {m_, n_, stride(std::ptrdiff_t(n_))};
+  }
+  TRIVIAL constexpr operator DenseDims<>() const
+    requires((R != -1) || (C != -1)) {
+    return {m_, n_};
+  }
+  TRIVIAL constexpr operator std::ptrdiff_t() const requires(R == 1) {
+    return std::ptrdiff_t(n_);
+  }
+  TRIVIAL constexpr operator std::integral_constant<std::ptrdiff_t, C>() const
+    requires((R == 1) && (C != -1)) {
+    return {};
+  }
+  TRIVIAL constexpr explicit operator Row<R>() const { return m_; }
+  TRIVIAL constexpr explicit operator Col<C>() const { return n_; }
+  TRIVIAL constexpr explicit operator RowStride<C>() const {
+    if constexpr (C == -1) return stride(std::ptrdiff_t{n_});
+    else return {};
+  }
+
+  TRIVIAL [[nodiscard]] constexpr auto flat() const
+    -> Length<(R == -1) || (C == -1) ? -1 : R * C> {
+    if constexpr ((R == -1) || (C == -1))
+      return length(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
+    else return {};
+  }
+
+private:
+  TRIVIAL friend constexpr auto row(DenseDims d) -> Row<R> { return d.m_; }
+  TRIVIAL friend constexpr auto col(DenseDims d) -> Col<C> { return d.n_; }
+  TRIVIAL friend constexpr auto stride(DenseDims d) -> RowStride<C> {
+    if constexpr (C == -1) return stride(std::ptrdiff_t{d.n_});
+    else return {};
+  }
+
+  void print() const { utils::print(m_, " x ", n_); }
+};
+static_assert(std::is_trivially_default_constructible_v<DenseDims<>>);
+
+template <std::ptrdiff_t R> struct SquareDims {
+  static constexpr std::ptrdiff_t nrow = R;
+  static constexpr std::ptrdiff_t ncol = R;
+  static constexpr std::ptrdiff_t nstride = R;
+  [[no_unique_address]] Row<R> m_;
+  TRIVIAL explicit constexpr SquareDims() = default;
+  TRIVIAL constexpr SquareDims(Row<R> m) : m_{m} {}
+  TRIVIAL constexpr SquareDims(Length<1>)
+    : m_{Row<R>(row(std::integral_constant<std::ptrdiff_t, 1>{}))} {}
+  template <std::ptrdiff_t A>
+  TRIVIAL constexpr SquareDims(SquareDims<A> other)
+    requires(canConvert(R, A) && wantToConvert(R, A))
+    : m_{} {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+  }
+  template <std::ptrdiff_t A>
+  TRIVIAL constexpr SquareDims(DenseDims<A, A> other)
+    requires((A != -1) && ((R == A) || (R == -1)))
+    : m_{} {
+    if constexpr (R == -1) m_ = other.m_;
+  }
+  template <std::ptrdiff_t A>
+  TRIVIAL constexpr SquareDims(StridedDims<A, A, A> other)
+    requires((A != -1) && ((R == A) || (R == -1))) {
+    if constexpr (R == -1) m_ = other.m_;
+  }
+  TRIVIAL constexpr explicit operator int() const {
+    return int(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
+  }
+  TRIVIAL constexpr explicit operator long() const {
+    return long(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
+  }
+  TRIVIAL constexpr explicit operator long long() const {
+    return (long long)(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
+  }
+  TRIVIAL constexpr explicit operator unsigned int() const {
+    return (unsigned int)(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
+  }
+  TRIVIAL constexpr explicit operator unsigned long() const {
+    return (unsigned long)(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
+  }
+  TRIVIAL constexpr explicit operator unsigned long long() const {
+    return (unsigned long long)(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
+  }
+  // constexpr SquareDims() = default;
+  // constexpr SquareDims(std::ptrdiff_t d) : M{d} {}
+  // constexpr SquareDims(Row<R> d) : M{d} {}
+  // constexpr SquareDims(Col<R> d) : M{std::ptrdiff_t(d)} {}
+  // constexpr SquareDims(CartesianIndex<R, R> ind) : M(ind.row) {
+  //   invariant(std::ptrdiff_t(ind.row), std::ptrdiff_t(ind.col));
+  // }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto truncate(Row<S> r) const
+    -> DenseDims<S, R> {
+    invariant(r <= Row{m_});
+    return {r, {std::ptrdiff_t(m_)}};
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto truncate(Col<S> c) const
+    -> StridedDims<R, S, R> {
+    invariant(c <= Col{m_});
+    return {m_, unsigned(c), {std::ptrdiff_t(m_)}};
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto similar(Row<S> r) const
+    -> DenseDims<S, R> {
+    return {r, {std::ptrdiff_t(m_)}};
+  }
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto similar(Col<S> c) const
+    -> DenseDims<R, S> {
+    return {m_, c};
+  }
+  TRIVIAL constexpr operator StridedDims<R, R, R>() const requires(R != -1) {
+    return StridedDims<R, R, R>{};
+  }
+  TRIVIAL constexpr operator StridedDims<>() const {
+    return {m_, col(std::ptrdiff_t(m_)), stride(std::ptrdiff_t(m_))};
+  }
+  TRIVIAL constexpr operator DenseDims<R, R>() const requires(R != -1) {
+    return DenseDims<R, R>{};
+  }
+  TRIVIAL constexpr operator DenseDims<>() const { return {m_, ascol(m_)}; }
+  TRIVIAL constexpr operator SquareDims<>() const requires((R != -1)) {
+    return {m_};
+  }
+  TRIVIAL constexpr explicit operator Row<R>() const { return m_; }
+  TRIVIAL constexpr explicit operator Col<R>() const {
+    return col(std::ptrdiff_t(m_));
+  }
+  TRIVIAL constexpr explicit operator RowStride<R>() const {
+    if constexpr (R == -1) return stride(std::ptrdiff_t(m_));
+    else return {};
+  }
+  TRIVIAL inline constexpr auto flat() const -> Length<R == -1 ? -1 : R * R> {
+    if constexpr (R == -1) {
+      std::ptrdiff_t m = std::ptrdiff_t(m_);
+      return length(m * m);
+    } else return {};
+  }
+
+private:
+  TRIVIAL friend constexpr auto row(SquareDims d) -> Row<R> { return d.m_; }
+  TRIVIAL friend constexpr auto col(SquareDims d) -> Col<R> {
+    if constexpr (R == -1) return col(std::ptrdiff_t(d.m_));
+    else return {};
+  }
+  TRIVIAL friend constexpr auto stride(SquareDims d) -> RowStride<R> {
+    if constexpr (R == -1) return stride(std::ptrdiff_t(d.m_));
+    else return {};
+  }
+  void print() const { utils::print(m_, " x ", m_); }
+};
+
+static_assert(std::is_convertible_v<StridedDims<>, StridedDims<2>>);
+
+template <std::ptrdiff_t R> Row(SquareDims<R>) -> Row<R>;
+template <std::ptrdiff_t R> Col(SquareDims<R>) -> Col<R>;
+template <std::ptrdiff_t R> RowStride(SquareDims<R>) -> RowStride<R>;
+template <std::ptrdiff_t R, std::ptrdiff_t C> Row(DenseDims<R, C>) -> Row<R>;
+template <std::ptrdiff_t R, std::ptrdiff_t C> Col(DenseDims<R, C>) -> Col<C>;
+template <std::ptrdiff_t R, std::ptrdiff_t C>
+RowStride(DenseDims<R, C>) -> RowStride<R>;
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+Row(StridedDims<R, C, X>) -> Row<R>;
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+Col(StridedDims<R, C, X>) -> Col<C>;
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+RowStride(StridedDims<R, C, X>) -> RowStride<X>;
+
+template <std::ptrdiff_t R> SquareDims(Row<R>) -> SquareDims<R>;
+template <std::ptrdiff_t R, std::ptrdiff_t C>
+DenseDims(Row<R>, Col<C>) -> DenseDims<R, C>;
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+StridedDims(Row<R>, Col<C>, RowStride<X>) -> StridedDims<R, C, X>;
+// [[nodiscard]] constexpr auto capacity(std::integral auto c) { return c; }
+// [[nodiscard]] constexpr auto capacity(auto c) -> unsigned int { return c; }
+// [[nodiscard]] constexpr auto capacity(CapDims c) -> unsigned int {
+//   return c.rowCapacity * c.strideM;
+// }
+
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+TRIVIAL constexpr auto StridedDims<R, C, X>::operator=(DenseDims<R, C> D)
+  -> StridedDims & requires(C == X) {
+  m_ = D.M;
+  n_ = D.N;
+  stride_m_ = n_;
+  return *this;
+};
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+TRIVIAL constexpr auto StridedDims<R, C, X>::operator=(SquareDims<R> D)
+  -> StridedDims & requires((R == C) && (C == X)) {
+  m_ = D.M;
+  n_ = m_;
+  stride_m_ = m_;
+  return *this;
+};
+template <std::ptrdiff_t R, std::ptrdiff_t C>
+TRIVIAL constexpr auto DenseDims<R, C>::operator=(SquareDims<R> D)
+  -> DenseDims & requires(R == C) {
+  m_ = D.M;
+  n_ = m_;
+  return *this;
+};
+
+template <class R, class C>
+TRIVIAL constexpr CartesianIndex<R, C>::operator SquareDims<>() const
+  requires(std::convertible_to<R, std::ptrdiff_t> &&
+           std::convertible_to<C, std::ptrdiff_t>) {
+  invariant(row_idx_, col_idx_);
+  return SquareDims{row(row_idx_)};
+}
+template <class R, class C>
+TRIVIAL constexpr CartesianIndex<R, C>::operator DenseDims<>() const
+  requires(std::convertible_to<R, std::ptrdiff_t> &&
+           std::convertible_to<C, std::ptrdiff_t>) {
+  return DenseDims{row(row_idx_), col(col_idx_)};
+}
+template <class R, class C>
+TRIVIAL constexpr CartesianIndex<R, C>::operator StridedDims<>() const
+  requires(std::convertible_to<R, std::ptrdiff_t> &&
+           std::convertible_to<C, std::ptrdiff_t>) {
+  return StridedDims{row(row_idx_), col(col_idx_), stride(col_idx_)};
+}
+
+template <typename T, typename S>
+concept different = !std::same_as<T, S>;
+
+template <typename D>
+concept MatrixDimension = requires(D d) {
+  { d } -> std::convertible_to<StridedDims<-1, -1, -1>>;
+  { row(d) } -> different<Row<1>>;
+  { col(d) } -> different<Col<1>>;
+};
+template <typename D>
+concept DenseMatrixDimension =
+  MatrixDimension<D> && std::convertible_to<D, DenseDims<>>;
+
+static_assert(MatrixDimension<SquareDims<>>);
+static_assert(MatrixDimension<DenseDims<>>);
+static_assert(!MatrixDimension<DenseDims<1>>);
+static_assert(!MatrixDimension<DenseDims<-1, 1>>);
+static_assert(MatrixDimension<StridedDims<>>);
+static_assert(MatrixDimension<SquareDims<8>>);
+static_assert(MatrixDimension<DenseDims<8, 8>>);
+static_assert(MatrixDimension<StridedDims<8, 8, 16>>);
+static_assert(!MatrixDimension<unsigned>);
+
+static_assert(std::convertible_to<const DenseDims<8, 8>, DenseDims<>>);
+static_assert(std::convertible_to<const DenseDims<8, 8>, SquareDims<>>);
+static_assert(std::convertible_to<const DenseDims<8, 8>, SquareDims<8>>);
+static_assert(!std::convertible_to<const DenseDims<8, 8>, SquareDims<7>>);
+static_assert(!std::convertible_to<const DenseDims<-1, -1>, SquareDims<>>);
+
+static_assert(DenseMatrixDimension<StridedDims<-1, 4, 4>>);
+static_assert(!DenseMatrixDimension<StridedDims<-1, 4, 5>>);
+
+template <typename T, typename S>
+concept PromoteDimTo = (!std::same_as<T, S>) && std::convertible_to<T, S>;
+template <typename T, typename S>
+concept PromoteDimFrom = (!std::same_as<T, S>) && std::convertible_to<S, T>;
+
+template <typename T>
+concept HasInnerReduction = bool(T::has_reduction_loop);
+
+template <typename T>
+concept RowVectorDimension = requires(T t) {
+  { Length(t) } -> std::same_as<T>;
+};
+static_assert(RowVectorDimension<Length<3>>);
+static_assert(RowVectorDimension<Length<>>);
+static_assert(!RowVectorDimension<std::ptrdiff_t>);
+template <typename D>
+concept ColVectorDimension =
+  std::same_as<decltype(Col(std::declval<D>())), Col<1>>;
+template <typename D>
+concept VectorDimension = RowVectorDimension<D> || ColVectorDimension<D>;
+
+template <typename S>
+concept Dimension = VectorDimension<S> != MatrixDimension<S>;
+
+template <typename T>
+concept StaticInt =
+  std::is_same_v<T, std::integral_constant<typename T::value_type, T::value>>;
+
+} // namespace math
+
+export namespace utils {
+template <typename T>
+concept HasEltype = requires(T) {
+  typename std::remove_cvref_t<T>::value_type;
+  // std::is_scalar_v<typename std::remove_reference_t<T>::value_type>;
+};
+
+namespace detail {
+template <typename A> struct GetEltype {
+  // static_assert(!HasEltype<A>);
+  using value_type = A;
+};
+template <utils::HasEltype A> struct GetEltype<A> {
+  using value_type = typename A::value_type;
+};
+} // namespace detail
+
+template <typename T>
+using eltype_t =
+  typename detail::GetEltype<std::remove_reference_t<T>>::value_type;
+
+template <class T, class C>
+concept ElementOf = std::convertible_to<T, eltype_t<C>>;
+} // namespace utils
+template <typename A, typename B> struct PromoteEltype {
+
+  using elta = utils::eltype_t<A>;
+  using eltb = utils::eltype_t<B>;
+  using value_type =
+    std::conditional_t<std::convertible_to<A, eltb>, eltb,
+                       std::conditional_t<std::convertible_to<B, elta>, elta,
+                                          std::common_type_t<elta, eltb>>>;
+};
