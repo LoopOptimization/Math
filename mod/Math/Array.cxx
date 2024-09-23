@@ -503,7 +503,6 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       }
     }
   }
-  friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
   [[nodiscard]] friend constexpr auto
   operator<=>(Array x, Array y) -> std::strong_ordering {
     ptrdiff_t M = x.size();
@@ -579,6 +578,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   // }
 #endif
 protected:
+  friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
   constexpr Array(S s) : sz(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr;

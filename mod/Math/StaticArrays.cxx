@@ -8,6 +8,21 @@ module;
 #include "Owner.hxx"
 
 #ifndef USE_MODULE
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/ArrayOps.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ExpressionTemplates.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/Ranges.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/TypeCompression.cxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -21,18 +36,6 @@ module;
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include "Containers/Pair.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/Reference.cxx"
-#include "Utilities/TypeCompression.cxx"
 #else
 export module StaticArray;
 
@@ -226,18 +229,18 @@ struct MATH_GSL_OWNER StaticArray
   [[nodiscard]] static constexpr auto numCol() noexcept -> Col<N> { return {}; }
   static constexpr auto safeRow() -> Row<M> { return {}; }
   static constexpr auto safeCol() -> Col<PaddedCols> { return {}; }
-  [[nodiscard]] static constexpr auto
-  rowStride() noexcept -> RowStride<PaddedCols> {
+  [[nodiscard]] static constexpr auto rowStride() noexcept
+    -> RowStride<PaddedCols> {
     return {};
   }
   [[nodiscard]] static constexpr auto empty() -> bool { return capacity == 0; }
-  [[nodiscard]] static constexpr auto
-  size() noexcept -> std::integral_constant<ptrdiff_t, M * N> {
+  [[nodiscard]] static constexpr auto size() noexcept
+    -> std::integral_constant<ptrdiff_t, M * N> {
     return {};
   }
   [[nodiscard]] static constexpr auto dim() noexcept -> S { return S{}; }
-  [[nodiscard]] constexpr auto
-  t() const -> Transpose<T, Array<T, S, Compress>> {
+  [[nodiscard]] constexpr auto t() const
+    -> Transpose<T, Array<T, S, Compress>> {
     return {*this};
   }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool {
@@ -254,12 +257,12 @@ struct MATH_GSL_OWNER StaticArray
         if (r != c && (*this)(r, c) != 0) return false;
     return true;
   }
-  [[nodiscard, gnu::always_inline]] constexpr auto
-  view() const noexcept -> Array<T, S, Compress && utils::Compressible<T>> {
+  [[nodiscard, gnu::always_inline]] constexpr auto view() const noexcept
+    -> Array<T, S, Compress && utils::Compressible<T>> {
     return {data(), S{}};
   }
-  [[nodiscard, gnu::always_inline]] constexpr auto
-  mview() noexcept -> MutArray<T, S, Compress && utils::Compressible<T>> {
+  [[nodiscard, gnu::always_inline]] constexpr auto mview() noexcept
+    -> MutArray<T, S, Compress && utils::Compressible<T>> {
     return {data(), S{}};
   }
 
@@ -282,13 +285,12 @@ struct MATH_GSL_OWNER StaticArray
     return index<T>(data(), S{}, i);
   }
   template <class R, class C>
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](R r, C c) noexcept -> decltype(auto) {
+  [[gnu::flatten, gnu::always_inline]] constexpr auto operator[](R r,
+                                                                 C c) noexcept
+    -> decltype(auto) {
     return index<T>(data(), S{}, r, c);
   }
-  constexpr void fill(T value) {
-    std::fill_n(data(), ptrdiff_t(this->dim()), value);
-  }
+  constexpr void fill(T value) { std::fill_n(data(), ptrdiff_t(dim()), value); }
   [[nodiscard]] constexpr auto diag() noexcept {
     StridedRange<> r{length(min(Row(S{}), Col(S{}))), RowStride(S{}) + 1};
     return MutArray<T, StridedRange<>>{data(), r};
@@ -323,18 +325,21 @@ struct MATH_GSL_OWNER StaticArray
   template <size_t I> [[nodiscard]] constexpr auto get() const -> const T & {
     return memory_[I];
   }
-  constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) { memory_[r * N + c] = x; }
+  constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {
+    memory_[(r * N) + c] = x;
+  }
+
+private:
   friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
 
-private:
   friend auto operator<<(std::ostream &os, const StaticArray &x)
     -> std::ostream &requires(utils::Printable<T>) {
-    if constexpr (MatrixDimension<S>)
-      return utils::printMatrix(os, x.data(), M, N, N);
-    else return utils::printVector(os, x.begin(), x.end());
-  }
+      if constexpr (MatrixDimension<S>)
+        return utils::printMatrix(os, x.data(), M, N, N);
+      else return utils::printVector(os, x.begin(), x.end());
+    }
 };
 
 template <simd::SIMDSupported T, ptrdiff_t M, ptrdiff_t N>
@@ -383,14 +388,14 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   {
     return *this;
   }
-  [[nodiscard, gnu::always_inline]] constexpr auto
-  view() const noexcept -> Array<T, S, false>
+  [[nodiscard, gnu::always_inline]] constexpr auto view() const noexcept
+    -> Array<T, S, false>
   requires(M *L > 4)
   {
     return {data(), S{}};
   }
-  [[nodiscard, gnu::always_inline]] constexpr auto
-  mview() noexcept -> MutArray<T, S, false> {
+  [[nodiscard, gnu::always_inline]] constexpr auto mview() noexcept
+    -> MutArray<T, S, false> {
     return {data(), S{}};
   }
 
@@ -411,13 +416,11 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(memory_);
   }
-  [[nodiscard]] constexpr auto begin() -> T *requires(((M == 1) || (N == 1))) {
-    return data();
-  }
+  [[nodiscard]] constexpr auto begin()
+    -> T *requires(((M == 1) || (N == 1))) { return data(); }
 
-  [[nodiscard]] constexpr auto end() -> T *requires(((M == 1) || (N == 1))) {
-    return data() + (M * N);
-  }
+  [[nodiscard]] constexpr auto end()
+    -> T *requires(((M == 1) || (N == 1))) { return data() + (M * N); }
 
   [[nodiscard]] constexpr auto begin() const
     -> const T *requires(((M == 1) || (N == 1))) { return data(); }
@@ -444,8 +447,8 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   [[nodiscard]] static constexpr auto rowStride() noexcept -> RowStride<L * W> {
     return {};
   }
-  [[nodiscard]] static constexpr auto
-  size() noexcept -> std::integral_constant<ptrdiff_t, M * N> {
+  [[nodiscard]] static constexpr auto size() noexcept
+    -> std::integral_constant<ptrdiff_t, M * N> {
     return {};
   }
   template <typename SHAPE>
@@ -491,8 +494,9 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     return ret;
   }
   template <class R, class C>
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](R r, C c) noexcept -> decltype(auto) {
+  [[gnu::flatten, gnu::always_inline]] constexpr auto operator[](R r,
+                                                                 C c) noexcept
+    -> decltype(auto) {
     if constexpr (std::integral<R> && std::integral<C>)
       return reinterpret_cast<T *>(memory_ + ptrdiff_t(r) * L)[c];
     else return index<T>(data(), S{}, r, c);
@@ -564,25 +568,26 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     }
   };
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] auto
-  operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) -> Ref<1, U> {
+  [[gnu::always_inline]] auto operator[](ptrdiff_t i,
+                                         simd::index::Unroll<U, W, Mask> j)
+    -> Ref<1, U> {
     return Ref<1, U>{this, i, j.index_};
   }
   template <ptrdiff_t R, ptrdiff_t C, typename Mask>
-  [[gnu::always_inline]] auto
-  operator[](simd::index::Unroll<R> i,
-             simd::index::Unroll<C, W, Mask> j) -> Ref<R, C> {
+  [[gnu::always_inline]] auto operator[](simd::index::Unroll<R> i,
+                                         simd::index::Unroll<C, W, Mask> j)
+    -> Ref<R, C> {
     return Ref<R, C>{this, i.index_, j.index_};
   }
-  [[gnu::always_inline]] constexpr auto
-  operator[](auto i) noexcept -> decltype(auto)
+  [[gnu::always_inline]] constexpr auto operator[](auto i) noexcept
+    -> decltype(auto)
   requires((N == 1) || (M == 1))
   {
     if constexpr (M == 1) return (*this)[0z, i];
     else return (*this)[i, 0z];
   }
-  [[gnu::always_inline]] constexpr auto
-  operator[](auto i) const noexcept -> decltype(auto)
+  [[gnu::always_inline]] constexpr auto operator[](auto i) const noexcept
+    -> decltype(auto)
   requires((N == 1) || (M == 1))
   {
     if constexpr (M == 1) return (*this)[0z, i];
@@ -597,17 +602,18 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   template <size_t I> [[nodiscard]] constexpr auto get() const -> T {
     return memory_[I / W][I % W];
   }
+
+private:
   friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
 
-private:
   friend auto operator<<(std::ostream &os, const StaticArray &x)
     -> std::ostream &requires(utils::Printable<T>) {
-    if constexpr (MatrixDimension<S>)
-      return printMatrix(os, Array<T, StridedDims<>>{x});
-    else return utils::printVector(os, x.begin(), x.end());
-  }
+      if constexpr (MatrixDimension<S>)
+        return printMatrix(os, Array<T, StridedDims<>>{x});
+      else return utils::printVector(os, x.begin(), x.end());
+    }
 };
 
 template <simd::SIMDSupported T, ptrdiff_t N>
@@ -648,8 +654,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     return *this;
   }
   // Maybe this should return `StaticArray&`?
-  [[nodiscard, gnu::always_inline]] constexpr auto
-  mview() noexcept -> MutArray<T, S, false> {
+  [[nodiscard, gnu::always_inline]] constexpr auto mview() noexcept
+    -> MutArray<T, S, false> {
     return {data(), S{}};
   }
 
@@ -681,8 +687,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) -> MutPtrVector<T> {
     return {data() + r.b, length(r.size())};
   }
-  constexpr auto
-  operator[](Range<ptrdiff_t, ptrdiff_t> r) const -> PtrVector<T> {
+  constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) const
+    -> PtrVector<T> {
     return {data() + r.b, length(r.size())};
   }
   template <AbstractSimilar<S> V> constexpr StaticArray(const V &b) noexcept {
@@ -701,8 +707,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   [[nodiscard]] static constexpr auto rowStride() noexcept -> RowStride<W> {
     return {};
   }
-  [[nodiscard]] static constexpr auto
-  size() noexcept -> std::integral_constant<ptrdiff_t, N> {
+  [[nodiscard]] static constexpr auto size() noexcept
+    -> std::integral_constant<ptrdiff_t, N> {
     return {};
   }
   auto operator[](ptrdiff_t, ptrdiff_t j) -> T & { return data()[j]; }
@@ -760,13 +766,15 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     }
   };
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] auto
-  operator[](ptrdiff_t, simd::index::Unroll<1, W, Mask>) -> Ref {
+  [[gnu::always_inline]] auto operator[](ptrdiff_t,
+                                         simd::index::Unroll<1, W, Mask>)
+    -> Ref {
     return Ref{this};
   }
   template <ptrdiff_t R, typename Mask>
-  [[gnu::always_inline]] auto
-  operator[](simd::index::Unroll<R>, simd::index::Unroll<1, W, Mask>) -> Ref {
+  [[gnu::always_inline]] auto operator[](simd::index::Unroll<R>,
+                                         simd::index::Unroll<1, W, Mask>)
+    -> Ref {
     return Ref{this};
   }
   template <typename Mask>
@@ -775,8 +783,9 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     return Ref{this};
   }
   template <typename Mask>
-  [[gnu::always_inline]] constexpr auto operator[](
-    simd::index::Unroll<1, W, Mask>) const -> simd::Unroll<1, 1, W, T> {
+  [[gnu::always_inline]] constexpr auto
+  operator[](simd::index::Unroll<1, W, Mask>) const
+    -> simd::Unroll<1, 1, W, T> {
     return {data_};
   }
   constexpr auto operator==(const StaticArray &other) const -> bool {
@@ -813,10 +822,10 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
 private:
   friend auto operator<<(std::ostream &os, const StaticArray &x)
     -> std::ostream &requires(utils::Printable<T>) {
-    if constexpr (MatrixDimension<S>)
-      return printMatrix(os, Array<T, StridedDims<>>{x});
-    else return utils::printVector(os, x.begin(), x.end());
-  }
+      if constexpr (MatrixDimension<S>)
+        return printMatrix(os, Array<T, StridedDims<>>{x});
+      else return utils::printVector(os, x.begin(), x.end());
+    }
 };
 
 template <class T, ptrdiff_t N, ptrdiff_t Compress = false>

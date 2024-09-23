@@ -6,16 +6,6 @@ module;
 
 #include "Owner.hxx"
 #ifndef USE_MODULE
-#include <array>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <limits>
-#include <memory>
-#include <ostream>
-#include <type_traits>
-
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Storage.cxx"
@@ -25,6 +15,16 @@ module;
 #include "Math/MatrixDimensions.cxx"
 #include "Utilities/ArrayPrint.cxx"
 #include "Utilities/TypeCompression.cxx"
+#include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <ostream>
+#include <type_traits>
 #else
 export module ManagedArray;
 export import Array;
@@ -275,33 +275,29 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 #endif
 
   template <class D>
-  constexpr auto operator=(
-    const ManagedArray<T, D, StackStorage, A> &b) noexcept -> ManagedArray &
-  requires(!std::same_as<S, D>)
-  {
-    // this condition implies `this->data() == nullptr`
-    if (this->data() == b.data()) return *this;
-    resizeCopyTo(b);
-    return *this;
-  }
-  template <class D>
   constexpr auto
-  operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept -> ManagedArray &
-  requires(!std::same_as<S, D>)
-  {
-    // this condition implies `this->data() == nullptr`
-    if (this->data() == b.data()) return *this;
-    // here, we commandeer `b`'s memory
-    S d = b.dim();
-    // if `b` is small, we need to copy memory
-    // no need to shrink our capacity
-    if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
-    else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
-    b.resetNoFree();
-    this->sz = d;
-    return *this;
-  }
-  constexpr auto operator=(const ManagedArray &b) noexcept -> ManagedArray & {
+  operator=(const ManagedArray<T, D, StackStorage, A> &b) noexcept
+    -> ManagedArray &requires(!std::same_as<S, D>) {
+      // this condition implies `this->data() == nullptr`
+      if (this->data() == b.data()) return *this;
+      resizeCopyTo(b);
+      return *this;
+    } template <class D>
+    constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
+    -> ManagedArray &requires(!std::same_as<S, D>) {
+      // this condition implies `this->data() == nullptr`
+      if (this->data() == b.data()) return *this;
+      // here, we commandeer `b`'s memory
+      S d = b.dim();
+      // if `b` is small, we need to copy memory
+      // no need to shrink our capacity
+      if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
+      else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
+      b.resetNoFree();
+      this->sz = d;
+      return *this;
+    } constexpr auto operator=(const ManagedArray &b) noexcept
+    -> ManagedArray & {
     if (this == &b) return *this;
     resizeCopyTo(b);
     return *this;
@@ -444,9 +440,9 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       return resizeForOverwrite(nz.set(c));
     }
   }
-  static constexpr auto
-  reserveCore(S nz, storage_type *op, ptrdiff_t old_len, U oc,
-              bool was_allocated) -> containers::Pair<storage_type *, U> {
+  static constexpr auto reserveCore(S nz, storage_type *op, ptrdiff_t old_len,
+                                    U oc, bool was_allocated)
+    -> containers::Pair<storage_type *, U> {
     auto new_capacity = ptrdiff_t(nz);
     invariant(new_capacity >= 0z);
     if (new_capacity <= oc) return {op, oc};
@@ -650,8 +646,8 @@ private:
           // Should probably benchmark or determine actual frequency
           // before adding `[[unlikely]]`.
           invariant(in_place);
-          T *src = this->data() + (rows_to_copy + in_place) * old_x;
-          T *dst = npt + (rows_to_copy + in_place) * new_x;
+          T *src = this->data() + ((rows_to_copy + in_place) * old_x);
+          T *dst = npt + ((rows_to_copy + in_place) * new_x);
           do {
             src -= old_x;
             dst -= new_x;
@@ -663,7 +659,7 @@ private:
       }
       // zero init remaining rows
       for (ptrdiff_t m = old_m; m < new_m; ++m)
-        std::fill_n(npt + m * new_x, new_n, T{});
+        std::fill_n(npt + (m * new_x), new_n, T{});
       if (new_alloc) maybeDeallocate(npt, len);
     }
   }
