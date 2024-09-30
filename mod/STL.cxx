@@ -21,6 +21,7 @@ module;
 #include <optional>
 #include <print>
 #include <ranges>
+#include <sstream>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -155,11 +156,13 @@ export using ::std::move;
 export using ::std::move_constructible;
 export using ::std::multiplies;
 export using ::std::negate;
+export using ::std::next;
 export using ::std::not_equal_to;
 export using ::std::nullopt_t;
 export using ::std::numeric_limits;
 export using ::std::optional;
 export using ::std::ostream;
+export using ::std::ostringstream;
 export using ::std::output_iterator;
 export using ::std::partial_ordering;
 export using ::std::plus;
@@ -196,6 +199,7 @@ export using ::std::uninitialized_default_construct_n;
 export using ::std::uninitialized_fill_n;
 export using ::std::uninitialized_move_n;
 export using ::std::unique_ptr;
+export using ::std::unreachable;
 export using ::std::unsigned_integral;
 export using ::std::weakly_incrementable;
 
