@@ -386,6 +386,8 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   constexpr void clear()
   requires(std::same_as<S, Length<>>)
   {
+    if constexpr (!std::is_trivially_destructible_v<T>)
+      std::destroy_n(ptr, ptrdiff_t(sz));
     sz = S{};
   }
   [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
