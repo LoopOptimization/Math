@@ -122,6 +122,7 @@ TEST(Int8Test, BasicAssertions) {
       EXPECT_EQ(x ^ y, fx ^ fy);
       EXPECT_EQ(x ^ y, fx ^ y);
       EXPECT_EQ(x ^ y, x ^ fy);
+      EXPECT_EQ(fx >> 1, x >> 1);
       if (y) {
         EXPECT_TRUE(static_cast<bool>(fy));
         EXPECT_FALSE(!fy);

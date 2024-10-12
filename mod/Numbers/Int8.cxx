@@ -301,6 +301,32 @@ private:
     return static_cast<strong>(static_cast<I>(x) % static_cast<I>(y));
   }
 
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator<<(strong x, I y) -> strong {
+    return static_cast<strong>(static_cast<I>(x) << y);
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator<<(I y, strong x) -> strong {
+    return static_cast<strong>(y << static_cast<I>(x));
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator<<(strong x, strong y) -> strong {
+    return static_cast<strong>(static_cast<I>(x) << static_cast<I>(y));
+  }
+
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator>>(strong x, I y) -> strong {
+    return static_cast<strong>(static_cast<I>(x) >> y);
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator>>(I y, strong x) -> strong {
+    return static_cast<strong>(y >> static_cast<I>(x));
+  }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator>>(strong x, strong y) -> strong {
+    return static_cast<strong>(static_cast<I>(x) >> static_cast<I>(y));
+  }
+
   template <std::integral J>
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator+=(strong &x,
@@ -388,6 +414,29 @@ private:
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator^=(strong &x, strong y) -> strong & {
     return x = x ^ y;
+  }
+
+  template <std::integral J>
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator<<=(strong &x,
+              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
+    return x = x << y;
+  }
+
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator<<=(strong &x, strong y) -> strong & {
+    return x = x << y;
+  }
+  template <std::integral J>
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator>>=(strong &x,
+              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
+    return x = x >> y;
+  }
+
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator>>=(strong &x, strong y) -> strong & {
+    return x = x >> y;
   }
   [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
   operator!(strong x) -> bool {
