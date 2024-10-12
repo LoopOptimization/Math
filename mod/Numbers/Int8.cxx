@@ -389,6 +389,10 @@ private:
   operator^=(strong &x, strong y) -> strong & {
     return x = x ^ y;
   }
+  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  operator!(strong x) -> bool {
+    return !static_cast<bool>(x);
+  }
   friend auto operator<<(std::ostream &os, strong x) -> std::ostream & {
     return os << static_cast<I>(x);
   }

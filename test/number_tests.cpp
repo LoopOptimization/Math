@@ -122,6 +122,13 @@ TEST(Int8Test, BasicAssertions) {
       EXPECT_EQ(x ^ y, fx ^ fy);
       EXPECT_EQ(x ^ y, fx ^ y);
       EXPECT_EQ(x ^ y, x ^ fy);
+      if (y) {
+        EXPECT_TRUE(static_cast<bool>(fy));
+        EXPECT_FALSE(!fy);
+      } else {
+        EXPECT_FALSE(bool(fy));
+        EXPECT_TRUE(!fy);
+      }
     }
   }
   for (int8_t x = std::numeric_limits<int8_t>::min();
