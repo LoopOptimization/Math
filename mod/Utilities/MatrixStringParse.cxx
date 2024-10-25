@@ -115,9 +115,9 @@ namespace utils {
 // static_assert(__cpp_nontype_template_args >= 201911);
 
 #ifndef CONSTEVAL_LITERAL_ARRAYS
-template <String S> [[nodiscard]] constexpr auto operator"" _mat() {
+template <String S> [[nodiscard]] constexpr auto operator""_mat() {
 #else
-template <String S> [[nodiscard]] consteval auto operator"" _mat() {
+template <String S> [[nodiscard]] consteval auto operator""_mat() {
 #endif
   return matrix_from_string<S>();
 }
