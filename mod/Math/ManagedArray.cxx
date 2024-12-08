@@ -1,3 +1,4 @@
+#include <bit>
 #ifdef USE_MODULE
 module;
 #else
@@ -278,13 +279,13 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   constexpr auto
   operator=(const ManagedArray<T, D, StackStorage, A> &b) noexcept
     -> ManagedArray &requires(!std::same_as<S, D>) {
-      // this condition implies `this->data() == nullptr`
-      if (this->data() == b.data()) return *this;
-      resizeCopyTo(b);
-      return *this;
-    } template <class D>
+    // this condition implies `this->data() == nullptr`
+    if (this->data() == b.data()) return *this;
+    resizeCopyTo(b);
+    return *this;
+  } template <class D>
     constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
-    -> ManagedArray &requires(!std::same_as<S, D>) {
+      -> ManagedArray &requires(!std::same_as<S, D>) {
       // this condition implies `this->data() == nullptr`
       if (this->data() == b.data()) return *this;
       // here, we commandeer `b`'s memory
@@ -296,8 +297,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       b.resetNoFree();
       this->sz = d;
       return *this;
-    } constexpr auto operator=(const ManagedArray &b) noexcept
-    -> ManagedArray & {
+    } constexpr auto
+      operator=(const ManagedArray &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     resizeCopyTo(b);
     return *this;
@@ -424,6 +425,21 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   {
     reserve(length(M));
   }
+  constexpr void reservePow2(ptrdiff_t M)
+  requires(std::same_as<S, Length<>>)
+  {
+    // 1 -> 0 -> 64 -> 0
+    // 2 -> 1 -> 63 -> 1
+    // 3 -> 2 -> 62 -> 2
+    // 4 -> 3 -> 62 -> 2
+    // 5 -> 4 -> 61 -> 3
+    // 6 -> 5 -> 61 -> 3
+    // 7 -> 6 -> 61 -> 3
+    // 8 -> 7 -> 61 -> 3
+    // 9 -> 8 -> 60 -> 4
+    size_t l2m = 1 << ((8 * sizeof(M)) - std::countl_zero(size_t(M) - 1));
+    reserve(length(ptrdiff_t(l2m)));
+  }
   constexpr void resizeForOverwrite(Row<> r) {
     if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(r));
@@ -440,9 +456,9 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       return resizeForOverwrite(nz.set(c));
     }
   }
-  static constexpr auto reserveCore(S nz, storage_type *op, ptrdiff_t old_len,
-                                    U oc, bool was_allocated)
-    -> containers::Pair<storage_type *, U> {
+  static constexpr auto
+  reserveCore(S nz, storage_type *op, ptrdiff_t old_len, U oc,
+              bool was_allocated) -> containers::Pair<storage_type *, U> {
     auto new_capacity = ptrdiff_t(nz);
     invariant(new_capacity >= 0z);
     if (new_capacity <= oc) return {op, oc};
