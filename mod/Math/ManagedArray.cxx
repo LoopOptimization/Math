@@ -1,4 +1,3 @@
-#include <bit>
 #ifdef USE_MODULE
 module;
 #else
@@ -18,6 +17,7 @@ module;
 #include "Utilities/TypeCompression.cxx"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
