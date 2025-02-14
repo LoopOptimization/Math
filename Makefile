@@ -56,6 +56,8 @@ buildclang/bench/:
 buildgcc/bench/:
 	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S benchmark -B buildgcc/bench/ -DCMAKE_BUILD_TYPE=Release
 
+buildclang/type/:
+	CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/type/ -DCMAKE_BUILD_TYPE=Debug -DUSE_TYPE_SANITIZER=ON
 
 gccnosan: buildgcc/nosan/
 	cmake --build buildgcc/nosan/
@@ -102,6 +104,11 @@ clangbench: buildclang/bench/
 
 gccbench: buildgcc/bench/
 	cmake --build buildgcc/bench
+
+clangtype: buildclang/type/
+	cmake --build buildclang/type
+	TYSAN_OPTIONS=1 cmake --build buildclang/type --target test
+
 
 clean:
 	rm -rf buildclang buildgcc

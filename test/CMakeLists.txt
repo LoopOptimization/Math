@@ -14,6 +14,7 @@ option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
 option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(ENABLE_LLD "Use lld as the linker" ON)
+option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
 # --- Import tools ----
 
@@ -25,17 +26,6 @@ include(../cmake/CPM.cmake)
 
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-if(((USE_SANITIZER MATCHES "([Aa]ddress)") OR (USE_SANITIZER MATCHES
-                                               "([Aa]ddress);([Uu]ndefined)"))
-   AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  find_library(LUNWIND_LIB unwind)
-  message(STATUS "Found unwindlib ${LUNWIND_LIB}")
-  if(LUNWIND_LIB)
-    set(CMAKE_EXE_LINKER_FLAGS
-        "${CMAKE_EXE_LINKER_FLAGS} -lunwind -Wno-unused-command-line-argument")
-  endif()
-endif()
 
 include(FetchContent)
 # using `FIND_PACKAGE_ARGS` causes it to try `find_package`
@@ -88,6 +78,12 @@ if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                  -fsanitize-trap=all)
 else()
   target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
+endif()
+if(USE_TYPE_SANITIZER)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
+                                                 -fsanitize-trap=all
+                                                 -fsanitize=type)
+  target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=type)
 endif()
 if(POLYMATHNOEXPLICITSIMDARRAY)
   target_compile_definitions(${PROJECT_NAME}
