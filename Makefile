@@ -107,7 +107,7 @@ gccbench: buildgcc/bench/
 
 clangtype: buildclang/type/
 	cmake --build buildclang/type
-	TYSAN_OPTIONS=1 cmake --build buildclang/type --target test
+	TYSAN_OPTIONS=print_stacktrace=1 cmake --build buildclang/type --target test
 
 
 clean:

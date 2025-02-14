@@ -69,7 +69,7 @@ template <std::unsigned_integral T> constexpr auto countDigits(T x) {
     if constexpr (std::same_as<T, char>)
       digits =
         bits[8 * sizeof(unsigned char) - std::countl_zero((unsigned char)x)];
-    else digits = bits[8 * sizeof(T) - std::countl_zero(x)];
+    else digits = bits[(8 * sizeof(T)) - std::countl_zero(x)];
     return std::make_signed_t<T>(digits - (x < powers[digits - 1]));
   } else return 1;
 }
@@ -94,7 +94,7 @@ constexpr auto getMaxDigits(const math::Rational *A, ptrdiff_t M, ptrdiff_t N,
   // we could optimize this by reducing the number of calls to countDigits
   for (ptrdiff_t i = 0; i < M; i++) {
     for (ptrdiff_t j = 0; j < N; j++) {
-      ptrdiff_t c = countDigits(A[i * X + j]);
+      ptrdiff_t c = countDigits(A[(i * X) + j]);
       max_digits[j] = std::max(max_digits[j], c);
     }
   }
@@ -112,7 +112,7 @@ constexpr auto getMaxDigits(const T *A, ptrdiff_t M, ptrdiff_t N, ptrdiff_t X)
       // negative numbers need one more digit
       // first, we find the maximum value per column,
       // dividing positive numbers by -10
-      T Aij = A[i * X + j];
+      T Aij = A[(i * X) + j];
       if constexpr (std::signed_integral<T>)
         max_digits[j] = std::min(max_digits[j], Aij > 0 ? Aij / -10 : Aij);
       else max_digits[j] = std::max(max_digits[j], Aij);
