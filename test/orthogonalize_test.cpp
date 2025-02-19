@@ -1,9 +1,13 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
+#include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/NormalForm.cxx"
+#include <cstddef>
+#include <cstdint>
 #include <random>
+#include <utility>
 #else
 
 import ManagedArray;

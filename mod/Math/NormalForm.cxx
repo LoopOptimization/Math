@@ -22,11 +22,17 @@ module;
 #include "Math/Constructors.cxx"
 #include "Math/EmptyArrays.cxx"
 #include "Math/GenericConstructors.cxx"
+#include "Math/GreatestCommonDivisor.cxx"
+#include "Math/Indexing.cxx"
 #include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
 #include "Math/Ranges.cxx"
 #include "Math/Rational.cxx"
 #include "Math/VectorGreatestCommonDivisor.cxx"
-#include "SIMD/SIMD.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
 #else
 export module NormalForm;
 
@@ -168,16 +174,16 @@ constexpr auto pivotRows(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> K,
   MutPtrMatrix<int64_t> B = K;
   return detail::pivotRowsPair({A, B}, col(i), M, row(i));
 }
-constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M,
-                         Row<> piv) -> bool {
+constexpr auto pivotRows(MutPtrMatrix<int64_t> A, Col<> i, Row<> M, Row<> piv)
+  -> bool {
   Row j = piv;
   while (A[piv, i] == 0)
     if (++piv == ptrdiff_t(M)) return true;
   if (j != piv) swap(A, j, piv);
   return false;
 }
-constexpr auto pivotRows(MutPtrMatrix<int64_t> A, ptrdiff_t i,
-                         Row<> N) -> bool {
+constexpr auto pivotRows(MutPtrMatrix<int64_t> A, ptrdiff_t i, Row<> N)
+  -> bool {
   return pivotRows(A, col(i), N, row(i));
 }
 /// numNonZeroRows(PtrMatrix<int64_t> A) -> Row
@@ -766,8 +772,8 @@ constexpr void nullSpace11(DenseMatrix<int64_t> &B, DenseMatrix<int64_t> &A) {
               ptrdiff_t(D) * ptrdiff_t(M), B.data());
   B.truncate(D);
 }
-[[nodiscard]] constexpr auto
-nullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
+[[nodiscard]] constexpr auto nullSpace(DenseMatrix<int64_t> A)
+  -> DenseMatrix<int64_t> {
   DenseMatrix<int64_t> B;
   nullSpace11(B, A);
   return B;
@@ -782,8 +788,8 @@ constexpr auto orthogonalize(IntMatrix<> A)
 } // namespace NormalForm
 
 // FIXME: why do we have two?
-[[nodiscard]] constexpr auto
-orthogonalize(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
+[[nodiscard]] constexpr auto orthogonalize(DenseMatrix<int64_t> A)
+  -> DenseMatrix<int64_t> {
   if ((A.numCol() < 2) || (A.numRow() == 0)) return A;
   normalizeByGCD(A[0, _]);
   if (A.numRow() == 1) return A;
@@ -810,8 +816,8 @@ orthogonalize(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
   return A;
 }
 
-[[nodiscard]] constexpr auto
-orthogonalNullSpace(DenseMatrix<int64_t> A) -> DenseMatrix<int64_t> {
+[[nodiscard]] constexpr auto orthogonalNullSpace(DenseMatrix<int64_t> A)
+  -> DenseMatrix<int64_t> {
   return orthogonalize(NormalForm::nullSpace(std::move(A)));
 }
 

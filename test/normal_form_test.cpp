@@ -9,9 +9,9 @@
 #include <utility>
 
 #include "Alloc/Arena.cxx"
-#include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
 #include "Math/Comparisons.cxx"
 #include "Math/Constructors.cxx"
 #include "Math/LinearAlgebra.cxx"
@@ -150,6 +150,7 @@ TEST(OrthogonalizationTest, BasicAssertions) {
   EXPECT_TRUE(KA == I4);
 }
 
+namespace {
 auto isHNF(PtrMatrix<int64_t> A) -> bool {
   const auto [M, N] = shape(A);
   // l is lead
@@ -170,11 +171,12 @@ auto isHNF(PtrMatrix<int64_t> A) -> bool {
   }
   return true;
 }
+} // namespace
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(Hermite, BasicAssertions) {
   {
-    IntMatrix<> A43(DenseDims<>{row(4), col(3)});
+    IntMatrix<> A43{DenseDims<>{row(4), col(3)}};
     A43[0, 0] = 2;
     A43[1, 0] = 3;
     A43[2, 0] = 6;
@@ -188,6 +190,8 @@ TEST(Hermite, BasicAssertions) {
     A43[2, 2] = 1;
     A43[3, 2] = 1;
     std::cout << "A=\n" << A43 << "\n";
+    // IntMatrix<> H{DenseDims<>{row(4), col(3)}};
+    // H << A43;
     IntMatrix<> H = A43;
     SquareMatrix<int64_t> U{SquareDims{H.numRow()}};
     NormalForm::hermite(H, U);

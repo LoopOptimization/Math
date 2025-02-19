@@ -59,6 +59,14 @@ else()
       ON
       CACHE BOOL "Use stack potection")
 endif()
+if(USE_TYPE_SANITIZER)
+  set(USE_MI_MALLOC
+      OFF
+      CACHE BOOL "No mimalloc with sanitizers")
+  set(USE_JE_MALLOC
+      OFF
+      CACHE BOOL "No jemalloc with sanitizers")
+endif()
 set(FOR_TESTING
     ON
     CACHE BOOL "Build for testing")

@@ -50,7 +50,7 @@ template <std::unsigned_integral T> constexpr auto countDigits(T x) {
     powers[1] = 10;
     for (ptrdiff_t i = 2; i < std::ssize(powers); i++)
       powers[i] = powers[i - 1] * 10;
-    std::array<T, sizeof(T) * 8 + 1> bits;
+    std::array<T, (sizeof(T) * 8) + 1> bits;
     if constexpr (sizeof(T) == 8) {
       bits = {1,  1,  1,  1,  2,  2,  2,  3,  3,  3,  4,  4,  4,
               4,  5,  5,  5,  6,  6,  6,  7,  7,  7,  7,  8,  8,
@@ -158,12 +158,12 @@ inline auto printMatrix(std::ostream &os, const T *A, ptrdiff_t M, ptrdiff_t N,
     if (i) os << "  ";
     else os << "\n[ ";
     for (ptrdiff_t j = 0; j < N; j++) {
-      auto Aij = A[i * X + j];
+      auto Aij = A[(i * X) + j];
       for (U k = 0; k < U(max_digits[j]) - detail::countDigits(Aij); k++)
         os << " ";
       os << Aij;
-      if (j != ptrdiff_t(N) - 1) os << " ";
-      else if (i != ptrdiff_t(M) - 1) os << "\n";
+      if (j != N - 1) os << " ";
+      else if (i != M - 1) os << "\n";
     }
   }
   return os << " ]";
