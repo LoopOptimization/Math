@@ -118,10 +118,11 @@ public:
   constexpr auto operator=(const Arena &) -> Arena & = default;
 #ifndef NDEBUG
   constexpr void fillWithJunk(void *p, size_t Size) {
-    if ((Size & 7) == 0) {
-      std::fill_n(static_cast<int64_t *>(p), Size >> 3,
-                  std::numeric_limits<int64_t>::min());
-    } else std::fill_n(static_cast<char *>(p), Size, -1);
+    // if ((Size & 7) == 0) {
+    //   std::fill_n(static_cast<int64_t *>(p), Size >> 3,
+    //               std::numeric_limits<int64_t>::min());
+    // } else
+    std::fill_n(static_cast<char *>(p), Size, -1);
   }
 #endif
   constexpr void bigAlloc(size_t Size) {

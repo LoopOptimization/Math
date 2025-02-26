@@ -24,68 +24,73 @@ namespace containers {
 #endif
 using utils::invariant;
 template <typename T> class UList {
-  T data[6]; // NOLINT(modernize-avoid-c-arrays)
-  ptrdiff_t count{0};
-  UList<T> *next{nullptr};
+  T data_[6]; // NOLINT(modernize-avoid-c-arrays)
+  ptrdiff_t count_{0};
+  UList<T> *next_{nullptr};
 
 public:
   constexpr UList() = default;
-  constexpr UList(T t) : count(1) { data[0] = t; }
-  constexpr UList(T t, UList *n) : count(1), next(n) { data[0] = t; }
+  constexpr UList(T t) : count_(1) { data_[0] = t; }
+  constexpr UList(T t, UList *n) : count_(1), next_(n) {
+    std::construct_at(data_, t);
+  }
+  // constexpr UList(T t, UList *n) : count_(1), next_(n) { data_[0] = t; }
   constexpr UList(const UList &other) = default;
   [[nodiscard]] constexpr auto getHeadCount() const -> ptrdiff_t {
-    return count;
+    return count_;
   }
   constexpr void forEach(const auto &f) {
-    invariant(count <= std::ssize(data));
-    for (auto *L = this; L != nullptr; L = L->next)
-      for (ptrdiff_t i = 0, N = L->count; i < N; i++) f(L->data[i]);
+    invariant(count_ <= std::ssize(data_));
+    for (auto *L = this; L != nullptr; L = L->next_)
+      for (ptrdiff_t i = 0, N = L->count_; i < N; i++) f(L->data_[i]);
   }
   constexpr void forEachRev(const auto &f) {
-    invariant(count <= std::ssize(data));
-    for (auto *L = this; L != nullptr; L = L->next)
-      for (ptrdiff_t i = L->count; i;) f(L->data[--i]);
+    invariant(count_ <= std::ssize(data_));
+    for (auto *L = this; L != nullptr; L = L->next_)
+      for (ptrdiff_t i = L->count_; i;) f(L->data_[--i]);
   }
   constexpr void forEachStack(const auto &f) {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     // the motivation of this implementation is that we use this to
     // deallocate the list, which may contain pointers that themselves
     // allocated this.
     UList<T> C{*this};
     while (true) {
-      for (ptrdiff_t i = 0, N = C.count; i < N; i++) f(C.data[i]);
-      if (C.next == nullptr) return;
-      C = *C.next;
+      for (ptrdiff_t i = 0, N = C.count_; i < N; i++) f(C.data_[i]);
+      if (C.next_ == nullptr) return;
+      C = *C.next_;
     }
   }
   constexpr void forEachNoRecurse(const auto &f) {
-    invariant(count <= std::ssize(data));
-    for (ptrdiff_t i = 0; i < count; i++) f(data[i]);
+    invariant(count_ <= std::ssize(data_));
+    for (ptrdiff_t i = 0; i < count_; i++) f(data_[i]);
   }
   constexpr auto reduce(auto init, const auto &f) const {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     decltype(f(init, std::declval<T>())) acc = init;
-    for (auto *L = this; L != nullptr; L = L->next)
-      for (ptrdiff_t i = 0, N = L->count; i < N; i++) acc = f(acc, L->data[i]);
+    for (auto *L = this; L != nullptr; L = L->next_)
+      for (ptrdiff_t i = 0, N = L->count_; i < N; i++)
+        acc = f(acc, L->data_[i]);
     return acc;
   }
   constexpr auto transform_reduce(auto init, const auto &f) {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     decltype(f(init, std::declval<T &>())) acc = init;
-    for (auto *L = this; L != nullptr; L = L->next)
-      for (ptrdiff_t i = 0, N = L->count; i < N; i++) acc = f(acc, L->data[i]);
+    for (auto *L = this; L != nullptr; L = L->next_)
+      for (ptrdiff_t i = 0, N = L->count_; i < N; i++)
+        acc = f(acc, L->data_[i]);
     return acc;
   }
   constexpr void pushHasCapacity(T t) {
-    invariant(count < std::ssize(data));
-    data[count++] = t;
+    invariant(count_ < std::ssize(data_));
+    data_[count_++] = t;
   }
   /// unordered push
   template <class A>
   [[nodiscard]] constexpr auto push(A &alloc, T t) -> UList * {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     if (!isFull()) {
-      data[count++] = t;
+      data_[count_++] = t;
       return this;
     }
     UList<T> *other = alloc.allocate(1);
@@ -95,21 +100,21 @@ public:
 
   /// ordered push
   template <class A> constexpr void push_ordered(A &alloc, T t) {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     if (!isFull()) {
-      data[count++] = t;
+      data_[count_++] = t;
       return;
     }
-    if (next == nullptr) {
-      next = alloc.allocate(1);
-      std::construct_at(next, t);
-    } else next->push_ordered(alloc, t);
+    if (next_ == nullptr) {
+      next_ = alloc.allocate(1);
+      std::construct_at(next_, t);
+    } else next_->push_ordered(alloc, t);
   }
   [[nodiscard]] constexpr auto contains(T t) const -> bool {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     for (const UList *L = this; L; L = L->getNext())
       for (size_t i = 0, N = L->getHeadCount(); i < N; ++i)
-        if (data[i] == t) return true;
+        if (data_[i] == t) return true;
     return false;
   }
   /// pushUnique(allocator, t)
@@ -131,55 +136,53 @@ public:
   //   push_ordered(alloc, t);
   // }
   [[nodiscard]] constexpr auto push(alloc::Arena<> *alloc, T t) -> UList * {
-    invariant(count <= std::ssize(data));
-    if (!isFull()) {
-      data[count++] = t;
-      return this;
-    }
-    return alloc->create<UList<T>>(t, this);
+    invariant(count_ <= std::ssize(data_));
+    if (isFull()) return alloc->create<UList<T>>(t, this);
+    data_[count_++] = t;
+    return this;
   };
   constexpr void push_ordered(alloc::Arena<> *alloc, T t) {
-    invariant(count <= std::ssize(data));
+    invariant(count_ <= std::ssize(data_));
     if (!isFull()) {
-      data[count++] = t;
+      data_[count_++] = t;
       return;
     }
-    if (next == nullptr) next = alloc->create<UList<T>>(t);
-    else next->push_ordered(alloc, t);
+    if (next_ == nullptr) next_ = alloc->create<UList<T>>(t);
+    else next_->push_ordered(alloc, t);
   }
   constexpr auto copy(alloc::Arena<> *alloc) const -> UList * {
     UList<T> *L = alloc->create<UList<T>>();
-    L->count = count;
-    std::copy(std::begin(data), std::end(data), std::begin(L->data));
-    if (next) L->next = next->copy(alloc);
+    L->count_ = count_;
+    std::copy(std::begin(data_), std::end(data_), std::begin(L->data_));
+    if (next_) L->next_ = next_->copy(alloc);
     return L;
   }
   /// erase
   /// behavior is undefined if `x` doesn't point to this node
   constexpr void erase(T *x) {
-    invariant(count <= std::ssize(data));
-    for (auto i = x, e = data + --count; i != e; ++i) *i = *(i + 1);
+    invariant(count_ <= std::ssize(data_));
+    for (auto i = x, e = data_ + --count_; i != e; ++i) *i = *(i + 1);
   }
   /// eraseUnordered
   /// behavior is undefined if `x` doesn't point to this node
   constexpr void eraseUnordered(T *x) {
-    invariant(count <= std::ssize(data));
-    *x = data[--count];
+    invariant(count_ <= std::ssize(data_));
+    *x = data_[--count_];
   }
   constexpr auto searchHead(T x) -> T * {
-    for (auto *d = data, *e = d + count; d != e; ++d)
+    for (auto *d = data_, *e = d + count_; d != e; ++d)
       if (*d == x) return d;
     return nullptr;
   }
   //
   constexpr void eraseUnordered(T x) {
-    invariant(count || next != nullptr);
-    if (!count) next->eraseUnordered(x);
+    invariant(count_ || next_ != nullptr);
+    if (!count_) next_->eraseUnordered(x);
     if (T *p = searchHead(x)) return eraseUnordered(p);
     // not in head -> search next until we find it;
     // move last here there.
-    invariant(next != nullptr);
-    next->swapWith(x, std::move(data[--count]));
+    invariant(next_ != nullptr);
+    next_->swapWith(x, std::move(data_[--count_]));
   }
   // search for `x`, swap with `y`.
   void swapWith(T x, T y) {
@@ -191,49 +194,49 @@ public:
     }
   }
   [[nodiscard]] constexpr auto isFull() const -> bool {
-    return count == std::ssize(data);
+    return count_ == std::ssize(data_);
   }
-  [[nodiscard]] constexpr auto getNext() const -> UList * { return next; }
+  [[nodiscard]] constexpr auto getNext() const -> UList * { return next_; }
   constexpr void clear() {
-    invariant(count <= std::ssize(data));
-    count = 0;
-    next = nullptr;
+    invariant(count_ <= std::ssize(data_));
+    count_ = 0;
+    next_ = nullptr;
   }
   constexpr auto front() -> T & {
-    invariant(count > 0);
-    return data[0];
+    invariant(count_ > 0);
+    return data_[0];
   }
   constexpr auto only() -> T & {
-    invariant(count == 1);
-    return data[0];
+    invariant(count_ == 1);
+    return data_[0];
   }
   [[nodiscard]] constexpr auto front() const -> const T & {
-    invariant(count > 0);
-    return data[0];
+    invariant(count_ > 0);
+    return data_[0];
   }
   [[nodiscard]] constexpr auto only() const -> const T & {
-    invariant(count == 1);
-    return data[0];
+    invariant(count_ == 1);
+    return data_[0];
   }
   constexpr void append(UList *L) {
     UList *N = this;
-    while (N->next != nullptr) N = N->next;
-    N->next = L;
+    while (N->next_ != nullptr) N = N->next_;
+    N->next_ = L;
   }
-  [[nodiscard]] constexpr auto empty() const -> bool { return count == 0; }
+  [[nodiscard]] constexpr auto empty() const -> bool { return count_ == 0; }
   [[nodiscard]] constexpr auto operator==(const UList &other) const -> bool {
-    if (count != other.count) return false;
-    for (ptrdiff_t i = 0; i < count; i++)
-      if (data[i] != other.data[i]) return false;
-    if (next == nullptr && other.getNext() == nullptr) return true;
-    if (next == nullptr || other.getNext() == nullptr) return false;
-    return *next == *other.getNext();
+    if (count_ != other.count_) return false;
+    for (ptrdiff_t i = 0; i < count_; i++)
+      if (data_[i] != other.data_[i]) return false;
+    if (next_ == nullptr && other.getNext() == nullptr) return true;
+    if (next_ == nullptr || other.getNext() == nullptr) return false;
+    return *next_ == *other.getNext();
   }
   constexpr auto operator[](ptrdiff_t i) -> T & {
-    return (i < count) ? data[i] : next->operator[](i - count);
+    return (i < count_) ? data_[i] : next_->operator[](i - count_);
   }
   constexpr auto operator[](ptrdiff_t i) const -> const T & {
-    return (i < count) ? data[i] : next->operator[](i - count);
+    return (i < count_) ? data_[i] : next_->operator[](i - count_);
   }
   constexpr auto operator=(const UList &other) -> UList & = default;
   struct End {};
@@ -247,8 +250,8 @@ public:
     }
     constexpr auto operator++() -> MutIterator & {
       invariant(list != nullptr);
-      if (++index == list->count) {
-        list = list->next;
+      if (++index == list->count_) {
+        list = list->next_;
         index = 0;
       }
       return *this;
@@ -261,7 +264,7 @@ public:
     }
     constexpr auto operator*() -> T & {
       invariant(list != nullptr);
-      return list->data[index];
+      return list->data_[index];
     }
     constexpr auto operator->() -> T * { return &**this; }
   };
@@ -274,8 +277,8 @@ public:
     }
     constexpr auto operator++() -> Iterator & {
       invariant(list != nullptr);
-      if (++index == list->count) {
-        list = list->next;
+      if (++index == list->count_) {
+        list = list->next_;
         index = 0;
       }
       return *this;
@@ -288,15 +291,15 @@ public:
     }
     constexpr auto operator*() -> T {
       invariant(list != nullptr);
-      return list->data[index];
+      return list->data_[index];
     }
     constexpr auto operator->() -> const T * { return &**this; }
   };
   [[nodiscard]] constexpr auto begin() const -> Iterator { return {this, 0}; }
   [[nodiscard]] constexpr auto begin() -> MutIterator { return {this, 0}; }
   static constexpr auto end() -> End { return {}; }
-  constexpr auto dbegin() -> T * { return data; }
-  constexpr auto dend() -> T * { return data + count; }
+  constexpr auto dbegin() -> T * { return data_; }
+  constexpr auto dend() -> T * { return data_ + count_; }
 };
 
 } // namespace containers
