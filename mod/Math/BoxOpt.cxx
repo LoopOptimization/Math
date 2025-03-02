@@ -5,16 +5,6 @@ module;
 #endif
 #include "LoopMacros.hxx"
 #ifndef USE_MODULE
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <new>
-#include <type_traits>
-#include <utility>
-
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Pair.cxx"
@@ -27,8 +17,19 @@ module;
 #include "Math/LinearAlgebra.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/Reductions.cxx"
-#include "SIMD/SIMD.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
 #include "Utilities/Parameters.cxx"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <new>
+#include <type_traits>
+#include <utility>
 #else
 export module BoxOpt;
 
@@ -64,9 +65,9 @@ public:
   constexpr BoxTransformView(char *d, unsigned ntotal, unsigned nraw)
     : data{d}, Ntotal{ntotal}, Nraw{nraw} {}
   [[nodiscard]] constexpr auto size() const -> unsigned { return Ntotal; }
-  constexpr auto operator()(const AbstractVector auto &x,
-                            ptrdiff_t i) const -> utils::eltype_t<decltype(x)> {
-    invariant(i < Ntotal);
+  constexpr auto operator()(const AbstractVector auto &x, ptrdiff_t i) const
+    -> utils::eltype_t<decltype(x)> {
+    invariant(std::cmp_less(i ,ptrdiff_t(Ntotal)));
     int j = getInds()[i];
     double off = offs()[i];
     if (j < 0) return off;
@@ -120,8 +121,8 @@ public:
   }
   // gives max fractional ind on the transformed scale
   template <bool Relative = true>
-  constexpr auto
-  maxFractionalComponent() -> containers::Pair<ptrdiff_t, int32_t> {
+  constexpr auto maxFractionalComponent()
+    -> containers::Pair<ptrdiff_t, int32_t> {
     double max = 0.0, lb = 0.0;
     ptrdiff_t k = -1;
     MutPtrVector<double> x{getRaw()};
@@ -217,8 +218,8 @@ protected:
   [[nodiscard]] constexpr auto scales() -> MutPtrVector<double> {
     return {f64() + Ntotal, length(Ntotal)};
   }
-  static constexpr auto
-  scaleOff(int32_t lb, int32_t ub) -> containers::Pair<double, double> {
+  static constexpr auto scaleOff(int32_t lb, int32_t ub)
+    -> containers::Pair<double, double> {
 #ifdef __cpp_if_consteval
     // constexpr std::fma requires c++23
     constexpr double slb = sigmoid(-EXTREME);
@@ -307,7 +308,7 @@ public:
     : BoxTransformView{allocate(ntotal), ntotal} {
     invariant(lb < ub);
     auto [s, o] = scaleOff(lb, ub);
-    for (int32_t i = 0; i < int32_t(ntotal); ++i) {
+    for (ptrdiff_t i = 0; i < ptrdiff_t(ntotal); ++i) {
       getInds()[i] = i;
       getLowerBounds()[i] = lb;
       getUpperBounds()[i] = ub;
@@ -316,7 +317,7 @@ public:
     }
   }
   constexpr void increaseLowerBound(ptrdiff_t idx, int32_t lb) {
-    invariant(idx < Ntotal);
+    invariant(idx < ptrdiff_t(Ntotal));
     invariant(lb > getLowerBounds()[idx]);
     int32_t ub = getUpperBounds()[idx];
     invariant(lb <= ub);
@@ -388,12 +389,12 @@ public:
     return ret;
   }
 
-  [[nodiscard]] constexpr auto
-  transformed() const -> BoxTransformVector<PtrVector<double>> {
+  [[nodiscard]] constexpr auto transformed() const
+    -> BoxTransformVector<PtrVector<double>> {
     return {getRaw(), view()};
   }
-  [[nodiscard]] constexpr auto
-  transformed() -> BoxTransformVector<MutPtrVector<double>> {
+  [[nodiscard]] constexpr auto transformed()
+    -> BoxTransformVector<MutPtrVector<double>> {
     return {getRaw(), view()};
   }
 };
