@@ -26,93 +26,93 @@ namespace utils {
 #endif
 // TODO: communicate not-null to the compiler somehow?
 template <typename T> class MATH_GSL_POINTER Valid {
-  [[no_unique_address]] T *value;
+  [[no_unique_address]] T *value_;
 
 public:
   Valid() = delete;
-  constexpr Valid(T *v) : value(v) { invariant(value != nullptr); }
+  constexpr Valid(T *v) : value_(v) { invariant(value_ != nullptr); }
   constexpr explicit operator bool() const {
-    invariant(value != nullptr);
+    invariant(value_ != nullptr);
     return true;
   }
   constexpr operator Valid<const T>() const {
-    invariant(value != nullptr);
-    return Valid<const T>(value);
+    invariant(value_ != nullptr);
+    return Valid<const T>(value_);
   }
   [[gnu::returns_nonnull]] constexpr operator T *() {
-    invariant(value != nullptr);
-    return value;
+    invariant(value_ != nullptr);
+    return value_;
   }
   [[gnu::returns_nonnull]] constexpr operator T *() const {
-    invariant(value != nullptr);
-    return value;
+    invariant(value_ != nullptr);
+    return value_;
   }
   [[gnu::returns_nonnull]] constexpr auto operator->() -> T * {
-    invariant(value != nullptr);
-    return value;
+    invariant(value_ != nullptr);
+    return value_;
   }
   constexpr auto operator*() -> T & {
-    invariant(value != nullptr);
-    return *value;
+    invariant(value_ != nullptr);
+    return *value_;
   }
   [[gnu::returns_nonnull]] constexpr auto operator->() const -> const T * {
-    invariant(value != nullptr);
-    return value;
+    invariant(value_ != nullptr);
+    return value_;
   }
   constexpr auto operator*() const -> const T & {
-    invariant(value != nullptr);
-    return *value;
+    invariant(value_ != nullptr);
+    return *value_;
   }
   constexpr auto operator[](ptrdiff_t index) -> T & {
-    invariant(value != nullptr);
-    return value[index];
+    invariant(value_ != nullptr);
+    return value_[index];
   }
   constexpr auto operator[](ptrdiff_t index) const -> const T & {
-    invariant(value != nullptr);
-    return value[index];
+    invariant(value_ != nullptr);
+    return value_[index];
   }
   constexpr auto operator+(ptrdiff_t offset) -> Valid<T> {
-    invariant(value != nullptr);
-    return value + offset;
+    invariant(value_ != nullptr);
+    return value_ + offset;
   }
   constexpr auto operator-(ptrdiff_t offset) -> Valid<T> {
-    invariant(value != nullptr);
-    return value - offset;
+    invariant(value_ != nullptr);
+    return value_ - offset;
   }
   constexpr auto operator+(ptrdiff_t offset) const -> Valid<T> {
-    invariant(value != nullptr);
-    return value + offset;
+    invariant(value_ != nullptr);
+    return value_ + offset;
   }
   constexpr auto operator-(ptrdiff_t offset) const -> Valid<T> {
-    invariant(value != nullptr);
-    return value - offset;
+    invariant(value_ != nullptr);
+    return value_ - offset;
   }
   constexpr auto operator++() -> Valid<T> & {
-    invariant(value != nullptr);
-    ++value;
+    invariant(value_ != nullptr);
+    ++value_;
     return *this;
   }
   constexpr auto operator++(int) -> Valid<T> {
-    invariant(value != nullptr);
-    return value++;
+    invariant(value_ != nullptr);
+    return value_++;
   }
   constexpr auto operator--() -> Valid<T> & {
-    invariant(value != nullptr);
-    --value;
+    invariant(value_ != nullptr);
+    --value_;
     return *this;
   }
   constexpr auto operator--(int) -> Valid<T> {
-    invariant(value != nullptr);
-    return value--;
+    invariant(value_ != nullptr);
+    return value_--;
   }
   constexpr auto operator+=(ptrdiff_t offset) -> Valid<T> & {
-    invariant(value != nullptr);
-    value += offset;
+    invariant(value_ != nullptr);
+    value_ += offset;
     return *this;
   }
   constexpr auto operator-=(ptrdiff_t offset) -> Valid<T> & {
-    invariant(value != nullptr);
-    value -= offset;
+    invariant(value_ != nullptr);
+    value_ -= offset;
     return *this;
   }
   // constexpr auto operator==(const Valid<T> &other) const -> bool {
@@ -140,12 +140,12 @@ public:
   //   return value >= other.value;
   // }
   constexpr auto operator-(const Valid<T> &other) const -> ptrdiff_t {
-    invariant(value != nullptr);
-    return value - other.value;
+    invariant(value_ != nullptr);
+    return value_ - other.value_;
   }
   [[nodiscard]] constexpr auto isAligned(ptrdiff_t x) const -> bool {
-    invariant(value != nullptr);
-    return (reinterpret_cast<ptrdiff_t>(value) % x) == 0;
+    invariant(value_ != nullptr);
+    return (reinterpret_cast<ptrdiff_t>(value_) % x) == 0;
   }
 };
 template <typename T> Valid(T &) -> Valid<T>;

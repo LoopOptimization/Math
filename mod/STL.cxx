@@ -97,6 +97,7 @@ export using ::std::destroy_n;
 export using ::std::distance;
 export using ::std::divides;
 export using ::std::end;
+export using ::std::equal;
 export using ::std::equal_to;
 export using ::std::errc;
 export using ::std::exchange;
