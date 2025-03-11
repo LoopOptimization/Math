@@ -11,9 +11,8 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <limits>
+#include <cstring>
 #include <memory>
-#include <new>
 #include <type_traits>
 #include <utility>
 #include <version>
@@ -118,11 +117,7 @@ public:
   constexpr auto operator=(const Arena &) -> Arena & = default;
 #ifndef NDEBUG
   constexpr void fillWithJunk(void *p, size_t Size) {
-    // if ((Size & 7) == 0) {
-    //   std::fill_n(static_cast<int64_t *>(p), Size >> 3,
-    //               std::numeric_limits<int64_t>::min());
-    // } else
-    std::fill_n(static_cast<char *>(p), Size, -1);
+    std::memset(p, 254, Size);
   }
 #endif
   constexpr void bigAlloc(size_t Size) {
@@ -166,8 +161,8 @@ public:
     } else return std::assume_aligned<Alignment>(allocate(Size));
   }
   template <typename T>
-  [[gnu::returns_nonnull, gnu::flatten]] constexpr auto
-  allocate(size_t N = 1) -> T * {
+  [[gnu::returns_nonnull, gnu::flatten]] constexpr auto allocate(size_t N = 1)
+    -> T * {
     static_assert(std::is_trivially_destructible_v<T>,
                   "Arena only supports trivially destructible types.");
     return static_cast<T *>(allocate(N * sizeof(T)));
@@ -175,8 +170,8 @@ public:
   /// create<T>(args...)
   /// constructs object of type `T` with args `args`
   template <typename T, class... Args>
-  [[gnu::returns_nonnull, gnu::flatten]] constexpr auto
-  create(Args &&...args) -> T * {
+  [[gnu::returns_nonnull, gnu::flatten]] constexpr auto create(Args &&...args)
+    -> T * {
     static_assert(std::is_trivially_destructible_v<T>,
                   "Arena only supports trivially destructible types.");
     return std::construct_at(static_cast<T *>(allocate<alignof(T)>(sizeof(T))),
@@ -202,8 +197,8 @@ public:
   /// copying
   template <bool ForOverwrite = false>
   [[gnu::returns_nonnull, nodiscard]] constexpr auto
-  reallocateImpl(void *Ptr, size_t capOld, size_t capNew,
-                 size_t szOld) -> void * {
+  reallocateImpl(void *Ptr, size_t capOld, size_t capNew, size_t szOld)
+    -> void * {
     if (capOld >= capNew) return Ptr;
     char *cptr = static_cast<char *>(Ptr);
     if (Ptr) {
@@ -277,8 +272,8 @@ public:
   }
   template <bool ForOverwrite = false, typename T>
   [[gnu::returns_nonnull, gnu::flatten, nodiscard]] constexpr auto
-  reallocate(T *Ptr, size_t oldCapacity, size_t newCapacity,
-             size_t oldSize) -> T * {
+  reallocate(T *Ptr, size_t oldCapacity, size_t newCapacity, size_t oldSize)
+    -> T * {
     return static_cast<T *>(reallocateImpl<ForOverwrite>(
       Ptr, oldCapacity * sizeof(T), newCapacity * sizeof(T),
       oldSize * sizeof(T)));
@@ -315,8 +310,8 @@ public:
   constexpr auto scope() -> ScopeLifetime { return *this; }
 
 private:
-  constexpr auto tryReallocate(void *Ptr, size_t capOld,
-                               size_t capNew) -> void * {
+  constexpr auto tryReallocate(void *Ptr, size_t capOld, size_t capNew)
+    -> void * {
     if constexpr (BumpUp) {
       if (Ptr == (char *)slab_ - align(capOld)) {
         slab_ = (char *)Ptr + align(capNew);
@@ -421,12 +416,11 @@ protected:
       slab_ = q;
       s_end_ = c;
     }
-#ifndef NDEBUG
-    fillWithJunk(c, sz - 2 * MetaSize);
-#endif
     // poison everything except the meta data
 #if MATH_ADDRESS_SANITIZER_BUILD
     __asan_poison_memory_region(c, q - c);
+#elifndef NDEBUG
+    fillWithJunk(c, sz - 2 * MetaSize);
 #endif
   }
 };
@@ -484,8 +478,8 @@ public:
   constexpr WArena(const WArena &other) = default;
   template <typename U>
   constexpr WArena(WArena<U> other) : alloc_(other.get_allocator()) {}
-  [[nodiscard, gnu::returns_nonnull]] constexpr auto
-  get_allocator() const -> Alloc * {
+  [[nodiscard, gnu::returns_nonnull]] constexpr auto get_allocator() const
+    -> Alloc * {
     return alloc_;
   }
   constexpr void deallocate(T *p, ptrdiff_t n) { alloc_->deallocate(p, n); }
@@ -498,8 +492,8 @@ public:
   constexpr void rollback(typename Alloc::CheckPoint p) { alloc_->rollback(p); }
 };
 template <typename T, size_t SlabSize, bool BumpUp>
-constexpr auto
-wrap(Valid<Arena<SlabSize, BumpUp>> a) -> WArena<T, SlabSize, BumpUp> {
+constexpr auto wrap(Valid<Arena<SlabSize, BumpUp>> a)
+  -> WArena<T, SlabSize, BumpUp> {
   return WArena<T, SlabSize, BumpUp>(a);
 }
 
@@ -563,8 +557,8 @@ constexpr auto call(Arena<> alloc, const F &f, T &&...t) {
 } // namespace alloc
 
 template <size_t SlabSize, bool BumpUp>
-auto operator new(size_t Size,
-                  alloc::Arena<SlabSize, BumpUp> &Alloc) -> void * {
+auto operator new(size_t Size, alloc::Arena<SlabSize, BumpUp> &Alloc)
+  -> void * {
   return Alloc.allocate(Size);
 }
 
