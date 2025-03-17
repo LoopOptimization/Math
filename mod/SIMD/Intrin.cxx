@@ -5,6 +5,7 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
+#include "Macros.hxx"
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
@@ -79,28 +80,23 @@ TRIVIAL constexpr auto vbroadcast(T x) -> Vec<W, T> {
     }
   } else return x;
 }
-template <typename T>
-TRIVIAL inline auto load(const T *p,
-                                                         mask::None<1>) -> T {
+template <typename T> TRIVIAL inline auto load(const T *p, mask::None<1>) -> T {
   return *p;
 }
 template <typename T>
-constexpr auto load(const T *p, mask::None<1>, int32_t) -> const T & {
+TRIVIAL constexpr auto load(const T *p, mask::None<1>, int32_t) -> const T & {
   return *p;
 }
-template <typename T>
-TRIVIAL inline void store(T *p, mask::None<1>,
-                                                          T x) {
+template <typename T> TRIVIAL inline void store(T *p, mask::None<1>, T x) {
   *p = x;
 }
 template <typename T>
-TRIVIAL inline void store(T *p, mask::None<1>,
-                                                          T x, int32_t) {
+TRIVIAL inline void store(T *p, mask::None<1>, T x, int32_t) {
   *p = x;
 }
 #ifdef __x86_64__
 
-template <ptrdiff_t W, typename T> consteval auto mmzero() {
+template <ptrdiff_t W, typename T> TRIVIAL consteval auto mmzero() {
   // Extend if/when supporting more types
   static_assert(std::popcount(size_t(W)) == 1 && (W * sizeof(T) <= 64));
   if constexpr (std::same_as<T, double>) {
@@ -131,8 +127,7 @@ template auto vbroadcast<8, int64_t>(Vec<8, int64_t>) -> Vec<8, int64_t>;
 // __aligned__(8))); } // namespace hw
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<16>) -> Vec<16, T> {
+TRIVIAL inline auto load(const T *p, mask::None<16>) -> Vec<16, T> {
   const void *vp = p;
   if constexpr (std::same_as<T, float>) {
     return std::bit_cast<Vec<16, float>>(_mm512_loadu_ps(vp));
@@ -145,8 +140,7 @@ load(const T *p, mask::None<16>) -> Vec<16, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Bit<8> i) -> Vec<8, T> {
+TRIVIAL inline auto load(const T *p, mask::Bit<8> i) -> Vec<8, T> {
   const void *vp = p;
   if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<8, double>>(
@@ -168,8 +162,7 @@ load(const T *p, mask::Bit<8> i) -> Vec<8, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *pt, mask::Bit<16> i) -> Vec<16, T> {
+TRIVIAL inline auto load(const T *pt, mask::Bit<16> i) -> Vec<16, T> {
   const void *p = pt;
   if constexpr (std::same_as<T, float>)
     return std::bit_cast<Vec<16, float>>(
@@ -185,8 +178,7 @@ load(const T *pt, mask::Bit<16> i) -> Vec<16, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *pt, mask::None<16>,
-                                                          Vec<16, T> x) {
+TRIVIAL inline void store(T *pt, mask::None<16>, Vec<16, T> x) {
   void *p = pt;
   if constexpr (std::same_as<T, float>) {
     __m512 xf = std::bit_cast<__m512>(x);
@@ -202,8 +194,7 @@ TRIVIAL inline void store(T *pt, mask::None<16>,
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *p, mask::Bit<8> i,
-                                                          Vec<8, T> x) {
+TRIVIAL inline void store(T *p, mask::Bit<8> i, Vec<8, T> x) {
   void *vp = p;
   if constexpr (std::same_as<T, double>) {
     __m512d xd = std::bit_cast<__m512d>(x);
@@ -225,8 +216,7 @@ TRIVIAL inline void store(T *p, mask::Bit<8> i,
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *pt, mask::Bit<16> i, Vec<16, T> x) {
+TRIVIAL inline void store(T *pt, mask::Bit<16> i, Vec<16, T> x) {
   void *p = pt;
   if constexpr (std::same_as<T, float>) {
     __m512 xf = std::bit_cast<__m512>(x);
@@ -244,8 +234,8 @@ store(T *pt, mask::Bit<16> i, Vec<16, T> x) {
 
 // strided memory accesses
 template <typename T>
-TRIVIAL inline auto
-gather(const T *pt, mask::None<16>, Vec<16, int32_t> i) -> Vec<16, T> {
+TRIVIAL inline auto gather(const T *pt, mask::None<16>, Vec<16, int32_t> i)
+  -> Vec<16, T> {
   auto inds = std::bit_cast<__m512i>(i);
   const void *p = pt;
   if constexpr (std::same_as<T, float>)
@@ -255,13 +245,13 @@ gather(const T *pt, mask::None<16>, Vec<16, int32_t> i) -> Vec<16, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<16>, int32_t stride) -> Vec<16, T> {
+TRIVIAL inline auto load(const T *p, mask::None<16>, int32_t stride)
+  -> Vec<16, T> {
   return gather(p, mask::None<16>{}, range<16>() * stride);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *pt, mask::Bit<8> i, Vec<8, int32_t> indv) -> Vec<8, T> {
+TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i, Vec<8, int32_t> indv)
+  -> Vec<8, T> {
   auto inds = std::bit_cast<__m256i>(indv);
   const void *p = pt;
   static constexpr auto src = mmzero<8, T>();
@@ -282,8 +272,8 @@ gather(const T *pt, mask::Bit<8> i, Vec<8, int32_t> indv) -> Vec<8, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *pt, mask::Bit<8> i, Vec<8, int64_t> indv) -> Vec<8, T> {
+TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i, Vec<8, int64_t> indv)
+  -> Vec<8, T> {
   auto inds = std::bit_cast<__m512i>(indv);
   const void *p = pt;
   static constexpr auto src = mmzero<8, T>();
@@ -296,13 +286,13 @@ gather(const T *pt, mask::Bit<8> i, Vec<8, int64_t> indv) -> Vec<8, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Bit<8> i, int32_t stride) -> Vec<8, T> {
+TRIVIAL inline auto load(const T *p, mask::Bit<8> i, int32_t stride)
+  -> Vec<8, T> {
   return gather(p, i, range<8>() * stride);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *pt, mask::Bit<16> i, Vec<16, int32_t> indv) -> Vec<16, T> {
+TRIVIAL inline auto gather(const T *pt, mask::Bit<16> i, Vec<16, int32_t> indv)
+  -> Vec<16, T> {
   auto inds = std::bit_cast<__m512i>(indv);
   const void *p = pt;
   auto src = mmzero<8, T>();
@@ -315,13 +305,13 @@ gather(const T *pt, mask::Bit<16> i, Vec<16, int32_t> indv) -> Vec<16, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Bit<16> i, int32_t stride) -> Vec<16, T> {
+TRIVIAL inline auto load(const T *p, mask::Bit<16> i, int32_t stride)
+  -> Vec<16, T> {
   return gather(p, i, range<16>() * stride);
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *pt, mask::None<8>, Vec<8, T> x, Vec<8, int32_t> indv) {
+TRIVIAL inline void scatter(T *pt, mask::None<8>, Vec<8, T> x,
+                            Vec<8, int32_t> indv) {
   auto inds = std::bit_cast<__m256i>(indv);
   void *p = pt;
   if constexpr (std::same_as<T, double>)
@@ -337,14 +327,13 @@ scatter(T *pt, mask::None<8>, Vec<8, T> x, Vec<8, int32_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::None<8>, Vec<8, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<8>, Vec<8, T> x, int32_t stride) {
   scatter(p, mask::None<8>{}, x, range<8>() * stride);
 }
 
 template <typename T>
-TRIVIAL inline void
-scatter(T *pt, mask::None<16>, Vec<16, T> x, Vec<16, int32_t> indv) {
+TRIVIAL inline void scatter(T *pt, mask::None<16>, Vec<16, T> x,
+                            Vec<16, int32_t> indv) {
   auto inds = std::bit_cast<__m512i>(indv);
   void *p = pt;
   if constexpr (std::same_as<T, float>)
@@ -354,13 +343,12 @@ scatter(T *pt, mask::None<16>, Vec<16, T> x, Vec<16, int32_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::None<16>, Vec<16, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<16>, Vec<16, T> x, int32_t stride) {
   scatter(p, mask::None<16>{}, x, range<16>() * stride);
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *pt, mask::Bit<8> i, Vec<8, T> x, Vec<8, int32_t> indv) {
+TRIVIAL inline void scatter(T *pt, mask::Bit<8> i, Vec<8, T> x,
+                            Vec<8, int32_t> indv) {
   auto inds = std::bit_cast<__m256i>(indv);
   void *p = pt;
   if constexpr (std::same_as<T, double>)
@@ -380,13 +368,12 @@ scatter(T *pt, mask::Bit<8> i, Vec<8, T> x, Vec<8, int32_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Bit<8> i, Vec<8, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Bit<8> i, Vec<8, T> x, int32_t stride) {
   scatter(p, i, x, range<8>() * stride);
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *pt, mask::Bit<16> i, Vec<16, T> x, Vec<16, int32_t> indv) {
+TRIVIAL inline void scatter(T *pt, mask::Bit<16> i, Vec<16, T> x,
+                            Vec<16, int32_t> indv) {
   auto inds = std::bit_cast<__m512i>(indv);
   void *p = pt;
   if constexpr (std::same_as<T, float>)
@@ -398,12 +385,12 @@ scatter(T *pt, mask::Bit<16> i, Vec<16, T> x, Vec<16, int32_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Bit<16> i, Vec<16, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Bit<16> i, Vec<16, T> x, int32_t stride) {
   scatter(p, i, x, range<16>() * stride);
 }
 template <typename T>
-constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y) -> Vec<8, T> {
+TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y)
+  -> Vec<8, T> {
   if constexpr (std::same_as<T, double>) {
     __m512d xd = std::bit_cast<__m512d>(x), yd = std::bit_cast<__m512d>(y);
     return std::bit_cast<Vec<8, T>>(_mm512_mask_mov_pd(yd, uint8_t(m), xd));
@@ -424,8 +411,8 @@ constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y) -> Vec<8, T> {
 }
 
 template <typename T>
-constexpr auto select(mask::Bit<16> m, Vec<16, T> x,
-                      Vec<16, T> y) -> Vec<16, T> {
+TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, T> x, Vec<16, T> y)
+  -> Vec<16, T> {
   if constexpr (std::same_as<T, float>) {
     __m512 xf = std::bit_cast<__m512>(x), yf = std::bit_cast<__m512>(y);
     return std::bit_cast<Vec<16, T>>(_mm512_mask_mov_ps(yf, uint16_t(m), xf));
@@ -439,8 +426,7 @@ constexpr auto select(mask::Bit<16> m, Vec<16, T> x,
 #endif // AVX512F
 #ifdef __AVX__
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<8>) -> Vec<8, T> {
+TRIVIAL inline auto load(const T *p, mask::None<8>) -> Vec<8, T> {
   if constexpr (std::same_as<T, float>) {
     return std::bit_cast<Vec<8, float>>(_mm256_loadu_ps(p));
 #ifdef __AVX512F__
@@ -467,8 +453,7 @@ load(const T *p, mask::None<8>) -> Vec<8, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *p, mask::None<8>,
-                                                          Vec<8, T> x) {
+TRIVIAL inline void store(T *p, mask::None<8>, Vec<8, T> x) {
   if constexpr (std::same_as<T, float>) {
     __m256 xf = std::bit_cast<__m256>(x);
     _mm256_storeu_ps(p, xf);
@@ -502,8 +487,8 @@ TRIVIAL inline void store(T *p, mask::None<8>,
 #ifdef __AVX2__
 // Non-masked gather is same with AVX512VL and AVX2
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<4>, Vec<4, int32_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, int32_t> indv)
+  -> Vec<4, T> {
   auto x = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_i32gather_pd(p, x, 8));
@@ -517,8 +502,8 @@ gather(const T *p, mask::None<4>, Vec<4, int32_t> indv) -> Vec<4, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<4>, Vec<4, int64_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, int64_t> indv)
+  -> Vec<4, T> {
   auto x = std::bit_cast<__m256i>(indv);
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_i64gather_pd(p, x, 8));
@@ -528,13 +513,13 @@ gather(const T *p, mask::None<4>, Vec<4, int64_t> indv) -> Vec<4, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<4>, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::None<4>, int32_t stride)
+  -> Vec<4, T> {
   return gather(p, mask::None<4>{}, range<4>() * stride);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<2>, Vec<2, int64_t> indv) -> Vec<2, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<2>, Vec<2, int64_t> indv)
+  -> Vec<2, T> {
   auto x = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(_mm_i64gather_pd(p, x, 8));
@@ -544,13 +529,13 @@ gather(const T *p, mask::None<2>, Vec<2, int64_t> indv) -> Vec<2, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<2>, int32_t stride) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::None<2>, int32_t stride)
+  -> Vec<2, T> {
   return gather(p, mask::None<2>{}, range<2>() * stride);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<8>, Vec<8, int32_t> indv) -> Vec<8, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, int32_t> indv)
+  -> Vec<8, T> {
   auto inds = std::bit_cast<__m256i>(indv);
   if constexpr (std::same_as<T, float>) {
     return std::bit_cast<Vec<8, T>>(_mm256_i32gather_ps(p, inds, 4));
@@ -567,8 +552,8 @@ gather(const T *p, mask::None<8>, Vec<8, int32_t> indv) -> Vec<8, T> {
 }
 #ifdef __AVX512F__
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<8>, Vec<8, int64_t> indv) -> Vec<8, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, int64_t> indv)
+  -> Vec<8, T> {
   auto inds = std::bit_cast<__m512i>(indv);
   if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<8, T>>(_mm512_i64gather_pd(inds, p, 8));
@@ -579,8 +564,8 @@ gather(const T *p, mask::None<8>, Vec<8, int64_t> indv) -> Vec<8, T> {
 }
 #endif // AVX512F
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<8>, int32_t stride) -> Vec<8, T> {
+TRIVIAL inline auto load(const T *p, mask::None<8>, int32_t stride)
+  -> Vec<8, T> {
   return gather(p, mask::None<8>{}, range<8>() * stride);
 }
 #endif // AVX2
@@ -589,8 +574,7 @@ load(const T *p, mask::None<8>, int32_t stride) -> Vec<8, T> {
 // Here, we handle masked loads/stores
 #ifdef __AVX512VL__
 template <typename T>
-TRIVIAL inline auto
-load(const T *pt, mask::Bit<4> i) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *pt, mask::Bit<4> i) -> Vec<4, T> {
   const void *p = pt;
   if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<4, double>>(
@@ -606,8 +590,7 @@ load(const T *pt, mask::Bit<4> i) -> Vec<4, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *pt, mask::Bit<4> i,
-                                                          Vec<4, T> x) {
+TRIVIAL inline void store(T *pt, mask::Bit<4> i, Vec<4, T> x) {
   void *p = pt;
   if constexpr (std::same_as<T, double>) {
     __m256d xd = std::bit_cast<__m256d>(x);
@@ -625,8 +608,7 @@ TRIVIAL inline void store(T *pt, mask::Bit<4> i,
 }
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Bit<2> i) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::Bit<2> i) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(
       _mm_maskz_loadu_pd(uint8_t(i.mask_), p));
@@ -635,8 +617,7 @@ load(const T *p, mask::Bit<2> i) -> Vec<2, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *p, mask::Bit<2> i,
-                                                          Vec<2, T> x) {
+TRIVIAL inline void store(T *p, mask::Bit<2> i, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm_mask_storeu_pd(p, uint8_t(i.mask_), std::bit_cast<__m128d>(x));
   else if constexpr (sizeof(T) == 8)
@@ -645,8 +626,8 @@ TRIVIAL inline void store(T *p, mask::Bit<2> i,
 }
 // gather/scatter
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Bit<4> i, Vec<4, int32_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Bit<4> i, Vec<4, int32_t> indv)
+  -> Vec<4, T> {
   auto inds = std::bit_cast<__m128i>(indv);
   auto src{mmzero<4, T>()};
   if constexpr (std::same_as<T, double>)
@@ -664,8 +645,8 @@ gather(const T *p, mask::Bit<4> i, Vec<4, int32_t> indv) -> Vec<4, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Bit<4> i, Vec<4, int64_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Bit<4> i, Vec<4, int64_t> indv)
+  -> Vec<4, T> {
   auto inds = std::bit_cast<__m256i>(indv);
   auto src{mmzero<4, T>()};
   if constexpr (std::same_as<T, double>)
@@ -677,14 +658,14 @@ gather(const T *p, mask::Bit<4> i, Vec<4, int64_t> indv) -> Vec<4, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Bit<4> i, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::Bit<4> i, int32_t stride)
+  -> Vec<4, T> {
   return gather(p, i, range<4>() * stride);
 }
 
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::None<4>, Vec<4, T> x, Vec<4, int32_t> indv) {
+TRIVIAL inline void scatter(T *p, mask::None<4>, Vec<4, T> x,
+                            Vec<4, int32_t> indv) {
   auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     _mm256_i32scatter_pd(p, inds, std::bit_cast<__m256d>(x), 8);
@@ -697,13 +678,12 @@ scatter(T *p, mask::None<4>, Vec<4, T> x, Vec<4, int32_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::None<4>, Vec<4, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x, int32_t stride) {
   scatter(p, mask::None<4>{}, x, range<4>() * stride);
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::Bit<4> i, Vec<4, T> x, Vec<4, int32_t> indv) {
+TRIVIAL inline void scatter(T *p, mask::Bit<4> i, Vec<4, T> x,
+                            Vec<4, int32_t> indv) {
   auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     _mm256_mask_i32scatter_pd(p, uint8_t(i.mask_), inds,
@@ -720,13 +700,12 @@ scatter(T *p, mask::Bit<4> i, Vec<4, T> x, Vec<4, int32_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Bit<4> i, Vec<4, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Bit<4> i, Vec<4, T> x, int32_t stride) {
   scatter(p, i, x, range<4>() * stride);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Bit<2> i, Vec<2, int64_t> indv) -> Vec<2, T> {
+TRIVIAL inline auto gather(const T *p, mask::Bit<2> i, Vec<2, int64_t> indv)
+  -> Vec<2, T> {
   auto inds = std::bit_cast<__m128i>(indv);
   auto src{mmzero<2, T>()};
   if constexpr (std::same_as<T, double>)
@@ -738,13 +717,13 @@ gather(const T *p, mask::Bit<2> i, Vec<2, int64_t> indv) -> Vec<2, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Bit<2> i, int32_t stride) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::Bit<2> i, int32_t stride)
+  -> Vec<2, T> {
   return gather(p, i, range<2>() * stride);
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::None<2>, Vec<2, T> x, Vec<2, int64_t> indv) {
+TRIVIAL inline void scatter(T *p, mask::None<2>, Vec<2, T> x,
+                            Vec<2, int64_t> indv) {
   auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     _mm_i64scatter_pd(p, inds, std::bit_cast<__m128d>(x), 8);
@@ -753,13 +732,12 @@ scatter(T *p, mask::None<2>, Vec<2, T> x, Vec<2, int64_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::None<2>, Vec<2, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<2>, Vec<2, T> x, int32_t stride) {
   scatter(p, mask::None<2>{}, x, range<2>() * stride);
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::Bit<2> i, Vec<2, T> x, Vec<2, int64_t> indv) {
+TRIVIAL inline void scatter(T *p, mask::Bit<2> i, Vec<2, T> x,
+                            Vec<2, int64_t> indv) {
   auto inds = std::bit_cast<__m128i>(indv);
   if constexpr (std::same_as<T, double>)
     _mm_mask_i64scatter_pd(p, uint8_t(i.mask_), inds, std::bit_cast<__m128d>(x),
@@ -770,14 +748,13 @@ scatter(T *p, mask::Bit<2> i, Vec<2, T> x, Vec<2, int64_t> indv) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Bit<2> i, Vec<2, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Bit<2> i, Vec<2, T> x, int32_t stride) {
   scatter(p, i, x, range<2>() * stride);
 }
 
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Bit<W> m) {
+TRIVIAL inline auto fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
+                          mask::Bit<W> m) {
   if constexpr (std::same_as<T, double>) {
     if constexpr (W == 8) {
       return std::bit_cast<Vec<W, T>>(_mm512_mask3_fmadd_pd(
@@ -813,8 +790,8 @@ fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Bit<W> m) {
 }
 
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Bit<W> m) {
+TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
+                           mask::Bit<W> m) {
   if constexpr (std::same_as<T, double>) {
     if constexpr (W == 8) {
       return std::bit_cast<Vec<W, T>>(_mm512_mask3_fnmadd_pd(
@@ -849,7 +826,8 @@ fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Bit<W> m) {
   }
 }
 template <typename T>
-constexpr auto select(mask::Bit<4> m, Vec<4, T> x, Vec<4, T> y) -> Vec<4, T> {
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, T> x, Vec<4, T> y)
+  -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, T>>(_mm256_mask_mov_pd(
       std::bit_cast<__m256d>(y), uint8_t(m), std::bit_cast<__m256d>(x)));
@@ -865,7 +843,8 @@ constexpr auto select(mask::Bit<4> m, Vec<4, T> x, Vec<4, T> y) -> Vec<4, T> {
   else static_assert(false);
 }
 template <typename T>
-constexpr auto select(mask::Bit<2> m, Vec<2, T> x, Vec<2, T> y) -> Vec<2, T> {
+TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, T> x, Vec<2, T> y)
+  -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, T>>(_mm_mask_mov_pd(
       std::bit_cast<__m128d>(y), uint8_t(m), std::bit_cast<__m128d>(x)));
@@ -877,8 +856,8 @@ constexpr auto select(mask::Bit<2> m, Vec<2, T> x, Vec<2, T> y) -> Vec<2, T> {
 
 #else // No AVX512VL
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Mask<W> m) {
+TRIVIAL inline auto fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
+                          mask::Mask<W> m) {
   if constexpr ((W * sizeof(T)) != 64) return m.m ? (a * b + c) : c;
   else if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<W, T>>(_mm512_mask3_fmadd_pd(
@@ -891,8 +870,8 @@ fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Mask<W> m) {
   else static_assert(false);
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Mask<W> m) {
+TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
+                           mask::Mask<W> m) {
   if constexpr ((W * sizeof(T)) != 64) return m.m ? (c - a * b) : c;
   else if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<W, T>>(_mm512_mask3_fnmadd_pd(
@@ -909,27 +888,26 @@ fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Mask<W> m) {
 
 // 128 bit fallback scatters
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::None<2>, Vec<2, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<2>, Vec<2, T> x, int32_t stride) {
   p[0] = x[0];
   p[stride] = x[1];
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::None<2>, Vec<2, T> x, Vec<2, int64_t> i) {
+TRIVIAL inline void scatter(T *p, mask::None<2>, Vec<2, T> x,
+                            Vec<2, int64_t> i) {
   p[i[0]] = x[0];
   p[i[1]] = x[1];
 }
 
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x,
+                          int32_t stride) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[stride] = x[1];
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x, Vec<2, int64_t> indv) {
+TRIVIAL inline void scatter(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x,
+                            Vec<2, int64_t> indv) {
   if (i.m[0] != 0) p[indv[0]] = x[0];
   if (i.m[1] != 0) p[indv[1]] = x[1];
 }
@@ -937,9 +915,8 @@ scatter(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x, Vec<2, int64_t> indv) {
 #ifdef __AVX2__
 // masked gathers
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<4, sizeof(T)> m,
-       Vec<4, int32_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> m,
+                           Vec<4, int32_t> indv) -> Vec<4, T> {
   auto x = std::bit_cast<__m128i>(indv);
   static constexpr auto z = mmzero<4, T>();
   if constexpr (std::same_as<T, double>) {
@@ -955,9 +932,8 @@ gather(const T *p, mask::Vector<4, sizeof(T)> m,
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<4, sizeof(T)> m,
-       Vec<4, int64_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> m,
+                           Vec<4, int64_t> indv) -> Vec<4, T> {
   auto x = std::bit_cast<__m256i>(indv);
   static constexpr auto z = mmzero<4, T>();
   if constexpr (std::same_as<T, double>)
@@ -968,14 +944,13 @@ gather(const T *p, mask::Vector<4, sizeof(T)> m,
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<4, sizeof(T)> m, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> m,
+                         int32_t stride) -> Vec<4, T> {
   return gather(p, m, range<4>() * stride);
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<2, sizeof(T)> m,
-       Vec<2, int64_t> indv) -> Vec<2, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<2, sizeof(T)> m,
+                           Vec<2, int64_t> indv) -> Vec<2, T> {
   auto x = std::bit_cast<__m128i>(indv);
   __m128i mask = __m128i(m);
   static constexpr auto z = mmzero<2, T>();
@@ -987,66 +962,63 @@ gather(const T *p, mask::Vector<2, sizeof(T)> m,
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<2, sizeof(T)> m, int32_t stride) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> m,
+                         int32_t stride) -> Vec<2, T> {
   return gather(p, m, range<2>() * stride);
 }
 
 #else // no AVX2
 // fallback 128-bit gather
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<2>, int32_t stride) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::None<2>, int32_t stride)
+  -> Vec<2, T> {
   return Vec<2, T>{p[0], p[stride]};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<2>, Vec<2, int64_t> i) -> Vec<2, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<2>, Vec<2, int64_t> i)
+  -> Vec<2, T> {
   return Vec<2, T>{p[i[0]], p[i[1]]};
 }
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<2, sizeof(T)> i, int32_t stride) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> i,
+                         int32_t stride) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[stride] : T{}};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<2, sizeof(T)> i,
-       Vec<2, int64_t> indv) -> Vec<2, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<2, sizeof(T)> i,
+                           Vec<2, int64_t> indv) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[indv[0]] : T{},
                    (i.m[1] != 0) ? p[indv[1]] : T{}};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<2, sizeof(T)> i,
-       Vec<2, int32_t> indv) -> Vec<2, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<2, sizeof(T)> i,
+                           Vec<2, int32_t> indv) -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[indv[0]] : T{},
                    (i.m[1] != 0) ? p[indv[1]] : T{}};
 }
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<4>, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::None<4>, int32_t stride)
+  -> Vec<4, T> {
   return Vec<4, T>{p[0], p[stride], p[2 * stride], p[3 * stride]};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<4>, Vec<4, int32_t> i) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, int32_t> i)
+  -> Vec<4, T> {
   return Vec<4, T>{p[i[0]], p[i[1]], p[i[2]], p[i[3]]};
 }
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<4, sizeof(T)> i, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> i,
+                         int32_t stride) -> Vec<4, T> {
   return Vec<4, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[stride] : T{},
                    (i.m[2] != 0) ? p[2 * stride] : T{},
                    (i.m[3] != 0) ? p[3 * stride] : T{}};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<4, sizeof(T)> i,
-       Vec<4, int> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> i,
+                           Vec<4, int> indv) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[indv[0]] : T{}, (i.m[1] != 0) ? p[indv[1]] : T{},
     (i.m[2] != 0) ? p[indv[2]] : T{}, (i.m[3] != 0) ? p[indv[3]] : T{}};
@@ -1055,24 +1027,24 @@ gather(const T *p, mask::Vector<4, sizeof(T)> i,
 #ifdef __AVX__ // no AVX2, but AVX
 // fallback 256-bit gather
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<4>, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::None<4>, int32_t stride)
+  -> Vec<4, T> {
   return Vec<4, T>{p[0], p[stride], p[2 * stride], p[3 * stride]};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<4>, Vec<4, int32_t> i) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, int32_t> i)
+  -> Vec<4, T> {
   return Vec<4, T>{p[i[0]], p[i[1]], p[i[2]], p[i[3]]};
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::None<4>, Vec<4, int64_t> i) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, int64_t> i)
+  -> Vec<4, T> {
   return Vec<4, T>{p[i[0]], p[i[1]], p[i[2]], p[i[3]]};
 }
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<4, sizeof(T)> i, int32_t stride) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> i,
+                         int32_t stride) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[0] : T{},
     (i.m[1] != 0) ? p[stride] : T{},
@@ -1081,9 +1053,8 @@ load(const T *p, mask::Vector<4, sizeof(T)> i, int32_t stride) -> Vec<4, T> {
   };
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<4, sizeof(T)> i,
-       Vec<4, int32_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> i,
+                           Vec<4, int32_t> indv) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[indv[0]] : T{},
     (i.m[1] != 0) ? p[indv[1]] : T{},
@@ -1092,9 +1063,8 @@ gather(const T *p, mask::Vector<4, sizeof(T)> i,
   };
 }
 template <typename T>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<4, sizeof(T)> i,
-       Vec<4, int64_t> indv) -> Vec<4, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> i,
+                           Vec<4, int64_t> indv) -> Vec<4, T> {
   return Vec<4, T>{
     (i.m[0] != 0) ? p[indv[0]] : T{},
     (i.m[1] != 0) ? p[indv[1]] : T{},
@@ -1107,8 +1077,8 @@ gather(const T *p, mask::Vector<4, sizeof(T)> i,
 #endif // no AVX2
 #ifdef __AVX__
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<4, sizeof(T)> i) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> i)
+  -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, double>>(_mm256_maskload_pd(p, i));
   else if constexpr (sizeof(T) == 8)
@@ -1121,8 +1091,8 @@ load(const T *p, mask::Vector<4, sizeof(T)> i) -> Vec<4, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<8, sizeof(T)> i) -> Vec<8, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<8, sizeof(T)> i)
+  -> Vec<8, T> {
   if constexpr (std::same_as<T, float>)
     return std::bit_cast<Vec<8, float>>(_mm256_maskload_ps(p, i));
   else if constexpr (sizeof(T) == 4)
@@ -1130,8 +1100,7 @@ load(const T *p, mask::Vector<8, sizeof(T)> i) -> Vec<8, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm256_maskstore_pd(p, i, std::bit_cast<__m256d>(x));
   else if constexpr (sizeof(T) == 8)
@@ -1143,8 +1112,7 @@ store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<8, sizeof(T)> i, Vec<8, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<8, sizeof(T)> i, Vec<8, T> x) {
   if constexpr (std::same_as<T, float>)
     _mm256_maskstore_ps(p, i, std::bit_cast<__m256>(x));
   else if constexpr (sizeof(T) == 4)
@@ -1153,8 +1121,8 @@ store(T *p, mask::Vector<8, sizeof(T)> i, Vec<8, T> x) {
 }
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<2, sizeof(T)> i) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> i)
+  -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, double>>(_mm_maskload_pd(p, i));
   else if constexpr (sizeof(T) == 8)
@@ -1163,8 +1131,7 @@ load(const T *p, mask::Vector<2, sizeof(T)> i) -> Vec<2, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
     _mm_maskstore_pd(p, i, std::bit_cast<__m128d>(x));
   else if constexpr (sizeof(T) == 8)
@@ -1174,32 +1141,31 @@ store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
 
 // we need 256 bit fallback scatters
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::None<4>, Vec<4, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x, int32_t stride) {
   p[0] = x[0];
   p[stride] = x[1];
   p[2 * stride] = x[2];
   p[3 * stride] = x[3];
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::None<4>, Vec<4, T> x, Vec<4, int32_t> i) {
+TRIVIAL inline void scatter(T *p, mask::None<4>, Vec<4, T> x,
+                            Vec<4, int32_t> i) {
   p[i[0]] = x[0];
   p[i[1]] = x[1];
   p[i[2]] = x[2];
   p[i[3]] = x[3];
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x,
+                          int32_t stride) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[stride] = x[1];
   if (i.m[2] != 0) p[2 * stride] = x[2];
   if (i.m[3] != 0) p[3 * stride] = x[3];
 }
 template <typename T>
-TRIVIAL inline void
-scatter(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x, Vec<4, int32_t> indv) {
+TRIVIAL inline void scatter(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x,
+                            Vec<4, int32_t> indv) {
   if (i.m[0] != 0) p[indv[0]] = x[0];
   if (i.m[1] != 0) p[indv[1]] = x[1];
   if (i.m[2] != 0) p[indv[2]] = x[2];
@@ -1207,26 +1173,24 @@ scatter(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x, Vec<4, int32_t> indv) {
 }
 #else // No AVX
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<2, sizeof(T)> i) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> i)
+  -> Vec<2, T> {
   return Vec<2, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[1] : T{}};
 }
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<4, sizeof(T)> i) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> i)
+  -> Vec<4, T> {
   return Vec<4, T>{(i.m[0] != 0) ? p[0] : T{}, (i.m[1] != 0) ? p[1] : T{},
                    (i.m[2] != 0) ? p[2] : T{}, (i.m[3] != 0) ? p[3] : T{}};
 }
 
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[1] = x[1];
 }
 template <typename T>
-TRIVIAL inline void
-store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
   if (i.m[0] != 0) p[0] = x[0];
   if (i.m[1] != 0) p[1] = x[1];
   if (i.m[2] != 0) p[2] = x[2];
@@ -1237,8 +1201,7 @@ store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
 #endif // No AVX512VL
 #ifdef __AVX__
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<4>) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::None<4>) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>) {
     return std::bit_cast<Vec<4, double>>(_mm256_loadu_pd(p));
   } else if constexpr (sizeof(T) == 8) {
@@ -1262,8 +1225,7 @@ load(const T *p, mask::None<4>) -> Vec<4, T> {
   } else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *p, mask::None<4>,
-                                                          Vec<4, T> x) {
+TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>) {
     __m256d xd = std::bit_cast<__m256d>(x);
     _mm256_storeu_pd(p, xd);
@@ -1324,8 +1286,7 @@ TRIVIAL inline void store(T *p, mask::None<4>,
 #else // NO AVX:
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<4>) -> Vec<4, T> {
+TRIVIAL inline auto load(const T *p, mask::None<4>) -> Vec<4, T> {
   if constexpr (std::same_as<T, float>)
     return std::bit_cast<Vec<4, float>>(_mm_loadu_ps(p));
   else if constexpr (sizeof(T) == 4)
@@ -1333,8 +1294,7 @@ load(const T *p, mask::None<4>) -> Vec<4, T> {
   else static_assert(false);
 }
 template <typename T>
-TRIVIAL inline void store(T *p, mask::None<4>,
-                                                          Vec<4, T> x) {
+TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x) {
   if constexpr (std::same_as<T, float>)
     _mm_storeu_pd(p, std::bit_cast<__m128d>(x));
   else if constexpr (sizeof(T) == 4) {
@@ -1347,8 +1307,7 @@ TRIVIAL inline void store(T *p, mask::None<4>,
 #endif // AVX
 
 template <typename T>
-TRIVIAL inline auto
-load(const T *p, mask::None<2>) -> Vec<2, T> {
+TRIVIAL inline auto load(const T *p, mask::None<2>) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>) {
     double const *dp = p;
     return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(dp));
@@ -1364,8 +1323,7 @@ load(const T *p, mask::None<2>) -> Vec<2, T> {
 }
 
 template <typename T>
-TRIVIAL inline void store(T *p, mask::None<2>,
-                                                          Vec<2, T> x) {
+TRIVIAL inline void store(T *p, mask::None<2>, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>) {
     double *dp = p;
     __m128d xpd = std::bit_cast<__m128d>(x);
@@ -1400,24 +1358,24 @@ template auto load<int64_t>(const int64_t *, mask::Bit<8>) -> Vec<8, int64_t>;
 template void store<int64_t>(int64_t *, mask::None<8>, Vec<8, int64_t>);
 template void store<int64_t>(int64_t *, mask::Bit<8>, Vec<8, int64_t>);
 
-template auto load<int64_t>(const int64_t *, mask::None<2>,
-                            int32_t) -> Vec<2, int64_t>;
-template auto load<int64_t>(const int64_t *, mask::Bit<2>,
-                            int32_t) -> Vec<2, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::None<2>, int32_t)
+  -> Vec<2, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<2>, int32_t)
+  -> Vec<2, int64_t>;
 template void store<int64_t>(int64_t *, mask::None<2>, Vec<2, int64_t>,
                              int32_t);
 template void store<int64_t>(int64_t *, mask::Bit<2>, Vec<2, int64_t>, int32_t);
-template auto load<int64_t>(const int64_t *, mask::None<4>,
-                            int32_t) -> Vec<4, int64_t>;
-template auto load<int64_t>(const int64_t *, mask::Bit<4>,
-                            int32_t) -> Vec<4, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::None<4>, int32_t)
+  -> Vec<4, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<4>, int32_t)
+  -> Vec<4, int64_t>;
 template void store<int64_t>(int64_t *, mask::None<4>, Vec<4, int64_t>,
                              int32_t);
 template void store<int64_t>(int64_t *, mask::Bit<4>, Vec<4, int64_t>, int32_t);
-template auto load<int64_t>(const int64_t *, mask::None<8>,
-                            int32_t) -> Vec<8, int64_t>;
-template auto load<int64_t>(const int64_t *, mask::Bit<8>,
-                            int32_t) -> Vec<8, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::None<8>, int32_t)
+  -> Vec<8, int64_t>;
+template auto load<int64_t>(const int64_t *, mask::Bit<8>, int32_t)
+  -> Vec<8, int64_t>;
 template void store<int64_t>(int64_t *, mask::None<8>, Vec<8, int64_t>,
                              int32_t);
 template void store<int64_t>(int64_t *, mask::Bit<8>, Vec<8, int64_t>, int32_t);
@@ -1425,91 +1383,83 @@ template void store<int64_t>(int64_t *, mask::Bit<8>, Vec<8, int64_t>, int32_t);
 
 #else // not __x86_64__
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-load(const T *p, mask::None<W>) -> Vec<W, T> {
+TRIVIAL inline auto load(const T *p, mask::None<W>) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[w];
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline void store(T *p, mask::None<W>,
-                                                          Vec<W, T> x) {
+TRIVIAL inline void store(T *p, mask::None<W>, Vec<W, T> x) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) p[w] = x[w];
 }
 
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<W, 4> i) -> Vec<W, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<W, 4> i) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[w] : T{};
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<W, 8> i) -> Vec<W, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<W, 8> i) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[w] : T{};
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline void
-store(T *p, mask::Vector<W, 4> i, Vec<W, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<W, 4> i, Vec<W, T> x) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w] = x[w];
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline void
-store(T *p, mask::Vector<W, 8> i, Vec<W, T> x) {
+TRIVIAL inline void store(T *p, mask::Vector<W, 8> i, Vec<W, T> x) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w] = x[w];
 }
 
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-load(const T *p, mask::None<W>, int32_t stride) -> Vec<W, T> {
+TRIVIAL inline auto load(const T *p, mask::None<W>, int32_t stride)
+  -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[w * stride];
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-gather(const T *p, mask::None<W>, Vec<W, int32_t> indv) -> Vec<W, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<W>, Vec<W, int32_t> indv)
+  -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[indv[w]];
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-gather(const T *p, mask::None<W>, Vec<W, int64_t> indv) -> Vec<W, T> {
+TRIVIAL inline auto gather(const T *p, mask::None<W>, Vec<W, int64_t> indv)
+  -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = p[indv[w]];
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline void
-store(T *p, mask::None<W>, Vec<W, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::None<W>, Vec<W, T> x, int32_t stride) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) p[w * stride] = x[w];
 }
 template <typename T, ptrdiff_t W, std::integral I>
-TRIVIAL inline void
-scatter(T *p, mask::None<W>, Vec<W, T> x, Vec<W, I> indv) {
+TRIVIAL inline void scatter(T *p, mask::None<W>, Vec<W, T> x, Vec<W, I> indv) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) p[indv[w]] = x[w];
 }
 
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<W, 4> i, int32_t stride) -> Vec<W, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<W, 4> i, int32_t stride)
+  -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
@@ -1517,8 +1467,8 @@ load(const T *p, mask::Vector<W, 4> i, int32_t stride) -> Vec<W, T> {
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-load(const T *p, mask::Vector<W, 8> i, int32_t stride) -> Vec<W, T> {
+TRIVIAL inline auto load(const T *p, mask::Vector<W, 8> i, int32_t stride)
+  -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
@@ -1526,60 +1476,58 @@ load(const T *p, mask::Vector<W, 8> i, int32_t stride) -> Vec<W, T> {
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<W, sizeof(T)> i,
-       Vec<W, int32_t> indv) -> Vec<W, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<W, sizeof(T)> i,
+                           Vec<W, int32_t> indv) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[indv[w]] : T{};
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-gather(const T *p, mask::Vector<W, sizeof(T)> i,
-       Vec<W, int64_t> indv) -> Vec<W, T> {
+TRIVIAL inline auto gather(const T *p, mask::Vector<W, sizeof(T)> i,
+                           Vec<W, int64_t> indv) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[indv[w]] : T{};
   return ret;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline void
-store(T *p, mask::Vector<W, 4> i, Vec<W, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Vector<W, 4> i, Vec<W, T> x,
+                          int32_t stride) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w * stride] = x[w];
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline void
-store(T *p, mask::Vector<W, 8> i, Vec<W, T> x, int32_t stride) {
+TRIVIAL inline void store(T *p, mask::Vector<W, 8> i, Vec<W, T> x,
+                          int32_t stride) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w * stride] = x[w];
 }
 template <typename T, ptrdiff_t W, std::integral I>
-TRIVIAL inline void
-scatter(T *p, mask::Vector<W, sizeof(T)> i, Vec<W, T> x, Vec<W, I> indv) {
+TRIVIAL inline void scatter(T *p, mask::Vector<W, sizeof(T)> i, Vec<W, T> x,
+                            Vec<W, I> indv) {
   POLYMATHFULLUNROLL
   for (ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[indv[w]] = x[w];
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W, sizeof(T)> m) {
+TRIVIAL inline auto fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
+                          mask::Vector<W, sizeof(T)> m) {
   return m.m ? (a * b + c) : c;
 }
 template <typename T, ptrdiff_t W>
-TRIVIAL inline auto
-fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c, mask::Vector<W, sizeof(T)> m) {
+TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
+                           mask::Vector<W, sizeof(T)> m) {
   return m.m ? (c - a * b) : c;
 }
 
 #endif
 #ifndef __AVX512F__
 template <typename T, ptrdiff_t W>
-constexpr auto select(mask::Vector<W, sizeof(T)> m, Vec<W, T> x,
-                      Vec<W, T> y) -> Vec<W, T> {
+TRIVIAL constexpr auto select(mask::Vector<W, sizeof(T)> m, Vec<W, T> x,
+                              Vec<W, T> y) -> Vec<W, T> {
   return m.m ? x : y;
 }
 #endif
@@ -1623,13 +1571,15 @@ TRIVIAL inline constexpr auto crz(Vec<W, T> v) {
 
 #else
 
-template <ptrdiff_t W, std::integral T> constexpr auto clz(Vec<W, T> v) {
+template <ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto clz(Vec<W, T> v) {
   Vec<W, T> ret;
   for (ptrdiff_t w = 0; w < W; ++w)
     ret[w] = T(std::countl_zero(std::make_unsigned_t<T>(v[w])));
   return ret;
 }
-template <ptrdiff_t W, std::integral T> constexpr auto crz(Vec<W, T> v) {
+template <ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto crz(Vec<W, T> v) {
   Vec<W, T> ret;
   for (ptrdiff_t w = 0; w < W; ++w)
     ret[w] = T(std::countr_zero(std::make_unsigned_t<T>(v[w])));
@@ -1655,7 +1605,8 @@ consteval auto VectorDivRem() -> std::array<ptrdiff_t, 3> {
     return {V, L / V, L % V};
   } else return {W, L / W, L % W};
 };
-template <typename T, ptrdiff_t R, ptrdiff_t C> constexpr auto VecWidth() {
+template <typename T, ptrdiff_t R, ptrdiff_t C>
+TRIVIAL constexpr auto VecWidth() {
   if constexpr (C > 1) return VectorDivRem<C, T>()[0];
   else if constexpr (C == 1)
     if constexpr (R >= 1) return VectorDivRem<R, T>()[0];

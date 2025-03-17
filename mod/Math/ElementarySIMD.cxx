@@ -3,6 +3,7 @@ module;
 #else
 #pragma once
 #endif
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include <bit>
 #include <cmath>
@@ -310,8 +311,8 @@ constexpr auto subnormal_exp(double, std::integral_constant<int, 2>) -> double {
 constexpr auto subnormal_exp(float, std::integral_constant<int, 2>) -> float {
   return -126.00001F;
 }
-constexpr auto subnormal_exp(double,
-                             std::integral_constant<int, 10>) -> double {
+constexpr auto subnormal_exp(double, std::integral_constant<int, 10>)
+  -> double {
   return -307.6526555685887;
 }
 constexpr auto subnormal_exp(float, std::integral_constant<int, 10>) -> float {
@@ -377,20 +378,20 @@ constexpr auto fmadd(double x, double y, double z) -> double {
 #endif
 }
 
-TRIVIAL constexpr auto
-expm1b_kernel(std::integral_constant<int, 2>, double x) -> double {
+TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 2>, double x)
+  -> double {
   return x * fmadd(fmadd(fmadd(0.009618130135925114, x, 0.055504115022757844),
                          x, 0.2402265069590989),
                    x, 0.6931471805599393);
 }
-TRIVIAL constexpr auto
-expm1b_kernel(std::integral_constant<int, 3>, double x) -> double {
+TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 3>, double x)
+  -> double {
   return x * fmadd(fmadd(fmadd(0.04166666762124105, x, 0.1666666704849642), x,
                          0.49999999999999983),
                    x, 0.9999999999999998);
 }
-TRIVIAL constexpr auto
-expm1b_kernel(std::integral_constant<int, 10>, double x) -> double {
+TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 10>, double x)
+  -> double {
   return x * fmadd(fmadd(fmadd(fmadd(0.5393833837413015, x, 1.1712561359457612),
                                x, 2.0346785922926713),
                          x, 2.6509490552382577),
@@ -417,26 +418,26 @@ template <int B> constexpr auto exp_impl(double x) -> double {
 }
 
 template <ptrdiff_t W>
-TRIVIAL constexpr auto
-expm1b_kernel(std::integral_constant<int, 2>,
-              simd::Vec<W, double> x) -> simd::Vec<W, double> {
+TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 2>,
+                                     simd::Vec<W, double> x)
+  -> simd::Vec<W, double> {
   return x * (((0.009618130135925114 * x + 0.055504115022757844) * x +
                0.2402265069590989) *
               x * 0.6931471805599393);
 }
 template <ptrdiff_t W>
-TRIVIAL constexpr auto
-expm1b_kernel(std::integral_constant<int, 3>,
-              simd::Vec<W, double> x) -> simd::Vec<W, double> {
+TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 3>,
+                                     simd::Vec<W, double> x)
+  -> simd::Vec<W, double> {
   return x * (((0.04166666762124105 * x + 0.1666666704849642) * x +
                0.49999999999999983) *
                 x +
               0.9999999999999998);
 }
 template <ptrdiff_t W>
-TRIVIAL constexpr auto
-expm1b_kernel(std::integral_constant<int, 10>,
-              simd::Vec<W, double> x) -> simd::Vec<W, double> {
+TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 10>,
+                                     simd::Vec<W, double> x)
+  -> simd::Vec<W, double> {
   return x * ((((0.5393833837413015 * x + 1.1712561359457612) * x +
                 2.0346785922926713) *
                  x +
@@ -475,8 +476,8 @@ constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return simd::select<double>(altmask, alt, z);
 }
 template <int B, ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
-constexpr auto
-exp_impl(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+constexpr auto exp_impl(simd::Unroll<R, U, W, double> x)
+  -> simd::Unroll<R, U, W, double> {
   if constexpr (R * U == 1) {
     return {exp_impl_core<B, W>(x.vec_)};
   } else {
@@ -536,18 +537,18 @@ constexpr auto exp10(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return exp_impl_core<10, W>(x);
 }
 template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
-constexpr auto
-exp(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+constexpr auto exp(simd::Unroll<R, U, W, double> x)
+  -> simd::Unroll<R, U, W, double> {
   return exp_impl<3>(x);
 }
 template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
-constexpr auto
-exp2(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+constexpr auto exp2(simd::Unroll<R, U, W, double> x)
+  -> simd::Unroll<R, U, W, double> {
   return exp_impl<2>(x);
 }
 template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
-constexpr auto
-exp10(simd::Unroll<R, U, W, double> x) -> simd::Unroll<R, U, W, double> {
+constexpr auto exp10(simd::Unroll<R, U, W, double> x)
+  -> simd::Unroll<R, U, W, double> {
   return exp_impl<10>(x);
 }
 

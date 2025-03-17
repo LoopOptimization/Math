@@ -417,8 +417,8 @@ public:
     }
     constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) const -> Solution {
       return {.simplex_ = simplex_,
-              .skipped_vars_ = length(ptrdiff_t(skipped_vars_) + r.b),
-              .num_vars_ = length(ptrdiff_t(skipped_vars_) + r.e)};
+              .skipped_vars_ = length(ptrdiff_t(skipped_vars_) + r.b_),
+              .num_vars_ = length(ptrdiff_t(skipped_vars_) + r.e_)};
     }
     [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
       return ptrdiff_t(num_vars_ - skipped_vars_);

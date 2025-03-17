@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
@@ -35,11 +36,11 @@ template <ptrdiff_t U, ptrdiff_t W = 1, typename M = mask::None<W>>
 struct Unroll {
   ptrdiff_t index_;
   [[no_unique_address]] M mask_{};
-  explicit constexpr operator ptrdiff_t() const { return index_; }
-  explicit constexpr operator bool() const { return bool(mask_); }
+  TRIVIAL explicit constexpr operator ptrdiff_t() const { return index_; }
+  TRIVIAL explicit constexpr operator bool() const { return bool(mask_); }
 
   template <std::integral I>
-  constexpr operator ::simd::Unroll<1, U, W, I>() const {
+  TRIVIAL constexpr operator ::simd::Unroll<1, U, W, I>() const {
     if constexpr (U != 1) {
       ::simd::Unroll<1, U, W, I> ret;
       Vec<W, I> r{::simd::range<W, I>()},
@@ -51,7 +52,7 @@ struct Unroll {
   }
 #ifdef __AVX512F__
   template <ptrdiff_t S>
-  constexpr auto sub()
+  TRIVIAL constexpr auto sub()
   requires(std::same_as<M, mask::Bit<W>>)
   {
     static_assert((S <= W) && (U == 1));
@@ -62,10 +63,10 @@ struct Unroll {
 #endif
 
 private:
-  friend constexpr auto operator+(Unroll a, ptrdiff_t b) -> Unroll {
+  TRIVIAL friend constexpr auto operator+(Unroll a, ptrdiff_t b) -> Unroll {
     return {b + a.index_, a.mask_};
   }
-  friend constexpr auto operator==(Unroll x, ptrdiff_t y) {
+  TRIVIAL friend constexpr auto operator==(Unroll x, ptrdiff_t y) {
     if constexpr (W == 1) {
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, int64_t> ret;
@@ -84,7 +85,7 @@ private:
       return ::simd::Unroll<1, 1, W, int64_t>{
         range<W, int64_t>() == vbroadcast<W, int64_t>(y - x.index_)};
   }
-  friend constexpr auto operator!=(Unroll x, ptrdiff_t y) {
+  TRIVIAL friend constexpr auto operator!=(Unroll x, ptrdiff_t y) {
     if constexpr (W == 1) {
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, int64_t> ret;
@@ -104,7 +105,7 @@ private:
         range<W, int64_t>() != vbroadcast<W, int64_t>(y - x.index_)};
   }
 
-  friend constexpr auto operator<(Unroll x, ptrdiff_t y) {
+  TRIVIAL friend constexpr auto operator<(Unroll x, ptrdiff_t y) {
     if constexpr (W == 1) {
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, int64_t> ret;
@@ -124,7 +125,7 @@ private:
         range<W, int64_t>() < vbroadcast<W, int64_t>(y - x.index_)};
   }
 
-  friend constexpr auto operator>(Unroll x, ptrdiff_t y) {
+  TRIVIAL friend constexpr auto operator>(Unroll x, ptrdiff_t y) {
     if constexpr (W == 1) {
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, int64_t> ret;
@@ -144,7 +145,7 @@ private:
         range<W, int64_t>() > vbroadcast<W, int64_t>(y - x.index_)};
   }
 
-  friend constexpr auto operator<=(Unroll x, ptrdiff_t y) {
+  TRIVIAL friend constexpr auto operator<=(Unroll x, ptrdiff_t y) {
     if constexpr (W == 1) {
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, int64_t> ret;
@@ -164,7 +165,7 @@ private:
         range<W, int64_t>() <= vbroadcast<W, int64_t>(y - x.index_)};
   }
 
-  friend constexpr auto operator>=(Unroll x, ptrdiff_t y) {
+  TRIVIAL friend constexpr auto operator>=(Unroll x, ptrdiff_t y) {
     if constexpr (W == 1) {
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, int64_t> ret;
@@ -194,8 +195,8 @@ TRIVIAL constexpr auto unrollmask(ptrdiff_t L, ptrdiff_t i) {
 };
 #ifdef __AVX512VL__
 template <ptrdiff_t W>
-TRIVIAL constexpr auto
-tailmask(ptrdiff_t i, ptrdiff_t m) -> Unroll<1, W, mask::Bit<W>> {
+TRIVIAL constexpr auto tailmask(ptrdiff_t i, ptrdiff_t m)
+  -> Unroll<1, W, mask::Bit<W>> {
   return {i, mask::createSmallPositive<W>(m)};
 }
 #else

@@ -348,20 +348,20 @@ constexpr void zeroWithRowOperation(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
     Aik /= g;
     Ajk /= g;
     g = 0;
-    for (ptrdiff_t l = 0; l < skip.b; ++l) {
+    for (ptrdiff_t l = 0; l < skip.b_; ++l) {
       int64_t Ail = Ajk * A[i, l] - Aik * A[j, l];
       A[i, l] = Ail;
       g = gcd(Ail, g);
     }
-    for (ptrdiff_t l = skip.e; l < A.numCol(); ++l) {
+    for (ptrdiff_t l = skip.e_; l < A.numCol(); ++l) {
       int64_t Ail = Ajk * A[i, l] - Aik * A[j, l];
       A[i, l] = Ail;
       g = gcd(Ail, g);
     }
     if (g > 1) {
-      for (ptrdiff_t l = 0; l < skip.b; ++l)
+      for (ptrdiff_t l = 0; l < skip.b_; ++l)
         if (int64_t Ail = A[i, l]) A[i, l] = Ail / g;
-      for (ptrdiff_t l = skip.e; l < A.numCol(); ++l)
+      for (ptrdiff_t l = skip.e_; l < A.numCol(); ++l)
         if (int64_t Ail = A[i, l]) A[i, l] = Ail / g;
     }
   }

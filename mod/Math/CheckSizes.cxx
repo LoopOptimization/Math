@@ -3,6 +3,7 @@ module;
 #else
 #pragma once
 #endif
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
@@ -30,8 +31,7 @@ namespace math {
 #endif
 using utils::invariant;
 // inputs must be `ptrdiff_t` or `std::integral_constant<ptrdiff_t,value>`
-template <typename X, typename Y>
-TRIVIAL constexpr auto check_sizes(X x, Y y) {
+template <typename X, typename Y> TRIVIAL constexpr auto check_sizes(X x, Y y) {
   if constexpr (std::same_as<ptrdiff_t, X>) {
     if constexpr (std::same_as<ptrdiff_t, Y>) {
       invariant(x, y);

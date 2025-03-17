@@ -3,15 +3,18 @@ module;
 #else
 #pragma once
 #endif
+#include "Macros.hxx"
 #ifndef USE_MODULE
+#include "Math/ArrayConcepts.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <type_traits>
-
-#include "Math/ArrayConcepts.cxx"
-#include "SIMD/SIMD.cxx"
 #else
 export module Comparisons;
 import ArrayConcepts;
@@ -40,8 +43,8 @@ namespace math {
 // constexpr auto anyNEZero(const auto &x) -> bool {
 //   return std::any_of(x.begin(), x.end(), [](int64_t y) { return y != 0; });
 // }
-[[gnu::always_inline, gnu::flatten]] constexpr auto
-any(const AbstractTensor auto &A, const auto &f) -> bool {
+[[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A, const auto &f)
+  -> bool {
   auto [M, N] = shape(A);
   using TA = std::remove_cvref_t<decltype(A)>;
   using T = utils::eltype_t<TA>;
@@ -138,13 +141,13 @@ constexpr auto countNonZero(const auto &x) -> ptrdiff_t {
   // return std::ranges::count_if(x, [](auto x) { return x != 0; });
 }
 
-constexpr auto allZero(const AbstractTensor auto &A) -> bool {
+TRIVIAL constexpr auto allZero(const AbstractTensor auto &A) -> bool {
   return !anyNEZero(A);
 }
-constexpr auto allLEZero(const AbstractTensor auto &A) -> bool {
+TRIVIAL constexpr auto allLEZero(const AbstractTensor auto &A) -> bool {
   return !anyGTZero(A);
 }
-constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
+TRIVIAL constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
   return !anyLTZero(A);
 }
 

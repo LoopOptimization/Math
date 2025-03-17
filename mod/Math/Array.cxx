@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#include "Macros.hxx"
 #include "Owner.hxx"
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
@@ -99,8 +100,8 @@ struct MATH_GSL_POINTER MutArray;
 // 3.b.ii. Vector indexing, discontig, mask
 // all of the above for `T*` and `const T*`
 template <typename T, typename P, typename S, typename I>
-[[gnu::flatten, gnu::always_inline]] constexpr auto
-index(P *ptr, S shape, I i) noexcept -> decltype(auto) {
+TRIVIAL [[gnu::flatten]] constexpr auto index(P *ptr, S shape, I i) noexcept
+  -> decltype(auto) {
   auto offset = calcOffset(shape, i);
   auto new_dim = calcNewDim(shape, i);
   invariant(ptr != nullptr);
@@ -118,8 +119,8 @@ index(P *ptr, S shape, I i) noexcept -> decltype(auto) {
 }
 // for (row/col)vectors, we drop the row/col, essentially broadcasting
 template <typename T, typename P, typename S, typename R, typename C>
-[[gnu::flatten, gnu::always_inline]] constexpr auto
-index(P *ptr, S shape, R wr, C wc) noexcept -> decltype(auto) {
+TRIVIAL [[gnu::flatten]] constexpr auto index(P *ptr, S shape, R wr,
+                                              C wc) noexcept -> decltype(auto) {
   if constexpr (MatrixDimension<S>) {
     auto r = unwrapRow(wr);
     auto c = unwrapCol(wc);
@@ -164,58 +165,59 @@ struct SliceIterator {
   // constexpr auto operator=(const SliceIterator &) -> SliceIterator & =
   // default;
   // constexpr auto operator*() -> value_type;
-  constexpr auto operator*() const -> value_type;
-  constexpr auto operator++() -> SliceIterator & {
+  TRIVIAL constexpr auto operator*() const -> value_type;
+  TRIVIAL constexpr auto operator++() -> SliceIterator & {
     idx_++;
     return *this;
   }
-  constexpr auto operator++(int) -> SliceIterator {
+  TRIVIAL constexpr auto operator++(int) -> SliceIterator {
     SliceIterator ret{*this};
     ++(*this);
     return ret;
   }
-  constexpr auto operator--() -> SliceIterator & {
+  TRIVIAL constexpr auto operator--() -> SliceIterator & {
     idx_--;
     return *this;
   }
-  constexpr auto operator--(int) -> SliceIterator {
+  TRIVIAL constexpr auto operator--(int) -> SliceIterator {
     SliceIterator ret{*this};
     --(*this);
     return ret;
   }
-  friend constexpr auto operator-(SliceIterator a,
-                                  SliceIterator b) -> ptrdiff_t {
+  TRIVIAL friend constexpr auto operator-(SliceIterator a, SliceIterator b)
+    -> ptrdiff_t {
     return a.idx_ - b.idx_;
   }
-  friend constexpr auto operator+(SliceIterator a,
-                                  ptrdiff_t i) -> SliceIterator {
+  TRIVIAL friend constexpr auto operator+(SliceIterator a, ptrdiff_t i)
+    -> SliceIterator {
     return {a.data_, a.len_, a.row_stride_, a.idx_ + i};
   }
-  friend constexpr auto operator==(SliceIterator a, SliceIterator b) -> bool {
+  TRIVIAL friend constexpr auto operator==(SliceIterator a, SliceIterator b)
+    -> bool {
     return a.idx_ == b.idx_;
   }
-  friend constexpr auto operator<=>(SliceIterator a,
-                                    SliceIterator b) -> std::strong_ordering {
+  TRIVIAL friend constexpr auto operator<=>(SliceIterator a, SliceIterator b)
+    -> std::strong_ordering {
     return a.idx_ <=> b.idx_;
   }
-  friend constexpr auto operator==(SliceIterator a, Row<> r) -> bool
+  TRIVIAL friend constexpr auto operator==(SliceIterator a, Row<> r) -> bool
   requires(!Column)
   {
     return a.idx_ == r;
   }
-  friend constexpr auto operator<=>(SliceIterator a,
-                                    Row<> r) -> std::strong_ordering
+  TRIVIAL friend constexpr auto operator<=>(SliceIterator a, Row<> r)
+    -> std::strong_ordering
   requires(!Column)
   {
     return a.idx_ <=> r;
   }
-  friend constexpr auto operator==(SliceIterator a, Col<> r) -> bool
+  TRIVIAL friend constexpr auto operator==(SliceIterator a, Col<> r) -> bool
   requires(Column)
   {
     return a.idx_ == r;
   }
-  friend constexpr auto operator<=>(SliceIterator a,
-                                    Col<> r) -> std::strong_ordering
+  TRIVIAL friend constexpr auto operator<=>(SliceIterator a, Col<> r)
+    -> std::strong_ordering
   requires(Column)
   {
     return a.idx_ <=> r;
@@ -228,15 +230,16 @@ struct SliceRange {
   [[no_unique_address]] Length<L> len_;
   [[no_unique_address]] RowStride<X> row_stride_;
   ptrdiff_t stop_;
-  [[nodiscard]] constexpr auto begin() const -> SliceIterator<T, Column, L, X> {
+  TRIVIAL [[nodiscard]] constexpr auto begin() const
+    -> SliceIterator<T, Column, L, X> {
     return {data_, len_, row_stride_, 0};
   }
-  [[nodiscard]] constexpr auto end() const {
+  TRIVIAL [[nodiscard]] constexpr auto end() const {
     if constexpr (Column) return col(stop_);
     else return row(stop_);
   }
   template <std::invocable<SliceRange> F>
-  constexpr auto operator|(F &&f) const {
+  TRIVIAL constexpr auto operator|(F &&f) const {
     return std::forward<F>(f)(*this);
   }
 };
@@ -264,58 +267,62 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     isdense || std::same_as<S, StridedRange<S::nrow, S::nstride>>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
-  explicit constexpr Array() = default;
-  constexpr Array(const Array &) = default;
-  constexpr Array(Array &&) noexcept = default;
-  constexpr auto operator=(const Array &) -> Array & = default;
-  constexpr auto operator=(Array &&) noexcept -> Array & = default;
-  constexpr Array(const storage_type *p, S s) : ptr(p), sz(s) {}
-  constexpr Array(Valid<const storage_type> p, S s) : ptr(p), sz(s) {}
+  TRIVIAL explicit constexpr Array() = default;
+  TRIVIAL constexpr Array(const Array &) = default;
+  TRIVIAL constexpr Array(Array &&) noexcept = default;
+  TRIVIAL constexpr auto operator=(const Array &) -> Array & = default;
+  TRIVIAL constexpr auto operator=(Array &&) noexcept -> Array & = default;
+  TRIVIAL constexpr Array(const storage_type *p, S s) : ptr(p), sz(s) {}
+  TRIVIAL constexpr Array(Valid<const storage_type> p, S s) : ptr(p), sz(s) {}
   template <ptrdiff_t R, ptrdiff_t C>
-  constexpr Array(const storage_type *p, Row<R> r, Col<C> c)
+  TRIVIAL constexpr Array(const storage_type *p, Row<R> r, Col<C> c)
     : ptr(p), sz(S{r, c}) {}
   template <ptrdiff_t R, ptrdiff_t C>
-  constexpr Array(Valid<const storage_type> p, Row<R> r, Col<C> c)
+  TRIVIAL constexpr Array(Valid<const storage_type> p, Row<R> r, Col<C> c)
     : ptr(p), sz(dimension<S>(r, c)) {}
   template <std::convertible_to<S> V>
-  constexpr Array(Array<T, V> a) : ptr(a.data()), sz(a.dim()) {}
+  TRIVIAL constexpr Array(Array<T, V> a) : ptr(a.data()), sz(a.dim()) {}
   template <size_t N>
-  constexpr Array(const std::array<T, N> &a) : ptr(a.data()), sz(length(N)) {}
-  [[nodiscard]] constexpr auto data() const noexcept -> const storage_type * {
+  TRIVIAL constexpr Array(const std::array<T, N> &a)
+    : ptr(a.data()), sz(length(N)) {}
+  TRIVIAL [[nodiscard]] constexpr auto data() const noexcept
+    -> const storage_type * {
     invariant(ptr != nullptr || ptrdiff_t(sz) == 0);
     return ptr;
   }
-  [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> { return ptr; }
+  TRIVIAL [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
+    return ptr;
+  }
 
-  [[nodiscard]] constexpr auto
-  begin() const noexcept -> StridedIterator<const T>
+  TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
+    -> StridedIterator<const T>
   requires(std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
   {
     const storage_type *p = ptr;
     return StridedIterator{p, sz.stride_};
   }
-  [[nodiscard]] constexpr auto begin() const noexcept
+  TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
     -> const storage_type *requires(isdense) { return ptr; }
 
-  [[nodiscard]] constexpr auto end() const noexcept
+  TRIVIAL [[nodiscard]] constexpr auto end() const noexcept
   requires(flatstride)
   {
     return begin() + ptrdiff_t(sz);
   }
-  [[nodiscard]] constexpr auto rbegin() const noexcept
+  TRIVIAL [[nodiscard]] constexpr auto rbegin() const noexcept
   requires(flatstride)
   {
     return std::reverse_iterator(end());
   }
-  [[nodiscard]] constexpr auto rend() const noexcept
+  TRIVIAL [[nodiscard]] constexpr auto rend() const noexcept
   requires(flatstride)
   {
     return std::reverse_iterator(begin());
   }
-  [[nodiscard]] constexpr auto front() const noexcept -> const T & {
+  TRIVIAL [[nodiscard]] constexpr auto front() const noexcept -> const T & {
     return *ptr;
   }
-  [[nodiscard]] constexpr auto back() const noexcept -> const T & {
+  TRIVIAL [[nodiscard]] constexpr auto back() const noexcept -> const T & {
     if constexpr (flatstride) return *(end() - 1);
     else return ptr[(sride(sz) * ptrdiff_t(row(sz))) - 1];
   }
@@ -325,72 +332,75 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   // static constexpr auto slice(Valid<T>, Index<S> auto i){
   //   auto
   // }
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
+  TRIVIAL [[gnu::flatten]] constexpr auto
   operator[](Index<S> auto i) const noexcept -> decltype(auto) {
     return index<T>(ptr, sz, i);
   }
   // for (row/col)vectors, we drop the row/col, essentially broadcasting
   template <class R, class C>
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](R r, C c) const noexcept -> decltype(auto) {
+  TRIVIAL [[gnu::flatten]] constexpr auto operator[](R r, C c) const noexcept
+    -> decltype(auto) {
     return index<T>(ptr, sz, r, c);
   }
   template <size_t I>
-  [[nodiscard]] constexpr auto get() const -> const T &
+  TRIVIAL [[nodiscard]] constexpr auto get() const -> const T &
   requires(VectorDimension<S>)
   {
     return index<T>(ptr, sz, I);
   }
 
-  [[nodiscard]] constexpr auto minRowCol() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto minRowCol() const -> ptrdiff_t {
     return std::min(ptrdiff_t(numRow()), ptrdiff_t(numCol()));
   }
 
-  [[nodiscard]] constexpr auto diag() const noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto diag() const noexcept {
     StridedRange<> r{length(minRowCol()), ++stride(sz)};
     invariant(ptr != nullptr);
     return Array<T, StridedRange<>>{ptr, r};
   }
-  [[nodiscard]] constexpr auto antiDiag() const noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto antiDiag() const noexcept {
     StridedRange<> r{length(minRowCol()), --stride(sz)};
     invariant(ptr != nullptr);
     return Array<T, StridedRange<>>{ptr + ptrdiff_t(Col(sz)) - 1, r};
   }
-  [[nodiscard]] constexpr auto isSquare() const noexcept -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto isSquare() const noexcept -> bool {
     return ptrdiff_t(Row(sz)) == ptrdiff_t(Col(sz));
   }
-  [[nodiscard]] constexpr auto checkSquare() const -> Optional<ptrdiff_t> {
+  TRIVIAL [[nodiscard]] constexpr auto checkSquare() const
+    -> Optional<ptrdiff_t> {
     ptrdiff_t N = ptrdiff_t(numRow());
     if (N != ptrdiff_t(numCol())) return {};
     return N;
   }
 
-  [[nodiscard]] constexpr auto numRow() const noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto numRow() const noexcept {
     if constexpr (RowVectorDimension<S>) return Row<1>{};
     else return row(sz);
   }
-  [[nodiscard]] constexpr auto numCol() const noexcept { return col(sz); }
-  [[nodiscard]] constexpr auto rowStride() const noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto numCol() const noexcept {
+    return col(sz);
+  }
+  TRIVIAL [[nodiscard]] constexpr auto rowStride() const noexcept {
     if constexpr (std::same_as<S, Length<>>) return RowStride<1>{};
     else return stride(sz);
   }
-  [[nodiscard]] constexpr auto empty() const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto empty() const -> bool {
     if constexpr (StaticLength<S>) return S::staticint() == 0;
     else return sz == S{};
   }
-  [[nodiscard]] constexpr auto size() const noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto size() const noexcept {
     if constexpr (StaticLength<S>) return S::staticint();
     else return ptrdiff_t(sz);
   }
-  [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz; }
-  constexpr void clear()
+  TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz; }
+  TRIVIAL constexpr void clear()
   requires(std::same_as<S, Length<>>)
   {
     if constexpr (!std::is_trivially_destructible_v<T>)
       std::destroy_n(ptr, ptrdiff_t(sz));
     sz = S{};
   }
-  [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
+  TRIVIAL [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
     return {*this};
   }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool
@@ -411,10 +421,10 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
         if (r != c && (*this)[r, c] != 0) return false;
     return true;
   }
-  [[nodiscard]] constexpr auto view() const noexcept -> Array<T, S> {
+  TRIVIAL [[nodiscard]] constexpr auto view() const noexcept -> Array<T, S> {
     return *this;
   }
-  [[nodiscard]] constexpr auto flatview() const noexcept
+  TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept
   requires(flatstride)
   {
     auto szf = sz.flat();
@@ -422,8 +432,8 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       ptr, sz.flat()};
   }
 
-  [[nodiscard]] constexpr auto
-  operator==(const Array &other) const noexcept -> bool {
+  [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept
+    -> bool {
     if constexpr (MatrixDimension<S> && !DenseLayout<S>) {
       ptrdiff_t M = ptrdiff_t(other.numRow());
       if ((numRow() != M) || (numCol() != other.numCol())) return false;
@@ -473,7 +483,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     // return std::reduce(begin(), end());
   }
   // interpret a bigger object as smaller
-  template <typename U> [[nodiscard]] auto reinterpretImpl() const {
+  template <typename U> TRIVIAL [[nodiscard]] auto reinterpretImpl() const {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
     static_assert(std::same_as<U, double>);
     if constexpr (std::same_as<U, T>) return *this;
@@ -505,23 +515,23 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       }
     }
   }
-  [[nodiscard]] friend constexpr auto
-  operator<=>(Array x, Array y) -> std::strong_ordering {
+  [[nodiscard]] friend constexpr auto operator<=>(Array x, Array y)
+    -> std::strong_ordering {
     ptrdiff_t M = x.size();
     ptrdiff_t N = y.size();
     for (ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
       if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
     return M <=> N;
   };
-  [[nodiscard]] constexpr auto
-  eachRow() const -> SliceRange<const T, false, S::ncol, S::nstride>
+  TRIVIAL [[nodiscard]] constexpr auto eachRow() const
+    -> SliceRange<const T, false, S::ncol, S::nstride>
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(col(this->sz)), stride(this->sz),
             ptrdiff_t(row(this->sz))};
   }
-  [[nodiscard]] constexpr auto
-  eachCol() const -> SliceRange<const T, true, S::nrow, S::nstride>
+  TRIVIAL [[nodiscard]] constexpr auto eachCol() const
+    -> SliceRange<const T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(row(this->sz)), stride(this->sz),
@@ -536,15 +546,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
                                 ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
   }
-  [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  TRIVIAL [[nodiscard]] constexpr auto split(ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
     invariant(at <= size());
     return {(*this)[_(0, at)], (*this)[_(at, math::end)]};
   }
-  [[nodiscard]] constexpr auto
-  popFront() const -> containers::Pair<T, Array<T, Length<>>>
+  TRIVIAL [[nodiscard]] constexpr auto popFront() const
+    -> containers::Pair<T, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
     invariant(0 < size());
@@ -581,7 +591,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
 #endif
 protected:
   friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
-  constexpr Array(S s) : sz(s) {}
+  TRIVIAL constexpr Array(S s) : sz(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
@@ -608,15 +618,17 @@ struct MutArray : Array<T, S, Compress>,
     BaseT::rend, BaseT::front, BaseT::back;
   using storage_type = typename BaseT::storage_type;
 
-  explicit constexpr MutArray() = default;
-  explicit constexpr MutArray(const MutArray &) = default;
-  explicit constexpr MutArray(MutArray &&) noexcept = default;
-  // constexpr auto operator=(const MutArray &) -> MutArray & = delete;
-  constexpr auto operator=(const MutArray &) -> MutArray & = default;
-  constexpr auto operator=(MutArray &&) noexcept -> MutArray & = default;
-  constexpr MutArray(storage_type *p, S s) : BaseT(p, s) {}
+  TRIVIAL explicit constexpr MutArray() = default;
+  TRIVIAL explicit constexpr MutArray(const MutArray &) = default;
+  TRIVIAL explicit constexpr MutArray(MutArray &&) noexcept = default;
+  TRIVIAL // constexpr auto operator=(const MutArray &) -> MutArray & = delete;
+    TRIVIAL constexpr auto
+    operator=(const MutArray &) -> MutArray & = default;
+  TRIVIAL constexpr auto operator=(MutArray &&) noexcept
+    -> MutArray & = default;
+  TRIVIAL constexpr MutArray(storage_type *p, S s) : BaseT(p, s) {}
 
-  constexpr void truncate(S nz) {
+  TRIVIAL constexpr void truncate(S nz) {
     S oz = this->sz;
     this->sz = nz;
     if constexpr (std::same_as<S, Length<>>) {
@@ -653,13 +665,13 @@ struct MutArray : Array<T, S, Compress>,
       invariant(nz.col() <= oz.col());
     }
   }
-  constexpr void truncate(ptrdiff_t nz)
+  TRIVIAL constexpr void truncate(ptrdiff_t nz)
   requires(std::same_as<S, Length<>>)
   {
     truncate(length(nz));
   }
 
-  constexpr void truncate(Row<> r) {
+  TRIVIAL constexpr void truncate(Row<> r) {
     if constexpr (std::same_as<S, Length<>>) {
       return truncate(S(r));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
@@ -674,7 +686,7 @@ struct MutArray : Array<T, S, Compress>,
       this->sz.set(r);
     }
   }
-  constexpr void truncate(Col<> c) {
+  TRIVIAL constexpr void truncate(Col<> c) {
     if constexpr (std::same_as<S, Length<>>) {
       return truncate(S(c));
     } else if constexpr (std::is_same_v<S, DenseDims<>>) {
@@ -691,63 +703,64 @@ struct MutArray : Array<T, S, Compress>,
   }
 
   template <class... Args>
-  constexpr MutArray(Args &&...args)
+  TRIVIAL constexpr MutArray(Args &&...args)
   requires(std::constructible_from<Array<T, S, Compress>, Args...>)
     : Array<T, S, Compress>(std::forward<Args>(args)...) {}
 
   template <std::convertible_to<T> U, std::convertible_to<S> V>
-  constexpr MutArray(Array<U, V> a) : Array<T, S>(a) {}
+  TRIVIAL constexpr MutArray(Array<U, V> a) : Array<T, S>(a) {}
   template <size_t N>
-  constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a.data(), length(N)) {}
-  [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
+  TRIVIAL constexpr MutArray(std::array<T, N> &a)
+    : Array<T, S>(a.data(), length(N)) {}
+  TRIVIAL [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
     invariant(this->ptr != nullptr || ptrdiff_t(this->sz) == 0);
     return const_cast<storage_type *>(this->ptr);
   }
-  [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
+  TRIVIAL [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
     return data();
   }
 
-  [[nodiscard]] constexpr auto begin() noexcept -> StridedIterator<T>
+  TRIVIAL [[nodiscard]] constexpr auto begin() noexcept -> StridedIterator<T>
   requires(std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
   {
     return StridedIterator{const_cast<storage_type *>(this->ptr),
                            this->sz.stride_};
   }
-  [[nodiscard]] constexpr auto
-  begin() noexcept -> storage_type *requires(
-                     !std::is_same_v<S, StridedRange<S::nrow, S::nstride>>) {
-    return const_cast<storage_type *>(this->ptr);
-  }
+  TRIVIAL [[nodiscard]] constexpr auto begin() noexcept
+    -> storage_type *requires(
+      !std::is_same_v<S, StridedRange<S::nrow, S::nstride>>) {
+      return const_cast<storage_type *>(this->ptr);
+    }
 
-  [[nodiscard]] constexpr auto end() noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto end() noexcept {
     return begin() + ptrdiff_t(this->sz);
   }
-  [[nodiscard]] constexpr auto rbegin() noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto rbegin() noexcept {
     return std::reverse_iterator(end());
   }
-  [[nodiscard]] constexpr auto rend() noexcept {
+  TRIVIAL [[nodiscard]] constexpr auto rend() noexcept {
     return std::reverse_iterator(begin());
   }
-  constexpr auto front() noexcept -> T & {
+  TRIVIAL constexpr auto front() noexcept -> T & {
     utils::assume(this->size() > 0);
     return *begin();
   }
-  constexpr auto back() noexcept -> T & {
+  TRIVIAL constexpr auto back() noexcept -> T & {
     utils::assume(this->size() > 0);
     return *(end() - 1);
   }
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](Index<S> auto i) noexcept -> decltype(auto) {
+  TRIVIAL [[gnu::flatten]] constexpr auto operator[](Index<S> auto i) noexcept
+    -> decltype(auto) {
     return index<T>(data(), this->sz, i);
   }
   template <class R, class C>
-  [[gnu::flatten, gnu::always_inline]] constexpr auto
-  operator[](R r, C c) noexcept -> decltype(auto) {
+  TRIVIAL [[gnu::flatten]] constexpr auto operator[](R r, C c) noexcept
+    -> decltype(auto) {
     return index<T>(data(), this->sz, r, c);
   }
 
   template <size_t I>
-  [[nodiscard]] constexpr auto get() -> T &
+  TRIVIAL [[nodiscard]] constexpr auto get() -> T &
   requires(VectorDimension<S>)
   {
     return index<T>(data(), this->sz, I);
@@ -867,19 +880,19 @@ struct MutArray : Array<T, S, Compress>,
       (*this)[m, Nd] = x;
     }
   }
-  constexpr auto eachRow() -> SliceRange<T, false, S::ncol, S::nstride>
+  TRIVIAL constexpr auto eachRow() -> SliceRange<T, false, S::ncol, S::nstride>
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(col(this->sz)), stride(this->sz),
             ptrdiff_t(row(this->sz))};
   }
-  constexpr auto eachCol() -> SliceRange<T, true, S::nrow, S::nstride>
+  TRIVIAL constexpr auto eachCol() -> SliceRange<T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(row(this->sz)), stride(this->sz),
             ptrdiff_t(col(this->sz))};
   }
-  template <typename U> [[nodiscard]] auto reinterpretImpl() {
+  template <typename U> TRIVIAL [[nodiscard]] auto reinterpretImpl() {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
     static_assert(std::same_as<U, double>);
     if constexpr (std::same_as<U, T>) return *this;
@@ -912,12 +925,12 @@ struct MutArray : Array<T, S, Compress>,
       }
     }
   }
-  [[nodiscard]] constexpr auto mview() noexcept -> MutArray<T, S> {
+  TRIVIAL [[nodiscard]] constexpr auto mview() noexcept -> MutArray<T, S> {
     return *this;
   }
 
 protected:
-  constexpr MutArray(S s) : BaseT(s) {}
+  TRIVIAL constexpr MutArray(S s) : BaseT(s) {}
 };
 
 template <typename T, typename S> Array(T *, S) -> Array<decompressed_t<T>, S>;
@@ -1017,8 +1030,8 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   /// Allocates extra space if needed
   /// Has a different name to make sure we avoid ambiguities.
   template <class... Args>
-  constexpr auto emplace_backa(alloc::Arena<> *alloc,
-                               Args &&...args) -> decltype(auto)
+  constexpr auto emplace_backa(alloc::Arena<> *alloc, Args &&...args)
+    -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
     if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
@@ -1207,23 +1220,23 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     } else resizeForOverwrite(S{M, N});
   }
 
-  constexpr auto
-  insert_within_capacity(T *p, T x) -> T *requires(std::same_as<S, Length<>>) {
-    invariant(p >= this->data());
-    T *e = this->data() + ptrdiff_t(this->sz);
-    invariant(p <= e);
-    invariant(this->sz < capacity_);
-    if constexpr (BaseT::trivial) {
-      if (p < e) std::copy_backward(p, e, e + 1);
-      *p = std::move(x);
-    } else if (p < e) {
-      std::construct_at<T>(e, std::move(*(e - 1)));
-      for (; --e != p;) *e = std::move(*(e - 1));
-      *p = std::move(x);
-    } else std::construct_at<T>(e, std::move(x));
-    ++this->sz;
-    return p;
-  }
+  constexpr auto insert_within_capacity(T *p, T x)
+    -> T *requires(std::same_as<S, Length<>>) {
+      invariant(p >= this->data());
+      T *e = this->data() + ptrdiff_t(this->sz);
+      invariant(p <= e);
+      invariant(this->sz < capacity_);
+      if constexpr (BaseT::trivial) {
+        if (p < e) std::copy_backward(p, e, e + 1);
+        *p = std::move(x);
+      } else if (p < e) {
+        std::construct_at<T>(e, std::move(*(e - 1)));
+        for (; --e != p;) *e = std::move(*(e - 1));
+        *p = std::move(x);
+      } else std::construct_at<T>(e, std::move(x));
+      ++this->sz;
+      return p;
+    }
 
   template <size_t SlabSize, bool BumpUp>
   constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,

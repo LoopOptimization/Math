@@ -5,18 +5,23 @@ module;
 #endif
 
 #include "LoopMacros.hxx"
+#include "Macros.hxx"
 #ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <ostream>
-#include <type_traits>
-
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ExpressionTemplates.cxx"
+#include "Math/MatrixDimensions.cxx"
 #include "SIMD/SIMD.cxx"
+#include "SIMD/Unroll.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include "SIMD/Vec.cxx"
 #include "Utilities/Widen.cxx"
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <ostream>
+#include <type_traits>
 #else
 export module UniformScaling;
 
@@ -37,14 +42,14 @@ namespace math {
 template <class T> struct UniformScaling {
   using value_type = T;
   T value_;
-  constexpr UniformScaling(T x) : value_(x) {}
-  constexpr auto operator[](ptrdiff_t r, ptrdiff_t c) const -> T {
+  TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
+  TRIVIAL constexpr auto operator[](ptrdiff_t r, ptrdiff_t c) const -> T {
     return r == c ? value_ : T{};
   }
   template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
-  TRIVIAL constexpr auto
-  operator[](simd::index::Unroll<R> r,
-             simd::index::Unroll<C, W, M> c) const -> simd::Unroll<R, C, W, T> {
+  TRIVIAL constexpr auto operator[](simd::index::Unroll<R> r,
+                                    simd::index::Unroll<C, W, M> c) const
+    -> simd::Unroll<R, C, W, T> {
     using I = utils::signed_integer_t<sizeof(T)>;
     using VI = simd::Vec<W, I>;
     simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value_);
@@ -67,10 +72,10 @@ template <class T> struct UniformScaling {
     }
   }
   template <ptrdiff_t C, ptrdiff_t W, typename M>
-  TRIVIAL constexpr auto
-  operator[](ptrdiff_t r,
-             simd::index::Unroll<C, W, M> c) const -> simd::Unroll<1, C, W, T> {
-    return (*this)[simd::index::Unroll<1>{r}, c];
+  TRIVIAL constexpr auto operator[](ptrdiff_t r,
+                                    simd::index::Unroll<C, W, M> c) const
+    -> simd::Unroll<1, C, W, T> {
+    return (*this)[simd::index::Unroll<1>{.index_ = r}, c];
   }
   // template <ptrdiff_t C, ptrdiff_t W, typename M>
   // TRIVIAL constexpr auto
@@ -79,22 +84,23 @@ template <class T> struct UniformScaling {
   //   return (*this)[r, simd::index::Unroll<1>{c}];
   // }
 
-  static constexpr auto numRow() -> Row<0> { return {}; }
-  static constexpr auto numCol() -> Col<0> { return {}; }
-  static constexpr auto size() -> std::integral_constant<ptrdiff_t, 0> {
+  TRIVIAL static constexpr auto numRow() -> Row<0> { return {}; }
+  TRIVIAL static constexpr auto numCol() -> Col<0> { return {}; }
+  TRIVIAL static constexpr auto size() -> std::integral_constant<ptrdiff_t, 0> {
     return {};
   }
-  static constexpr auto shape() -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
-    return {0, 0};
+  TRIVIAL static constexpr auto shape()
+    -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
+    return {.row_idx_ = 0, .col_idx_ = 0};
   }
-  static constexpr auto dim() -> DenseDims<0, 0> { return {{}, {}}; }
-  [[nodiscard]] constexpr auto view() const -> auto { return *this; };
-  template <class U> constexpr auto operator*(const U &x) const {
+  TRIVIAL static constexpr auto dim() -> DenseDims<0, 0> { return {{}, {}}; }
+  [[nodiscard]] TRIVIAL constexpr auto view() const -> auto { return *this; };
+  template <class U> TRIVIAL constexpr auto operator*(const U &x) const {
     if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
       return UniformScaling<U>{x};
     else return UniformScaling<U>{value_ * x};
   }
-  constexpr auto isEqual(const AbstractMatrix auto &A) const -> bool {
+  TRIVIAL constexpr auto isEqual(const AbstractMatrix auto &A) const -> bool {
     auto R = ptrdiff_t(A.numRow());
     if (R != A.numCol()) return false;
     for (ptrdiff_t r = 0; r < R; ++r)
@@ -102,20 +108,21 @@ template <class T> struct UniformScaling {
         if (A[r, c] != ((r == c) * value_)) return false;
     return true;
   }
-  constexpr auto operator==(const AbstractMatrix auto &A) const -> bool {
+  TRIVIAL constexpr auto operator==(const AbstractMatrix auto &A) const
+    -> bool {
     return isEqual(A);
   }
 
-  constexpr auto operator-() const -> UniformScaling { return -value_; }
+  TRIVIAL constexpr auto operator-() const -> UniformScaling { return -value_; }
 
-  constexpr auto operator+(const auto &b) const {
+  TRIVIAL constexpr auto operator+(const auto &b) const {
     return elementwise(*this, view(b), std::plus<>{});
   }
-  constexpr auto operator-(const auto &b) const {
+  TRIVIAL constexpr auto operator-(const auto &b) const {
     return elementwise(*this, view(b), std::minus<>{});
   }
   template <typename B>
-  constexpr auto operator*(const B &b) const
+  TRIVIAL constexpr auto operator*(const B &b) const
   requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
   {
     if constexpr (!std::common_with<std::remove_cvref_t<B>, T>) {
@@ -127,49 +134,50 @@ template <class T> struct UniformScaling {
   }
 
   template <std::common_with<T> S>
-  constexpr auto operator+(UniformScaling<S> b) const {
+  TRIVIAL constexpr auto operator+(UniformScaling<S> b) const {
     return UniformScaling<std::common_type_t<S, T>>(value_ + b.value_);
   }
   template <std::common_with<T> S>
-  constexpr auto operator-(UniformScaling<S> b) const {
+  TRIVIAL constexpr auto operator-(UniformScaling<S> b) const {
     return UniformScaling<std::common_type_t<S, T>>(value_ - b.value_);
   }
   template <std::common_with<T> S>
-  constexpr auto operator*(UniformScaling<S> b) const {
+  TRIVIAL constexpr auto operator*(UniformScaling<S> b) const {
     return UniformScaling<std::common_type_t<S, T>>(value_ * b.value_);
   }
 
 private:
-  friend constexpr auto operator+(std::common_with<T> auto b,
-                                  UniformScaling a) {
+  TRIVIAL friend constexpr auto operator+(std::common_with<T> auto b,
+                                          UniformScaling a) {
     return elementwise(b, a, std::plus<>{});
   }
-  friend constexpr auto operator-(std::common_with<T> auto b,
-                                  UniformScaling a) {
+  TRIVIAL friend constexpr auto operator-(std::common_with<T> auto b,
+                                          UniformScaling a) {
     return elementwise(b, a, std::minus<>{});
   }
-  friend constexpr auto operator/(std::common_with<T> auto b,
-                                  UniformScaling a) {
+  TRIVIAL friend constexpr auto operator/(std::common_with<T> auto b,
+                                          UniformScaling a) {
     return elementwise(b, a.value_, std::divides<>{});
   }
-  friend constexpr auto operator%(std::common_with<T> auto b,
-                                  UniformScaling a) {
+  TRIVIAL friend constexpr auto operator%(std::common_with<T> auto b,
+                                          UniformScaling a) {
     return elementwise(b, a.value_, std::modulus<>{});
   }
-  // friend constexpr auto operator&(std::common_with<T> auto b, UniformScaling
-  // a) {
+  // TRIVIAL friend constexpr auto operator&(std::common_with<T> auto b,
+  // UniformScaling a) {
   //   return elementwise(b, a.view(), std::bit_and<>{});
   // }
-  // friend constexpr auto operator|(std::common_with<T> auto b, UniformScaling
+  // TRIVIAL friend constexpr auto operator|(std::common_with<T> auto b,
+  // UniformScaling
   // a) {
   //   return elementwise(b, a.vie(), std::bit_or<>{});
   // }
-  // friend constexpr auto operator^(std::common_with<T> auto b, UniformScaling
-  // a) {
+  // TRIVIAL friend constexpr auto operator^(std::common_with<T> auto b,
+  // UniformScaling a) {
   //   return elementwise(b, a.view(), std::bit_xor<>{});
   // }
   template <typename B>
-  friend constexpr auto operator*(const B &b, UniformScaling a)
+  TRIVIAL friend constexpr auto operator*(const B &b, UniformScaling a)
   requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
   {
     if constexpr (!std::common_with<std::remove_cvref_t<B>, T>) {
@@ -180,17 +188,19 @@ private:
         b * a.value_);
   }
 
-  friend inline auto operator<<(std::ostream &os,
-                                UniformScaling S) -> std::ostream & {
+  friend inline auto operator<<(std::ostream &os, UniformScaling S)
+    -> std::ostream & {
     return os << "UniformScaling(" << S.value_ << ")";
   }
-  [[nodiscard]] constexpr auto t() const -> UniformScaling { return *this; }
-  friend constexpr auto operator==(const AbstractMatrix auto &A,
-                                   const UniformScaling &B) -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto t() const -> UniformScaling {
+    return *this;
+  }
+  TRIVIAL friend constexpr auto operator==(const AbstractMatrix auto &A,
+                                           const UniformScaling &B) -> bool {
     return B.isEqual(A);
   }
   template <class U>
-  friend constexpr auto operator*(const U &x, UniformScaling d) {
+  TRIVIAL friend constexpr auto operator*(const U &x, UniformScaling d) {
     if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
       return UniformScaling<U>{x};
     else return UniformScaling<U>{d.value_ * x};

@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 #include "LoopMacros.hxx"
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include <algorithm>
 #include <array>
@@ -53,8 +54,7 @@ struct NoRowIndex {};
 struct CopyAssign {};
 
 template <typename D, typename S, typename Op>
-TRIVIAL inline constexpr void
-assign(D &&d, const S &s, Op op) {
+TRIVIAL constexpr void assign(D &&d, const S &s, Op op) {
   if constexpr (std::same_as<Op, CopyAssign>) d = s;
   else if constexpr (std::same_as<Op, std::plus<>>) d += s;
   else if constexpr (std::same_as<Op, std::minus<>>) d -= s;
@@ -69,8 +69,7 @@ concept Assignable = requires(D &dst, S src, Op op) {
 };
 
 template <typename D, typename S, typename R, typename C, typename Op>
-TRIVIAL inline constexpr void
-assign(D d, const S &s, R r, C c, Op op) {
+TRIVIAL constexpr void assign(D d, const S &s, R r, C c, Op op) {
   constexpr bool no_row_ind = std::same_as<R, NoRowIndex>;
   if constexpr (std::is_assignable_v<utils::eltype_t<D> &, S>)
     // if constexpr (Assignable<S, utils::eltype_t<D>, Op>)
@@ -111,21 +110,18 @@ TRIVIAL constexpr auto get(T &&s, auto, auto) -> decltype(auto) {
   return std::forward<T>(s);
 }
 template <typename S, math::LinearlyIndexable<S> V>
-TRIVIAL constexpr auto get(const V &v,
-                                          auto i) -> decltype(auto) {
+TRIVIAL constexpr auto get(const V &v, auto i) -> decltype(auto) {
   return v[i];
 }
 template <typename S, math::CartesianIndexable<S> V>
-TRIVIAL constexpr auto get(const V &v, auto i,
-                                          auto j) -> decltype(auto) {
+TRIVIAL constexpr auto get(const V &v, auto i, auto j) -> decltype(auto) {
   return v[i, j];
 }
 template <typename T, typename S>
 concept OnlyLinearlyIndexable =
   math::LinearlyIndexable<S> && !math::CartesianIndexable<S>;
 template <typename S, OnlyLinearlyIndexable<S> V>
-TRIVIAL constexpr auto get(const V &v, auto i,
-                                          auto j) -> decltype(auto) {
+TRIVIAL constexpr auto get(const V &v, auto i, auto j) -> decltype(auto) {
   static_assert(math::AbstractVector<V>);
   if constexpr (math::RowVector<V>) return v[j];
   else return v[i];
@@ -188,8 +184,7 @@ TRIVIAL constexpr auto promote_shape(const A &a, const B &b) {
 
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename LHS, typename RHS, typename I, typename R, typename Op>
-TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row,
-                                               Op op) {
+TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
   // TODO: if `R` is a row index, maybe don't fully unroll static `L`
   // We're going for very short SIMD vectors to focus on small sizes
   // using PT = std::common_type_t<utils::eltype_t<LHS>, utils::eltype_t<RHS>>;
@@ -274,31 +269,31 @@ template <class T, class S, class P> class ArrayOps {
   static_assert(std::is_copy_assignable_v<T> ||
                 (std::is_trivially_copyable_v<T> &&
                  std::is_trivially_move_assignable_v<T>));
-  constexpr auto data_() { return static_cast<P *>(this)->data(); }
+  TRIVIAL constexpr auto data_() { return static_cast<P *>(this)->data(); }
   // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
   //   return static_cast<const P *>(this)->data();
   // }
-  [[nodiscard]] constexpr auto size_() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto size_() const -> ptrdiff_t {
     return static_cast<const P *>(this)->size();
   }
-  [[nodiscard]] constexpr auto dim_() const -> S {
+  TRIVIAL [[nodiscard]] constexpr auto dim_() const -> S {
     return static_cast<const P *>(this)->dim();
   }
   // returns a mutable view of self
-  constexpr auto Self() -> P & { return *static_cast<P *>(this); }
-  constexpr auto SelfView() { return static_cast<P *>(this)->mview(); }
-  [[nodiscard]] constexpr auto nr() const -> ptrdiff_t {
+  TRIVIAL constexpr auto Self() -> P & { return *static_cast<P *>(this); }
+  TRIVIAL constexpr auto SelfView() { return static_cast<P *>(this)->mview(); }
+  [[nodiscard]] TRIVIAL constexpr auto nr() const -> ptrdiff_t {
     return ptrdiff_t(static_cast<const P *>(this)->numRow());
   }
-  [[nodiscard]] constexpr auto nc() const {
+  [[nodiscard]] TRIVIAL constexpr auto nc() const {
     return unwrapCol(static_cast<const P *>(this)->numCol());
   }
-  [[nodiscard]] constexpr auto rs() const {
+  [[nodiscard]] TRIVIAL constexpr auto rs() const {
     return unwrapRow(static_cast<const P *>(this)->rowStride());
   }
 
 protected:
-  template <typename Op, typename RHS> void vcopyTo(RHS B, Op op) {
+  template <typename Op, typename RHS> TRIVIAL void vcopyTo(RHS B, Op op) {
     auto self{SelfView()};
     auto [M, N] = promote_shape(self, B);
     constexpr bool assign = std::same_as<Op, detail::CopyAssign>;
@@ -392,36 +387,31 @@ public:
   using array_op_parent_type = P;
 
   template <std::convertible_to<T> Y>
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(const UniformScaling<Y> &B) -> P & {
+  [[gnu::flatten]] TRIVIAL constexpr auto operator<<(const UniformScaling<Y> &B)
+    -> P & {
     static_assert(MatrixDimension<S>);
     std::fill_n(data_(), ptrdiff_t(this->dim_()), T{});
     static_cast<P *>(this)->diag() << B.value;
     return *static_cast<P *>(this);
   }
 
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator<<(const auto &B) -> P & {
+  [[gnu::flatten]] TRIVIAL constexpr auto operator<<(const auto &B) -> P & {
     vcopyTo(view(B), detail::CopyAssign{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator+=(const auto &B) -> P & {
+  [[gnu::flatten]] TRIVIAL constexpr auto operator+=(const auto &B) -> P & {
     vcopyTo(view(B), std::plus<>{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator-=(const auto &B) -> P & {
+  [[gnu::flatten]] TRIVIAL constexpr auto operator-=(const auto &B) -> P & {
     vcopyTo(view(B), std::minus<>{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator*=(const auto &B) -> P & {
+  [[gnu::flatten]] TRIVIAL constexpr auto operator*=(const auto &B) -> P & {
     vcopyTo(view(B), std::multiplies<>{});
     return Self();
   }
-  [[gnu::always_inline, gnu::flatten]] constexpr auto
-  operator/=(const auto &B) -> P & {
+  [[gnu::flatten]] TRIVIAL constexpr auto operator/=(const auto &B) -> P & {
     vcopyTo(view(B), std::divides<>{});
     return Self();
   }
@@ -453,8 +443,8 @@ namespace tupletensorops {
 // inputs, e.g. `tie(x,y) << Tuple(x - y, x + y);`
 template <typename A, typename... As, typename B, typename... Bs, typename I,
           typename R>
-TRIVIAL inline void
-vcopyToSIMD(Tuple<A, As...> &dref, const Tuple<B, Bs...> &sref, I L, R row) {
+TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
+                                const Tuple<B, Bs...> &sref, I L, R row) {
   // we want to avoid the pointer reloading on every iter, so we help alias
   // analysis out.
   auto dst{dref.mutmap([](auto &d) { return d.mview(); })};
@@ -517,7 +507,7 @@ vcopyToSIMD(Tuple<A, As...> &dref, const Tuple<B, Bs...> &sref, I L, R row) {
 // }
 template <typename A, typename... As, typename B, typename... Bs>
 TRIVIAL constexpr auto promote_shape(const Tuple<A, As...> &a,
-                                                    const Tuple<B, Bs...> &b)
+                                     const Tuple<B, Bs...> &b)
 requires(sizeof...(As) == sizeof...(Bs))
 {
   auto h = math::promote_shape(a.head_, b.head_);
@@ -531,7 +521,7 @@ requires(sizeof...(As) == sizeof...(Bs))
 }
 template <typename A, typename... As, typename B, typename... Bs>
 TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
-                                              const Tuple<B, Bs...> &src) {
+                               const Tuple<B, Bs...> &src) {
   using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
   // static_assert(sizeof(T) <= 8);
@@ -612,8 +602,8 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
 // are identical, in case of re-use, so that
 // they can share pointers.
 template <typename A, typename... As, typename B, typename... Bs>
-[[gnu::always_inline, gnu::flatten]] constexpr void
-copyFrom(Tuple<A, As...> &dst, const Tuple<B, Bs...> &src)
+[[gnu::flatten]] TRIVIAL constexpr void copyFrom(Tuple<A, As...> &dst,
+                                                 const Tuple<B, Bs...> &src)
 requires(sizeof...(As) == sizeof...(Bs) && detail::IsArrayOp<A> &&
          (... && detail::IsArrayOp<As>))
 {

@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
@@ -225,8 +226,8 @@ template <class T> struct Mallocator {
 // https://github.com/microsoft/mimalloc/issues/199#issuecomment-596023203
 // https://github.com/jemalloc/jemalloc/issues/1533#issuecomment-507915829
 #if USE_MIMALLOC || USE_JEMALLOC
-  static constexpr bool overalign = alignof(T) > 16 ||
-                                    (alignof(T) > 8 && sizeof(T) <= 8);
+  static constexpr bool overalign =
+    alignof(T) > 16 || (alignof(T) > 8 && sizeof(T) <= 8);
 #else
   static constexpr bool overalign = alignof(T) > 16;
 #endif
@@ -283,8 +284,8 @@ concept CanAllocAtLeast = requires(A a) {
 static_assert(CanAllocAtLeast<Mallocator<ptrdiff_t>>);
 
 template <class A>
-TRIVIAL inline auto
-alloc_at_least(A a, size_t n) -> AllocResult<typename A::value_type> {
+TRIVIAL inline auto alloc_at_least(A a, size_t n)
+  -> AllocResult<typename A::value_type> {
   if constexpr (CanAllocAtLeast<A>) return a.allocate_at_least(n);
   else return {a.allocate(n), n};
 }

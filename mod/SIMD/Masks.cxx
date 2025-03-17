@@ -136,8 +136,8 @@ TRIVIAL constexpr auto truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
 
 namespace mask {
 template <ptrdiff_t W> struct None {
-  static constexpr auto firstMasked() -> ptrdiff_t { return 0; }
-  static constexpr auto lastUnmasked() -> ptrdiff_t { return W; }
+  TRIVIAL static constexpr auto firstMasked() -> ptrdiff_t { return 0; }
+  TRIVIAL static constexpr auto lastUnmasked() -> ptrdiff_t { return W; }
 };
 
 // Alternatives we can have: BitMask and VectorMask
@@ -147,14 +147,14 @@ template <ptrdiff_t W> struct None {
 #ifdef __AVX512F__
 template <ptrdiff_t W> struct Bit {
   uint64_t mask_;
-  template <std::unsigned_integral U> explicit constexpr operator U() {
+  template <std::unsigned_integral U> TRIVIAL explicit constexpr operator U() {
     return U(mask_);
   }
-  explicit constexpr operator bool() const { return mask_; }
-  [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
+  TRIVIAL explicit constexpr operator bool() const { return mask_; }
+  TRIVIAL [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
     return std::countr_zero(mask_);
   }
-  [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
     if constexpr (W < 64) {
       // could make this `countr_ones` if we decide to only
       // support leading masks
@@ -162,7 +162,7 @@ template <ptrdiff_t W> struct Bit {
       return 64 - ptrdiff_t(std::countl_zero(m));
     } else return 64 - ptrdiff_t(std::countl_zero(mask_));
   }
-  template <ptrdiff_t S> [[nodiscard]] constexpr auto sub() -> Bit<S> {
+  template <ptrdiff_t S> TRIVIAL [[nodiscard]] constexpr auto sub() -> Bit<S> {
     static_assert(S <= W);
     uint64_t s = mask_;
     mask_ >>= S;
@@ -193,7 +193,7 @@ private:
 #ifdef __AVX512VL__
 // In: iteration count `i.i` is the total length of the loop
 // Out: mask for the final iteration. Zero indicates no masked iter.
-template <ptrdiff_t W> constexpr auto create(ptrdiff_t i) -> Bit<W> {
+template <ptrdiff_t W> TRIVIAL constexpr auto create(ptrdiff_t i) -> Bit<W> {
   static_assert(std::popcount(size_t(W)) == 1);
   utils::invariant(i >= 0);
   return {_bzhi_u64(0xffffffffffffffff, uint64_t(i) & uint64_t(W - 1))};
@@ -201,7 +201,7 @@ template <ptrdiff_t W> constexpr auto create(ptrdiff_t i) -> Bit<W> {
 // In: index::Vector where `i.i` is for the current iteration, and total loop
 // length. Out: mask for the current iteration, 0 indicates exit loop.
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Bit<W> {
+TRIVIAL constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Bit<W> {
   static_assert(std::popcount(size_t(W)) == 1);
   uint64_t x;
   if (__builtin_usubl_overflow(len, i, &x)) return {0};
@@ -210,7 +210,7 @@ constexpr auto create(ptrdiff_t i, ptrdiff_t len) -> Bit<W> {
 };
 // Requires: 0 <= m <= 255
 template <ptrdiff_t W>
-constexpr auto createSmallPositive(ptrdiff_t m) -> Bit<W> {
+TRIVIAL constexpr auto createSmallPositive(ptrdiff_t m) -> Bit<W> {
   static_assert(std::popcount(size_t(W)) == 1);
   utils::invariant(0 <= m);
   utils::invariant(m <= 255);
@@ -228,13 +228,13 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
   // static_assert(sizeof(I) * W <= VECTORWIDTH);
   // TODO: add support for smaller mask types, we we can use smaller eltypes
   Vec<W, I> m;
-  template <size_t newBytes> constexpr operator Vector<W, newBytes>() {
+  template <size_t newBytes> TRIVIAL constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
     else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
     else static_assert(false);
   }
-  [[nodiscard]] constexpr auto intmask() const -> int32_t {
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> int32_t {
     if constexpr (sizeof(I) == 8)
       if constexpr (W == 2) {
         __m128d arg = std::bit_cast<__m128d>(m);
@@ -249,61 +249,61 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
       return _mm_movemask_epi8(std::bit_cast<__m128i>(m));
     else return _mm256_movemask_epi8(std::bit_cast<__m256i>(m));
   }
-  explicit constexpr operator bool() const { return intmask(); }
-  [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
+  TRIVIAL explicit constexpr operator bool() const { return intmask(); }
+  TRIVIAL [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
     return std::countr_zero(uint32_t(intmask()));
   }
-  [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
     return 32 - std::countl_zero(uint32_t(intmask()));
   }
-  constexpr operator __m128i()
+  TRIVIAL constexpr operator __m128i()
   requires(sizeof(I) * W == 16)
   {
     return std::bit_cast<__m128i>(m);
   }
-  constexpr operator __m128d()
+  TRIVIAL constexpr operator __m128d()
   requires(sizeof(I) * W == 16)
   {
     return std::bit_cast<__m128d>(m);
   }
-  constexpr operator __m128()
+  TRIVIAL constexpr operator __m128()
   requires(sizeof(I) * W == 16)
   {
     return std::bit_cast<__m128>(m);
   }
-  constexpr operator __m256i()
+  TRIVIAL constexpr operator __m256i()
   requires(sizeof(I) * W == 32)
   {
     return std::bit_cast<__m256i>(m);
   }
-  constexpr operator __m256d()
+  TRIVIAL constexpr operator __m256d()
   requires(sizeof(I) * W == 32)
   {
     return std::bit_cast<__m256d>(m);
   }
-  constexpr operator __m256()
+  TRIVIAL constexpr operator __m256()
   requires(sizeof(I) * W == 32)
   {
     return std::bit_cast<__m256>(m);
   }
 
 private:
-  friend constexpr auto operator&(Vector a, Vector b) -> Vector {
+  TRIVIAL friend constexpr auto operator&(Vector a, Vector b) -> Vector {
     return {a.m & b.m};
   }
-  friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
+  TRIVIAL friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
     return b;
   }
-  friend constexpr auto operator&(Vector a, mask::None<W>) -> Vector {
+  TRIVIAL friend constexpr auto operator&(Vector a, mask::None<W>) -> Vector {
     return a;
   }
-  friend constexpr auto operator|(Vector a, Vector b) -> Vector {
+  TRIVIAL friend constexpr auto operator|(Vector a, Vector b) -> Vector {
     return {a.m | b.m};
   }
-  friend constexpr auto operator|(mask::None<W>, Vector) -> None<W> {
+  TRIVIAL friend constexpr auto operator|(mask::None<W>, Vector) -> None<W> {
     return {};
   }
-  friend constexpr auto operator|(Vector, mask::None<W>) -> None<W> {
+  TRIVIAL friend constexpr auto operator|(Vector, mask::None<W>) -> None<W> {
     return {};
   }
 };
@@ -311,12 +311,13 @@ static_assert(!std::convertible_to<Vector<2, 8>, Vector<4, 8>>);
 static_assert(!std::convertible_to<Vector<4, 4>, Vector<8, 4>>);
 #ifdef __AVX512F__
 // but no VL!!! xeon phi
-template <ptrdiff_t W> constexpr auto create(ptrdiff_t i) {
+template <ptrdiff_t W> TRIVIAL constexpr auto create(ptrdiff_t i) {
   if constexpr (W == 8)
     return Bit<8>{_bzhi_u64(0xffffffffffffffff, uint64_t(i) & uint64_t(7))};
   else return Vector<W>{range<W, int64_t>() < (i & (W - 1))};
 }
-template <ptrdiff_t W> constexpr auto create(ptrdiff_t i, ptrdiff_t len) {
+template <ptrdiff_t W>
+TRIVIAL constexpr auto create(ptrdiff_t i, ptrdiff_t len) {
   if constexpr (W == 8)
     return Bit<8>{_bzhi_u64(0xffffffffffffffff, uint64_t(len - i))};
   else return Vector<W>{range<W, int64_t>() + i < len};
@@ -326,13 +327,14 @@ using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
 #else  // ifdef __AVX512F__
 
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
+TRIVIAL constexpr auto create(ptrdiff_t i)
+  -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
   static constexpr ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i, ptrdiff_t len)
+TRIVIAL constexpr auto create(ptrdiff_t i, ptrdiff_t len)
   -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
   static constexpr ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
@@ -348,29 +350,29 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
   using I = utils::signed_integer_t<Bytes>;
   static_assert(sizeof(I) == Bytes);
   Vec<W, I> m;
-  template <size_t newBytes> constexpr operator Vector<W, newBytes>() {
+  template <size_t newBytes> TRIVIAL constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
     else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
     else static_assert(false);
   }
-  explicit constexpr operator bool() {
+  TRIVIAL explicit constexpr operator bool() {
     bool any{false};
     for (ptrdiff_t w = 0; w < W; ++w) any |= m[w];
     return any;
   }
-  [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto firstMasked() const -> ptrdiff_t {
     for (ptrdiff_t w = 0; w < W; ++w)
       if (m[w]) return w;
     return W;
   }
-  [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> ptrdiff_t {
     ptrdiff_t l = 0;
     for (ptrdiff_t w = 0; w < W; ++w)
       if (m[w]) l = w;
     return l;
   }
-  [[nodiscard]] explicit constexpr operator bool() const {
+  TRIVIAL [[nodiscard]] explicit constexpr operator bool() const {
     if constexpr (W == 2) {
       return m[0] || m[1];
     } else {
@@ -381,33 +383,33 @@ template <ptrdiff_t W, size_t Bytes> struct Vector {
   }
 
 private:
-  friend constexpr auto operator&(Vector a, Vector b) -> Vector {
+  TRIVIAL friend constexpr auto operator&(Vector a, Vector b) -> Vector {
     return {a.m & b.m};
   }
-  friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
+  TRIVIAL friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
     return b;
   }
-  friend constexpr auto operator&(Vector a, mask::None<W>) -> Vector {
+  TRIVIAL friend constexpr auto operator&(Vector a, mask::None<W>) -> Vector {
     return a;
   }
-  friend constexpr auto operator|(Vector a, Vector b) -> Vector {
+  TRIVIAL friend constexpr auto operator|(Vector a, Vector b) -> Vector {
     return {a.m | b.m};
   }
-  friend constexpr auto operator|(mask::None<W>, Vector) -> None<W> {
+  TRIVIAL friend constexpr auto operator|(mask::None<W>, Vector) -> None<W> {
     return {};
   }
-  friend constexpr auto operator|(Vector, mask::None<W>) -> None<W> {
+  TRIVIAL friend constexpr auto operator|(Vector, mask::None<W>) -> None<W> {
     return {};
   }
 };
 
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
+TRIVIAL constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i, ptrdiff_t len)
+TRIVIAL constexpr auto create(ptrdiff_t i, ptrdiff_t len)
   -> Vector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};

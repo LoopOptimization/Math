@@ -4,9 +4,11 @@ module;
 #pragma once
 #endif
 
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <ostream>
 #include <type_traits>
@@ -27,188 +29,190 @@ export namespace math {
 namespace math {
 #endif
 template <ptrdiff_t M>
-TRIVIAL inline constexpr auto
-standardizeRangeBound(math::Row<M> x) {
+TRIVIAL inline constexpr auto standardizeRangeBound(math::Row<M> x) {
   if constexpr (M == -1) return ptrdiff_t(x);
   else return std::integral_constant<ptrdiff_t, M>{};
 }
 template <ptrdiff_t M>
-TRIVIAL inline constexpr auto
-standardizeRangeBound(math::Col<M> x) {
+TRIVIAL inline constexpr auto standardizeRangeBound(math::Col<M> x) {
   if constexpr (M == -1) return ptrdiff_t(x);
   else return std::integral_constant<ptrdiff_t, M>{};
 }
 
-constexpr auto standardizeRangeBound(auto x) { return x; }
-constexpr auto standardizeRangeBound(std::unsigned_integral auto x) {
+TRIVIAL constexpr auto standardizeRangeBound(auto x) { return x; }
+TRIVIAL constexpr auto standardizeRangeBound(std::unsigned_integral auto x) {
   return ptrdiff_t(x);
 }
-constexpr auto standardizeRangeBound(std::signed_integral auto x) {
+TRIVIAL constexpr auto standardizeRangeBound(std::signed_integral auto x) {
   return ptrdiff_t(x);
 }
 using utils::invariant;
 template <typename B, typename E> struct Range {
-  [[no_unique_address]] B b;
-  [[no_unique_address]] E e;
-  [[nodiscard]] constexpr auto begin() const -> B { return b; }
-  [[nodiscard]] constexpr auto end() const -> E { return e; }
+  [[no_unique_address]] B b_;
+  [[no_unique_address]] E e_;
+  [[nodiscard]] constexpr auto begin() const -> B { return b_; }
+  [[nodiscard]] constexpr auto end() const -> E { return e_; }
 
 private:
-  TRIVIAL friend inline constexpr auto
-  operator+(Range r, ptrdiff_t x) {
-    return Range{r.b + x, r.e + x};
+  TRIVIAL friend constexpr auto operator+(Range r, ptrdiff_t x) {
+    return Range{r.b_ + x, r.e_ + x};
   }
-  TRIVIAL friend inline constexpr auto
-  operator-(Range r, ptrdiff_t x) {
-    return Range{r.b - x, r.e - x};
+  TRIVIAL friend constexpr auto operator-(Range r, ptrdiff_t x) {
+    return Range{r.b_ - x, r.e_ - x};
   }
-  TRIVIAL friend inline constexpr auto
-  operator+(ptrdiff_t x, Range r) {
-    return Range{r.b + x, r.e + x};
+  TRIVIAL friend constexpr auto operator+(ptrdiff_t x, Range r) {
+    return Range{r.b_ + x, r.e_ + x};
   }
-  TRIVIAL friend inline constexpr auto
-  operator-(ptrdiff_t x, Range r) {
-    return Range{x - r.b, x - r.e};
+  TRIVIAL friend constexpr auto operator-(ptrdiff_t x, Range r) {
+    return Range{x - r.b_, x - r.e_};
   }
 };
 template <std::integral B, std::integral E> struct Range<B, E> {
   using value_type = std::common_type_t<B, E>;
-  [[no_unique_address]] B b;
-  [[no_unique_address]] E e;
+  [[no_unique_address]] B b_;
+  [[no_unique_address]] E e_;
   // wrapper that allows dereferencing
   struct Iterator {
-    [[no_unique_address]] B i;
-    constexpr auto operator==(E other) -> bool { return i == other; }
-    auto operator++() -> Iterator & {
-      ++i;
+    [[no_unique_address]] B i_;
+    TRIVIAL constexpr auto operator==(E other) -> bool { return i_ == other; }
+    TRIVIAL auto operator++() -> Iterator & {
+      ++i_;
       return *this;
     }
-    auto operator++(int) -> Iterator { return Iterator{i++}; }
-    auto operator--() -> Iterator & {
-      --i;
+    TRIVIAL auto operator++(int) -> Iterator { return Iterator{i_++}; }
+    TRIVIAL auto operator--() -> Iterator & {
+      --i_;
       return *this;
     }
-    auto operator--(int) -> Iterator { return Iterator{i--}; }
-    auto operator*() -> B { return i; }
+    TRIVIAL auto operator--(int) -> Iterator { return Iterator{i_--}; }
+    TRIVIAL auto operator*() -> B { return i_; }
   };
-  [[nodiscard]] constexpr auto begin() const -> Iterator { return Iterator{b}; }
-  [[nodiscard]] constexpr auto end() const -> E { return e; }
-  [[nodiscard]] constexpr auto rbegin() const -> Iterator {
+  TRIVIAL [[nodiscard]] constexpr auto begin() const -> Iterator {
+    return Iterator{b_};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto end() const -> E { return e_; }
+  TRIVIAL [[nodiscard]] constexpr auto rbegin() const -> Iterator {
     return std::reverse_iterator{end()};
   }
-  [[nodiscard]] constexpr auto rend() const -> E {
+  TRIVIAL [[nodiscard]] constexpr auto rend() const -> E {
     return std::reverse_iterator{begin()};
   }
-  [[nodiscard]] constexpr auto size() const { return e - b; }
+  TRIVIAL [[nodiscard]] constexpr auto size() const { return e_ - b_; }
   friend auto operator<<(std::ostream &os, Range<B, E> r) -> std::ostream & {
-    return os << "[" << r.b << ":" << r.e << ")";
+    return os << "[" << r.b_ << ":" << r.e_ << ")";
   }
   template <std::integral BB, std::integral EE>
-  constexpr operator Range<BB, EE>() const {
-    return Range<BB, EE>{static_cast<BB>(b), static_cast<EE>(e)};
+  TRIVIAL constexpr operator Range<BB, EE>() const {
+    return Range<BB, EE>{static_cast<BB>(b_), static_cast<EE>(e_)};
   }
-  [[nodiscard]] constexpr auto view() const -> Range { return *this; }
-  [[nodiscard]] constexpr auto operator[](value_type i) const -> value_type {
-    return b + i;
+  TRIVIAL [[nodiscard]] constexpr auto view() const -> Range { return *this; }
+  TRIVIAL [[nodiscard]] constexpr auto operator[](value_type i) const
+    -> value_type {
+    return b_ + i;
   }
-  [[nodiscard]] constexpr auto operator[](auto i) const { return i + b; }
+  TRIVIAL [[nodiscard]] constexpr auto operator[](auto i) const {
+    return i + b_;
+  }
 
 private:
-  TRIVIAL friend inline constexpr auto
-  operator+(Range r, ptrdiff_t x) {
-    return Range{r.b + x, r.e + x};
+  TRIVIAL friend inline constexpr auto operator+(Range r, ptrdiff_t x) {
+    return Range{r.b_ + x, r.e_ + x};
   }
-  TRIVIAL friend inline constexpr auto
-  operator-(Range r, ptrdiff_t x) {
-    return Range{r.b - x, r.e - x};
+  TRIVIAL friend inline constexpr auto operator-(Range r, ptrdiff_t x) {
+    return Range{r.b_ - x, r.e_ - x};
   }
-  TRIVIAL friend inline constexpr auto
-  operator+(ptrdiff_t x, Range r) {
-    return Range{r.b + x, r.e + x};
+  TRIVIAL friend inline constexpr auto operator+(ptrdiff_t x, Range r) {
+    return Range{r.b_ + x, r.e_ + x};
   }
-  TRIVIAL friend inline constexpr auto
-  operator-(ptrdiff_t x, Range r) {
-    return Range{x - r.b, x - r.e};
+  TRIVIAL friend inline constexpr auto operator-(ptrdiff_t x, Range r) {
+    return Range{x - r.b_, x - r.e_};
   }
 };
 template <typename B, typename E>
 Range(B b, E e) -> Range<decltype(standardizeRangeBound(b)),
                          decltype(standardizeRangeBound(e))>;
 
-constexpr auto skipFirst(const auto &x) {
+TRIVIAL constexpr auto skipFirst(const auto &x) {
   auto b = x.begin();
   return Range{++b, x.end()};
 }
 
 template <typename T> struct StridedIterator {
   using value_type = std::remove_cvref_t<T>;
-  T *ptr;
-  RowStride<> stride;
-  constexpr auto operator==(const StridedIterator &other) const -> bool {
-    return ptr == other.ptr;
+  T *ptr_;
+  RowStride<> stride_;
+  TRIVIAL constexpr auto operator==(const StridedIterator &other) const
+    -> bool {
+    return ptr_ == other.ptr_;
   }
-  constexpr auto operator!=(const StridedIterator &other) const -> bool {
-    return ptr != other.ptr;
+  TRIVIAL constexpr auto operator!=(const StridedIterator &other) const
+    -> bool {
+    return ptr_ != other.ptr_;
   }
-  constexpr auto operator<(const StridedIterator &other) const -> bool {
-    return ptr < other.ptr;
+  TRIVIAL constexpr auto operator<(const StridedIterator &other) const -> bool {
+    return ptr_ < other.ptr_;
   }
-  constexpr auto operator>(const StridedIterator &other) const -> bool {
-    return ptr > other.ptr;
+  TRIVIAL constexpr auto operator>(const StridedIterator &other) const -> bool {
+    return ptr_ > other.ptr_;
   }
-  constexpr auto operator<=(const StridedIterator &other) const -> bool {
-    return ptr <= other.ptr;
+  TRIVIAL constexpr auto operator<=(const StridedIterator &other) const
+    -> bool {
+    return ptr_ <= other.ptr_;
   }
-  constexpr auto operator>=(const StridedIterator &other) const -> bool {
-    return ptr >= other.ptr;
+  TRIVIAL constexpr auto operator>=(const StridedIterator &other) const
+    -> bool {
+    return ptr_ >= other.ptr_;
   }
-  constexpr auto operator*() const -> T & { return *ptr; }
-  constexpr auto operator->() const -> T * { return ptr; }
-  constexpr auto operator++() -> StridedIterator & {
-    ptr += ptrdiff_t(stride);
+  TRIVIAL constexpr auto operator*() const -> T & { return *ptr_; }
+  TRIVIAL constexpr auto operator->() const -> T * { return ptr_; }
+  TRIVIAL constexpr auto operator++() -> StridedIterator & {
+    ptr_ += ptrdiff_t(stride_);
     return *this;
   }
-  constexpr auto operator++(int) -> StridedIterator {
+  TRIVIAL constexpr auto operator++(int) -> StridedIterator {
     auto tmp = *this;
-    ptr += ptrdiff_t(stride);
+    ptr_ += ptrdiff_t(stride_);
     return tmp;
   }
-  constexpr auto operator--() -> StridedIterator & {
-    ptr -= ptrdiff_t(stride);
+  TRIVIAL constexpr auto operator--() -> StridedIterator & {
+    ptr_ -= ptrdiff_t(stride_);
     return *this;
   }
-  constexpr auto operator--(int) -> StridedIterator {
+  TRIVIAL constexpr auto operator--(int) -> StridedIterator {
     auto tmp = *this;
-    ptr -= ptrdiff_t(stride);
+    ptr_ -= ptrdiff_t(stride_);
     return tmp;
   }
-  constexpr auto operator+(ptrdiff_t x) const -> StridedIterator {
-    return StridedIterator{ptr + x * ptrdiff_t(stride), stride};
+  TRIVIAL constexpr auto operator+(ptrdiff_t x) const -> StridedIterator {
+    return StridedIterator{ptr_ + x * ptrdiff_t(stride_), stride_};
   }
-  constexpr auto operator-(ptrdiff_t x) const -> StridedIterator {
-    return StridedIterator{ptr - x * ptrdiff_t(stride), stride};
+  TRIVIAL constexpr auto operator-(ptrdiff_t x) const -> StridedIterator {
+    return StridedIterator{ptr_ - x * ptrdiff_t(stride_), stride_};
   }
-  constexpr auto operator+=(ptrdiff_t x) -> StridedIterator & {
-    ptr += x * ptrdiff_t(stride);
+  TRIVIAL constexpr auto operator+=(ptrdiff_t x) -> StridedIterator & {
+    ptr_ += x * ptrdiff_t(stride_);
     return *this;
   }
-  constexpr auto operator-=(ptrdiff_t x) -> StridedIterator & {
-    ptr -= x * ptrdiff_t(stride);
+  TRIVIAL constexpr auto operator-=(ptrdiff_t x) -> StridedIterator & {
+    ptr_ -= x * ptrdiff_t(stride_);
     return *this;
   }
-  constexpr auto operator-(const StridedIterator &other) const -> ptrdiff_t {
-    invariant(stride == other.stride);
-    return (ptr - other.ptr) / ptrdiff_t(stride);
+  TRIVIAL constexpr auto operator-(const StridedIterator &other) const
+    -> ptrdiff_t {
+    invariant(stride_ == other.stride_);
+    return (ptr_ - other.ptr_) / ptrdiff_t(stride_);
   }
-  constexpr auto operator+(const StridedIterator &other) const -> ptrdiff_t {
-    invariant(stride == other.stride);
-    return (ptr + other.ptr) / ptrdiff_t(stride);
+  TRIVIAL constexpr auto operator+(const StridedIterator &other) const
+    -> ptrdiff_t {
+    invariant(stride_ == other.stride_);
+    return (ptr_ + other.ptr_) / ptrdiff_t(stride_);
   }
-  constexpr auto operator[](ptrdiff_t x) const -> T & {
-    return ptr[x * ptrdiff_t(stride)];
+  TRIVIAL constexpr auto operator[](ptrdiff_t x) const -> T & {
+    return ptr_[x * ptrdiff_t(stride_)];
   }
-  friend constexpr auto
-  operator+(ptrdiff_t x, const StridedIterator &it) -> StridedIterator {
+  TRIVIAL friend constexpr auto operator+(ptrdiff_t x,
+                                          const StridedIterator &it)
+    -> StridedIterator {
     return it + x;
   }
 };
