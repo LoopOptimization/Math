@@ -53,7 +53,7 @@ struct NoRowIndex {};
 struct CopyAssign {};
 
 template <typename D, typename S, typename Op>
-[[gnu::artificial, gnu::always_inline]] inline constexpr void
+TRIVIAL inline constexpr void
 assign(D &&d, const S &s, Op op) {
   if constexpr (std::same_as<Op, CopyAssign>) d = s;
   else if constexpr (std::same_as<Op, std::plus<>>) d += s;
@@ -69,7 +69,7 @@ concept Assignable = requires(D &dst, S src, Op op) {
 };
 
 template <typename D, typename S, typename R, typename C, typename Op>
-[[gnu::artificial, gnu::always_inline]] inline constexpr void
+TRIVIAL inline constexpr void
 assign(D d, const S &s, R r, C c, Op op) {
   constexpr bool no_row_ind = std::same_as<R, NoRowIndex>;
   if constexpr (std::is_assignable_v<utils::eltype_t<D> &, S>)
@@ -103,20 +103,20 @@ assign(D d, const S &s, R r, C c, Op op) {
 }
 
 template <typename S, typename T>
-[[gnu::always_inline]] constexpr auto get(T &&s, auto) -> decltype(auto) {
+TRIVIAL constexpr auto get(T &&s, auto) -> decltype(auto) {
   return std::forward<T>(s);
 }
 template <typename S, typename T>
-[[gnu::always_inline]] constexpr auto get(T &&s, auto, auto) -> decltype(auto) {
+TRIVIAL constexpr auto get(T &&s, auto, auto) -> decltype(auto) {
   return std::forward<T>(s);
 }
 template <typename S, math::LinearlyIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v,
+TRIVIAL constexpr auto get(const V &v,
                                           auto i) -> decltype(auto) {
   return v[i];
 }
 template <typename S, math::CartesianIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i,
+TRIVIAL constexpr auto get(const V &v, auto i,
                                           auto j) -> decltype(auto) {
   return v[i, j];
 }
@@ -124,7 +124,7 @@ template <typename T, typename S>
 concept OnlyLinearlyIndexable =
   math::LinearlyIndexable<S> && !math::CartesianIndexable<S>;
 template <typename S, OnlyLinearlyIndexable<S> V>
-[[gnu::always_inline]] constexpr auto get(const V &v, auto i,
+TRIVIAL constexpr auto get(const V &v, auto i,
                                           auto j) -> decltype(auto) {
   static_assert(math::AbstractVector<V>);
   if constexpr (math::RowVector<V>) return v[j];
@@ -162,7 +162,7 @@ template <ptrdiff_t R> consteval auto unrollf() -> std::array<ptrdiff_t, 2> {
 } // namespace detail
 
 template <typename A, typename B>
-[[gnu::always_inline]] constexpr auto promote_shape(const A &a, const B &b) {
+TRIVIAL constexpr auto promote_shape(const A &a, const B &b) {
   if constexpr (AbstractVector<A> && AbstractVector<B>) {
     return CartesianIndex(std::integral_constant<ptrdiff_t, 1>{},
                           check_sizes(a.size(), b.size()));
@@ -188,7 +188,7 @@ template <typename A, typename B>
 
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename LHS, typename RHS, typename I, typename R, typename Op>
-[[gnu::always_inline]] inline void vcopyToSIMD(LHS A, RHS B, I L, R row,
+TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row,
                                                Op op) {
   // TODO: if `R` is a row index, maybe don't fully unroll static `L`
   // We're going for very short SIMD vectors to focus on small sizes
@@ -453,7 +453,7 @@ namespace tupletensorops {
 // inputs, e.g. `tie(x,y) << Tuple(x - y, x + y);`
 template <typename A, typename... As, typename B, typename... Bs, typename I,
           typename R>
-[[gnu::always_inline]] inline void
+TRIVIAL inline void
 vcopyToSIMD(Tuple<A, As...> &dref, const Tuple<B, Bs...> &sref, I L, R row) {
   // we want to avoid the pointer reloading on every iter, so we help alias
   // analysis out.
@@ -511,12 +511,12 @@ vcopyToSIMD(Tuple<A, As...> &dref, const Tuple<B, Bs...> &sref, I L, R row) {
 #endif
 
 // template <typename A, typename B>
-// [[gnu::always_inline]] constexpr auto promote_shape(const Tuple<A> &a,
+// TRIVIAL constexpr auto promote_shape(const Tuple<A> &a,
 //                                                     const Tuple<B> &b) {
 //   return math::promote_shape(a.head, b.head);
 // }
 template <typename A, typename... As, typename B, typename... Bs>
-[[gnu::always_inline]] constexpr auto promote_shape(const Tuple<A, As...> &a,
+TRIVIAL constexpr auto promote_shape(const Tuple<A, As...> &a,
                                                     const Tuple<B, Bs...> &b)
 requires(sizeof...(As) == sizeof...(Bs))
 {
@@ -530,7 +530,7 @@ requires(sizeof...(As) == sizeof...(Bs))
   }
 }
 template <typename A, typename... As, typename B, typename... Bs>
-[[gnu::always_inline]] constexpr void vcopyTo(Tuple<A, As...> &dst,
+TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
                                               const Tuple<B, Bs...> &src) {
   using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;

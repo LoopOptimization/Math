@@ -4,6 +4,8 @@ module;
 #pragma once
 #endif
 
+#include "Macros.hxx"
+
 #ifndef USE_MODULE
 #ifdef NDEBUG
 #ifdef __cpp_lib_unreachable
@@ -31,25 +33,20 @@ namespace utils {
 #endif
 
 #ifndef NDEBUG
-[[gnu::artificial, gnu::always_inline]] constexpr inline void
-invariant(bool condition) {
+TRIVIAL constexpr inline void invariant(bool condition) {
   if (!condition) [[unlikely]]
     TRAP();
 }
-template <typename T>
-[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T x,
-                                                                        T y) {
+template <typename T> TRIVIAL constexpr inline void invariant(T x, T y) {
   if (x != y) [[unlikely]]
     TRAP();
 }
 #else
-[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(bool) {}
-template <typename T>
-[[gnu::artificial, gnu::always_inline]] constexpr inline void invariant(T, T) {}
+template <typename T> TRIVIAL constexpr inline void invariant(T, T) {}
+TRIVIAL constexpr inline void invariant(bool) {}
 #endif
 
-[[gnu::artificial, gnu::always_inline]] constexpr inline void
-assume(bool condition) {
+TRIVIAL constexpr inline void assume(bool condition) {
 #ifndef NDEBUG
   if (!condition) [[unlikely]]
     TRAP();
@@ -71,9 +68,7 @@ assume(bool condition) {
 #endif // assume
 #endif // NDEBUG
 }
-template <typename T>
-[[gnu::artificial, gnu::always_inline]] constexpr inline void assumeeq(T x,
-                                                                       T y) {
+template <typename T> TRIVIAL constexpr inline void assumeeq(T x, T y) {
 #ifndef NDEBUG
   if (x != y) [[unlikely]]
     TRAP();

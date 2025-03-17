@@ -32,7 +32,7 @@ struct IntWrapper {
 private:
   static constexpr bool issigned = std::is_signed_v<I>;
   using T = std::conditional_t<nowrap, std::make_signed_t<I>, I>;
-  [[gnu::always_inline, gnu::artificial]] inline static constexpr auto
+  TRIVIAL inline static constexpr auto
   create(std::integral auto x) -> strong {
     if constexpr (nowrap) {
       utils::invariant(x >= std::numeric_limits<I>::min());
@@ -41,46 +41,46 @@ private:
     return x;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator++(strong &x) -> strong & {
     x = static_cast<strong>(static_cast<T>(x) + T{1});
     return x;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator++(strong &&x) -> decltype(auto) {
     x = static_cast<strong>(static_cast<T>(x) + T{1});
     return x;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator--(strong &x) -> strong & {
     x = static_cast<strong>(static_cast<T>(x) - T{1});
     return x;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator--(strong &&x) -> decltype(auto) {
     x = static_cast<strong>(static_cast<T>(x) - T{1});
     return x;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator++(strong &x, int) -> strong {
     strong y = x;
     x = static_cast<strong>(static_cast<T>(x) + T{1});
     return y;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator--(strong &x, int) -> strong {
     strong y = x;
     x = static_cast<strong>(static_cast<T>(x) - T{1});
     return y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator++(strong &&x, int) -> strong {
     strong y = x;
     x = static_cast<strong>(static_cast<T>(x) + T{1});
     return y;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator--(strong &&x, int) -> strong {
     strong y = x;
     x = static_cast<strong>(static_cast<T>(x) - T{1});
@@ -88,7 +88,7 @@ private:
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator==(strong x, J y) -> bool
   requires((issigned == std::is_signed_v<J>) ||
            (!issigned && (sizeof(J) > sizeof(I))))
@@ -97,7 +97,7 @@ private:
     else return static_cast<I>(x) == static_cast<I>(y);
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator==(J y, strong x) -> bool
   requires((issigned == std::is_signed_v<J>) ||
            (!issigned && (sizeof(J) > sizeof(I))))
@@ -105,13 +105,13 @@ private:
     if constexpr (sizeof(J) >= sizeof(I)) return y == static_cast<J>(x);
     else return static_cast<I>(x) == static_cast<I>(y);
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator==(strong x, strong y) -> bool {
     return static_cast<I>(x) == static_cast<I>(y);
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<=>(strong x, J y) -> std::strong_ordering
   requires((issigned == std::is_signed_v<J>) ||
            (!issigned && (sizeof(J) > sizeof(I))))
@@ -120,7 +120,7 @@ private:
     else return static_cast<I>(x) <=> static_cast<I>(y);
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<=>(J y, strong x) -> std::strong_ordering
   requires((issigned == std::is_signed_v<J>) ||
            (!issigned && (sizeof(J) > sizeof(I))))
@@ -128,13 +128,13 @@ private:
     if constexpr (sizeof(J) >= sizeof(I)) return y <=> static_cast<J>(x);
     else return static_cast<I>(x) <=> static_cast<I>(y);
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<=>(strong x, strong y) -> std::strong_ordering {
     return static_cast<I>(x) <=> static_cast<I>(y);
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -142,20 +142,20 @@ private:
     else return static_cast<strong>(static_cast<T>(x) + static_cast<T>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return create(y + static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(x) + static_cast<T>(y));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<T>(x) + static_cast<T>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -163,20 +163,20 @@ private:
     else return static_cast<strong>(static_cast<T>(x) - static_cast<T>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return create(y - static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) - static_cast<T>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<T>(x) - static_cast<T>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator*(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -184,20 +184,20 @@ private:
     else return static_cast<strong>(static_cast<T>(x) * static_cast<T>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator*(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return create(y * static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) * static_cast<T>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator*(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<T>(x) * static_cast<T>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator/(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -205,20 +205,20 @@ private:
     else return static_cast<strong>(static_cast<I>(x) / static_cast<I>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator/(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return create(y / static_cast<J>(x));
     else return static_cast<strong>(static_cast<I>(y) / static_cast<I>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator/(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<I>(x) / static_cast<I>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator|(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -226,20 +226,20 @@ private:
     else return static_cast<strong>(static_cast<T>(x) | static_cast<T>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator|(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return create(y | static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) | static_cast<T>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator|(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<T>(x) | static_cast<T>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator&(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -247,20 +247,20 @@ private:
     else return static_cast<strong>(static_cast<T>(x) & static_cast<T>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator&(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return y & static_cast<J>(x);
     else return static_cast<strong>(static_cast<T>(y) & static_cast<T>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator&(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<T>(x) & static_cast<T>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator^(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -268,20 +268,20 @@ private:
     else return static_cast<strong>(static_cast<T>(x) ^ static_cast<T>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator^(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return create(y ^ static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) ^ static_cast<T>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator^(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<T>(x) ^ static_cast<T>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator%(strong x, J y) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
@@ -289,156 +289,156 @@ private:
     else return static_cast<strong>(static_cast<I>(x) % static_cast<I>(y));
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator%(J y, strong x) -> strong
   requires(issigned == std::is_signed_v<J>)
   {
     if constexpr (sizeof(J) > sizeof(I)) return y % static_cast<J>(x);
     else return static_cast<strong>(static_cast<I>(y) % static_cast<I>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator%(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<I>(x) % static_cast<I>(y));
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<<(strong x, I y) -> strong {
     return static_cast<strong>(static_cast<I>(x) << y);
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<<(I y, strong x) -> strong {
     return static_cast<strong>(y << static_cast<I>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<<(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<I>(x) << static_cast<I>(y));
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator>>(strong x, I y) -> strong {
     return static_cast<strong>(static_cast<I>(x) >> y);
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator>>(I y, strong x) -> strong {
     return static_cast<strong>(y >> static_cast<I>(x));
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator>>(strong x, strong y) -> strong {
     return static_cast<strong>(static_cast<I>(x) >> static_cast<I>(y));
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x + y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+=(strong &x, strong y) -> strong & {
     return x = x + y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x - y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-=(strong &x, strong y) -> strong & {
     return x = x - y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator*=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x * y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator*=(strong &x, strong y) -> strong & {
     return x = x * y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator/=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x / y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator/=(strong &x, strong y) -> strong & {
     return x = x / y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator%=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x % y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator%=(strong &x, strong y) -> strong & {
     return x = x % y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator&=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x & y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator&=(strong &x, strong y) -> strong & {
     return x = x & y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator|=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x | y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator|=(strong &x, strong y) -> strong & {
     return x = x | y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator^=(strong &x,
              J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x ^ y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator^=(strong &x, strong y) -> strong & {
     return x = x ^ y;
   }
 
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<<=(strong &x,
               J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x << y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator<<=(strong &x, strong y) -> strong & {
     return x = x << y;
   }
   template <std::integral J>
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator>>=(strong &x,
               J y) -> strong &requires(issigned == std::is_signed_v<J>) {
     return x = x >> y;
   }
 
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator>>=(strong &x, strong y) -> strong & {
     return x = x >> y;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator!(strong x) -> bool {
     return !static_cast<bool>(x);
   }

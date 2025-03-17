@@ -31,7 +31,7 @@ namespace math {
 using utils::invariant;
 // inputs must be `ptrdiff_t` or `std::integral_constant<ptrdiff_t,value>`
 template <typename X, typename Y>
-[[gnu::always_inline]] constexpr auto check_sizes(X x, Y y) {
+TRIVIAL constexpr auto check_sizes(X x, Y y) {
   if constexpr (std::same_as<ptrdiff_t, X>) {
     if constexpr (std::same_as<ptrdiff_t, Y>) {
       invariant(x, y);
@@ -53,7 +53,7 @@ template <typename X, typename Y>
   }
 }
 
-template <typename T> [[gnu::always_inline]] constexpr auto view(const T &x) {
+template <typename T> TRIVIAL constexpr auto view(const T &x) {
   if constexpr (ShouldView<T>) return x.view();
   else return x;
 }

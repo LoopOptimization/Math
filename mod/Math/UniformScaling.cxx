@@ -42,7 +42,7 @@ template <class T> struct UniformScaling {
     return r == c ? value_ : T{};
   }
   template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator[](simd::index::Unroll<R> r,
              simd::index::Unroll<C, W, M> c) const -> simd::Unroll<R, C, W, T> {
     using I = utils::signed_integer_t<sizeof(T)>;
@@ -67,13 +67,13 @@ template <class T> struct UniformScaling {
     }
   }
   template <ptrdiff_t C, ptrdiff_t W, typename M>
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator[](ptrdiff_t r,
              simd::index::Unroll<C, W, M> c) const -> simd::Unroll<1, C, W, T> {
     return (*this)[simd::index::Unroll<1>{r}, c];
   }
   // template <ptrdiff_t C, ptrdiff_t W, typename M>
-  // [[gnu::always_inline]] constexpr auto
+  // TRIVIAL constexpr auto
   // operator[](simd::index::Unroll<C, W, M> r, ptrdiff_t c) const
   //   -> simd::Unroll<1, C, W, T> {
   //   return (*this)[r, simd::index::Unroll<1>{c}];

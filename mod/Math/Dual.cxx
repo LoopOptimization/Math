@@ -67,7 +67,7 @@ template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
   SVector<T, N, true> partials{CT{}};
 
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
-  [[gnu::always_inline]] constexpr operator decompressed_type() const {
+  TRIVIAL constexpr operator decompressed_type() const {
     return decompressed_type::decompress(this);
   }
   [[nodiscard]] constexpr auto value() -> T { return val; }
@@ -79,24 +79,24 @@ template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
     return partials;
   }
 
-  // [[gnu::always_inline]] constexpr auto operator-() const & -> Dual {
+  // TRIVIAL constexpr auto operator-() const & -> Dual {
   //   return {-val, -partials};
   // }
-  // [[gnu::always_inline]] constexpr auto
+  // TRIVIAL constexpr auto
   // operator+(const Dual &other) const & -> Dual {
   //   return {val + other.val, partials + other.partials};
   // }
-  // [[gnu::always_inline]] constexpr auto operator-(const Dual &other) const
+  // TRIVIAL constexpr auto operator-(const Dual &other) const
   //   -> Dual {
   //   return {val - other.val, partials - other.partials};
   // }
-  // [[gnu::always_inline]] constexpr auto operator+=(const Dual &other)
+  // TRIVIAL constexpr auto operator+=(const Dual &other)
   //   -> Dual & {
   //   val += other.val;
   //   partials += other.partials;
   //   return *this;
   // }
-  // [[gnu::always_inline]] constexpr auto operator-=(const Dual &other)
+  // TRIVIAL constexpr auto operator-=(const Dual &other)
   //   -> Dual & {
   //   val -= other.val;
   //   partials -= other.partials;
@@ -110,7 +110,7 @@ struct Dual<T, N, true> {
   SVector<T, N + 1, true> data{T{}};
 
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
-  [[gnu::always_inline]] constexpr operator decompressed_type() const {
+  TRIVIAL constexpr operator decompressed_type() const {
     return decompressed_type::decompress(this);
   }
   [[nodiscard]] constexpr auto value() -> T { return data[0]; }
@@ -122,23 +122,23 @@ struct Dual<T, N, true> {
     return {data.data() + 1, {}};
   }
 
-  // [[gnu::always_inline]] constexpr auto operator-() const & -> Dual {
+  // TRIVIAL constexpr auto operator-() const & -> Dual {
   //   return {-data};
   // }
-  // [[gnu::always_inline]] constexpr auto
+  // TRIVIAL constexpr auto
   // operator+(const Dual &other) const & -> Dual {
   //   return {data + other.data};
   // }
-  // [[gnu::always_inline]] constexpr auto operator-(const Dual &other) const
+  // TRIVIAL constexpr auto operator-(const Dual &other) const
   //   -> Dual {
   //   return {data - other.data};
   // }
-  // [[gnu::always_inline]] constexpr auto operator+=(const Dual &other)
+  // TRIVIAL constexpr auto operator+=(const Dual &other)
   //   -> Dual & {
   //   data += other.data;
   //   return *this;
   // }
-  // [[gnu::always_inline]] constexpr auto operator-=(const Dual &other)
+  // TRIVIAL constexpr auto operator-=(const Dual &other)
   //   -> Dual & {
   //   data -= other.data;
   //   return *this;
@@ -178,18 +178,18 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   [[nodiscard]] constexpr auto gradient(ptrdiff_t i) const -> const T & {
     return partials[i];
   }
-  [[gnu::always_inline]] constexpr auto operator-() const -> Dual {
+  TRIVIAL constexpr auto operator-() const -> Dual {
     return {-val, -partials};
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator+(const Dual &other) const -> Dual {
     return {val + other.val, partials + other.partials};
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator-(const Dual &other) const -> Dual {
     return {val - other.val, partials - other.partials};
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator*(const Dual &other) const -> Dual {
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
     if constexpr (std::same_as<T, double> && (N > 1)) {
@@ -211,170 +211,170 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
 #endif
       return {val * other.val, (val * other.partials) + (other.val * partials)};
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator/(const Dual &other) const -> Dual {
     return {val / other.val, (other.val * partials - val * other.partials) /
                                (other.val * other.val)};
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator+(const T &other) const & -> Dual
   requires(!std::same_as<T, double>)
   {
     return {val + other, partials};
   }
-  [[gnu::always_inline]] constexpr auto operator-(const T &other) const -> Dual
+  TRIVIAL constexpr auto operator-(const T &other) const -> Dual
   requires(!std::same_as<T, double>)
   {
     return {val - other, partials};
   }
-  [[gnu::always_inline]] constexpr auto operator*(const T &other) const -> Dual
+  TRIVIAL constexpr auto operator*(const T &other) const -> Dual
   requires(!std::same_as<T, double>)
   {
     return {val * other, partials * other};
   }
-  [[gnu::always_inline]] constexpr auto operator/(const T &other) const -> Dual
+  TRIVIAL constexpr auto operator/(const T &other) const -> Dual
   requires(!std::same_as<T, double>)
   {
     return {val / other, partials / other};
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator+=(const Dual &other) -> Dual & {
     val += other.val;
     partials += other.partials;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator-=(const Dual &other) -> Dual & {
     val -= other.val;
     partials -= other.partials;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator*=(const Dual &other) -> Dual & {
     partials << (val * other.partials) + (other.val * partials);
     val *= other.val;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator/=(const Dual &other) -> Dual & {
     partials << (other.val * partials - val * other.partials) /
                   (other.val * other.val);
     val /= other.val;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator+(double other) const & -> Dual {
     return {val + other, partials};
   }
-  [[gnu::always_inline]] constexpr auto operator-(double other) const -> Dual {
+  TRIVIAL constexpr auto operator-(double other) const -> Dual {
     return {val - other, partials};
   }
-  [[gnu::always_inline]] constexpr auto operator*(double other) const -> Dual {
+  TRIVIAL constexpr auto operator*(double other) const -> Dual {
     return {val * other, partials * other};
   }
-  [[gnu::always_inline]] constexpr auto operator/(double other) const -> Dual {
+  TRIVIAL constexpr auto operator/(double other) const -> Dual {
     return {val / other, partials / other};
   }
-  [[gnu::always_inline]] constexpr auto operator+=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator+=(double other) -> Dual & {
     val += other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator-=(double other) -> Dual & {
     val -= other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator*=(double other) -> Dual & {
     val *= other;
     partials *= other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator/=(double other) -> Dual & {
     val /= other;
     partials /= other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator==(const Dual &other) const -> bool {
     return val == other.val; // && grad == other.grad;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator!=(const Dual &other) const -> bool {
     return val != other.val; // || grad != other.grad;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator<(const Dual &other) const -> bool {
     return val < other.val;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator>(const Dual &other) const -> bool {
     return val > other.val;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator<=(const Dual &other) const -> bool {
     return val <= other.val;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator>=(const Dual &other) const -> bool {
     return val >= other.val;
   }
-  [[gnu::always_inline]] constexpr auto operator==(double other) const -> bool {
+  TRIVIAL constexpr auto operator==(double other) const -> bool {
     return val == other;
   }
-  [[gnu::always_inline]] constexpr auto operator!=(double other) const -> bool {
+  TRIVIAL constexpr auto operator!=(double other) const -> bool {
     return val != other;
   }
-  [[gnu::always_inline]] constexpr auto operator<(double other) const -> bool {
+  TRIVIAL constexpr auto operator<(double other) const -> bool {
     return val < other;
   }
-  [[gnu::always_inline]] constexpr auto operator>(double other) const -> bool {
+  TRIVIAL constexpr auto operator>(double other) const -> bool {
     return val > other;
   }
-  [[gnu::always_inline]] constexpr auto operator<=(double other) const -> bool {
+  TRIVIAL constexpr auto operator<=(double other) const -> bool {
     return val <= other;
   }
-  [[gnu::always_inline]] constexpr auto operator>=(double other) const -> bool {
+  TRIVIAL constexpr auto operator>=(double other) const -> bool {
     return val >= other;
   }
-  [[gnu::always_inline]] constexpr auto operator==(T other) const -> bool
+  TRIVIAL constexpr auto operator==(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
     return val == other;
   }
-  [[gnu::always_inline]] constexpr auto operator!=(T other) const -> bool
+  TRIVIAL constexpr auto operator!=(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
     return val != other;
   }
-  [[gnu::always_inline]] constexpr auto operator<(T other) const -> bool
+  TRIVIAL constexpr auto operator<(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
     return val < other;
   }
-  [[gnu::always_inline]] constexpr auto operator>(T other) const -> bool
+  TRIVIAL constexpr auto operator>(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
     return val > other;
   }
-  [[gnu::always_inline]] constexpr auto operator<=(T other) const -> bool
+  TRIVIAL constexpr auto operator<=(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
     return val <= other;
   }
-  [[gnu::always_inline]] constexpr auto operator>=(T other) const -> bool
+  TRIVIAL constexpr auto operator>=(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
     return val >= other;
   }
-  [[gnu::always_inline]] constexpr void compress(compressed_type *p) const {
+  TRIVIAL constexpr void compress(compressed_type *p) const {
     utils::compress(val, &(p->val));
     partials.compress(&(p->partials));
   }
-  [[gnu::always_inline]] static constexpr auto
+  TRIVIAL static constexpr auto
   decompress(const compressed_type *p) -> Dual {
     return {utils::decompress<T>(&(p->val)),
             SVector<T, N>::decompress(&(p->partials))};
   }
-  [[gnu::always_inline]] constexpr operator compressed_type() const {
+  TRIVIAL constexpr operator compressed_type() const {
     compressed_type ret;
     compress(&ret);
     return ret;
@@ -385,27 +385,27 @@ private:
   friend constexpr auto extractvalue(const Dual &x) {
     return extractvalue(x.value());
   }
-  [[gnu::always_inline]] friend constexpr auto operator>(double other,
+  TRIVIAL friend constexpr auto operator>(double other,
                                                          Dual x) -> bool {
     return other > x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator>=(double other,
+  TRIVIAL friend constexpr auto operator>=(double other,
                                                           Dual x) -> bool {
     return other >= x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator<(double other,
+  TRIVIAL friend constexpr auto operator<(double other,
                                                          Dual x) -> bool {
     return other < x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator<=(double other,
+  TRIVIAL friend constexpr auto operator<=(double other,
                                                           Dual x) -> bool {
     return other <= x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator==(double other,
+  TRIVIAL friend constexpr auto operator==(double other,
                                                           Dual x) -> bool {
     return other == x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator!=(double other,
+  TRIVIAL friend constexpr auto operator!=(double other,
                                                           Dual x) -> bool {
     return other != x.value();
   }
@@ -415,17 +415,17 @@ private:
     os << "}";
     return os;
   };
-  [[gnu::always_inline]] friend constexpr auto operator+(T a, Dual b) -> Dual
+  TRIVIAL friend constexpr auto operator+(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
     return {a + b.val, b.partials};
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(T a, Dual b) -> Dual
+  TRIVIAL friend constexpr auto operator-(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
     return {a - b.val, -b.partials};
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(T a, Dual b) -> Dual
+  TRIVIAL friend constexpr auto operator*(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
     // Dual res;
@@ -434,24 +434,24 @@ private:
     // return res;
     return {a * b.val, a * b.partials};
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(T a, Dual b) -> Dual
+  TRIVIAL friend constexpr auto operator/(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
     return {a / b.val, (-a * b.partials) / (b.val * b.val)};
   }
-  [[gnu::always_inline]] friend constexpr auto operator+(double other,
+  TRIVIAL friend constexpr auto operator+(double other,
                                                          Dual x) -> Dual {
     return {x.value() + other, x.gradient()};
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(double other,
+  TRIVIAL friend constexpr auto operator-(double other,
                                                          Dual x) -> Dual {
     return {other - x.value(), -x.gradient()};
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(double other,
+  TRIVIAL friend constexpr auto operator*(double other,
                                                          Dual x) -> Dual {
     return {x.value() * other, other * x.gradient()};
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(double other,
+  TRIVIAL friend constexpr auto operator/(double other,
                                                          Dual x) -> Dual {
     return {other / x.value(), -other * x.gradient() / (x.value() * x.value())};
   }
@@ -515,7 +515,7 @@ struct Dual<T, N, false> {
     return {data.data() + partial_offset, {}};
   }
 
-  [[gnu::always_inline]] constexpr auto operator-() const -> Dual {
+  TRIVIAL constexpr auto operator-() const -> Dual {
     return {-data};
   }
   // constexpr auto operator+(const Dual &other) const -> Dual {
@@ -577,15 +577,15 @@ struct Dual<T, N, false> {
   //   data /
   //   //                     v, value() * other.data / (v * v))};
   // }
-  [[gnu::always_inline]] constexpr auto operator+=(Dual other) -> Dual & {
+  TRIVIAL constexpr auto operator+=(Dual other) -> Dual & {
     data += other.data;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(Dual other) -> Dual & {
+  TRIVIAL constexpr auto operator-=(Dual other) -> Dual & {
     data -= other.data;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(Dual other) -> Dual & {
+  TRIVIAL constexpr auto operator*=(Dual other) -> Dual & {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
       data.data_ =
@@ -603,7 +603,7 @@ struct Dual<T, N, false> {
     //                     value() * other.data, data * other.value());
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(Dual other) -> Dual & {
+  TRIVIAL constexpr auto operator/=(Dual other) -> Dual & {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
         x = vo * data.data_;
@@ -647,78 +647,78 @@ struct Dual<T, N, false> {
   // constexpr auto operator/(double other) const -> Dual {
   //   return {data / other};
   // }
-  [[gnu::always_inline]] constexpr auto operator+=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator+=(double other) -> Dual & {
     if constexpr (data_type::L == 1)
       data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
     else data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator-=(double other) -> Dual & {
     if constexpr (data_type::L == 1)
       data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
     else data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator*=(double other) -> Dual & {
     data *= other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(double other) -> Dual & {
+  TRIVIAL constexpr auto operator/=(double other) -> Dual & {
     data /= other;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator==(const Dual &other) const -> bool {
     return value() == other.value(); // && grad == other.grad;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator!=(const Dual &other) const -> bool {
     return value() != other.value(); // || grad != other.grad;
   }
-  [[gnu::always_inline]] constexpr auto operator==(double other) const -> bool {
+  TRIVIAL constexpr auto operator==(double other) const -> bool {
     return value() == other;
   }
-  [[gnu::always_inline]] constexpr auto operator!=(double other) const -> bool {
+  TRIVIAL constexpr auto operator!=(double other) const -> bool {
     return value() != other;
   }
-  [[gnu::always_inline]] constexpr auto operator<(double other) const -> bool {
+  TRIVIAL constexpr auto operator<(double other) const -> bool {
     return value() < other;
   }
-  [[gnu::always_inline]] constexpr auto operator>(double other) const -> bool {
+  TRIVIAL constexpr auto operator>(double other) const -> bool {
     return value() > other;
   }
-  [[gnu::always_inline]] constexpr auto operator<=(double other) const -> bool {
+  TRIVIAL constexpr auto operator<=(double other) const -> bool {
     return value() <= other;
   }
-  [[gnu::always_inline]] constexpr auto operator>=(double other) const -> bool {
+  TRIVIAL constexpr auto operator>=(double other) const -> bool {
     return value() >= other;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator<(const Dual &other) const -> bool {
     return value() < other.value();
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator>(const Dual &other) const -> bool {
     return value() > other.value();
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator<=(const Dual &other) const -> bool {
     return value() <= other.value();
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator>=(const Dual &other) const -> bool {
     return value() >= other.value();
   }
-  [[gnu::always_inline]] static constexpr auto
+  TRIVIAL static constexpr auto
   decompress(const compressed_type *p) -> Dual {
     return {SVector<T, N + 1, false>{p->data}};
   }
-  [[gnu::always_inline]] constexpr operator compressed_type() const {
+  TRIVIAL constexpr operator compressed_type() const {
     compressed_type ret;
     compress(&ret);
     return ret;
   }
-  [[gnu::always_inline]] constexpr void compress(compressed_type *p) const {
+  TRIVIAL constexpr void compress(compressed_type *p) const {
     p->data << data;
   }
 
@@ -730,7 +730,7 @@ private:
                         elementwise_not_equal(_(0, N + 1), value_idx),
                         exp(x.value()), x.data)};
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(double a,
+  TRIVIAL friend constexpr auto operator/(double a,
                                                          Dual b) -> Dual {
     Dual ret;
     if constexpr (data_type::L == 1) {
@@ -756,27 +756,27 @@ private:
     //                     -x.data / x.value())};
     // return {v, -v * x.gradient() / (x.value())};
   }
-  [[gnu::always_inline]] friend constexpr auto operator>(double other,
+  TRIVIAL friend constexpr auto operator>(double other,
                                                          Dual x) -> bool {
     return other > x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator>=(double other,
+  TRIVIAL friend constexpr auto operator>=(double other,
                                                           Dual x) -> bool {
     return other >= x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator<(double other,
+  TRIVIAL friend constexpr auto operator<(double other,
                                                          Dual x) -> bool {
     return other < x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator<=(double other,
+  TRIVIAL friend constexpr auto operator<=(double other,
                                                           Dual x) -> bool {
     return other <= x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator==(double other,
+  TRIVIAL friend constexpr auto operator==(double other,
                                                           Dual x) -> bool {
     return other == x.value();
   }
-  [[gnu::always_inline]] friend constexpr auto operator!=(double other,
+  TRIVIAL friend constexpr auto operator!=(double other,
                                                           Dual x) -> bool {
     return other != x.value();
   }
@@ -787,17 +787,17 @@ private:
     return os;
   };
 
-  [[gnu::always_inline]] friend constexpr auto operator+(Dual x,
+  TRIVIAL friend constexpr auto operator+(Dual x,
                                                          Dual y) -> Dual {
     return {x.data + y.data};
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator-(Dual x,
+  TRIVIAL friend constexpr auto operator-(Dual x,
                                                          Dual y) -> Dual {
     return {x.data - y.data};
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator*(Dual a,
+  TRIVIAL friend constexpr auto operator*(Dual a,
                                                          Dual b) -> Dual {
     using D = Dual<T, N, false>;
     if constexpr (data_type::L == 1) {
@@ -815,7 +815,7 @@ private:
       return ret;
     }
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(Dual a,
+  TRIVIAL friend constexpr auto operator/(Dual a,
                                                          Dual b) -> Dual {
     Dual ret;
     if constexpr (data_type::L == 1) {
@@ -837,7 +837,7 @@ private:
     }
     return ret;
   }
-  [[gnu::always_inline]] friend constexpr auto operator+(Dual a,
+  TRIVIAL friend constexpr auto operator+(Dual a,
                                                          double b) -> Dual {
     if constexpr (data_type::L == 1)
       a.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{b};
@@ -845,7 +845,7 @@ private:
     return a;
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator+(double a,
+  TRIVIAL friend constexpr auto operator+(double a,
                                                          Dual b) -> Dual {
     if constexpr (data_type::L == 1)
       b.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{a};
@@ -853,14 +853,14 @@ private:
     return b;
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator-(Dual a,
+  TRIVIAL friend constexpr auto operator-(Dual a,
                                                          double b) -> Dual {
     if constexpr (data_type::L == 1)
       a.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{b};
     else a.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{b};
     return a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(double a,
+  TRIVIAL friend constexpr auto operator-(double a,
                                                          Dual b) -> Dual {
     if constexpr (data_type::L == 1)
       b.data.data_ = simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data.data_;
@@ -873,16 +873,16 @@ private:
     }
     return b;
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(Dual a,
+  TRIVIAL friend constexpr auto operator*(Dual a,
                                                          double b) -> Dual {
     return {a.data * b};
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(double a,
+  TRIVIAL friend constexpr auto operator*(double a,
                                                          Dual b) -> Dual {
     return {a * b.data};
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator/(Dual a,
+  TRIVIAL friend constexpr auto operator/(Dual a,
                                                          double b) -> Dual {
     return {a.data / b};
   }

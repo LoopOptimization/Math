@@ -185,7 +185,7 @@ private:
   }
 };
 template <ptrdiff_t U, ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto unrollmask(ptrdiff_t L, ptrdiff_t i) {
+TRIVIAL constexpr auto unrollmask(ptrdiff_t L, ptrdiff_t i) {
   // mask applies to last iter
   // We can't check that the last iter is non-empty, because that
   // could be the loop exit condition
@@ -194,13 +194,13 @@ template <ptrdiff_t U, ptrdiff_t W>
 };
 #ifdef __AVX512VL__
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 tailmask(ptrdiff_t i, ptrdiff_t m) -> Unroll<1, W, mask::Bit<W>> {
   return {i, mask::createSmallPositive<W>(m)};
 }
 #else
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto tailmask(ptrdiff_t i, ptrdiff_t m) {
+TRIVIAL constexpr auto tailmask(ptrdiff_t i, ptrdiff_t m) {
   auto mask{mask::create<W>(i, i + m)};
   return Unroll<1, W, decltype(mask)>{i, mask};
 }

@@ -27,13 +27,13 @@ export namespace math {
 namespace math {
 #endif
 template <ptrdiff_t M>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+TRIVIAL inline constexpr auto
 standardizeRangeBound(math::Row<M> x) {
   if constexpr (M == -1) return ptrdiff_t(x);
   else return std::integral_constant<ptrdiff_t, M>{};
 }
 template <ptrdiff_t M>
-[[gnu::artificial, gnu::always_inline]] inline constexpr auto
+TRIVIAL inline constexpr auto
 standardizeRangeBound(math::Col<M> x) {
   if constexpr (M == -1) return ptrdiff_t(x);
   else return std::integral_constant<ptrdiff_t, M>{};
@@ -54,19 +54,19 @@ template <typename B, typename E> struct Range {
   [[nodiscard]] constexpr auto end() const -> E { return e; }
 
 private:
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(Range r, ptrdiff_t x) {
     return Range{r.b + x, r.e + x};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(Range r, ptrdiff_t x) {
     return Range{r.b - x, r.e - x};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(ptrdiff_t x, Range r) {
     return Range{r.b + x, r.e + x};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(ptrdiff_t x, Range r) {
     return Range{x - r.b, x - r.e};
   }
@@ -114,19 +114,19 @@ template <std::integral B, std::integral E> struct Range<B, E> {
   [[nodiscard]] constexpr auto operator[](auto i) const { return i + b; }
 
 private:
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(Range r, ptrdiff_t x) {
     return Range{r.b + x, r.e + x};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(Range r, ptrdiff_t x) {
     return Range{r.b - x, r.e - x};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator+(ptrdiff_t x, Range r) {
     return Range{r.b + x, r.e + x};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
+  TRIVIAL friend inline constexpr auto
   operator-(ptrdiff_t x, Range r) {
     return Range{x - r.b, x - r.e};
   }

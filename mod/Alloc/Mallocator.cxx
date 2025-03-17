@@ -283,7 +283,7 @@ concept CanAllocAtLeast = requires(A a) {
 static_assert(CanAllocAtLeast<Mallocator<ptrdiff_t>>);
 
 template <class A>
-[[gnu::always_inline]] inline auto
+TRIVIAL inline auto
 alloc_at_least(A a, size_t n) -> AllocResult<typename A::value_type> {
   if constexpr (CanAllocAtLeast<A>) return a.allocate_at_least(n);
   else return {a.allocate(n), n};

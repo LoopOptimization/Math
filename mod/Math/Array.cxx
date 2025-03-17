@@ -588,7 +588,7 @@ protected:
   [[no_unique_address]] S sz;
 };
 template <class T, class S>
-[[gnu::always_inline]] constexpr auto view(Array<T, S> x) -> Array<T, S> {
+TRIVIAL constexpr auto view(Array<T, S> x) -> Array<T, S> {
   return x;
 }
 

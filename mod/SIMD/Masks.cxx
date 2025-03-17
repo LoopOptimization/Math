@@ -4,6 +4,8 @@ module;
 #pragma once
 #endif
 
+#include "Macros.hxx"
+
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
@@ -51,8 +53,9 @@ consteval auto range() -> Vec<W, I> {
 
 #if defined(__x86_64__) && defined(__AVX512VL__)
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
-sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+#include "Macros.hxx"
+
+TRIVIAL constexpr auto sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   if constexpr (W == 2) {
     return std::bit_cast<Vec<2, int64_t>>(
       _mm_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
@@ -65,8 +68,7 @@ sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   } else static_assert(false);
 }
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
-zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+TRIVIAL constexpr auto zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   if constexpr (W == 2) {
     return std::bit_cast<Vec<2, int64_t>>(
       _mm_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
@@ -79,8 +81,7 @@ zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   } else static_assert(false);
 }
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
-truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
+TRIVIAL constexpr auto truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
   if constexpr (W == 2) {
     return std::bit_cast<Vec<2, int32_t>>(
       _mm_cvtepi64_epi32(std::bit_cast<__m128i>(v)));
@@ -94,8 +95,7 @@ truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
 }
 #else
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
-sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+TRIVIAL constexpr auto sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   if constexpr (W != 1) {
     Vec<W, int64_t> r;
     for (ptrdiff_t w = 0; w < W; ++w) r[w] = static_cast<int64_t>(v[w]);
@@ -103,8 +103,7 @@ sextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   } else return static_cast<int64_t>(v);
 }
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
-zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
+TRIVIAL constexpr auto zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   using R = Vec<W, int64_t>;
   static constexpr Vec<W, int32_t> z{};
   if constexpr (W == 1)
@@ -121,8 +120,7 @@ zextelts(Vec<W, int32_t> v) -> Vec<W, int64_t> {
   else static_assert(false);
 }
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
-truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
+TRIVIAL constexpr auto truncelts(Vec<W, int64_t> v) -> Vec<W, int32_t> {
   using R = Vec<W, int64_t>;
   if constexpr (W == 1) return static_cast<R>(v);
   else {
@@ -172,28 +170,22 @@ template <ptrdiff_t W> struct Bit {
   }
 
 private:
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
-  operator&(Bit<W> a, Bit<W> b) -> Bit<W> {
+  TRIVIAL friend inline constexpr auto operator&(Bit<W> a, Bit<W> b) -> Bit<W> {
     return {a.mask_ & b.mask_};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
-  operator&(None<W>, Bit<W> b) -> Bit<W> {
+  TRIVIAL friend inline constexpr auto operator&(None<W>, Bit<W> b) -> Bit<W> {
     return b;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
-  operator&(Bit<W> a, None<W>) -> Bit<W> {
+  TRIVIAL friend inline constexpr auto operator&(Bit<W> a, None<W>) -> Bit<W> {
     return a;
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
-  operator|(Bit<W> a, Bit<W> b) -> Bit<W> {
+  TRIVIAL friend inline constexpr auto operator|(Bit<W> a, Bit<W> b) -> Bit<W> {
     return {a.mask_ | b.mask_};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
-  operator|(None<W>, Bit<W>) -> Bit<W> {
+  TRIVIAL friend inline constexpr auto operator|(None<W>, Bit<W>) -> Bit<W> {
     return None<W>{};
   }
-  [[gnu::always_inline, gnu::artificial]] friend inline constexpr auto
-  operator|(Bit<W>, None<W>) -> Bit<W> {
+  TRIVIAL friend inline constexpr auto operator|(Bit<W>, None<W>) -> Bit<W> {
     return None<W>{};
   }
 };
@@ -340,8 +332,8 @@ constexpr auto create(ptrdiff_t i) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto
-create(ptrdiff_t i, ptrdiff_t len) -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
+constexpr auto create(ptrdiff_t i, ptrdiff_t len)
+  -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
   static constexpr ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
@@ -415,8 +407,8 @@ constexpr auto create(ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
   return {range<W, I>() < static_cast<I>(i & (W - 1))};
 }
 template <ptrdiff_t W>
-constexpr auto create(ptrdiff_t i,
-                      ptrdiff_t len) -> Vector<W, VECTORWIDTH / W> {
+constexpr auto create(ptrdiff_t i, ptrdiff_t len)
+  -> Vector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
@@ -427,8 +419,7 @@ namespace cmp {
 #ifdef __AVX512VL__
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
@@ -476,8 +467,7 @@ eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
@@ -525,8 +515,7 @@ ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
@@ -574,8 +563,7 @@ lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
@@ -623,8 +611,7 @@ gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
@@ -672,8 +659,7 @@ le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
@@ -725,8 +711,7 @@ ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
 #elif defined(__AVX512F__)
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto eq(Vec<W, T> x,
-                                                       Vec<W, T> y) {
+TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -740,8 +725,7 @@ template <ptrdiff_t W, typename T>
   }
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto ne(Vec<W, T> x,
-                                                       Vec<W, T> y) {
+TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -756,8 +740,7 @@ template <ptrdiff_t W, typename T>
 }
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto lt(Vec<W, T> x,
-                                                       Vec<W, T> y) {
+TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -771,8 +754,7 @@ template <ptrdiff_t W, typename T>
   }
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto gt(Vec<W, T> x,
-                                                       Vec<W, T> y) {
+TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -787,8 +769,7 @@ template <ptrdiff_t W, typename T>
 }
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto le(Vec<W, T> x,
-                                                       Vec<W, T> y) {
+TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -802,8 +783,7 @@ template <ptrdiff_t W, typename T>
   }
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto ge(Vec<W, T> x,
-                                                       Vec<W, T> y) {
+TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
       return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
@@ -820,42 +800,36 @@ template <ptrdiff_t W, typename T>
 #else  // ifdef __AVX512VL__
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x == y};
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x != y};
 }
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x < y};
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x > y};
 }
 
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x <= y};
 }
 template <ptrdiff_t W, typename T>
-[[gnu::always_inline, gnu::artificial]] inline auto
-ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
   return {x >= y};
 }
 #endif // ifdef __AVX512VL__; else
 } // namespace cmp
 template <ptrdiff_t W,
           typename I = std::conditional_t<W == 2, int64_t, int32_t>>
-[[gnu::always_inline]] inline auto firstoff() {
+TRIVIAL inline auto firstoff() {
   return cmp::ne<W, I>(range<W, I>(), Vec<W, I>{});
 }
 

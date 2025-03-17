@@ -304,7 +304,7 @@ template <ptrdiff_t R, ptrdiff_t C> struct DenseDims {
     else return {};
   }
 
-  [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+  TRIVIAL inline constexpr auto
   flat() const -> Length<(R == -1) || (C == -1) ? -1 : R * C> {
     if constexpr ((R == -1) || (C == -1))
       return length(ptrdiff_t(m_) * ptrdiff_t(n_));
@@ -399,7 +399,7 @@ template <ptrdiff_t R> struct SquareDims {
     if constexpr (R == -1) return stride(ptrdiff_t(m_));
     else return {};
   }
-  [[gnu::artificial, gnu::always_inline]] inline constexpr auto
+  TRIVIAL inline constexpr auto
   flat() const -> Length<R == -1 ? -1 : R * R> {
     if constexpr (R == -1) {
       ptrdiff_t m = ptrdiff_t(m_);

@@ -377,19 +377,19 @@ constexpr auto fmadd(double x, double y, double z) -> double {
 #endif
 }
 
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 expm1b_kernel(std::integral_constant<int, 2>, double x) -> double {
   return x * fmadd(fmadd(fmadd(0.009618130135925114, x, 0.055504115022757844),
                          x, 0.2402265069590989),
                    x, 0.6931471805599393);
 }
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 expm1b_kernel(std::integral_constant<int, 3>, double x) -> double {
   return x * fmadd(fmadd(fmadd(0.04166666762124105, x, 0.1666666704849642), x,
                          0.49999999999999983),
                    x, 0.9999999999999998);
 }
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 expm1b_kernel(std::integral_constant<int, 10>, double x) -> double {
   return x * fmadd(fmadd(fmadd(fmadd(0.5393833837413015, x, 1.1712561359457612),
                                x, 2.0346785922926713),
@@ -417,7 +417,7 @@ template <int B> constexpr auto exp_impl(double x) -> double {
 }
 
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 expm1b_kernel(std::integral_constant<int, 2>,
               simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return x * (((0.009618130135925114 * x + 0.055504115022757844) * x +
@@ -425,7 +425,7 @@ expm1b_kernel(std::integral_constant<int, 2>,
               x * 0.6931471805599393);
 }
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 expm1b_kernel(std::integral_constant<int, 3>,
               simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return x * (((0.04166666762124105 * x + 0.1666666704849642) * x +
@@ -434,7 +434,7 @@ expm1b_kernel(std::integral_constant<int, 3>,
               0.9999999999999998);
 }
 template <ptrdiff_t W>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 expm1b_kernel(std::integral_constant<int, 10>,
               simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return x * ((((0.5393833837413015 * x + 1.1712561359457612) * x +

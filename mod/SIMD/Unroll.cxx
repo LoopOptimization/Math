@@ -36,7 +36,7 @@ export namespace simd {
 namespace simd {
 #endif
 // template <typename T, ptrdiff_t W, typename S>
-// [[gnu::always_inline]] constexpr auto vcvt(Vec<W, S> v) {
+// TRIVIAL constexpr auto vcvt(Vec<W, S> v) {
 //   if constexpr (std::same_as<T, S>) return v;
 //   else if constexpr (W == 1) return T(v);
 //   else return __builtin_convertvector(v, Vec<W, T>);
@@ -56,7 +56,7 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
     return data_[r * C + c];
   }
   template <typename U>
-  [[gnu::always_inline]] constexpr operator Unroll<R, C, N, U>() const
+  TRIVIAL constexpr operator Unroll<R, C, N, U>() const
   requires(!std::same_as<T, U>)
   {
     Unroll<R, C, N, U> x;
@@ -66,190 +66,190 @@ template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T> struct Unroll {
       else x.data_[i] = __builtin_convertvector(data_[i], Vec<W, U>);
     return x;
   }
-  [[gnu::always_inline]] constexpr auto operator-() {
+  TRIVIAL constexpr auto operator-() {
     Unroll a;
     for (ptrdiff_t i = 0; i < R * C; ++i) a.data_[i] = -data_[i];
     return a;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator+=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] += a.data_[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator-=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] -= a.data_[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator*=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] *= a.data_[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator/=(const Unroll &a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] /= a.data_[i];
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator+=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator+=(VT a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] += a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator-=(VT a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] -= a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator*=(VT a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] *= a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator/=(VT a) -> Unroll & {
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) data_[i] /= a;
     return *this;
   }
-[[gnu::always_inline]] constexpr auto operator+=(std::convertible_to<T> auto a)
+TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a)
   -> Unroll &requires(W != 1) { return (*this) += vbroadcast<W, T>(a); }
-[[gnu::always_inline]] constexpr auto operator-=(std::convertible_to<T> auto a)
+TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a)
   -> Unroll &requires(W != 1) { return (*this) -= vbroadcast<W, T>(a); }
-[[gnu::always_inline]] constexpr auto operator*=(std::convertible_to<T> auto a)
+TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a)
   -> Unroll &requires(W != 1) { return (*this) *= vbroadcast<W, T>(a); }
-[[gnu::always_inline]] constexpr auto operator/=(std::convertible_to<T> auto a)
+TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a)
   -> Unroll &requires(W != 1) { return (*this) /= vbroadcast<W, T>(a); }
 
 private :
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::minus<>{});
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator*(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::multiplies<>{});
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator/(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::divides<>{});
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator+(Unroll a,
+  TRIVIAL friend constexpr auto operator+(Unroll a,
                                                          VT b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] + b;
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(Unroll a,
+  TRIVIAL friend constexpr auto operator-(Unroll a,
                                                          VT b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] - b;
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(Unroll a,
+  TRIVIAL friend constexpr auto operator*(Unroll a,
                                                          VT b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] * b;
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(Unroll a,
+  TRIVIAL friend constexpr auto operator/(Unroll a,
                                                          VT b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] / b;
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator+(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a + vbroadcast<W, T>(b);
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator-(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a - vbroadcast<W, T>(b);
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator*(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a * vbroadcast<W, T>(b);
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator/(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a / vbroadcast<W, T>(b);
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator+(VT a,
+  TRIVIAL friend constexpr auto operator+(VT a,
                                                          Unroll b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a + b.data_[i];
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(VT a,
+  TRIVIAL friend constexpr auto operator-(VT a,
                                                          Unroll b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a - b.data_[i];
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(VT a,
+  TRIVIAL friend constexpr auto operator*(VT a,
                                                          Unroll b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a * b.data_[i];
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(VT a,
+  TRIVIAL friend constexpr auto operator/(VT a,
                                                          Unroll b) -> Unroll {
     Unroll<R, C, W, T> c;
     POLYMATHFULLUNROLL
     for (ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a / b.data_[i];
     return c;
   }
-  [[gnu::always_inline]] friend constexpr auto operator+(T b,
+  TRIVIAL friend constexpr auto operator+(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
     return vbroadcast<W, T>(b) + a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(T b,
+  TRIVIAL friend constexpr auto operator-(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
     return vbroadcast<W, T>(b) - a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(T b,
+  TRIVIAL friend constexpr auto operator*(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
     return vbroadcast<W, T>(b) * a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(T b,
+  TRIVIAL friend constexpr auto operator/(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
@@ -257,7 +257,7 @@ private :
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1, typename Op>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   applyop(Unroll a, Unroll<R1, C1, W1, T1> b, Op op) {
     // Possibilities:
     // 1. All match
@@ -363,65 +363,65 @@ template <ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   constexpr auto operator[](ptrdiff_t, ptrdiff_t) const -> VT { return vec_; }
   constexpr operator VT() const { return vec_; }
   template <typename U>
-  [[gnu::always_inline]] constexpr operator Unroll<1, 1, N, U>() const
+  TRIVIAL constexpr operator Unroll<1, 1, N, U>() const
   requires(!std::same_as<T, U>)
   {
     if constexpr (W == 1) return {U(vec_)};
     else return {__builtin_convertvector(vec_, Vec<W, U>)};
   }
-  [[gnu::always_inline]] constexpr auto operator-() { return Unroll{-vec_}; }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto operator-() { return Unroll{-vec_}; }
+  TRIVIAL constexpr auto
   operator+=(const Unroll &a) -> Unroll & {
     vec_ += a.vec_;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator-=(const Unroll &a) -> Unroll & {
     vec_ -= a.vec_;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator*=(const Unroll &a) -> Unroll & {
     vec_ *= a.vec_;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator/=(const Unroll &a) -> Unroll & {
     vec_ /= a.vec_;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator+=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator+=(VT a) -> Unroll & {
     vec_ += a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator-=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator-=(VT a) -> Unroll & {
     vec_ -= a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator*=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator*=(VT a) -> Unroll & {
     vec_ *= a;
     return *this;
   }
-  [[gnu::always_inline]] constexpr auto operator/=(VT a) -> Unroll & {
+  TRIVIAL constexpr auto operator/=(VT a) -> Unroll & {
     vec_ /= a;
     return *this;
   }
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 operator+=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
   vec_ += vbroadcast<W, T>(a);
   return *this;
 }
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 operator-=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
   vec_ -= vbroadcast<W, T>(a);
   return *this;
 }
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 operator*=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
   vec_ *= vbroadcast<W, T>(a);
   return *this;
 }
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
   vec_ /= vbroadcast<W, T>(a);
   return *this;
@@ -430,160 +430,160 @@ operator/=(std::convertible_to<T> auto a) -> Unroll &requires(W != 1) {
 private :
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::minus<>{});
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator*(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::multiplies<>{});
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator/(Unroll a, const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::divides<>{});
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator<(Unroll a, Unroll b) {
+  TRIVIAL friend constexpr auto operator<(Unroll a, Unroll b) {
     return cmp::lt<N, T>(a.vec_, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator>(Unroll a, Unroll b) {
+  TRIVIAL friend constexpr auto operator>(Unroll a, Unroll b) {
     return cmp::gt<N, T>(a.vec_, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator<=(Unroll a, Unroll b) {
+  TRIVIAL friend constexpr auto operator<=(Unroll a, Unroll b) {
     return cmp::le<N, T>(a.vec_, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator>=(Unroll a, Unroll b) {
+  TRIVIAL friend constexpr auto operator>=(Unroll a, Unroll b) {
     return cmp::ge<N, T>(a.vec_, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator==(Unroll a, Unroll b) {
+  TRIVIAL friend constexpr auto operator==(Unroll a, Unroll b) {
     return cmp::eq<N, T>(a.vec_, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator!=(Unroll a, Unroll b) {
+  TRIVIAL friend constexpr auto operator!=(Unroll a, Unroll b) {
     return cmp::ne<N, T>(a.vec_, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator<(Unroll a, VT b) {
+  TRIVIAL friend constexpr auto operator<(Unroll a, VT b) {
     return cmp::lt<N, T>(a.vec_, b);
   }
-  [[gnu::always_inline]] friend constexpr auto operator>(Unroll a, VT b) {
+  TRIVIAL friend constexpr auto operator>(Unroll a, VT b) {
     return cmp::gt<N, T>(a.vec_, b);
   }
-  [[gnu::always_inline]] friend constexpr auto operator<=(Unroll a, VT b) {
+  TRIVIAL friend constexpr auto operator<=(Unroll a, VT b) {
     return cmp::le<N, T>(a.vec_, b);
   }
-  [[gnu::always_inline]] friend constexpr auto operator>=(Unroll a, VT b) {
+  TRIVIAL friend constexpr auto operator>=(Unroll a, VT b) {
     return cmp::ge<N, T>(a.vec_, b);
   }
-  [[gnu::always_inline]] friend constexpr auto operator==(Unroll a, VT b) {
+  TRIVIAL friend constexpr auto operator==(Unroll a, VT b) {
     return cmp::eq<N, T>(a.vec_, b);
   }
-  [[gnu::always_inline]] friend constexpr auto operator!=(Unroll a, VT b) {
+  TRIVIAL friend constexpr auto operator!=(Unroll a, VT b) {
     return cmp::ne<N, T>(a.vec_, b);
   }
-  [[gnu::always_inline]] friend constexpr auto operator<(VT a, Unroll b) {
+  TRIVIAL friend constexpr auto operator<(VT a, Unroll b) {
     return cmp::lt<N, T>(a, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator>(VT a, Unroll b) {
+  TRIVIAL friend constexpr auto operator>(VT a, Unroll b) {
     return cmp::gt<N, T>(a, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator<=(VT a, Unroll b) {
+  TRIVIAL friend constexpr auto operator<=(VT a, Unroll b) {
     return cmp::le<N, T>(a, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator>=(VT a, Unroll b) {
+  TRIVIAL friend constexpr auto operator>=(VT a, Unroll b) {
     return cmp::ge<N, T>(a, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator==(VT a, Unroll b) {
+  TRIVIAL friend constexpr auto operator==(VT a, Unroll b) {
     return cmp::eq<N, T>(a, b.vec_);
   }
-  [[gnu::always_inline]] friend constexpr auto operator!=(VT a, Unroll b) {
+  TRIVIAL friend constexpr auto operator!=(VT a, Unroll b) {
     return cmp::ne<N, T>(a, b.vec_);
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator+(Unroll a,
+  TRIVIAL friend constexpr auto operator+(Unroll a,
                                                          VT b) -> Unroll {
     return {a.vec_ + b};
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(Unroll a,
+  TRIVIAL friend constexpr auto operator-(Unroll a,
                                                          VT b) -> Unroll {
     return {a.vec_ - b};
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(Unroll a,
+  TRIVIAL friend constexpr auto operator*(Unroll a,
                                                          VT b) -> Unroll {
     return {a.vec_ * b};
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(Unroll a,
+  TRIVIAL friend constexpr auto operator/(Unroll a,
                                                          VT b) -> Unroll {
     return {a.vec_ / b};
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator+(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a + vbroadcast<W, T>(b);
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator-(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a - vbroadcast<W, T>(b);
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator*(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a * vbroadcast<W, T>(b);
   }
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   operator/(Unroll a, std::convertible_to<T> auto b) -> Unroll
   requires(W != 1)
   {
     return a / vbroadcast<W, T>(b);
   }
 
-  [[gnu::always_inline]] friend constexpr auto operator+(VT a,
+  TRIVIAL friend constexpr auto operator+(VT a,
                                                          Unroll b) -> Unroll {
     return {a + b.vec_};
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(VT a,
+  TRIVIAL friend constexpr auto operator-(VT a,
                                                          Unroll b) -> Unroll {
     return {a - b.vec_};
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(VT a,
+  TRIVIAL friend constexpr auto operator*(VT a,
                                                          Unroll b) -> Unroll {
     return {a * b.vec_};
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(VT a,
+  TRIVIAL friend constexpr auto operator/(VT a,
                                                          Unroll b) -> Unroll {
     return {a / b.vec_};
   }
-  [[gnu::always_inline]] friend constexpr auto operator+(T b,
+  TRIVIAL friend constexpr auto operator+(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
     return vbroadcast<W, T>(b) + a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator-(T b,
+  TRIVIAL friend constexpr auto operator-(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
     return vbroadcast<W, T>(b) - a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator*(T b,
+  TRIVIAL friend constexpr auto operator*(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
     return vbroadcast<W, T>(b) * a;
   }
-  [[gnu::always_inline]] friend constexpr auto operator/(T b,
+  TRIVIAL friend constexpr auto operator/(T b,
                                                          Unroll a) -> Unroll
   requires(W != 1)
   {
@@ -591,7 +591,7 @@ private :
   }
 
   template <ptrdiff_t R1, ptrdiff_t C1, ptrdiff_t W1, typename T1, typename Op>
-  [[gnu::always_inline]] friend constexpr auto
+  TRIVIAL friend constexpr auto
   applyop(Unroll a, Unroll<R1, C1, W1, T1> b, Op op) {
     // Possibilities:
     // 1. All match
@@ -638,7 +638,7 @@ private :
 
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
           size_t NM, typename MT = mask::None<N>>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 loadunroll(const T *ptr, math::RowStride<X> rowStride,
            std::array<MT, NM> masks) -> Unroll<R, C, N, T> {
   if constexpr (R * C == 1) {
@@ -672,7 +672,7 @@ loadunroll(const T *ptr, math::RowStride<X> rowStride,
 }
 template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t N, typename T, ptrdiff_t X,
           size_t NM, typename MT = mask::None<N>>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 loadstrideunroll(const T *ptr, math::RowStride<X> rowStride,
                  std::array<MT, NM> masks) -> Unroll<R, C, N, T> {
   auto s = int32_t(ptrdiff_t(rowStride));
@@ -716,7 +716,7 @@ struct UnrollRef {
   T *ptr_;
   [[no_unique_address]] math::RowStride<X> row_stride_;
   [[no_unique_address]] std::array<MT, NM> masks_;
-  [[gnu::always_inline]] constexpr operator UT() {
+  TRIVIAL constexpr operator UT() {
     if constexpr (!Transposed)
       return loadunroll<R, C, N, T, X, NM, MT>(ptr_, row_stride_, masks_);
     else
@@ -875,7 +875,7 @@ struct UnrollRef {
 };
 template <typename T, ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M,
           bool Transposed, ptrdiff_t X>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 ref(const T *p,
     index::UnrollDims<R, C, W, M, Transposed, X> i) -> Unroll<R, C, W, T> {
   if constexpr (Transposed)
@@ -884,7 +884,7 @@ ref(const T *p,
 }
 template <typename T, ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M,
           bool Transposed, ptrdiff_t X>
-[[gnu::always_inline]] constexpr auto
+TRIVIAL constexpr auto
 ref(T *p, index::UnrollDims<R, C, W, M, Transposed, X> i)
   -> UnrollRef<R, C, W, T, X, 1, M, Transposed> {
   return {p, i.rs_, std::array<M, 1>{i.mask_}};

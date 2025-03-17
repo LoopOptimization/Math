@@ -464,13 +464,13 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     return {data(), SHAPE(dim())};
   }
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] auto
+  TRIVIAL auto
   operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const
     -> simd::Unroll<1, U, W, T> {
     return (*this)[simd::index::Unroll<1>{i}, j];
   }
   template <ptrdiff_t R = 1>
-  [[gnu::always_inline]] static constexpr void checkinds(ptrdiff_t i,
+  TRIVIAL static constexpr void checkinds(ptrdiff_t i,
                                                          ptrdiff_t j) {
     invariant(i >= 0);
     invariant(i + (R - 1) < M);
@@ -568,25 +568,25 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     }
   };
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] auto operator[](ptrdiff_t i,
+  TRIVIAL auto operator[](ptrdiff_t i,
                                          simd::index::Unroll<U, W, Mask> j)
     -> Ref<1, U> {
     return Ref<1, U>{this, i, j.index_};
   }
   template <ptrdiff_t R, ptrdiff_t C, typename Mask>
-  [[gnu::always_inline]] auto operator[](simd::index::Unroll<R> i,
+  TRIVIAL auto operator[](simd::index::Unroll<R> i,
                                          simd::index::Unroll<C, W, Mask> j)
     -> Ref<R, C> {
     return Ref<R, C>{this, i.index_, j.index_};
   }
-  [[gnu::always_inline]] constexpr auto operator[](auto i) noexcept
+  TRIVIAL constexpr auto operator[](auto i) noexcept
     -> decltype(auto)
   requires((N == 1) || (M == 1))
   {
     if constexpr (M == 1) return (*this)[0z, i];
     else return (*this)[i, 0z];
   }
-  [[gnu::always_inline]] constexpr auto operator[](auto i) const noexcept
+  TRIVIAL constexpr auto operator[](auto i) const noexcept
     -> decltype(auto)
   requires((N == 1) || (M == 1))
   {
@@ -716,19 +716,19 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   auto operator[](ptrdiff_t j) -> T & { return data()[j]; }
   auto operator[](ptrdiff_t j) const -> T { return data_[j]; }
   template <typename Mask>
-  [[gnu::always_inline]] auto operator[](ptrdiff_t,
+  TRIVIAL auto operator[](ptrdiff_t,
                                          simd::index::Unroll<1, W, Mask>) const
     -> simd::Unroll<1, 1, W, T> {
     return {data_};
   }
   template <ptrdiff_t R = 1>
-  [[gnu::always_inline]] static constexpr void checkinds(ptrdiff_t j) {
+  TRIVIAL static constexpr void checkinds(ptrdiff_t j) {
     invariant(j >= 0);
     invariant(j < N);
     invariant((j % W) == 0);
   }
   template <ptrdiff_t R, typename Mask>
-  [[gnu::always_inline]] auto
+  TRIVIAL auto
   operator[](simd::index::Unroll<R>, simd::index::Unroll<1, W, Mask> j) const
     -> simd::Unroll<R, 1, W, T> {
     checkinds<R>(j.index_);
@@ -766,24 +766,24 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     }
   };
   template <ptrdiff_t U, typename Mask>
-  [[gnu::always_inline]] auto operator[](ptrdiff_t,
+  TRIVIAL auto operator[](ptrdiff_t,
                                          simd::index::Unroll<1, W, Mask>)
     -> Ref {
     return Ref{this};
   }
   template <ptrdiff_t R, typename Mask>
-  [[gnu::always_inline]] auto operator[](simd::index::Unroll<R>,
+  TRIVIAL auto operator[](simd::index::Unroll<R>,
                                          simd::index::Unroll<1, W, Mask>)
     -> Ref {
     return Ref{this};
   }
   template <typename Mask>
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator[](simd::index::Unroll<1, W, Mask>) -> decltype(auto) {
     return Ref{this};
   }
   template <typename Mask>
-  [[gnu::always_inline]] constexpr auto
+  TRIVIAL constexpr auto
   operator[](simd::index::Unroll<1, W, Mask>) const
     -> simd::Unroll<1, 1, W, T> {
     return {data_};

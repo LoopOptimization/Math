@@ -37,7 +37,7 @@ namespace utils {
 /// This can be used like
 /// auto foo_impl(inparam_t<T> x, ...);
 /// template <typename T>
-/// [[gnu::always_inline]] inline auto foo(const T& x){
+/// TRIVIAL inline auto foo(const T& x){
 ///  return foo_impl<T>(x); // inparam_t blocks deduction
 /// }
 template <typename T> using inparam_t = typename InParameter<T>::type;

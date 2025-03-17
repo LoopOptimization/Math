@@ -642,7 +642,7 @@ struct MatMatMul : public math::Expr<
   // Matrix * Matrix
   [[no_unique_address]] A a_;
   [[no_unique_address]] B b_;
-  [[gnu::always_inline]] constexpr auto operator[](auto i, auto j) const
+  TRIVIAL constexpr auto operator[](auto i, auto j) const
   requires(ismatrix)
   {
     static_assert(AbstractMatrix<B>, "B should be an AbstractMatrix");
@@ -670,7 +670,7 @@ struct MatMatMul : public math::Expr<
   // implementation strategy.
   //
   //
-  [[gnu::always_inline]] constexpr auto operator[](auto i) const
+  TRIVIAL constexpr auto operator[](auto i) const
   requires(!ismatrix)
   {
     if constexpr (RowVector<A>) {
