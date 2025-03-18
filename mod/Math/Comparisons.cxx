@@ -43,8 +43,8 @@ namespace math {
 // constexpr auto anyNEZero(const auto &x) -> bool {
 //   return std::any_of(x.begin(), x.end(), [](int64_t y) { return y != 0; });
 // }
-[[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A, const auto &f)
-  -> bool {
+NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A,
+                                            const auto &f) -> bool {
   auto [M, N] = shape(A);
   using TA = std::remove_cvref_t<decltype(A)>;
   using T = utils::eltype_t<TA>;
@@ -106,7 +106,7 @@ namespace math {
   }
   return false;
 }
-constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
+NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
   constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
@@ -116,7 +116,7 @@ constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
     });
   else return any(A, [](T x) -> bool { return x != T{}; });
 }
-constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
+NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
   constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
@@ -126,7 +126,7 @@ constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
     });
   else return any(A, [](T x) -> bool { return x < T{}; });
 }
-constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
+NODEBUG constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
   constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
@@ -136,18 +136,18 @@ constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
     });
   else return any(A, [](T x) -> bool { return x > T{}; });
 }
-constexpr auto countNonZero(const auto &x) -> ptrdiff_t {
+NODEBUG constexpr auto countNonZero(const auto &x) -> ptrdiff_t {
   return std::count_if(x.begin(), x.end(), [](auto a) { return a != 0; });
   // return std::ranges::count_if(x, [](auto x) { return x != 0; });
 }
 
-TRIVIAL constexpr auto allZero(const AbstractTensor auto &A) -> bool {
+NODEBUG constexpr auto allZero(const AbstractTensor auto &A) -> bool {
   return !anyNEZero(A);
 }
-TRIVIAL constexpr auto allLEZero(const AbstractTensor auto &A) -> bool {
+NODEBUG constexpr auto allLEZero(const AbstractTensor auto &A) -> bool {
   return !anyGTZero(A);
 }
-TRIVIAL constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
+NODEBUG constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
   return !anyLTZero(A);
 }
 

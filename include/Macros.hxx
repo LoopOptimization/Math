@@ -4,6 +4,7 @@
 
 #ifdef __clang__
 
+#define NODEBUG [[gnu::nodebug]]
 #define TRIVIAL [[gnu::nodebug, gnu::always_inline]]
 // clang-format off
 #define DEBUGABLE_START                                                       \
@@ -14,6 +15,7 @@
 
 #elifdef __GNUC__
 
+#define NODEBUG [[gnu::optimize("O3")]]
 #define TRIVIAL [[gnu::always_inline, gnu::optimize("O3")]]
 // clang-format off
 #define DEBUGABLE_START                                                       \

@@ -6,19 +6,6 @@ module;
 #include <cassert>
 
 #ifndef USE_MODULE
-#include <algorithm>
-#include <array>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <iostream>
-#include <iterator>
-#include <limits>
-#include <memory>
-#include <new>
-#include <ostream>
-
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
 #include "Math/Array.cxx"
@@ -28,13 +15,25 @@ module;
 #include "Math/Constraints.cxx"
 #include "Math/ExpressionTemplates.cxx"
 #include "Math/GreatestCommonDivisor.cxx"
+#include "Math/Indexing.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/NormalForm.cxx"
 #include "Math/Ranges.cxx"
 #include "Math/Rational.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Utilities/Invariant.cxx"
+#include "SIMD/Intrin.cxx"
+#include "SIMD/Vec.cxx"
+#include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <new>
+#include <ostream>
 #else
 export module Simplex;
 
@@ -88,19 +87,19 @@ class Simplex {
     return x;
     // return (--x + simd::Width<T>)&(-simd::Width<T>);
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto
-  basicConsPointer() const -> index_type * {
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicConsPointer() const
+    -> index_type * {
     void *p = const_cast<char *>(memory_);
     return std::assume_aligned<simd::VECTORWIDTH>(static_cast<index_type *>(p));
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto
-  basicVarsPointer() const -> index_type * {
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicVarsPointer() const
+    -> index_type * {
     ptrdiff_t offset = alignOffset<index_type>(reservedBasicConstraints());
     return std::assume_aligned<simd::VECTORWIDTH>(basicConsPointer() + offset);
   }
   // offset in bytes
-  static constexpr auto tableauOffset(ptrdiff_t cons,
-                                      ptrdiff_t vars) -> ptrdiff_t {
+  static constexpr auto tableauOffset(ptrdiff_t cons, ptrdiff_t vars)
+    -> ptrdiff_t {
     ptrdiff_t coff = alignOffset<index_type>(cons);
     ptrdiff_t voff = alignOffset<index_type>(vars);
     ptrdiff_t offset = coff + voff;
@@ -108,8 +107,8 @@ class Simplex {
     //   alignOffset<index_type>(cons) + alignOffset<index_type>(vars);
     return static_cast<ptrdiff_t>(sizeof(index_type)) * offset;
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto
-  tableauPointer() const -> value_type * {
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto tableauPointer() const
+    -> value_type * {
     ptrdiff_t offset =
       tableauOffset(reservedBasicConstraints(), reservedBasicVariables());
     void *p = const_cast<char *>(memory_) + offset;
@@ -142,12 +141,13 @@ class Simplex {
     static constexpr ptrdiff_t W = simd::Width<int64_t>;
     return stride((ptrdiff_t(rs) + W) & -W);
   }
-  [[nodiscard]] static constexpr auto
-  reservedTableau(ptrdiff_t cons, ptrdiff_t vars) -> ptrdiff_t {
+  [[nodiscard]] static constexpr auto reservedTableau(ptrdiff_t cons,
+                                                      ptrdiff_t vars)
+    -> ptrdiff_t {
     return static_cast<ptrdiff_t>(sizeof(value_type)) * ((cons + 1) * vars);
   }
-  static constexpr auto requiredMemory(ptrdiff_t cons,
-                                       ptrdiff_t vars) -> size_t {
+  static constexpr auto requiredMemory(ptrdiff_t cons, ptrdiff_t vars)
+    -> size_t {
     ptrdiff_t base = static_cast<ptrdiff_t>(sizeof(Simplex)),
               indices = tableauOffset(cons, vars),
               tableau = reservedTableau(cons, vars);
@@ -209,16 +209,16 @@ public:
                                                               var_capacity_p1_,
                                                             }};
   }
-  [[nodiscard]] constexpr auto
-  getBasicConstraints() const -> PtrVector<index_type> {
+  [[nodiscard]] constexpr auto getBasicConstraints() const
+    -> PtrVector<index_type> {
     return {basicConsPointer(), aslength(num_vars_)};
   }
-  [[nodiscard]] constexpr auto
-  getBasicConstraints() -> MutPtrVector<index_type> {
+  [[nodiscard]] constexpr auto getBasicConstraints()
+    -> MutPtrVector<index_type> {
     return {basicConsPointer(), aslength(num_vars_)};
   }
-  [[nodiscard]] constexpr auto
-  getBasicVariables() const -> PtrVector<index_type> {
+  [[nodiscard]] constexpr auto getBasicVariables() const
+    -> PtrVector<index_type> {
     return {basicVarsPointer(), length(ptrdiff_t(num_constraints_))};
   }
   [[nodiscard]] constexpr auto getBasicVariables() -> MutPtrVector<index_type> {
@@ -231,16 +231,16 @@ public:
   [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
     return {tableauPointer(), length(ptrdiff_t(num_vars_) + 1z)};
   }
-  [[nodiscard]] constexpr auto
-  getBasicConstraint(ptrdiff_t i) const -> index_type {
+  [[nodiscard]] constexpr auto getBasicConstraint(ptrdiff_t i) const
+    -> index_type {
     return getBasicConstraints()[i];
   }
-  [[nodiscard]] constexpr auto
-  getBasicVariable(ptrdiff_t i) const -> index_type {
+  [[nodiscard]] constexpr auto getBasicVariable(ptrdiff_t i) const
+    -> index_type {
     return getBasicVariables()[i];
   }
-  [[nodiscard]] constexpr auto
-  getObjectiveCoefficient(ptrdiff_t i) const -> value_type {
+  [[nodiscard]] constexpr auto getObjectiveCoefficient(ptrdiff_t i) const
+    -> value_type {
     return getCost()[++i];
   }
   [[nodiscard]] constexpr auto getObjectiveValue() -> value_type & {
@@ -407,8 +407,8 @@ public:
       PtrMatrix<int64_t> constraints = simplex_->getConstraints();
       return Rational::create(constraints[j, 0], constraints[j, i + 1]);
     }
-    [[nodiscard]] constexpr auto
-    operator[](ScalarRelativeIndex auto i) const -> Rational {
+    [[nodiscard]] constexpr auto operator[](ScalarRelativeIndex auto i) const
+      -> Rational {
       return (*this)[calcOffset(size(), i)];
     }
     template <typename B, typename E>
@@ -570,8 +570,8 @@ public:
     return int(std::distance(f, neg));
   }
   [[nodiscard]] static constexpr auto
-  getLeavingVariable(PtrMatrix<int64_t> C,
-                     ptrdiff_t enteringVariable) -> Optional<unsigned int> {
+  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t enteringVariable)
+    -> Optional<unsigned int> {
     // inits guarantee first valid is selected
     int64_t n = -1, d = 0;
     unsigned int j = 0;
@@ -599,8 +599,8 @@ public:
     // an empty `Optional<unsigned int>`
     return --j;
   }
-  constexpr auto makeBasic(MutPtrMatrix<int64_t> C, int64_t f,
-                           int enteringVar) -> int64_t {
+  constexpr auto makeBasic(MutPtrMatrix<int64_t> C, int64_t f, int enteringVar)
+    -> int64_t {
     Optional<unsigned int> leave_opt = getLeavingVariable(C, enteringVar);
     if (!leave_opt) return 0; // unbounded
     auto leaving_var = ptrdiff_t(*leave_opt);
@@ -775,9 +775,10 @@ public:
   // A(:,1:end)*x <= A(:,0)
   // B(:,1:end)*x == B(:,0)
   // returns a Simplex if feasible, and an empty `Optional` otherwise
-  static constexpr auto
-  positiveVariables(alloc::Arena<> *alloc, PtrMatrix<int64_t> A,
-                    PtrMatrix<int64_t> B) -> Optional<Simplex *> {
+  static constexpr auto positiveVariables(alloc::Arena<> *alloc,
+                                          PtrMatrix<int64_t> A,
+                                          PtrMatrix<int64_t> B)
+    -> Optional<Simplex *> {
     invariant(A.numCol() == B.numCol());
     ptrdiff_t num_var = ptrdiff_t(A.numCol()) - 1,
               num_slack = ptrdiff_t(A.numRow()),
@@ -806,9 +807,9 @@ public:
     alloc->rollback(checkpoint);
     return nullptr;
   }
-  static constexpr auto
-  positiveVariables(alloc::Arena<> *alloc,
-                    PtrMatrix<int64_t> A) -> Optional<Simplex *> {
+  static constexpr auto positiveVariables(alloc::Arena<> *alloc,
+                                          PtrMatrix<int64_t> A)
+    -> Optional<Simplex *> {
     ptrdiff_t num_var = ptrdiff_t(A.numCol()) - 1,
               num_slack = ptrdiff_t(A.numRow()), num_con = num_slack,
               var_cap = num_var + num_slack;
@@ -995,8 +996,8 @@ public:
     return mem;
   }
 
-  static auto operator new(size_t count, Capacity<> conCap,
-                           RowStride<> varCap) -> void * {
+  static auto operator new(size_t count, Capacity<> conCap, RowStride<> varCap)
+    -> void * {
     auto cC = ptrdiff_t(conCap), vC = ptrdiff_t(varCap);
     size_t mem_needed = requiredMemory(cC, vC);
     // void *p = ::operator new(count * memNeeded);
