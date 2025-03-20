@@ -430,10 +430,14 @@ public:
       for (auto r : *this) l = lcm(l, r.denominator);
       return l;
     }
+#ifndef NDEBUG
+    [[gnu::used]] void dump() const { std::cout << *this << '\n'; }
+#endif
+  private:
     friend auto operator<<(std::ostream &os, Solution sol) -> std::ostream & {
       os << "Simplex::Solution[";
       bool print_comma = false;
-      for (auto b : sol) {
+      for (Rational b : sol) {
         if (print_comma) os << ", ";
         print_comma = true;
         os << b;
@@ -441,9 +445,6 @@ public:
       os << "]";
       return os;
     }
-#ifndef NDEBUG
-    [[gnu::used]] void dump() const { std::cout << *this; }
-#endif
   };
   [[nodiscard]] constexpr auto getSolution() const -> Solution {
     return {
