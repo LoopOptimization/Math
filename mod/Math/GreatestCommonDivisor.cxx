@@ -5,6 +5,9 @@ module;
 #endif
 
 #ifndef USE_MODULE
+#include "SIMD/SIMD.cxx"
+#include "SIMD/Vec.cxx"
+#include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -12,9 +15,6 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-
-#include "SIMD/SIMD.cxx"
-#include "Utilities/Invariant.cxx"
 #else
 export module GCD;
 
@@ -61,8 +61,8 @@ constexpr auto gcd(int64_t x, int64_t y) -> int64_t {
 }
 // TODO: add `Unroll` method, use in vectorized GCD?
 template <ptrdiff_t W>
-constexpr auto gcd(simd::Vec<W, int64_t> x,
-                   simd::Vec<W, int64_t> y) -> simd::Vec<W, int64_t> {
+constexpr auto gcd(simd::Vec<W, int64_t> x, simd::Vec<W, int64_t> y)
+  -> simd::Vec<W, int64_t> {
   constexpr simd::Vec<W, int64_t> zero = {};
   constexpr simd::Vec<W, int64_t> one = zero + 1;
   constexpr simd::Vec<W, int64_t> invalid =

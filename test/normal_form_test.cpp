@@ -324,10 +324,12 @@ TEST(NullSpaceTests, BasicAssertions) {
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SimplifySystemTests, BasicAssertions) {
-  IntMatrix<> A = "[2 4 5 5 -5; -4 3 -4 -3 -1; 1 0 -2 1 -4; -4 -2 3 -2 -1]"_mat;
-  IntMatrix<> B = "[-6 86 -27 46 0 -15; -90 -81 91 44 -2 78; 4 -54 -98 "
-                  "80 -10 82; -98 -15 -28 98 82 87]"_mat;
+  IntMatrix<> A = "[2 4 5 5 -5; -4 3 -4 -3 -1; 1 0 -2 1 -4; -4 -2 3 -2 -1]"_mat,
+              B = "[-6 86 -27 46 0 -15; -90 -81 91 44 -2 78; 4 -54 -98 "
+                  "80 -10 82; -98 -15 -28 98 82 87]"_mat,
+              At = A.t(), Bt = B.t();
   NormalForm::solveSystem(A, B);
+  NormalForm::solveSystemRight(At, Bt);
   IntMatrix<> sA = "[-3975 0 0 0 -11370; 0 -1325 0 0 -1305; "
                    "0 0 -265 0 -347; 0 0 0 265 -1124]"_mat;
   IntMatrix<> true_b =
@@ -337,6 +339,8 @@ TEST(SimplifySystemTests, BasicAssertions) {
 
   EXPECT_EQ(sA, A);
   EXPECT_EQ(true_b, B);
+  EXPECT_EQ(sA, At.t());
+  EXPECT_EQ(true_b, Bt.t());
 
   IntMatrix<> C = "[1 1 0; 0 1 1; 1 2 1]"_mat;
   IntMatrix<> D = "[1 0 0; 0 1 0; 0 0 1]"_mat;

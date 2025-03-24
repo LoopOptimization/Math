@@ -161,6 +161,17 @@ constexpr auto pivotRowsPair(std::array<MutPtrMatrix<int64_t>, 2> AK, Col<> i,
   }
   return false;
 }
+constexpr auto pivotColsPair(std::array<MutPtrMatrix<int64_t>, 2> AK, Row<> i,
+                             Col<> N, Col<> piv) -> bool {
+  Col j = piv;
+  while (AK[0][i, piv] == 0)
+    if (++piv == N) return true;
+  if (j != piv) {
+    math::swap(AK[0], j, piv);
+    math::swap(AK[1], j, piv);
+  }
+  return false;
+}
 } // namespace detail
 } // namespace math::NormalForm
 
@@ -389,7 +400,7 @@ constexpr void zeroColumnPair(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
   }
   // greater rows in previous columns have been zeroed out
   // therefore it is safe to use them for row operations with this row
-  for (ptrdiff_t j = ptrdiff_t(r) + 1; j < M; ++j) {
+  for (auto j = ptrdiff_t(r); ++j < M;) {
     int64_t Arc = A[r, c], Ajc = A[j, c];
     if (!Ajc) continue;
     const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Ajc);
@@ -400,6 +411,42 @@ constexpr void zeroColumnPair(std::array<MutPtrMatrix<int64_t>, 2> AB, Col<> c,
     for (ptrdiff_t i = 0; i < 2; ++i) {
       MutPtrVector<int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
       tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+    }
+  }
+}
+// use col `c` to zero the remaining cols of row `r`
+constexpr void zeroColumnPair(std::array<MutPtrMatrix<int64_t>, 2> AB, Row<> r,
+                              Col<> c) {
+  auto [A, B] = AB;
+  const Col N = A.numCol();
+  invariant(N, B.numCol());
+  for (ptrdiff_t j = 0; j < c; ++j) {
+    int64_t Arc = A[r, c], Arj = A[r, j];
+    if (!Arj) continue;
+    // int64_t g = gcd(Arc, Arj), x = Arc / g, y = Arj / g;
+    auto [x, y] = divgcd(Arc, Arj);
+    // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
+    // Aj << x * Aj - y * Ar;
+    // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
+    // Bj << x * Bj - y * Br;
+    for (ptrdiff_t i = 0; i < 2; ++i) {
+      MutArray<int64_t, StridedRange<>> Ac = AB[i][_, c], Aj = AB[i][_, j];
+      Aj << x * Aj - y * Ac;
+    }
+  }
+  // greater rows in previous columns have been zeroed out
+  // therefore it is safe to use them for row operations with this row
+  for (auto j = ptrdiff_t(c); ++j < N;) {
+    int64_t Arc = A[r, c], Arj = A[r, j];
+    if (!Arj) continue;
+    const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Arj);
+    // MutPtrVector<int64_t> Ar = A[r, _], Aj = A[j, _];
+    // tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+    // MutPtrVector<int64_t> Br = B[r, _], Bj = B[j, _];
+    // tie(Br, Bj) << Tuple(q * Bj + p * Br, Arcr * Bj - Ajcr * Br);
+    for (ptrdiff_t i = 0; i < 2; ++i) {
+      MutArray<int64_t, StridedRange<>> Ac = AB[i][_, c], Aj = AB[i][_, j];
+      tie(Ac, Aj) << Tuple(q * Aj + p * Ac, Arcr * Aj - Ajcr * Ac);
     }
   }
 }
@@ -660,11 +707,11 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
 constexpr void bareiss(MutPtrMatrix<int64_t> A,
                        MutPtrVector<ptrdiff_t> pivots) {
   const auto [M, N] = shape(A);
-  invariant(ptrdiff_t(pivots.size()), std::min(M, N));
-  int64_t prev = 1, pivInd = 0;
+  invariant(pivots.size(), std::min(M, N));
+  int64_t prev = 1, piv_ind = 0;
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
     if (auto piv = detail::pivotRowsBareiss(A, c, row(M), row(r))) {
-      pivots[pivInd++] = *piv;
+      pivots[piv_ind++] = *piv;
       auto j{_(c + 1, N)};
       for (ptrdiff_t k = r + 1; k < M; ++k) {
         A[k, j] << (A[r, c] * A[k, j] - A[k, c] * A[r, j]) / prev;
@@ -692,6 +739,16 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A, MutPtrMatrix<int64_t> B) {
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
     if (!detail::pivotRowsPair({A, B}, col(c), row(M), row(r)))
       detail::zeroColumnPair({A, B}, col(c), row(r++));
+}
+// like solveSystem, except it right-multiplies.
+// That is, given `XA = B`, it right-multiplies both sides by
+// a matrix to diagonalize `A`.
+constexpr void solveSystemRight(MutPtrMatrix<int64_t> A,
+                                MutPtrMatrix<int64_t> B) {
+  const auto [M, N] = shape(A);
+  for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++r)
+    if (!detail::pivotColsPair({A, B}, row(r), col(N), col(c)))
+      detail::zeroColumnPair({A, B}, row(r), col(c++));
 }
 // diagonalizes A(0:K,0:K)
 constexpr void solveSystem(MutPtrMatrix<int64_t> A, ptrdiff_t K) {
