@@ -6,14 +6,6 @@ module;
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
 #ifndef USE_MODULE
-#include <algorithm>
-#include <array>
-#include <concepts>
-#include <cstddef>
-#include <cstring>
-#include <functional>
-#include <type_traits>
-
 #include "Containers/Tuple.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/CheckSizes.cxx"
@@ -24,6 +16,13 @@ module;
 #include "SIMD/Intrin.cxx"
 #include "SIMD/UnrollIndex.cxx"
 #include "Utilities/Invariant.cxx"
+#include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <cstring>
+#include <functional>
+#include <type_traits>
 #else
 export module AssignExprTemplates;
 
@@ -576,22 +575,26 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
     ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
     POLYMATHNOVECTORIZE
     for (ptrdiff_t i = 0; i < R; ++i) {
-      if constexpr (!std::is_copy_assignable_v<T>) {
-        POLYMATHIVDEP
-        for (ptrdiff_t j = 0; j < C; ++j)
-          dst.apply(src.map([=](const auto &s) {
-            if constexpr (std::convertible_to<decltype(s), T>) return auto{s};
-            else if constexpr (math::RowVector<decltype(s)>) return auto{s[j]};
-            else if constexpr (math::ColVector<decltype(s)>) return auto{s[i]};
-            else return auto{s[i, j]};
-          }),
-                    [=](auto &d, const auto &s) { d[i, j] = s; });
-      } else {
-        POLYMATHIVDEP
-        for (ptrdiff_t j = 0; j < C; ++j)
-          dst.apply(src.map([=](const auto &s) { return s[i, j]; }),
-                    [=](auto &d, const auto &s) { d[i, j] = s; });
-      }
+      // if constexpr (!std::is_copy_assignable_v<T>) {
+      POLYMATHIVDEP
+      for (ptrdiff_t j = 0; j < C; ++j)
+        dst.apply(src.map([=](const auto &s) {
+          if constexpr (std::convertible_to<decltype(s), T>) return auto{s};
+          else if constexpr (math::RowVector<decltype(s)>) return auto{s[j]};
+          else if constexpr (math::ColVector<decltype(s)>) return auto{s[i]};
+          else return auto{s[i, j]};
+        }),
+                  [=](auto &d, const auto &s) {
+                    if constexpr (math::RowVector<decltype(d)>) d[j] = s;
+                    else if constexpr (math::ColVector<decltype(d)>) d[i] = s;
+                    else d[i, j] = s;
+                  });
+      // } else {
+      //   POLYMATHIVDEP
+      //   for (ptrdiff_t j = 0; j < C; ++j)
+      //     dst.apply(src.map([=](const auto &s) { return s[i, j]; }),
+      //               [=](auto &d, const auto &s) { d[i, j] = s; });
+      // }
     }
   }
 }

@@ -328,8 +328,8 @@ TEST(SimplifySystemTests, BasicAssertions) {
               B = "[-6 86 -27 46 0 -15; -90 -81 91 44 -2 78; 4 -54 -98 "
                   "80 -10 82; -98 -15 -28 98 82 87]"_mat,
               At = A.t(), Bt = B.t();
-  NormalForm::solveSystem(A, B);
   NormalForm::solveSystemRight(At, Bt);
+  NormalForm::solveSystem(A, B);
   IntMatrix<> sA = "[-3975 0 0 0 -11370; 0 -1325 0 0 -1305; "
                    "0 0 -265 0 -347; 0 0 0 265 -1124]"_mat;
   IntMatrix<> true_b =

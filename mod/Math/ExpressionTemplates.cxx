@@ -185,7 +185,9 @@ namespace math {
 #endif
 
 template <typename T, typename A> class Expr {
-  constexpr auto v() const { return static_cast<const A *>(this)->view(); }
+  TRIVIAL constexpr auto v() const {
+    return static_cast<const A *>(this)->view();
+  }
   static constexpr bool primitive_elt =
     std::integral<T> || std::floating_point<T>;
 
@@ -820,5 +822,7 @@ template <EltCastableDual B, std::convertible_to<double> T>
 struct ScalarizeViaCast<ElementwiseBinaryOp<T, B, std::multiplies<>>> {
   using type = double;
 };
+
+
 
 } // namespace math

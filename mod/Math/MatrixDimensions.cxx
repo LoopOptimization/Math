@@ -563,7 +563,7 @@ namespace utils {
 #endif
 template <typename T>
 concept HasEltype = requires(T) {
-  typename T::value_type;
+  typename std::remove_cvref_t<T>::value_type;
   // std::is_scalar_v<typename std::remove_reference_t<T>::value_type>;
 };
 
