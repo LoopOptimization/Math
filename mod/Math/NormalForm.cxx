@@ -5,13 +5,6 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-#include <utility>
-
 #include "Alloc/Arena.cxx"
 #include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
@@ -33,6 +26,13 @@ module;
 #include "SIMD/Masks.cxx"
 #include "SIMD/UnrollIndex.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/Invariant.cxx"
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <utility>
 #else
 export module NormalForm;
 
@@ -44,6 +44,7 @@ import AxisTypes;
 import Comparisons;
 import EmptyMatrix;
 import GenericArrayConstructors;
+import Invariant;
 import ManagedArray;
 import Pair;
 import Range;
@@ -728,6 +729,16 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
   return pivots;
 }
 
+constexpr void solveColumn(MutPtrMatrix<int64_t> A, MutPtrMatrix<int64_t> B,
+                           ptrdiff_t r, ptrdiff_t c) {
+  const auto [M, N] = shape(A);
+  utils::assume(B.numRow() == M);
+  utils::invariant(r < M);
+  utils::invariant(c < N);
+  utils::invariant(c < B.numCol());
+  utils::invariant(!detail::pivotRowsPair({A, B}, col(c), row(M), row(r)));
+  detail::zeroColumnPair({A, B}, col(c), row(r));
+}
 /// void solveSystem(IntMatrix &A, IntMatrix &B)
 /// Say we wanted to solve \f$\textbf{AX} = \textbf{B}\f$.
 /// `solveSystem` left-multiplies both sides by
@@ -736,6 +747,7 @@ constexpr void bareiss(MutPtrMatrix<int64_t> A,
 /// Both inputs are overwritten with the product of the left multiplications.
 constexpr void solveSystem(MutPtrMatrix<int64_t> A, MutPtrMatrix<int64_t> B) {
   const auto [M, N] = shape(A);
+  utils::assume(B.numRow() == M);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++c)
     if (!detail::pivotRowsPair({A, B}, col(c), row(M), row(r)))
       detail::zeroColumnPair({A, B}, col(c), row(r++));
@@ -746,6 +758,7 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A, MutPtrMatrix<int64_t> B) {
 constexpr void solveSystemRight(MutPtrMatrix<int64_t> A,
                                 MutPtrMatrix<int64_t> B) {
   const auto [M, N] = shape(A);
+  utils::assume(B.numCol() == N);
   for (ptrdiff_t r = 0, c = 0; c < N && r < M; ++r)
     if (!detail::pivotColsPair({A, B}, row(r), col(N), col(c)))
       detail::zeroColumnPair({A, B}, row(r), col(c++));
