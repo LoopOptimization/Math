@@ -26,8 +26,7 @@ export namespace numbers {
 namespace numbers {
 #endif
 
-template <std::integral I, bool nowrap = false, int alias = 0>
-struct IntWrapper {
+template <std::integral I, int alias, bool nowrap = false> struct IntWrapper {
   enum class strong : I {};
 
 private:
@@ -35,8 +34,8 @@ private:
   using T = std::conditional_t<nowrap, std::make_signed_t<I>, I>;
   TRIVIAL inline static constexpr auto create(std::integral auto x) -> strong {
     if constexpr (nowrap) {
-      utils::invariant(x >= std::numeric_limits<I>::min());
-      utils::invariant(x <= std::numeric_limits<I>::max());
+      utils::assume(x >= std::numeric_limits<I>::min());
+      utils::assume(x <= std::numeric_limits<I>::max());
     }
     return x;
   }
@@ -408,13 +407,15 @@ private:
     return os << static_cast<I>(x);
   }
 };
-static_assert(++static_cast<IntWrapper<int>::strong>(3) == 4);
+static_assert(++static_cast<IntWrapper<int, 0>::strong>(3) == 4);
 
-using i8 = IntWrapper<signed char>::strong;
-using u8 = IntWrapper<unsigned char>::strong;
-using Flag8 = IntWrapper<unsigned char, false, 1>::strong;
+using i8 = IntWrapper<signed char, 0>::strong;
+using u8 = IntWrapper<unsigned char, 0>::strong;
+using Flag8 = IntWrapper<unsigned char, 1>::strong;
 
 static_assert(!bool(i8{}));
 static_assert(!bool(u8{}));
+static_assert(bool(i8{1}));
+static_assert(bool(u8{1}));
 
 } // namespace numbers
