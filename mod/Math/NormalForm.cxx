@@ -547,7 +547,7 @@ constexpr auto updateForNewRow(MutPtrMatrix<int64_t> A) -> ptrdiff_t {
     ++n;
   }
   // we've reduced the new row, now to use it...
-  // swap A(i,_(j,end)) with A(MM,_(j,end))
+  // swap A[i,_(j,end)] with A[MM,_(j,end)]
   if (j <= NN) { // we could do with a lot less copying...
     for (ptrdiff_t l = i; l < MM; ++l)
       for (ptrdiff_t k = j; k < N; ++k) std::swap(A[l, k], A[MM, k]);

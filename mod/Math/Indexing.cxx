@@ -105,6 +105,9 @@ concept ScalarIndex =
   std::convertible_to<T, ptrdiff_t> || ScalarRelativeIndex<T>;
 
 [[maybe_unused]] constexpr inline struct Colon {
+  TRIVIAL [[nodiscard]] constexpr auto operator()(auto E) const {
+    return Range{begin, math::standardizeRangeBound(E)};
+  }
   TRIVIAL [[nodiscard]] constexpr auto operator()(auto B, auto E) const {
     return Range{math::standardizeRangeBound(B),
                  math::standardizeRangeBound(E)};
