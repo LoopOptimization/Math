@@ -41,14 +41,18 @@ import SIMD;
 import STL;
 #endif
 
+#ifndef USE_MODULE
+namespace math {
+#else
+using namespace math;
+#endif
+
 using utils::TriviallyCopyable;
 
 template <typename T, typename I> consteval auto getWidth() -> ptrdiff_t {
   if constexpr (std::same_as<I, ptrdiff_t>) return simd::Width<T>;
   else return simd::VecLen<ptrdiff_t(I{}), T>;
 }
-
-using namespace math;
 
 template <class T, class C>
 concept Compatible =
@@ -111,9 +115,8 @@ using argtyp_t =
 
 #ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
 #endif
+
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 TRIVIAL constexpr auto elementwise(A, Op) -> Elementwise<A, Op>;
 
@@ -121,7 +124,9 @@ template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
           BinaryFuncOfElts<A, B> Op>
 TRIVIAL constexpr auto elementwise(A, B, Op)
   -> ElementwiseBinaryOp<argtyp_t<A, B>, argtyp_t<B, A>, Op>;
+#ifdef USE_MODULE
 }; // namespace math
+#endif
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
@@ -180,8 +185,6 @@ struct AbstractSelect {
 
 #ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
 #endif
 
 template <typename T, typename A> class Expr {
@@ -381,7 +384,9 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
 };
 template <typename A> Transpose(A) -> Transpose<utils::eltype_t<A>, A>;
 
+#ifdef USE_MODULE
 } // namespace math
+#endif
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 struct Elementwise : public Expr<decltype(std::declval<Op>()(
@@ -743,8 +748,6 @@ struct MatMatMul : public math::Expr<
 
 #ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
 #endif
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
@@ -822,7 +825,5 @@ template <EltCastableDual B, std::convertible_to<double> T>
 struct ScalarizeViaCast<ElementwiseBinaryOp<T, B, std::multiplies<>>> {
   using type = double;
 };
-
-
 
 } // namespace math

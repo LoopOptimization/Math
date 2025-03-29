@@ -190,7 +190,7 @@ private:
 
   friend inline auto operator<<(std::ostream &os, UniformScaling S)
     -> std::ostream & {
-    return os << "UniformScaling(" << S.value_ << ")";
+    return os << S.value_ << "*I";
   }
   TRIVIAL [[nodiscard]] constexpr auto t() const -> UniformScaling {
     return *this;
