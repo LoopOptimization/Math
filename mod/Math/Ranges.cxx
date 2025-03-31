@@ -55,16 +55,16 @@ template <typename B, typename E> struct Range {
 
 private:
   TRIVIAL friend constexpr auto operator+(Range r, ptrdiff_t x) {
-    return Range{r.b_ + x, r.e_ + x};
-  }
-  TRIVIAL friend constexpr auto operator-(Range r, ptrdiff_t x) {
-    return Range{r.b_ - x, r.e_ - x};
+    return Range<ptrdiff_t,ptrdiff_t>(r.b_ + x, r.e_ + x);
   }
   TRIVIAL friend constexpr auto operator+(ptrdiff_t x, Range r) {
-    return Range{r.b_ + x, r.e_ + x};
+    return Range<ptrdiff_t,ptrdiff_t>(r.b_ + x, r.e_ + x);
+  }
+  TRIVIAL friend constexpr auto operator-(Range r, ptrdiff_t x) {
+    return Range<ptrdiff_t,ptrdiff_t>(r.b_ - x, r.e_ - x);
   }
   TRIVIAL friend constexpr auto operator-(ptrdiff_t x, Range r) {
-    return Range{x - r.b_, x - r.e_};
+    return Range<ptrdiff_t,ptrdiff_t>(x - r.b_, x - r.e_);
   }
 };
 template <std::integral B, std::integral E> struct Range<B, E> {

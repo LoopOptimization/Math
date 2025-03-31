@@ -33,36 +33,26 @@ export namespace math {
 namespace math {
 #endif
 
-/// TODO: remove `OffsetBegin`
-/// We probably won't support non-zero-based indexing
-struct OffsetBegin {
-  [[no_unique_address]] ptrdiff_t offset_;
-
-private:
-  friend auto operator<<(std::ostream &os, OffsetBegin r) -> std::ostream & {
-    return os << r.offset_;
-  }
-  TRIVIAL friend inline constexpr auto operator+(ptrdiff_t x, OffsetBegin y)
-    -> OffsetBegin {
-    return OffsetBegin{x + y.offset_};
-  }
-  TRIVIAL friend inline constexpr auto operator+(OffsetBegin y, ptrdiff_t x)
-    -> OffsetBegin {
-    return OffsetBegin{x + y.offset_};
-  }
-};
 [[maybe_unused]] inline constexpr struct Begin {
 private:
   friend auto operator<<(std::ostream &os, Begin) -> std::ostream & {
     return os << 0;
   }
   TRIVIAL friend inline constexpr auto operator+(ptrdiff_t x, Begin)
-    -> OffsetBegin {
-    return OffsetBegin{x};
+    -> ptrdiff_t {
+    return x;
   }
   TRIVIAL friend inline constexpr auto operator+(Begin, ptrdiff_t x)
-    -> OffsetBegin {
-    return OffsetBegin{x};
+    -> ptrdiff_t {
+    return x;
+  }
+  TRIVIAL friend inline constexpr auto operator-(ptrdiff_t x, Begin)
+    -> ptrdiff_t {
+    return x;
+  }
+  TRIVIAL friend inline constexpr auto operator-(Begin, ptrdiff_t x)
+    -> ptrdiff_t {
+    return -x;
   }
 } begin;
 
@@ -97,8 +87,7 @@ private:
 // Union type
 template <typename T>
 concept ScalarRelativeIndex =
-  std::same_as<T, End> || std::same_as<T, Begin> ||
-  std::same_as<T, OffsetBegin> || std::same_as<T, OffsetEnd>;
+  std::same_as<T, End> || std::same_as<T, Begin> || std::same_as<T, OffsetEnd>;
 
 template <typename T>
 concept ScalarIndex =
@@ -118,9 +107,6 @@ TRIVIAL constexpr auto canonicalize(ptrdiff_t e, ptrdiff_t) -> ptrdiff_t {
   return e;
 }
 TRIVIAL constexpr auto canonicalize(Begin, ptrdiff_t) -> ptrdiff_t { return 0; }
-TRIVIAL constexpr auto canonicalize(OffsetBegin b, ptrdiff_t) -> ptrdiff_t {
-  return b.offset_;
-}
 TRIVIAL constexpr auto canonicalize(End, ptrdiff_t M) -> ptrdiff_t { return M; }
 TRIVIAL constexpr auto canonicalize(OffsetEnd e, ptrdiff_t M) -> ptrdiff_t {
   return M - e.offset_;
@@ -165,10 +151,6 @@ calcOffset(std::integral_constant<ptrdiff_t, 1>, ptrdiff_t i) -> ptrdiff_t {
 TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<>, Begin) -> ptrdiff_t {
   return 0z;
 }
-TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetBegin i)
-  -> ptrdiff_t {
-  return calcOffset(len, i.offset_);
-}
 TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetEnd i)
   -> ptrdiff_t {
   invariant(i.offset_ <= len);
@@ -181,10 +163,6 @@ TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetEnd i)
 }
 [[nodiscard]] constexpr auto calcRangeOffset(Length<>, Begin) -> ptrdiff_t {
   return 0z;
-}
-[[nodiscard]] constexpr auto calcRangeOffset(Length<> len, OffsetBegin i)
-  -> ptrdiff_t {
-  return calcRangeOffset(len, i.offset_);
 }
 TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<> len, OffsetEnd i)
   -> ptrdiff_t {

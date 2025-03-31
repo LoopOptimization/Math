@@ -6,13 +6,13 @@ module;
 #include "Macros.hxx"
 
 #ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
 #include <compare>
 #include <concepts>
+#include <cstddef>
 #include <limits>
 #include <ostream>
 #include <type_traits>
-
-#include "Utilities/Invariant.cxx"
 #else
 export module Int8;
 
@@ -26,7 +26,7 @@ export namespace numbers {
 namespace numbers {
 #endif
 
-template <std::integral I, int alias, bool nowrap = false> struct IntWrapper {
+template <std::integral I, int alias, bool nowrap> struct IntWrapper {
   enum class strong : I {};
 
 private:
@@ -116,11 +116,15 @@ private:
            (!issigned && (sizeof(J) > sizeof(I))))
   {
     if constexpr (sizeof(J) >= sizeof(I)) return y <=> static_cast<J>(x);
+    else if constexpr (nowrap)
+      return static_cast<ptrdiff_t>(x) <=> static_cast<ptrdiff_t>(y);
     else return static_cast<I>(x) <=> static_cast<I>(y);
   }
   TRIVIAL friend inline constexpr auto operator<=>(strong x, strong y)
     -> std::strong_ordering {
-    return static_cast<I>(x) <=> static_cast<I>(y);
+    if constexpr (nowrap)
+      return static_cast<ptrdiff_t>(x) <=> static_cast<ptrdiff_t>(y);
+    else return static_cast<I>(x) <=> static_cast<I>(y);
   }
 
   template <std::integral J>
@@ -407,11 +411,11 @@ private:
     return os << static_cast<I>(x);
   }
 };
-static_assert(++static_cast<IntWrapper<int, 0>::strong>(3) == 4);
+static_assert(++static_cast<IntWrapper<int, 0, true>::strong>(3) == 4);
 
-using i8 = IntWrapper<signed char, 0>::strong;
-using u8 = IntWrapper<unsigned char, 0>::strong;
-using Flag8 = IntWrapper<unsigned char, 1>::strong;
+using i8 = IntWrapper<signed char, 0, true>::strong;
+using u8 = IntWrapper<unsigned char, 0, true>::strong;
+using Flag8 = IntWrapper<unsigned char, 1, false>::strong;
 
 static_assert(!bool(i8{}));
 static_assert(!bool(u8{}));
