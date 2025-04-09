@@ -344,7 +344,9 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
   TRIVIAL constexpr auto operator[](auto i, auto j) const
   requires(AbstractMatrix<A>)
   {
-    return a_[j, i];
+    using R = std::remove_cvref_t<decltype(a_[j, i])>;
+    if constexpr (AbstractTensor<R>) return transpose(a_[j, i]);
+    else return a_[j, i];
   }
   TRIVIAL [[nodiscard]] constexpr auto numRow() const {
     return transpose_dim(a_.numCol());

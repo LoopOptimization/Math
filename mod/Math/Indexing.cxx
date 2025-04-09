@@ -5,17 +5,17 @@ module;
 #endif
 #include "Macros.hxx"
 #ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <ostream>
-#include <type_traits>
-
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/Ranges.cxx"
-#include "SIMD/SIMD.cxx"
-#include "Utilities/Reference.cxx"
+#include "SIMD/Indexing.cxx"
+#include "SIMD/Masks.cxx"
+#include "SIMD/UnrollIndex.cxx"
+#include <concepts>
+#include <cstddef>
+#include <ostream>
+#include <type_traits>
+#include <utility>
 #else
 export module Indexing;
 
@@ -119,7 +119,7 @@ TRIVIAL constexpr auto canonicalizeRange(Range<B, E> r, ptrdiff_t M)
 }
 TRIVIAL constexpr auto canonicalizeRange(Colon, ptrdiff_t M)
   -> Range<ptrdiff_t, ptrdiff_t> {
-  return Range<ptrdiff_t, ptrdiff_t>{0, M};
+  return Range<ptrdiff_t, ptrdiff_t>{.b_=0, .e_=M};
 }
 
 static_assert(ScalarIndex<OffsetEnd>);

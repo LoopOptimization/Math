@@ -112,7 +112,8 @@ TEST(SparseIndexingTest, BasicAssertions) {
       At[_(0, end), _(0, end)] << A.t();
       // At << A.t();
       // Bt << B.t();
-      C2 += At.t() * Bt.t();
+      ptrdiff_t k = std::min(ptrdiff_t(A.numCol()), ptrdiff_t(B.numRow()));
+      C2 += At.t() * Bt.t()[_(k), _];
       EXPECT_EQ(C * 2, C2);
       EXPECT_EQ(C, At.t() * B);
       EXPECT_EQ(C, A * Bt.t());
