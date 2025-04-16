@@ -818,35 +818,22 @@ constexpr void solveSystem(MutPtrMatrix<int64_t> A) {
     for (ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
   return {B, s};
 }
-// one row per null dim
-constexpr void nullSpace11(DenseMatrix<int64_t> &B, DenseMatrix<int64_t> &A) {
-  const Row M = A.numRow();
-  B.resizeForOverwrite(math::SquareDims{M});
+
+constexpr auto nullSpace(MutDensePtrMatrix<int64_t> B,
+                         MutDensePtrMatrix<int64_t> A)
+  -> MutDensePtrMatrix<int64_t> {
   B << 0;
   B.diag() << 1;
   solveSystem(A, B);
-  Row R = numNonZeroRows(A);
-  // slice B[_(R,end), :]
-  if (!R) return;
-  // we keep last D columns
-  Row D = row(ptrdiff_t(M) - ptrdiff_t(R));
-  // we keep `D` columns
-  // TODO: shift pointer instead?
-  // This seems like a bad idea given ManagedArrays that must
-  // free their own ptrs; we'd have to still store either the old pointer or the
-  // offset.
-  // However, this may be reasonable given an implementation
-  // that takes a `Arena<>` as input to allocate `B`, as
-  // then we don't need to track the pointer.
-  std::copy_n(B.data() + ptrdiff_t(R) * ptrdiff_t(M),
-              ptrdiff_t(D) * ptrdiff_t(M), B.data());
-  B.truncate(D);
+  Row R = numNonZeroRows(A); // rank
+  // we discard first R columns
+  return B[_(R, end), _];
 }
-[[nodiscard]] constexpr auto nullSpace(DenseMatrix<int64_t> A)
-  -> DenseMatrix<int64_t> {
-  DenseMatrix<int64_t> B;
-  nullSpace11(B, A);
-  return B;
+// one row per null dim
+constexpr auto nullSpace(Arena<> *alloc, MutDensePtrMatrix<int64_t> A)
+  -> MutDensePtrMatrix<int64_t> {
+  Row M = A.numRow();
+  return nullSpace(matrix<int64_t>(alloc, M, math::col(ptrdiff_t(M))), A);
 }
 
 // FIXME: why do we have two?
@@ -858,15 +845,17 @@ constexpr auto orthogonalize(IntMatrix<> A)
 } // namespace NormalForm
 
 // FIXME: why do we have two?
-[[nodiscard]] constexpr auto orthogonalize(DenseMatrix<int64_t> A)
-  -> DenseMatrix<int64_t> {
+constexpr auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<int64_t> A)
+  -> MutDensePtrMatrix<int64_t> {
   if ((A.numCol() < 2) || (A.numRow() == 0)) return A;
   normalizeByGCD(A[0, _]);
   if (A.numRow() == 1) return A;
-  Vector<Rational, 8> buff;
-  buff.resizeForOverwrite(ptrdiff_t(A.numCol()));
+  auto s = alloc->scope();
+  MutPtrVector<Rational> buff{vector<Rational>(alloc, ptrdiff_t(A.numCol()))};
+  // Vector<Rational, 8> buff;
+  // buff.resizeForOverwrite(ptrdiff_t(A.numCol()));
   for (ptrdiff_t i = 1; i < A.numRow(); ++i) {
-    for (ptrdiff_t j = 0; j < A.numCol(); ++j) buff[j] = A[i, j];
+    buff << A[i, _];
     for (ptrdiff_t j = 0; j < i; ++j) {
       int64_t n = 0;
       int64_t d = 0;
@@ -886,9 +875,10 @@ constexpr auto orthogonalize(IntMatrix<> A)
   return A;
 }
 
-[[nodiscard]] constexpr auto orthogonalNullSpace(DenseMatrix<int64_t> A)
-  -> DenseMatrix<int64_t> {
-  return orthogonalize(NormalForm::nullSpace(std::move(A)));
+[[nodiscard]] constexpr auto orthogonalNullSpace(Arena<> *alloc,
+                                                 MutDensePtrMatrix<int64_t> A)
+  -> MutDensePtrMatrix<int64_t> {
+  return orthogonalize(alloc, NormalForm::nullSpace(alloc, A));
 }
 
 } // namespace math

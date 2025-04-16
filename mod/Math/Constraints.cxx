@@ -71,7 +71,7 @@ inline auto printConstraint(std::ostream &os, PtrVector<int64_t> a,
 /// the derived classes.
 inline auto printConstraints(std::ostream &os, DensePtrMatrix<int64_t> A,
                              bool inequality = true) -> std::ostream & {
-  const Row numConstraints = A.numRow();
+  Row numConstraints = A.numRow();
   for (ptrdiff_t c = 0; c < numConstraints; ++c) {
     printConstraint(os, A[c, _], 1, inequality);
     os << "\n";

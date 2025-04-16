@@ -1,5 +1,18 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Comparisons.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/Indexing.cxx"
+#include "Math/LinearAlgebra.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/NormalForm.cxx"
+#include "Math/UniformScaling.cxx"
+#include "Utilities/MatrixStringParse.cxx"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -7,19 +20,6 @@
 #include <optional>
 #include <random>
 #include <utility>
-
-#include "Alloc/Arena.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/Constructors.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/NormalForm.cxx"
-#include "Math/UniformScaling.cxx"
-#include "Utilities/MatrixStringParse.cxx"
 #else
 
 import Arena;
@@ -295,19 +295,24 @@ TEST(NullSpaceTests, BasicAssertions) {
 
   // ptrdiff_t numIters = 1000;
   ptrdiff_t num_iters = 1;
-  for (ptrdiff_t num_col = 2; num_col < 11; num_col += 2) {
-    IntMatrix<> B(DenseDims<>{row(8), col(num_col)});
+  constexpr ptrdiff_t max_col = 10;
+  int64_t mem[8 * (2 * 8z + 3 * max_col)];
+  MutDensePtrMatrix<int64_t> ns_init{mem, DenseDims<>{row(8), col(8)}};
+  for (ptrdiff_t num_col = 2; num_col <= max_col; num_col += 2) {
+    MutDensePtrMatrix<int64_t> B{mem + (8z * 8),
+                                 DenseDims<>{row(8), col(num_col)}},
+      Bc{mem + (8z * (8 + max_col)), DenseDims<>{row(8), col(num_col)}},
+      Y{mem + (8z * (8 + 2 * max_col)), DenseDims<>{row(8), col(num_col)}};
     ptrdiff_t null_dim = 0;
-    IntMatrix<> Z;
-    DenseMatrix<int64_t> NS;
     for (ptrdiff_t i = 0; i < num_iters; ++i) {
       for (auto &&b : B) {
         b = distrib(gen);
         b = b > 10 ? 0 : b;
       }
-      NS = NormalForm::nullSpace(B);
+      MutDensePtrMatrix<int64_t> NS = NormalForm::nullSpace(ns_init, Bc << B);
       null_dim += ptrdiff_t(NS.numRow());
-      Z = NS * B;
+      MutDensePtrMatrix<int64_t> Z{Y[_(NS.numRow()), _]};
+      Z << NS * B;
       if (!allZero(Z)) {
         std::cout << "B = \n"
                   << B << "\nNS = \n"
@@ -315,7 +320,10 @@ TEST(NullSpaceTests, BasicAssertions) {
                   << Z << "\n";
       }
       for (auto &z : Z) EXPECT_EQ(z, 0);
-      EXPECT_EQ(NormalForm::nullSpace(std::move(NS)).numRow(), 0);
+      MutDensePtrMatrix<int64_t> ZN{
+        mem + (8z * (8 + 3 * max_col)),
+        DenseDims<>{math::row(null_dim), math::col(null_dim)}};
+      EXPECT_EQ(NormalForm::nullSpace(ZN, NS).numRow(), 0);
     }
     std::cout << "Average tested null dim = "
               << double(null_dim) / double(num_iters) << "\n";

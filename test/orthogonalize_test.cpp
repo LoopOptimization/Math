@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
@@ -7,9 +9,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <random>
-#include <utility>
 #else
 
+import Arena;
+import Array;
 import ManagedArray;
 import MatDim;
 import NormalForm;
@@ -24,19 +27,23 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-3, 3);
 
-  const size_t M = 7;
-  const size_t N = 7;
-  DenseMatrix<int64_t> A(DenseDims<>{row(M), col(N)});
-  DenseMatrix<int64_t> B(DenseDims<>{row(N), col(N)});
-  const size_t iters = 1000;
+  constexpr ptrdiff_t M = 7;
+  constexpr ptrdiff_t N = 7;
+  int64_t mem[M * N * 2];
+  alloc::OwningArena<> alloc;
+  math::MutDensePtrMatrix<int64_t> A{mem,
+                                     DenseDims<>{math::row(M), math::col(N)}};
+  math::MutDensePtrMatrix<int64_t> B{mem + (M * N),
+                                     DenseDims<>{math::row(M), math::col(N)}};
+  constexpr size_t iters = 1000;
   for (size_t i = 0; i < iters; ++i) {
     for (auto &&a : A) a = distrib(gen);
     // std::cout << "Random A =\n" << A << "\n";
-    A = math::orthogonalize(std::move(A));
+    math::orthogonalize(&alloc, A);
     // std::cout << "Orthogonal A =\n" << A << "\n";
     // note, A'A is not diagonal
     // but AA' is
-    B = A * A.t();
+    B << A * A.t();
     // std::cout << "A'A =\n" << B << "\n";
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic push
