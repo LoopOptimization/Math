@@ -624,9 +624,8 @@ constexpr void hermite(MutPtrMatrix<int64_t> A, MutSquarePtrMatrix<int64_t> U) {
   simplifySystemsImpl({A, U});
 }
 
-/// use A[j,k] to zero A[i,k]
-
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
+/// use A[j,k] to zero A[i,k]
 constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
                              int64_t f) -> int64_t {
   int64_t Aik = A[i, k];
@@ -677,6 +676,7 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   return ret;
 }
 #else
+/// use A[j,k] to zero A[i,k]
 constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
                              int64_t f) -> int64_t {
   int64_t Aik = A[i, k];
