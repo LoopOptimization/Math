@@ -642,7 +642,7 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   simd::Vec<W, int64_t> vAjk = simd::vbroadcast<W, int64_t>(Ajk),
                         vAik = simd::vbroadcast<W, int64_t>(Aik), vg = {ret};
   static constexpr simd::Vec<W, int64_t> one = simd::Vec<W, int64_t>{} + 1;
-  PtrMatrix<int64_t> B = A;
+  PtrMatrix<int64_t> B = A; // const ref
   ptrdiff_t L = ptrdiff_t(A.numCol()), l = 0;
   if (ret != 1) {
     for (;;) {
@@ -652,18 +652,19 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
       A[i, u] = Ail;
       vg = gcd<W>(Ail, vg);
       l += W;
-      // if none are `> 1`, we break
+      // if none are `> 1`, we break and take the route that skips gcd
       if (!bool(simd::cmp::gt<W, int64_t>(vg, one))) break;
     }
   }
   if (l < L) {
+    // the gcd is 1
     for (;; l += W) {
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
       A[i, u] = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
     }
   } else if (simd::cmp::gt<W, int64_t>(vg, one)) {
-    // This was `le` before?
+    // gcd isn't one, so we can scale
     g = gcdreduce<W>(vg);
     if (g > 1) {
       for (ptrdiff_t ll = 0; ll < L; ++ll)
@@ -674,6 +675,50 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
     }
   }
   return ret;
+}
+constexpr void zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
+                             Col<> k) {
+  int64_t Aik = A[i, k];
+  if (!Aik) return;
+  int64_t Ajk = A[j, k];
+  invariant(Ajk != 0);
+  int64_t g = gcd(Aik, Ajk);
+  if (g != 1) {
+    Aik /= g;
+    Ajk /= g;
+  }
+  constexpr ptrdiff_t W = simd::Width<int64_t>;
+  static constexpr simd::Vec<W, int64_t> one = simd::Vec<W, int64_t>{} + 1;
+  simd::Vec<W, int64_t> vAjk = simd::vbroadcast<W, int64_t>(Ajk),
+                        vAik = simd::vbroadcast<W, int64_t>(Aik), vg = {Ajk};
+  PtrMatrix<int64_t> B = A; // const ref
+  ptrdiff_t L = ptrdiff_t(A.numCol()), l = 0;
+  if (Ajk != 1) {
+    for (;;) {
+      auto u{simd::index::unrollmask<1, W>(L, l)};
+      if (!u) break;
+      simd::Vec<W, int64_t> Ail = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
+      A[i, u] = Ail;
+      vg = gcd<W>(Ail, vg);
+      l += W;
+      // if none are `> 1`, we break and take the route that skips gcd
+      if (!bool(simd::cmp::gt<W, int64_t>(vg, one))) break;
+    }
+  }
+  if (l < L) {
+    // requires we did not execute above branch, the gcd is 1
+    for (;; l += W) {
+      auto u{simd::index::unrollmask<1, W>(L, l)};
+      if (!u) break;
+      A[i, u] = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
+    }
+  } else if (simd::cmp::gt<W, int64_t>(vg, one)) {
+    // gcd isn't one, so we can scale
+    if (g = gcdreduce<W>(vg); g > 1) {
+      for (ptrdiff_t ll = 0; ll < L; ++ll)
+        if (int64_t Ail = A[i, ll]) A[i, ll] = Ail / g;
+    }
+  }
 }
 #else
 /// use A[j,k] to zero A[i,k]
@@ -687,14 +732,13 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
   Aik /= g;
   Ajk /= g;
   int64_t ret = f * Ajk, vg = ret;
-  PtrMatrix<int64_t> B = A;
   ptrdiff_t L = ptrdiff_t(A.numCol()), l = 0;
   for (; (vg != 1) && (l < L); ++l) {
-    int64_t Ail = A[i, l] = Ajk * B[i, l] - Aik * B[j, l];
+    int64_t Ail = A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
     vg = gcd(Ail, vg);
   }
   if (l < L) {
-    for (; l < L; ++l) A[i, l] = Ajk * B[i, l] - Aik * B[j, l];
+    for (; l < L; ++l) A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
   } else if (vg != 1) {
     for (ptrdiff_t ll = 0; ll < L; ++ll)
       if (int64_t Ail = A[i, ll]) A[i, ll] = Ail / vg;
@@ -703,6 +747,28 @@ constexpr auto zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j, Col<> k,
     ret = r;
   }
   return ret;
+}
+constexpr void zeroWithRowOp(MutPtrMatrix<int64_t> A, Row<> i, Row<> j,
+                             Col<> k) {
+  int64_t Aik = A[i, k];
+  if (!Aik) return;
+  int64_t Ajk = A[j, k];
+  invariant(Ajk != 0);
+  int64_t g = gcd(Aik, Ajk), vg = 0;
+  Aik /= g;
+  Ajk /= g;
+  ptrdiff_t L = ptrdiff_t(A.numCol()), l = 0;
+  for (; (vg != 1) && (l < L); ++l) {
+    int64_t Ail = A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
+    vg = gcd(Ail, vg);
+  }
+  if (l < L) {
+    for (; l < L; ++l) A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
+  } else if (vg != 1) {
+    for (ptrdiff_t ll = 0; ll < L; ++ll)
+      if (int64_t Ail = A[i, ll]) A[i, ll] = Ail / vg;
+  }
+  return;
 }
 #endif
 constexpr void bareiss(MutPtrMatrix<int64_t> A,

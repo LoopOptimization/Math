@@ -17,6 +17,8 @@ import ManagedArray;
 import STL;
 #endif
 
+#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE(x) STRINGIZE_DETAIL(x)
 using containers::BitSet, math::Vector;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -47,14 +49,18 @@ TEST(BitSetTest, BasicAssertions) {
   }
   EXPECT_EQ(j, bsc.size());
   EXPECT_EQ(j, bs.size());
+  std::println("About to create empty!");
   BitSet empty;
   ptrdiff_t c = 0, d = 0;
+  std::println("About to iterate empty!");
   for (auto b : empty) {
     ++c;
     d += b;
   }
+  std::println("Iterated empty!");
   EXPECT_FALSE(c);
   EXPECT_FALSE(d);
+  std::println("we made it to the end!");
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSetInsert, BasicAssertions) {
@@ -77,7 +83,14 @@ TEST(DynSizeBitSetTest, BasicAssertions) {
   EXPECT_EQ(bs.data_.size(), 1);
   EXPECT_EQ(bs.data_.front(), 1040);
   for (ptrdiff_t i = 0; i < 11; ++i)
-    if (!bs.contains(i)) {EXPECT_TRUE(bsd.remove(i));}
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-else"
+#endif
+    if (!bs.contains(i)) EXPECT_TRUE(bsd.remove(i));
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
   EXPECT_EQ(bs, bsd);
   Vector<size_t> sv;
   for (auto i : bs) sv.push_back(i);
@@ -87,16 +100,27 @@ TEST(DynSizeBitSetTest, BasicAssertions) {
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(FixedSizeBitSetTest, BasicAssertions) {
+  std::println(STRINGIZE(__LINE__));
   BitSet<std::array<uint64_t, 2>> bs;
+  std::println(STRINGIZE(__LINE__));
   bs[4] = true;
+  std::println(STRINGIZE(__LINE__));
   bs[10] = true;
+  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(bs.data_[0], 1040);
+  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(bs.data_[1], 0);
+  std::println(STRINGIZE(__LINE__));
   Vector<size_t> sv;
+  std::println(STRINGIZE(__LINE__));
   for (auto i : bs) sv.push_back(i);
+  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(sv.size(), 2);
+  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(sv[0], 4);
+  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(sv[1], 10);
+  std::println(STRINGIZE(__LINE__));
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(FixedSizeSmallBitSetTest, BasicAssertions) {

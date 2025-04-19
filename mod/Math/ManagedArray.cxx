@@ -84,8 +84,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif
   constexpr ManagedArray() noexcept : BaseT{S{}, capacity(StackStorage)} {
-#ifndef NDEBUG
     this->ptr = memory_.data();
+#ifndef NDEBUG
     if (!StackStorage) return;
     if constexpr (std::numeric_limits<T>::has_signaling_NaN)
       std::fill_n(this->data(), StackStorage,
@@ -278,27 +278,32 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   template <class D>
   constexpr auto
   operator=(const ManagedArray<T, D, StackStorage, A> &b) noexcept
-    -> ManagedArray &requires(!std::same_as<S, D>) {
+    -> ManagedArray &
+  requires(!std::same_as<S, D>)
+  {
     // this condition implies `this->data() == nullptr`
     if (this->data() == b.data()) return *this;
     resizeCopyTo(b);
     return *this;
-  } template <class D>
-    constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
-      -> ManagedArray &requires(!std::same_as<S, D>) {
-      // this condition implies `this->data() == nullptr`
-      if (this->data() == b.data()) return *this;
-      // here, we commandeer `b`'s memory
-      S d = b.dim();
-      // if `b` is small, we need to copy memory
-      // no need to shrink our capacity
-      if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
-      else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
-      b.resetNoFree();
-      this->sz = d;
-      return *this;
-    } constexpr auto
-      operator=(const ManagedArray &b) noexcept -> ManagedArray & {
+  }
+  template <class D>
+  constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
+    -> ManagedArray &
+  requires(!std::same_as<S, D>)
+  {
+    // this condition implies `this->data() == nullptr`
+    if (this->data() == b.data()) return *this;
+    // here, we commandeer `b`'s memory
+    S d = b.dim();
+    // if `b` is small, we need to copy memory
+    // no need to shrink our capacity
+    if (b.isSmall()) std::copy_n(b.data(), ptrdiff_t(d), this->data());
+    else this->maybeDeallocate(b.data(), ptrdiff_t(b.getCapacity()));
+    b.resetNoFree();
+    this->sz = d;
+    return *this;
+  }
+  constexpr auto operator=(const ManagedArray &b) noexcept -> ManagedArray & {
     if (this == &b) return *this;
     resizeCopyTo(b);
     return *this;
@@ -456,9 +461,9 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       return resizeForOverwrite(nz.set(c));
     }
   }
-  static constexpr auto
-  reserveCore(S nz, storage_type *op, ptrdiff_t old_len, U oc,
-              bool was_allocated) -> containers::Pair<storage_type *, U> {
+  static constexpr auto reserveCore(S nz, storage_type *op, ptrdiff_t old_len,
+                                    U oc, bool was_allocated)
+    -> containers::Pair<storage_type *, U> {
     auto new_capacity = ptrdiff_t(nz);
     invariant(new_capacity >= 0z);
     if (new_capacity <= oc) return {op, oc};

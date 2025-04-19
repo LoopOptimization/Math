@@ -545,8 +545,7 @@ public:
           if (Ccv == 0 || (basic_cons[v] >= 0)) continue;
           if (Ccv < 0) C[c, _] *= -1;
           for (ptrdiff_t i = 0; i < C.numRow(); ++i)
-            if (i != c)
-              NormalForm::zeroWithRowOp(C, row(i), row(c), ++col(v), 0);
+            if (i != c) NormalForm::zeroWithRowOp(C, row(i), row(c), ++col(v));
           basic_vars[c] = index_t(v);
           basic_cons[v] = index_t(c);
           break;
@@ -570,6 +569,9 @@ public:
       std::find_if(f, l, [](int64_t c) -> bool { return c < 0; });
     return neg != l ? std::distance(f, neg) : std::optional<index_t>{};
   }
+  struct NoFilter {
+    static constexpr auto operator()(int64_t) -> bool { return false; }
+  };
   // Searches rows (constraints) for the one to make non-zero for
   // this particular variable. It will be used to zero all other rows.
   // This makes the `entering_variable` basic.
@@ -581,17 +583,18 @@ public:
   // ratio, and returns that row. If any numerator == 0, it'll
   // stop early and return that row.
   [[nodiscard]] static constexpr auto
-  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t entering_variable)
-    -> std::optional<index_t> {
+  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t entering_variable,
+                     const auto &filter) -> std::optional<index_t> {
     // inits guarantee first valid is selected
     int64_t dj = -1, nj = 0;
     index_t j = 0;
     StridedVector<int64_t> cv{C[_, entering_variable + 1]};
     for (index_t i = 1; i < C.numRow(); ++i) {
+      if (filter(i)) continue;
       int64_t di = cv[i];
       if (di <= 0) continue;
       int64_t ni = C[i, 0];
-      if (ni == 0) return --i;
+      if (!ni) return --i;
       invariant(ni > 0);
       if ((dj * ni) >= (di * nj)) continue;
       // we could consider something like:
@@ -611,6 +614,12 @@ public:
     // an empty `Optional<unsigned int>`
     return j ? --j : std::optional<index_t>{};
   }
+  [[nodiscard]] static constexpr auto
+  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t entering_variable)
+    -> std::optional<index_t> {
+    return getLeavingVariable(C, entering_variable, NoFilter{});
+  }
+
   constexpr auto makeBasic(MutPtrMatrix<int64_t> C, index_t enteringVar,
                            int64_t f) -> int64_t {
     std::optional<index_t> leave_opt = getLeavingVariable(C, enteringVar);
@@ -634,11 +643,14 @@ public:
   // returns `true` if it failed to make basic
   constexpr auto makeBasic(MutPtrMatrix<int64_t> C, index_t ev) -> bool {
     std::optional<index_t> leave_opt = getLeavingVariable(C, ev);
-    if (!leave_opt) return true; // unbounded
-    ptrdiff_t l_var = ptrdiff_t(*leave_opt), leaving_variable = l_var++;
+    if (leave_opt) makeBasic(C, ev, *leave_opt);
+    return !leave_opt;
+  }
+  constexpr void makeBasic(MutPtrMatrix<int64_t> C, index_t ev, index_t l_var) {
+    index_t leaving_variable = l_var++;
     for (ptrdiff_t i = 0; i < C.numRow(); ++i)
       if (i != l_var)
-        NormalForm::zeroWithRowOp(C, row(i), row(l_var), ++col(ev), 0);
+        NormalForm::zeroWithRowOp(C, row(i), row(l_var), ++col(ev));
     // update basic vars and constraints
     MutPtrVector<index_t> basic_vars{getBasicVariables()},
       basic_constraints{getBasicConstraints()};
@@ -646,8 +658,7 @@ public:
     basic_vars[leaving_variable] = ev;
     if (ptrdiff_t(old_basic_var) < basic_constraints.size())
       basic_constraints[old_basic_var] = -1;
-    basic_constraints[ev] = index_t(leaving_variable);
-    return false;
+    basic_constraints[ev] = leaving_variable;
   }
   constexpr auto trySetVarToValue() {}
   // run the simplex algorithm, assuming basicVar's costs have been set to
@@ -702,9 +713,13 @@ public:
     while (true) {
       // get new entering variable
       std::optional<index_t> entering_variable = getEnteringVariable(costs);
+      // we break when no costs < 0
       if (!entering_variable) break;
       index_t ev = *entering_variable;
-      if (makeBasic(C, ev)) break;
+      std::optional<index_t> leave_opt = getLeavingVariable(C, ev);
+      // or when no constraints were found
+      if (!leave_opt) break;
+      makeBasic(C, ev, *leave_opt);
     }
   }
   // Assumes all >v have already been lex-minimized
@@ -771,7 +786,7 @@ public:
     if (C[c, evp1] < 0) C[c, _] *= -1;
     for (ptrdiff_t i = 1; i < C.numRow(); ++i)
       if (i != ptrdiff_t(c))
-        NormalForm::zeroWithRowOp(C, row(i), row(c), col(evp1), 0);
+        NormalForm::zeroWithRowOp(C, row(i), row(c), col(evp1));
     int64_t old_basic_var = basic_vars[cc];
     invariant(old_basic_var == int64_t(v));
     basic_vars[cc] = index_t(ev);

@@ -61,13 +61,13 @@ constexpr double EXTREME = 8.0;
 class BoxTransformView {
 public:
   constexpr BoxTransformView(char *d, unsigned ntotal)
-    : data{d}, Ntotal{ntotal}, Nraw{ntotal} {}
+    : data_{d}, ntotal_{ntotal}, nraw_{ntotal} {}
   constexpr BoxTransformView(char *d, unsigned ntotal, unsigned nraw)
-    : data{d}, Ntotal{ntotal}, Nraw{nraw} {}
-  [[nodiscard]] constexpr auto size() const -> unsigned { return Ntotal; }
+    : data_{d}, ntotal_{ntotal}, nraw_{nraw} {}
+  [[nodiscard]] constexpr auto size() const -> unsigned { return ntotal_; }
   constexpr auto operator()(const AbstractVector auto &x, ptrdiff_t i) const
     -> utils::eltype_t<decltype(x)> {
-    invariant(std::cmp_less(i ,ptrdiff_t(Ntotal)));
+    invariant(std::cmp_less(i, ptrdiff_t(ntotal_)));
     int j = getInds()[i];
     double off = offs()[i];
     if (j < 0) return off;
@@ -104,7 +104,7 @@ public:
     return y;
   }
   constexpr void set(AbstractVector auto &x, auto y, ptrdiff_t i) {
-    invariant(i < Ntotal);
+    invariant(i < ntotal_);
     int j = getInds()[i];
     if (j < 0) return;
     double off = offs()[i];
@@ -114,10 +114,10 @@ public:
     return *this;
   }
   [[nodiscard]] constexpr auto getLowerBounds() -> MutPtrVector<int32_t> {
-    return {i32() + Ntotal, length(Ntotal)};
+    return {i32() + ntotal_, length(ntotal_)};
   }
   [[nodiscard]] constexpr auto getUpperBounds() -> MutPtrVector<int32_t> {
-    return {i32() + ptrdiff_t(2) * Ntotal, length(Ntotal)};
+    return {i32() + ptrdiff_t(2) * ntotal_, length(ntotal_)};
   }
   // gives max fractional ind on the transformed scale
   template <bool Relative = true>
@@ -126,7 +126,7 @@ public:
     double max = 0.0, lb = 0.0;
     ptrdiff_t k = -1;
     MutPtrVector<double> x{getRaw()};
-    for (ptrdiff_t i = 0, j = 0; i < Ntotal; ++i) {
+    for (ptrdiff_t i = 0, j = 0; i < ntotal_; ++i) {
       double s = scales()[i];
       if (s == 0.0) continue;
       double a = s * sigmoid(x[j++]) + offs()[i], fa = std::floor(a),
@@ -141,17 +141,17 @@ public:
     return {k, static_cast<int32_t>(lb)};
   }
   [[nodiscard]] constexpr auto getRaw() -> MutPtrVector<double> {
-    return {f64() + ptrdiff_t(2) * Ntotal, length(Nraw)};
+    return {f64() + ptrdiff_t(2) * ntotal_, length(nraw_)};
   }
   [[nodiscard]] constexpr auto getRaw() const -> PtrVector<double> {
-    return {f64() + ptrdiff_t(2) * Ntotal, length(Nraw)};
+    return {f64() + ptrdiff_t(2) * ntotal_, length(nraw_)};
   }
 
 protected:
   static constexpr ptrdiff_t NDV = 3;
   static constexpr ptrdiff_t NIV = 3;
 
-  char *data;
+  char *data_;
   /// f64 data:
   /// Ntotal offsets
   /// Ntotal scales
@@ -159,14 +159,14 @@ protected:
   /// Ntotal indices
   /// Ntotal lower bounds
   /// Ntotal upper bounds
-  unsigned Ntotal;
-  unsigned Nraw;
+  unsigned ntotal_;
+  unsigned nraw_;
 
   [[nodiscard]] auto f64() -> double * {
-    return reinterpret_cast<double *>(data);
+    return reinterpret_cast<double *>(data_);
   }
   [[nodiscard]] auto f64() const -> const double * {
-    return reinterpret_cast<const double *>(data);
+    return reinterpret_cast<const double *>(data_);
   }
   [[nodiscard]] static constexpr auto f64Bytes(size_t Ntotal) -> size_t {
     return (NDV * sizeof(double)) * Ntotal;
@@ -180,43 +180,43 @@ protected:
     return f64Bytes(Ntotal) + i32Bytes(Ntotal) + (Ntotal & 1) * sizeof(int32_t);
   }
   [[nodiscard]] constexpr auto f64Bytes() const -> size_t {
-    return f64Bytes(Ntotal);
+    return f64Bytes(ntotal_);
   }
   [[nodiscard]] constexpr auto i32Bytes() const -> size_t {
-    return i32Bytes(Ntotal);
+    return i32Bytes(ntotal_);
   }
   [[nodiscard]] constexpr auto dataBytes() const -> size_t {
-    return dataBytes(Ntotal);
+    return dataBytes(ntotal_);
   }
   [[nodiscard]] auto i32() -> int32_t * {
-    return reinterpret_cast<int32_t *>(data + f64Bytes());
+    return reinterpret_cast<int32_t *>(data_ + f64Bytes());
   }
   [[nodiscard]] auto i32() const -> const int32_t * {
-    return reinterpret_cast<const int32_t *>(data + f64Bytes());
+    return reinterpret_cast<const int32_t *>(data_ + f64Bytes());
   }
   [[nodiscard]] constexpr auto getInds() const -> PtrVector<int32_t> {
-    return {i32(), length(Ntotal)};
+    return {i32(), length(ntotal_)};
   }
   [[nodiscard]] constexpr auto getLowerBounds() const -> PtrVector<int32_t> {
-    return {i32() + Ntotal, length(Ntotal)};
+    return {i32() + ntotal_, length(ntotal_)};
   }
   [[nodiscard]] constexpr auto getUpperBounds() const -> PtrVector<int32_t> {
-    return {i32() + ptrdiff_t(2) * Ntotal, length(Ntotal)};
+    return {i32() + ptrdiff_t(2) * ntotal_, length(ntotal_)};
   }
   [[nodiscard]] constexpr auto offs() const -> PtrVector<double> {
-    return {f64(), length(Ntotal)};
+    return {f64(), length(ntotal_)};
   }
   [[nodiscard]] constexpr auto scales() const -> PtrVector<double> {
-    return {f64() + Ntotal, length(Ntotal)};
+    return {f64() + ntotal_, length(ntotal_)};
   }
   [[nodiscard]] constexpr auto getInds() -> MutPtrVector<int32_t> {
-    return {i32(), length(Ntotal)};
+    return {i32(), length(ntotal_)};
   }
   [[nodiscard]] constexpr auto offs() -> MutPtrVector<double> {
-    return {f64(), length(Ntotal)};
+    return {f64(), length(ntotal_)};
   }
   [[nodiscard]] constexpr auto scales() -> MutPtrVector<double> {
-    return {f64() + Ntotal, length(Ntotal)};
+    return {f64() + ntotal_, length(ntotal_)};
   }
   static constexpr auto scaleOff(int32_t lb, int32_t ub)
     -> containers::Pair<double, double> {
@@ -244,24 +244,24 @@ static_assert(!IsMutable<DualVector<2, math::Array<double, Length<>>>>);
 template <AbstractVector V> struct BoxTransformVector {
   using value_type = utils::eltype_t<V>;
   static_assert(utils::TriviallyCopyable<V>);
-  V v;
-  BoxTransformView btv;
+  V v_;
+  BoxTransformView btv_;
 
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return btv.size(); }
+  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return btv_.size(); }
   constexpr auto operator[](ptrdiff_t i) const -> value_type {
-    return btv(v, i);
+    return btv_(v_, i);
   }
   template <ptrdiff_t U, ptrdiff_t W, typename M>
   constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
     -> simd::Unroll<1, U, W, double> {
-    return btv(v, i);
+    return btv_(v_, i);
   }
   struct Reference {
     BoxTransformVector &x;
     ptrdiff_t i;
-    constexpr operator value_type() const { return x.btv(x.v, i); }
+    constexpr operator value_type() const { return x.btv_(x.v_, i); }
     constexpr auto operator=(value_type y) -> Reference & {
-      x.btv.set(x.v, y, i);
+      x.btv_.set(x.v_, y, i);
       return *this;
     }
   };
@@ -317,66 +317,66 @@ public:
     }
   }
   constexpr void increaseLowerBound(ptrdiff_t idx, int32_t lb) {
-    invariant(idx < ptrdiff_t(Ntotal));
+    invariant(idx < ptrdiff_t(ntotal_));
     invariant(lb > getLowerBounds()[idx]);
     int32_t ub = getUpperBounds()[idx];
     invariant(lb <= ub);
     getLowerBounds()[idx] = lb;
-    double newScale, newOff;
+    double new_scale, new_off;
     MutPtrVector<double> untrf{getRaw()};
     if (lb == ub) {
-      --Nraw;
+      --nraw_;
       untrf.erase(getInds()[idx]);
       getInds()[idx] = -1;
       // we remove a fixed, so we must now decrement all following inds
-      for (ptrdiff_t i = idx; ++i < Ntotal;) --getInds()[i];
-      newScale = 0.0;
-      newOff = lb;
+      for (ptrdiff_t i = idx; ++i < ntotal_;) --getInds()[i];
+      new_scale = 0.0;
+      new_off = lb;
     } else {
       untrf[getInds()[idx]] = -EXTREME;
-      containers::tie(newScale, newOff) = scaleOff(lb, ub);
+      containers::tie(new_scale, new_off) = scaleOff(lb, ub);
     }
-    scales()[idx] = newScale;
-    offs()[idx] = newOff;
+    scales()[idx] = new_scale;
+    offs()[idx] = new_off;
   }
   constexpr void decreaseUpperBound(ptrdiff_t idx, int32_t ub) {
-    invariant(idx < Ntotal);
+    invariant(idx < ntotal_);
     invariant(ub < getUpperBounds()[idx]);
     int32_t lb = getLowerBounds()[idx];
     invariant(lb <= ub);
     getUpperBounds()[idx] = ub;
-    double newScale, newOff;
+    double new_scale, new_off;
     MutPtrVector<double> untrf{getRaw()};
     if (lb == ub) {
-      --Nraw;
+      --nraw_;
       untrf.erase(getInds()[idx]);
       getInds()[idx] = -1;
       // we remove a fixed, so we must now decrement all following inds
-      for (ptrdiff_t i = idx; ++i < Ntotal;) --getInds()[i];
-      newScale = 0.0;
-      newOff = lb;
+      for (ptrdiff_t i = idx; ++i < ntotal_;) --getInds()[i];
+      new_scale = 0.0;
+      new_off = lb;
     } else {
       untrf[getInds()[idx]] = EXTREME;
-      containers::tie(newScale, newOff) = scaleOff(lb, ub);
+      containers::tie(new_scale, new_off) = scaleOff(lb, ub);
     }
-    scales()[idx] = newScale;
-    offs()[idx] = newOff;
+    scales()[idx] = new_scale;
+    offs()[idx] = new_off;
   }
-  constexpr ~BoxTransform() { deallocate(data, Ntotal); }
+  constexpr ~BoxTransform() { deallocate(data_, ntotal_); }
   constexpr BoxTransform(BoxTransform &&other) noexcept
-    : BoxTransformView{other.data, other.Ntotal, other.Nraw} {
-    other.data = nullptr;
+    : BoxTransformView{other.data_, other.ntotal_, other.nraw_} {
+    other.data_ = nullptr;
   }
   constexpr BoxTransform(const BoxTransform &other)
-    : BoxTransformView{allocate(other.Ntotal), other.Ntotal, other.Nraw} {
-    std::memcpy(data, other.data, dataBytes());
+    : BoxTransformView{allocate(other.ntotal_), other.ntotal_, other.nraw_} {
+    std::memcpy(data_, other.data_, dataBytes());
   }
   constexpr auto operator=(BoxTransform &&other) noexcept -> BoxTransform & {
     if (this == &other) return *this;
-    deallocate(data, Ntotal);
-    data = std::exchange(other.data, nullptr);
-    Ntotal = other.Ntotal;
-    Nraw = other.Nraw;
+    deallocate(data_, ntotal_);
+    data_ = std::exchange(other.data_, nullptr);
+    ntotal_ = other.ntotal_;
+    nraw_ = other.nraw_;
     return *this;
   }
   // returns a copy of `this` with the `i`th upper bound decreased to `nlb`

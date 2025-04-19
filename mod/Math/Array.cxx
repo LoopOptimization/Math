@@ -272,8 +272,8 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL constexpr Array(Array &&) noexcept = default;
   TRIVIAL constexpr auto operator=(const Array &) -> Array & = default;
   TRIVIAL constexpr auto operator=(Array &&) noexcept -> Array & = default;
-  TRIVIAL constexpr Array(const storage_type *p, S s) : ptr(p), sz(s) {}
-  TRIVIAL constexpr Array(Valid<const storage_type> p, S s) : ptr(p), sz(s) {}
+  TRIVIAL constexpr Array(const storage_type *p, S s) : ptr{p}, sz{s} {}
+  TRIVIAL constexpr Array(Valid<const storage_type> p, S s) : ptr{p}, sz{s} {}
   template <ptrdiff_t R, ptrdiff_t C>
   TRIVIAL constexpr Array(const storage_type *p, Row<R> r, Col<C> c)
     : ptr(p), sz(S{r, c}) {}
@@ -281,7 +281,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL constexpr Array(Valid<const storage_type> p, Row<R> r, Col<C> c)
     : ptr(p), sz(dimension<S>(r, c)) {}
   template <std::convertible_to<S> V>
-  TRIVIAL constexpr Array(Array<T, V> a) : ptr(a.data()), sz(a.dim()) {}
+  TRIVIAL constexpr Array(Array<T, V> a) : ptr{a.data()}, sz{a.dim()} {}
   template <size_t N>
   TRIVIAL constexpr Array(const std::array<T, N> &a)
     : ptr(a.data()), sz(length(N)) {}
@@ -710,8 +710,7 @@ struct MutArray : Array<T, S, Compress>,
   template <std::convertible_to<T> U, std::convertible_to<S> V>
   TRIVIAL constexpr MutArray(Array<U, V> a) : Array<T, S>(a) {}
   template <size_t N>
-  TRIVIAL constexpr MutArray(std::array<T, N> &a)
-    : Array<T, S>(a.data(), length(N)) {}
+  TRIVIAL constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a) {}
   TRIVIAL [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
     invariant(this->ptr != nullptr || ptrdiff_t(this->sz) == 0);
     return const_cast<storage_type *>(this->ptr);

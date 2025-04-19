@@ -2,11 +2,11 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2 clangavx512
+all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch clangrelease gccrelease gccavx2 clangavx512
 else ifeq ($(HAVE_AVX2),0)
-all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch gccavx2
+all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch clangrelease gccrelease gccavx2
 else
-all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch
+all: clangmodules clangnosan clangsan gccnosan gccsan clangnosimd clangbasearch clangrelease gccrelease
 endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
@@ -59,6 +59,12 @@ buildgcc/bench/:
 buildclang/type/:
 	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/type/ -DCMAKE_BUILD_TYPE=Debug -DUSE_TYPE_SANITIZER=ON
 
+buildclang/release/:
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/release/ -DCMAKE_BUILD_TYPE=RELEASE
+
+buildgcc/release/:
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/release/ -DCMAKE_BUILD_TYPE=RELEASE
+
 gccnosan: buildgcc/nosan/
 	cmake --build buildgcc/nosan/
 	cmake --build buildgcc/nosan/ --target test
@@ -108,6 +114,14 @@ gccbench: buildgcc/bench/
 clangtype: buildclang/type/
 	cmake --build buildclang/type
 	TYSAN_OPTIONS=print_stacktrace=1 cmake --build buildclang/type --target test
+
+clangrelease: buildclang/release/
+	cmake --build buildclang/release
+	cmake --build buildclang/release --target test
+
+gccrelease: buildgcc/release/
+	cmake --build buildgcc/release
+	cmake --build buildgcc/release --target test
 
 
 clean:
