@@ -83,8 +83,8 @@ template <typename T> inline auto countDigits(T *x) -> int {
   return countDigits(std::bit_cast<size_t>(x));
 }
 constexpr auto countDigits(math::Rational x) -> ptrdiff_t {
-  ptrdiff_t num = countDigits(x.numerator);
-  return (x.denominator == 1) ? num : num + countDigits(x.denominator) + 2;
+  ptrdiff_t num = countDigits(x.numerator_);
+  return (x.denominator_ == 1) ? num : num + countDigits(x.denominator_) + 2;
 }
 /// \brief Returns the maximum number of digits per column of a matrix.
 constexpr auto getMaxDigits(const math::Rational *A, ptrdiff_t M, ptrdiff_t N,

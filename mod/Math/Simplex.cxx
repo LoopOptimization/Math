@@ -23,6 +23,7 @@ module;
 #include "Math/Rational.cxx"
 #include "SIMD/Intrin.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -236,12 +237,16 @@ public:
   [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
     return {tableauPointer(), length(ptrdiff_t(num_vars_) + 1z)};
   }
-  [[nodiscard]] constexpr auto getBasicConstraint(ptrdiff_t i) const
+  // maps variables to constraints; <0 if variable is not basic
+  [[nodiscard]] constexpr auto getBasicConstraint(ptrdiff_t var) const
     -> index_t {
-    return getBasicConstraints()[i];
+    return getBasicConstraints()[var];
   }
-  [[nodiscard]] constexpr auto getBasicVariable(ptrdiff_t i) const -> index_t {
-    return getBasicVariables()[i];
+  // get the variable that is basic associated with this constraint;
+  // must always be valid while the simplex is in canonical form.
+  [[nodiscard]] constexpr auto getBasicVariable(ptrdiff_t constraint) const
+    -> index_t {
+    return getBasicVariables()[constraint];
   }
   [[nodiscard]] constexpr auto getObjectiveCoefficient(ptrdiff_t i) const
     -> value_type {
@@ -423,7 +428,7 @@ public:
 
     [[nodiscard]] constexpr auto denomLCM() const -> int64_t {
       int64_t l = 1;
-      for (auto r : *this) l = lcm(l, r.denominator);
+      for (auto r : *this) l = lcm(l, r.denominator_);
       return l;
     }
 #ifndef NDEBUG
@@ -561,21 +566,27 @@ public:
   getEnteringVariable(PtrVector<int64_t> costs) -> std::optional<index_t> {
     // Bland's algorithm; guaranteed to terminate
     auto f = costs.begin(), l = costs.end();
-
     const auto *neg =
       std::find_if(f, l, [](int64_t c) -> bool { return c < 0; });
     return neg != l ? std::distance(f, neg) : std::optional<index_t>{};
   }
-  // tries to find the row with the lowest numerator/denominator
+  // Searches rows (constraints) for the one to make non-zero for
+  // this particular variable. It will be used to zero all other rows.
+  // This makes the `entering_variable` basic.
+  // The `leaving_variable`, i.e. the variable that will no longer
+  // be basic, is `getBasicVariable(leaving_variable)`.
+  //
+  //
+  // Tries to find the row with the lowest numerator/denominator
   // ratio, and returns that row. If any numerator == 0, it'll
   // stop early and return that row.
   [[nodiscard]] static constexpr auto
-  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t enteringVariable)
+  getLeavingVariable(PtrMatrix<int64_t> C, ptrdiff_t entering_variable)
     -> std::optional<index_t> {
     // inits guarantee first valid is selected
     int64_t dj = -1, nj = 0;
     index_t j = 0;
-    StridedVector<int64_t> cv{C[_, enteringVariable + 1]};
+    StridedVector<int64_t> cv{C[_, entering_variable + 1]};
     for (index_t i = 1; i < C.numRow(); ++i) {
       int64_t di = cv[i];
       if (di <= 0) continue;
@@ -612,10 +623,10 @@ public:
       if (!i) f = m;
     }
     // update basic vars and constraints
-    MutPtrVector<index_t> basic_vars{getBasicVariables()};
+    MutPtrVector<index_t> basic_vars{getBasicVariables()},
+      basic_constraints{getBasicConstraints()};
     index_t old_basic_var = basic_vars[leaving_var];
     basic_vars[leaving_var] = enteringVar;
-    MutPtrVector<index_t> basic_constraints{getBasicConstraints()};
     basic_constraints[old_basic_var] = -1;
     basic_constraints[enteringVar] = leaving_var;
     return f;
@@ -638,6 +649,7 @@ public:
     basic_constraints[ev] = index_t(leaving_variable);
     return false;
   }
+  constexpr auto trySetVarToValue() {}
   // run the simplex algorithm, assuming basicVar's costs have been set to
   // 0
   constexpr auto runCore(int64_t f = 1) -> Rational {
@@ -674,27 +686,22 @@ public:
     }
     return runCore(f);
   }
-  // returns `false` if succesful, `true` otherwise
-  // it will only choose leaving variables `l < var`.
-  // constexpr auto setVarToNonZeroValue(index_t var, int64_t value) -> bool {
-  //   MutPtrMatrix<value_type> C{getTableau()};
-  //   int64_t j = getBasicConstraint(var);
-  //   if (j >= 0) {
-  //     // already has a value?
-  //   }
-  //   if (makeBasic(C, var)) return true;
-  //   // leaving_var is the row used to zero every other row in `value`s column
-  //   return true;
-  // }
+  // Returns the basic constraint
+  // Will be negative if it failed.
+  constexpr auto makeBasic(index_t var) -> index_t {
+    MutPtrMatrix<value_type> C{getTableau()};
+    if (index_t j = getBasicConstraint(var); j >= 0) return j;
+    if (makeBasic(C, var)) return getBasicConstraint(var);
+    return -1;
+  }
 
   // don't touch variables lex > v
-  constexpr void rLexCore(ptrdiff_t v) {
-    MutPtrMatrix<value_type> C{getTableau()};
+  constexpr void rLexCore(PtrMatrix<int64_t> C, PtrVector<int64_t> costs,
+                          ptrdiff_t v) {
     invariant(v > 0);
     while (true) {
       // get new entering variable
-      std::optional<index_t> entering_variable =
-        getEnteringVariable(C[0, _(1, v)]);
+      std::optional<index_t> entering_variable = getEnteringVariable(costs);
       if (!entering_variable) break;
       index_t ev = *entering_variable;
       if (makeBasic(C, ev)) break;
@@ -708,17 +715,22 @@ public:
 #ifndef NDEBUG
     assert(in_canonical_form_);
 #endif
-    MutPtrMatrix<value_type> C{getTableau()};
-    MutPtrVector<index_t> basic_constraints{getBasicConstraints()};
-    index_t c = basic_constraints[v];
+    index_t c = getBasicConstraint(v);
     if (c < 0) return false;
     if (v == 0) return true;
+    MutPtrMatrix<value_type> C{getTableau()};
     // we try to zero `v` or at least minimize it.
     // set cost to 1, and then try to minimize
-    // set v and all > v to 0
-    C[0, _(0, 1 + v)] << -C[++c, _(0, 1 + v)];
-    C[0, _(1 + v, end)] << 0;
-    rLexCore(v);
+    //
+    // This means that
+    // C[0,_] << 0;
+    // C[0,1+v] = 1;
+    // and then the first step of `run` is to zero the cost of basic
+    // variables.
+    // We jump to doing this immediately, except that we ignore
+    // later `entering var` candidates:
+    C[0, _(0, v)] << -C[++c, _(0, v)];
+    rLexCore(C, C[0, _(1, v)], v);
     return makeZeroNonBasic(v);
   }
   // get the value of `var`
@@ -732,6 +744,7 @@ public:
   /// Tries to make `v` non-basic if `v` is zero.
   /// Returns `false` if `v` is zero, `true` otherwise
   constexpr auto makeZeroNonBasic(ptrdiff_t v) -> bool {
+    utils::assume(v > 0);
     MutPtrMatrix<value_type> C{getTableau()};
     MutPtrVector<index_t> basic_vars{getBasicVariables()};
     MutPtrVector<index_t> basic_constraints{getBasicConstraints()};
@@ -746,23 +759,24 @@ public:
 #endif
     // so v is basic and zero.
     // We're going to try to make it non-basic
-    for (ptrdiff_t ev = 0; ev < v;) {
-      auto evm1 = ev++;
-      if ((basic_constraints[evm1] >= 0) || (C[c, ev] == 0)) continue;
-      // FIXME: we have the invariant that C[c,0] > 0
-      static_assert(false);
-      if (C[c, ev] < 0) C[c, _] *= -1;
-      for (ptrdiff_t i = 1; i < C.numRow(); ++i)
-        if (i != ptrdiff_t(c))
-          NormalForm::zeroWithRowOp(C, row(i), row(c), col(ev), 0);
-      int64_t old_basic_var = basic_vars[cc];
-      invariant(old_basic_var == int64_t(v));
-      basic_vars[cc] = index_t(evm1);
-      // if (ptrdiff_t(oldBasicVar) < basicConstraints.size())
-      basic_constraints[old_basic_var] = -1;
-      basic_constraints[evm1] = index_t(cc);
-      break;
-    }
+    // We scan for a variable, trying to find a non-basic one
+    ptrdiff_t ev = 0;
+    for (; (basic_constraints[ev] >= 0) || (C[c, ev + 1] == 0);)
+      if (v <= ++ev) return false;
+    // we found `ev`
+
+    // we have the invariant that C[c,0] >= 0, but multiplying
+    // by `-1` is fine because `C[c,0] == 0`, guaranteed above
+    ptrdiff_t evp1 = ev + 1;
+    if (C[c, evp1] < 0) C[c, _] *= -1;
+    for (ptrdiff_t i = 1; i < C.numRow(); ++i)
+      if (i != ptrdiff_t(c))
+        NormalForm::zeroWithRowOp(C, row(i), row(c), col(evp1), 0);
+    int64_t old_basic_var = basic_vars[cc];
+    invariant(old_basic_var == int64_t(v));
+    basic_vars[cc] = index_t(ev);
+    basic_constraints[old_basic_var] = -1;
+    basic_constraints[ev] = index_t(cc);
 #ifndef NDEBUG
     assertCanonical();
 #endif

@@ -854,9 +854,10 @@ constexpr auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<int64_t> A)
   MutPtrVector<Rational> buff{vector<Rational>(alloc, ptrdiff_t(A.numCol()))};
   // Vector<Rational, 8> buff;
   // buff.resizeForOverwrite(ptrdiff_t(A.numCol()));
+  ptrdiff_t offset = 0;
   for (ptrdiff_t i = 1; i < A.numRow(); ++i) {
     buff << A[i, _];
-    for (ptrdiff_t j = 0; j < i; ++j) {
+    for (ptrdiff_t j = 0; j < i - offset; ++j) {
       int64_t n = 0;
       int64_t d = 0;
       for (ptrdiff_t k = 0; k < A.numCol(); ++k) {
@@ -866,13 +867,24 @@ constexpr auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<int64_t> A)
       for (ptrdiff_t k = 0; k < A.numCol(); ++k)
         buff[k] -= Rational::createPositiveDenominator(A[j, k] * n, d);
     }
+    bool all_zero = true;
+    for (ptrdiff_t k = 0; k < A.numCol(); ++k) {
+      if (buff[k].numerator_) {
+        all_zero = false;
+        break;
+      }
+    }
+    if (all_zero) {
+      ++offset;
+      continue;
+    }
     int64_t lm = 1;
     for (ptrdiff_t k = 0; k < A.numCol(); ++k)
-      lm = lcm(lm, buff[k].denominator);
+      lm = lcm(lm, buff[k].denominator_);
     for (ptrdiff_t k = 0; k < A.numCol(); ++k)
-      A[i, k] = buff[k].numerator * (lm / buff[k].denominator);
+      A[i - offset, k] = buff[k].numerator_ * (lm / buff[k].denominator_);
   }
-  return A;
+  return A[_(end - offset), _];
 }
 
 [[nodiscard]] constexpr auto orthogonalNullSpace(Arena<> *alloc,

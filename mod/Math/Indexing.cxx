@@ -119,7 +119,7 @@ TRIVIAL constexpr auto canonicalizeRange(Range<B, E> r, ptrdiff_t M)
 }
 TRIVIAL constexpr auto canonicalizeRange(Colon, ptrdiff_t M)
   -> Range<ptrdiff_t, ptrdiff_t> {
-  return Range<ptrdiff_t, ptrdiff_t>{.b_=0, .e_=M};
+  return Range<ptrdiff_t, ptrdiff_t>{.b_ = 0, .e_ = M};
 }
 
 static_assert(ScalarIndex<OffsetEnd>);

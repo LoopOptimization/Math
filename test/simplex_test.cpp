@@ -1025,8 +1025,8 @@ TEST(LexMinSimplexTest, BasicAssertions) {
   simp->rLexMin(sol);
   ptrdiff_t solSum = 0;
   for (auto s : sol) {
-    solSum += s.numerator;
-    EXPECT_EQ(s.denominator, 1);
+    solSum += s.numerator_;
+    EXPECT_EQ(s.denominator_, 1);
   }
   EXPECT_EQ(solSum, 3);
   for (ptrdiff_t i = 0; i < 37; ++i)
@@ -1043,8 +1043,8 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     ptrdiff_t sum = 0;
     for (ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
       Rational r = sol2[i];
-      sum += r.numerator;
-      EXPECT_EQ(r.denominator, 1);
+      sum += r.numerator_;
+      EXPECT_EQ(r.denominator_, 1);
     }
     EXPECT_EQ(sum, 3);
     // std::cout << "sol2: " << sol2 << "\n";
@@ -1064,8 +1064,8 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     Rational rsum = 0; // test summing rationals
     for (ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
       Rational r = sol2[i];
-      sum += r.numerator;
-      EXPECT_EQ(r.denominator, 1);
+      sum += r.numerator_;
+      EXPECT_EQ(r.denominator_, 1);
       rsum += r;
     }
     EXPECT_EQ(sum, 3);
@@ -1313,9 +1313,9 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
       if (i++ < 5) {
         solSum += x != 0;
       } else {
-        allNumerZero &= x.numerator == 0;
-        solSum += x.numerator;
-        EXPECT_EQ(x.denominator, 1);
+        allNumerZero &= x.numerator_ == 0;
+        solSum += x.numerator_;
+        EXPECT_EQ(x.denominator_, 1);
       }
     }
     EXPECT_EQ(solSum, 2);
@@ -1329,8 +1329,8 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
   {
     bool allNumerZero = true;
     for (auto x : s[_(5, end)]) {
-      allNumerZero &= x.numerator == 0;
-      EXPECT_EQ(x.denominator, 1);
+      allNumerZero &= x.numerator_ == 0;
+      EXPECT_EQ(x.denominator_, 1);
     }
     EXPECT_TRUE(allNumerZero);
   }
@@ -1345,8 +1345,8 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
 
   solSum = 0;
   for (ptrdiff_t i = 5; i < sol.size(); ++i) {
-    solSum += sol[i].numerator;
-    EXPECT_EQ(sol[i].denominator, 1);
+    solSum += sol[i].numerator_;
+    EXPECT_EQ(sol[i].denominator_, 1);
   }
   EXPECT_FALSE(solSum);
   // for (ptrdiff_t i = 0; i < 37; ++i)
@@ -1363,8 +1363,8 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     ptrdiff_t sum = 0;
     for (ptrdiff_t i = sol2.size() - 10; i < sol2.size(); ++i) {
       Rational r = sol2[i];
-      sum += r.numerator;
-      EXPECT_EQ(r.denominator, 1);
+      sum += r.numerator_;
+      EXPECT_EQ(r.denominator_, 1);
     }
     EXPECT_EQ(sum, 0);
     // for (ptrdiff_t i = 0; i < 37; ++i)
