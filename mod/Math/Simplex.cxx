@@ -660,7 +660,6 @@ public:
       basic_constraints[old_basic_var] = -1;
     basic_constraints[ev] = leaving_variable;
   }
-  constexpr auto trySetVarToValue() {}
   // run the simplex algorithm, assuming basicVar's costs have been set to
   // 0
   constexpr auto runCore(int64_t f = 1) -> Rational {

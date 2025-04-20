@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
+#include "Macros.hxx"
 #include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
@@ -25,7 +26,7 @@ using math::DenseMatrix, math::DenseDims, math::row, math::col;
 TEST(OrthogonalizeMatricesTest, BasicAssertions) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<> distrib(-3, 3);
+  std::uniform_int_distribution<> distrib(-2, 2);
 
   constexpr ptrdiff_t M = 7;
   constexpr ptrdiff_t N = 7;

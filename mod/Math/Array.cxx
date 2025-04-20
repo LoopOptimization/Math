@@ -272,42 +272,42 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL constexpr Array(Array &&) noexcept = default;
   TRIVIAL constexpr auto operator=(const Array &) -> Array & = default;
   TRIVIAL constexpr auto operator=(Array &&) noexcept -> Array & = default;
-  TRIVIAL constexpr Array(const storage_type *p, S s) : ptr{p}, sz{s} {}
-  TRIVIAL constexpr Array(Valid<const storage_type> p, S s) : ptr{p}, sz{s} {}
+  TRIVIAL constexpr Array(const storage_type *p, S s) : ptr_{p}, sz_{s} {}
+  TRIVIAL constexpr Array(Valid<const storage_type> p, S s) : ptr_{p}, sz_{s} {}
   template <ptrdiff_t R, ptrdiff_t C>
   TRIVIAL constexpr Array(const storage_type *p, Row<R> r, Col<C> c)
-    : ptr(p), sz(S{r, c}) {}
+    : ptr_(p), sz_(S{r, c}) {}
   template <ptrdiff_t R, ptrdiff_t C>
   TRIVIAL constexpr Array(Valid<const storage_type> p, Row<R> r, Col<C> c)
-    : ptr(p), sz(dimension<S>(r, c)) {}
+    : ptr_(p), sz_(dimension<S>(r, c)) {}
   template <std::convertible_to<S> V>
-  TRIVIAL constexpr Array(Array<T, V> a) : ptr{a.data()}, sz{a.dim()} {}
+  TRIVIAL constexpr Array(Array<T, V> a) : ptr_{a.data()}, sz_{a.dim()} {}
   template <size_t N>
   TRIVIAL constexpr Array(const std::array<T, N> &a)
-    : ptr(a.data()), sz(length(N)) {}
+    : ptr_(a.data()), sz_(length(N)) {}
   TRIVIAL [[nodiscard]] constexpr auto data() const noexcept
     -> const storage_type * {
-    invariant(ptr != nullptr || ptrdiff_t(sz) == 0);
-    return ptr;
+    invariant(ptr_ != nullptr || ptrdiff_t(sz_) == 0);
+    return ptr_;
   }
   TRIVIAL [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
-    return ptr;
+    return ptr_;
   }
 
   TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
     -> StridedIterator<const T>
   requires(std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
   {
-    const storage_type *p = ptr;
-    return StridedIterator{p, sz.stride_};
+    const storage_type *p = ptr_;
+    return StridedIterator{p, sz_.stride_};
   }
   TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
-    -> const storage_type *requires(isdense) { return ptr; }
+    -> const storage_type *requires(isdense) { return ptr_; }
 
   TRIVIAL [[nodiscard]] constexpr auto end() const noexcept
   requires(flatstride)
   {
-    return begin() + ptrdiff_t(sz);
+    return begin() + ptrdiff_t(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto rbegin() const noexcept
   requires(flatstride)
@@ -320,11 +320,11 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return std::reverse_iterator(begin());
   }
   TRIVIAL [[nodiscard]] constexpr auto front() const noexcept -> const T & {
-    return *ptr;
+    return *ptr_;
   }
   TRIVIAL [[nodiscard]] constexpr auto back() const noexcept -> const T & {
     if constexpr (flatstride) return *(end() - 1);
-    else return ptr[(sride(sz) * ptrdiff_t(row(sz))) - 1];
+    else return ptr_[(sride(sz_) * ptrdiff_t(row(sz_))) - 1];
   }
   // indexing has two components:
   // 1. offsetting the pointer
@@ -334,19 +334,19 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   // }
   TRIVIAL [[gnu::flatten]] constexpr auto
   operator[](Index<S> auto i) const noexcept -> decltype(auto) {
-    return index<T>(ptr, sz, i);
+    return index<T>(ptr_, sz_, i);
   }
   // for (row/col)vectors, we drop the row/col, essentially broadcasting
   template <class R, class C>
   TRIVIAL [[gnu::flatten]] constexpr auto operator[](R r, C c) const noexcept
     -> decltype(auto) {
-    return index<T>(ptr, sz, r, c);
+    return index<T>(ptr_, sz_, r, c);
   }
   template <size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const T &
   requires(VectorDimension<S>)
   {
-    return index<T>(ptr, sz, I);
+    return index<T>(ptr_, sz_, I);
   }
 
   TRIVIAL [[nodiscard]] constexpr auto minRowCol() const -> ptrdiff_t {
@@ -354,17 +354,17 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
 
   TRIVIAL [[nodiscard]] constexpr auto diag() const noexcept {
-    StridedRange<> r{length(minRowCol()), ++stride(sz)};
-    invariant(ptr != nullptr);
-    return Array<T, StridedRange<>>{ptr, r};
+    StridedRange<> r{length(minRowCol()), ++stride(sz_)};
+    invariant(ptr_ != nullptr);
+    return Array<T, StridedRange<>>{ptr_, r};
   }
   TRIVIAL [[nodiscard]] constexpr auto antiDiag() const noexcept {
-    StridedRange<> r{length(minRowCol()), --stride(sz)};
-    invariant(ptr != nullptr);
-    return Array<T, StridedRange<>>{ptr + ptrdiff_t(Col(sz)) - 1, r};
+    StridedRange<> r{length(minRowCol()), --stride(sz_)};
+    invariant(ptr_ != nullptr);
+    return Array<T, StridedRange<>>{ptr_ + ptrdiff_t(Col(sz_)) - 1, r};
   }
   TRIVIAL [[nodiscard]] constexpr auto isSquare() const noexcept -> bool {
-    return ptrdiff_t(Row(sz)) == ptrdiff_t(Col(sz));
+    return ptrdiff_t(Row(sz_)) == ptrdiff_t(Col(sz_));
   }
   TRIVIAL [[nodiscard]] constexpr auto checkSquare() const
     -> Optional<ptrdiff_t> {
@@ -375,30 +375,30 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
 
   TRIVIAL [[nodiscard]] constexpr auto numRow() const noexcept {
     if constexpr (RowVectorDimension<S>) return Row<1>{};
-    else return row(sz);
+    else return row(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto numCol() const noexcept {
-    return col(sz);
+    return col(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto rowStride() const noexcept {
     if constexpr (std::same_as<S, Length<>>) return RowStride<1>{};
-    else return stride(sz);
+    else return stride(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto empty() const -> bool {
     if constexpr (StaticLength<S>) return S::staticint() == 0;
-    else return sz == S{};
+    else return sz_ == S{};
   }
   TRIVIAL [[nodiscard]] constexpr auto size() const noexcept {
     if constexpr (StaticLength<S>) return S::staticint();
-    else return ptrdiff_t(sz);
+    else return ptrdiff_t(sz_);
   }
-  TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz; }
+  TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz_; }
   TRIVIAL constexpr void clear()
   requires(std::same_as<S, Length<>>)
   {
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_n(ptr, ptrdiff_t(sz));
-    sz = S{};
+      std::destroy_n(ptr_, ptrdiff_t(sz_));
+    sz_ = S{};
   }
   TRIVIAL [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
     return {*this};
@@ -427,9 +427,9 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept
   requires(flatstride)
   {
-    auto szf = sz.flat();
+    auto szf = sz_.flat();
     return Array<T, std::remove_reference_t<decltype(szf)>, Compress>{
-      ptr, sz.flat()};
+      ptr_, sz_.flat()};
   }
 
   [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept
@@ -527,15 +527,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     -> SliceRange<const T, false, S::ncol, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), aslength(col(this->sz)), stride(this->sz),
-            ptrdiff_t(row(this->sz))};
+    return {data(), aslength(col(this->sz_)), stride(this->sz_),
+            ptrdiff_t(row(this->sz_))};
   }
   TRIVIAL [[nodiscard]] constexpr auto eachCol() const
     -> SliceRange<const T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), aslength(row(this->sz)), stride(this->sz),
-            ptrdiff_t(col(this->sz))};
+    return {data(), aslength(row(this->sz_)), stride(this->sz_),
+            ptrdiff_t(col(this->sz_))};
   }
   friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
   requires(utils::Printable<T>)
@@ -558,14 +558,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   requires(VectorDimension<S>)
   {
     invariant(0 < size());
-    return {ptr[0], (*this)[_(1, math::end)]};
+    return {ptr_[0], (*this)[_(1, math::end)]};
   }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
     // we can't combine `gnu::used` with `requires(utils::Printable<T>)`
     // requires(utils::Printable<T>)
     if constexpr (utils::Printable<T>)
-      std::cout << "Size: " << ptrdiff_t(sz) << " " << *this << "\n";
+      std::cout << "Size: " << ptrdiff_t(sz_) << " " << *this << "\n";
   }
   // [[gnu::used]] void dump(const char *filename) const {
   //   if constexpr (std::integral<T>) {
@@ -591,11 +591,11 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
 #endif
 protected:
   friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
-  TRIVIAL constexpr Array(S s) : sz(s) {}
+  TRIVIAL constexpr Array(S s) : sz_(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  const storage_type *ptr;
+  const storage_type *ptr_;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  [[no_unique_address]] S sz;
+  [[no_unique_address]] S sz_;
 };
 template <class T, class S>
 TRIVIAL constexpr auto view(Array<T, S> x) -> Array<T, S> {
@@ -622,15 +622,14 @@ struct MutArray : Array<T, S, Compress>,
   TRIVIAL explicit constexpr MutArray(const MutArray &) = default;
   TRIVIAL explicit constexpr MutArray(MutArray &&) noexcept = default;
   TRIVIAL // constexpr auto operator=(const MutArray &) -> MutArray & = delete;
-    TRIVIAL constexpr auto
-    operator=(const MutArray &) -> MutArray & = default;
+    TRIVIAL constexpr auto operator=(const MutArray &) -> MutArray & = default;
   TRIVIAL constexpr auto operator=(MutArray &&) noexcept
     -> MutArray & = default;
   TRIVIAL constexpr MutArray(storage_type *p, S s) : BaseT(p, s) {}
 
   TRIVIAL constexpr void truncate(S nz) {
-    S oz = this->sz;
-    this->sz = nz;
+    S oz = this->sz_;
+    this->sz_ = nz;
     if constexpr (std::same_as<S, Length<>>) {
       invariant(ptrdiff_t(nz) <= ptrdiff_t(oz));
       if constexpr (!std::is_trivially_destructible_v<T>)
@@ -677,13 +676,13 @@ struct MutArray : Array<T, S, Compress>,
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if truncating a row, matrix must be strided or dense.");
-      invariant(r <= Row(this->sz));
-      DenseDims new_sz = this->sz;
+      invariant(r <= Row(this->sz_));
+      DenseDims new_sz = this->sz_;
       truncate(new_sz.set(r));
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
-      invariant(r <= Row(this->sz));
-      this->sz.set(r);
+      invariant(r <= Row(this->sz_));
+      this->sz_.set(r);
     }
   }
   TRIVIAL constexpr void truncate(Col<> c) {
@@ -692,13 +691,13 @@ struct MutArray : Array<T, S, Compress>,
     } else if constexpr (std::is_same_v<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if truncating a col, matrix must be strided or dense.");
-      invariant(c <= Col(this->sz));
-      DenseDims new_sz = this->sz;
+      invariant(c <= Col(this->sz_));
+      DenseDims new_sz = this->sz_;
       truncate(new_sz.set(c));
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
-      invariant(c <= Col(this->sz));
-      this->sz.set(c);
+      invariant(c <= Col(this->sz_));
+      this->sz_.set(c);
     }
   }
 
@@ -712,8 +711,8 @@ struct MutArray : Array<T, S, Compress>,
   template <size_t N>
   TRIVIAL constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a) {}
   TRIVIAL [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
-    invariant(this->ptr != nullptr || ptrdiff_t(this->sz) == 0);
-    return const_cast<storage_type *>(this->ptr);
+    invariant(this->ptr_ != nullptr || ptrdiff_t(this->sz_) == 0);
+    return const_cast<storage_type *>(this->ptr_);
   }
   TRIVIAL [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
     return data();
@@ -722,17 +721,17 @@ struct MutArray : Array<T, S, Compress>,
   TRIVIAL [[nodiscard]] constexpr auto begin() noexcept -> StridedIterator<T>
   requires(std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
   {
-    return StridedIterator{const_cast<storage_type *>(this->ptr),
-                           this->sz.stride_};
+    return StridedIterator{const_cast<storage_type *>(this->ptr_),
+                           this->sz_.stride_};
   }
   TRIVIAL [[nodiscard]] constexpr auto begin() noexcept
     -> storage_type *requires(
       !std::is_same_v<S, StridedRange<S::nrow, S::nstride>>) {
-      return const_cast<storage_type *>(this->ptr);
+      return const_cast<storage_type *>(this->ptr_);
     }
 
   TRIVIAL [[nodiscard]] constexpr auto end() noexcept {
-    return begin() + ptrdiff_t(this->sz);
+    return begin() + ptrdiff_t(this->sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto rbegin() noexcept {
     return std::reverse_iterator(end());
@@ -750,19 +749,19 @@ struct MutArray : Array<T, S, Compress>,
   }
   TRIVIAL [[gnu::flatten]] constexpr auto operator[](Index<S> auto i) noexcept
     -> decltype(auto) {
-    return index<T>(data(), this->sz, i);
+    return index<T>(data(), this->sz_, i);
   }
   template <class R, class C>
   TRIVIAL [[gnu::flatten]] constexpr auto operator[](R r, C c) noexcept
     -> decltype(auto) {
-    return index<T>(data(), this->sz, r, c);
+    return index<T>(data(), this->sz_, r, c);
   }
 
   template <size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() -> T &
   requires(VectorDimension<S>)
   {
-    return index<T>(data(), this->sz, I);
+    return index<T>(data(), this->sz_, I);
   }
 
   constexpr void fill(T value) {
@@ -776,30 +775,30 @@ struct MutArray : Array<T, S, Compress>,
   }
   [[nodiscard]] constexpr auto diag() noexcept {
     Length l =
-      length(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(Col(this->sz))));
-    RowStride rs = RowStride(this->sz);
+      length(std::min(ptrdiff_t(Row(this->sz_)), ptrdiff_t(Col(this->sz_))));
+    RowStride rs = RowStride(this->sz_);
     StridedRange<> r{l, ++rs};
     return MutArray<T, StridedRange<>>{data(), r};
   }
   [[nodiscard]] constexpr auto antiDiag() noexcept {
-    Col<> c = Col(this->sz);
+    Col<> c = Col(this->sz_);
     Length l =
-      length(ptrdiff_t(std::min(ptrdiff_t(Row(this->sz)), ptrdiff_t(c))));
-    RowStride rs = RowStride(this->sz);
+      length(ptrdiff_t(std::min(ptrdiff_t(Row(this->sz_)), ptrdiff_t(c))));
+    RowStride rs = RowStride(this->sz_);
     StridedRange<> r{l, --rs};
     return MutArray<T, StridedRange<>>{data() + ptrdiff_t(c) - 1, r};
   }
   constexpr void erase(ptrdiff_t i)
   requires(std::same_as<S, Length<>>)
   {
-    auto old_len = ptrdiff_t(this->sz--);
-    if (i < this->sz) std::copy(data() + i + 1, data() + old_len, data() + i);
+    auto old_len = ptrdiff_t(this->sz_--);
+    if (i < this->sz_) std::copy(data() + i + 1, data() + old_len, data() + i);
   }
   constexpr void erase_swap_last(ptrdiff_t i)
   requires(std::same_as<S, Length<>>)
   {
-    --(this->sz);
-    if (i < this->sz) std::swap(data()[i], data()[ptrdiff_t(this->sz)]);
+    --(this->sz_);
+    if (i < this->sz_) std::swap(data()[i], data()[ptrdiff_t(this->sz_)]);
   }
   constexpr void erase(Row<> r) {
     if constexpr (std::same_as<S, Length<>>) {
@@ -807,18 +806,18 @@ struct MutArray : Array<T, S, Compress>,
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if erasing a row, matrix must be strided or dense.");
-      auto col = ptrdiff_t{Col(this->sz)},
-           new_row = ptrdiff_t{Row(this->sz)} - 1;
-      this->sz.set(row(new_row));
+      auto col = ptrdiff_t{Col(this->sz_)},
+           new_row = ptrdiff_t{Row(this->sz_)} - 1;
+      this->sz_.set(row(new_row));
       if ((col == 0) || (r == new_row)) return;
       storage_type *dst = data() + (ptrdiff_t(r) * col);
       std::copy_n(dst + col, (new_row - ptrdiff_t(r)) * col, dst);
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
-      auto stride = ptrdiff_t{RowStride(this->sz)},
-           col = ptrdiff_t{Col(this->sz)},
-           new_row = ptrdiff_t{Row(this->sz)} - 1;
-      this->sz.set(row(new_row));
+      auto stride = ptrdiff_t{RowStride(this->sz_)},
+           col = ptrdiff_t{Col(this->sz_)},
+           new_row = ptrdiff_t{Row(this->sz_)} - 1;
+      this->sz_.set(row(new_row));
       if ((col == 0) || (r == new_row)) return;
       invariant(col <= stride);
       if ((col + (512 / (sizeof(T)))) <= stride) {
@@ -840,9 +839,9 @@ struct MutArray : Array<T, S, Compress>,
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if erasing a col, matrix must be strided or dense.");
-      auto new_col = ptrdiff_t{Col(this->sz)}, old_col = new_col--,
-           row = ptrdiff_t{Row(this->sz)};
-      this->sz.set(col(new_col));
+      auto new_col = ptrdiff_t{Col(this->sz_)}, old_col = new_col--,
+           row = ptrdiff_t{Row(this->sz_)};
+      this->sz_.set(col(new_col));
       ptrdiff_t cols_to_copy = new_col - ptrdiff_t(c);
       if ((cols_to_copy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
@@ -853,10 +852,10 @@ struct MutArray : Array<T, S, Compress>,
       }
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
-      auto stride = ptrdiff_t{RowStride(this->sz)},
-           new_col = ptrdiff_t{Col(this->sz)} - 1,
-           row = ptrdiff_t{Row(this->sz)};
-      this->sz.set(col(new_col));
+      auto stride = ptrdiff_t{RowStride(this->sz_)},
+           new_col = ptrdiff_t{Col(this->sz_)} - 1,
+           row = ptrdiff_t{Row(this->sz_)};
+      this->sz_.set(col(new_col));
       ptrdiff_t cols_to_copy = new_col - ptrdiff_t(c);
       if ((cols_to_copy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
@@ -882,14 +881,14 @@ struct MutArray : Array<T, S, Compress>,
   TRIVIAL constexpr auto eachRow() -> SliceRange<T, false, S::ncol, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), aslength(col(this->sz)), stride(this->sz),
-            ptrdiff_t(row(this->sz))};
+    return {data(), aslength(col(this->sz_)), stride(this->sz_),
+            ptrdiff_t(row(this->sz_))};
   }
   TRIVIAL constexpr auto eachCol() -> SliceRange<T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
-    return {data(), aslength(row(this->sz)), stride(this->sz),
-            ptrdiff_t(col(this->sz))};
+    return {data(), aslength(row(this->sz_)), stride(this->sz_),
+            ptrdiff_t(col(this->sz_))};
   }
   template <typename U> TRIVIAL [[nodiscard]] auto reinterpretImpl() {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
@@ -1012,18 +1011,18 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), s, c} {}
 
   [[nodiscard]] constexpr auto isFull() const -> bool {
-    return ptrdiff_t(this->sz) == capacity_;
+    return ptrdiff_t(this->sz_) == capacity_;
   }
 
   template <class... Args>
   constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
-    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    auto s = ptrdiff_t(this->sz_), c = ptrdiff_t(this->capacity_);
     invariant(s < c);
     T &ret =
       *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
-    this->sz = length(s + 1z);
+    this->sz_ = length(s + 1z);
     return ret;
   }
   /// Allocates extra space if needed
@@ -1034,36 +1033,36 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   requires(std::same_as<S, Length<>>)
   {
     if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
-    return *std::construct_at(this->data() + ptrdiff_t(this->sz++),
+    return *std::construct_at(this->data() + ptrdiff_t(this->sz_++),
                               std::forward<Args>(args)...);
   }
   constexpr void push_back_within_capacity(T value)
   requires(std::same_as<S, Length<>>)
   {
-    auto s = ptrdiff_t(this->sz), c = ptrdiff_t(this->capacity_);
+    auto s = ptrdiff_t(this->sz_), c = ptrdiff_t(this->capacity_);
     invariant(s < c);
     std::construct_at<T>(this->data() + s, std::move(value));
-    this->sz = length(s + 1z);
+    this->sz_ = length(s + 1z);
   }
   constexpr void push_back(alloc::Arena<> *alloc, T value)
   requires(std::same_as<S, Length<>>)
   {
     if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
-    std::construct_at<T>(this->data() + ptrdiff_t(this->sz++),
+    std::construct_at<T>(this->data() + ptrdiff_t(this->sz_++),
                          std::move(value));
   }
   constexpr void pop_back()
   requires(std::same_as<S, Length<>>)
   {
-    invariant(this->sz > 0);
-    if constexpr (std::is_trivially_destructible_v<T>) --this->sz;
-    else std::destroy_at(this->data() + ptrdiff_t(--this->sz));
+    invariant(this->sz_ > 0);
+    if constexpr (std::is_trivially_destructible_v<T>) --this->sz_;
+    else std::destroy_at(this->data() + ptrdiff_t(--this->sz_));
   }
   constexpr auto pop_back_val() -> T
   requires(std::same_as<S, Length<>>)
   {
-    invariant(this->sz > 0);
-    return std::move(this->data()[ptrdiff_t(--this->sz)]);
+    invariant(this->sz_ > 0);
+    return std::move(this->data()[ptrdiff_t(--this->sz_)]);
   }
   constexpr void resize(ptrdiff_t nz)
   requires(std::same_as<S, Length<>>)
@@ -1077,8 +1076,8 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   // New memory outside of dims (i.e., stride larger), we leave uninitialized.
   //
   constexpr void resize(S nz) {
-    S oz = this->sz;
-    this->sz = nz;
+    S oz = this->sz_;
+    this->sz_ = nz;
     if constexpr (std::same_as<S, Length<>>) {
       auto ozs = ptrdiff_t(oz), nzs = ptrdiff_t(nz);
       invariant(nzs <= capacity_);
@@ -1147,7 +1146,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (std::same_as<S, Length<>>) {
       return resize(S(r));
     } else if constexpr (MatrixDimension<S>) {
-      S nz = this->sz;
+      S nz = this->sz_;
       return resize(nz.set(r));
     }
   }
@@ -1155,19 +1154,19 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (std::same_as<S, Length<>>) {
       return resize(S(c));
     } else if constexpr (MatrixDimension<S>) {
-      S nz = this->sz;
+      S nz = this->sz_;
       return resize(nz.set(c));
     }
   }
   constexpr void resizeForOverwrite(S M) {
-    invariant(ptrdiff_t(M) <= ptrdiff_t(this->sz));
+    invariant(ptrdiff_t(M) <= ptrdiff_t(this->sz_));
     if constexpr (!std::is_trivially_destructible_v<T>) {
-      ptrdiff_t nz = ptrdiff_t(M), oz = ptrdiff_t(this->sz);
+      ptrdiff_t nz = ptrdiff_t(M), oz = ptrdiff_t(this->sz_);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
       else if (nz > oz) // FIXME: user should initialize?
         for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
     }
-    this->sz = M;
+    this->sz_ = M;
   }
   constexpr void resizeForOverwrite(ptrdiff_t M)
   requires(std::same_as<S, Length<>>)
@@ -1178,7 +1177,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(r));
     } else if constexpr (MatrixDimension<S>) {
-      S nz = this->sz;
+      S nz = this->sz_;
       return resizeForOverwrite(nz.set(r));
     }
   }
@@ -1186,7 +1185,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (std::same_as<S, Length<>>) {
       return resizeForOverwrite(S(c));
     } else if constexpr (MatrixDimension<S>) {
-      S nz = this->sz;
+      S nz = this->sz_;
       return resizeForOverwrite(nz.set(c));
     }
   }
@@ -1222,9 +1221,9 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr auto insert_within_capacity(T *p, T x)
     -> T *requires(std::same_as<S, Length<>>) {
       invariant(p >= this->data());
-      T *e = this->data() + ptrdiff_t(this->sz);
+      T *e = this->data() + ptrdiff_t(this->sz_);
       invariant(p <= e);
-      invariant(this->sz < capacity_);
+      invariant(this->sz_ < capacity_);
       if constexpr (BaseT::trivial) {
         if (p < e) std::copy_backward(p, e, e + 1);
         *p = std::move(x);
@@ -1233,7 +1232,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
         for (; --e != p;) *e = std::move(*(e - 1));
         *p = std::move(x);
       } else std::construct_at<T>(e, std::move(x));
-      ++this->sz;
+      ++this->sz_;
       return p;
     }
 
@@ -1241,9 +1240,9 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
                          ptrdiff_t newCapacity) {
     if (newCapacity <= capacity_) return;
-    this->ptr = alloc->template reallocate<false, T>(
-      const_cast<T *>(this->ptr), ptrdiff_t(capacity_), newCapacity,
-      ptrdiff_t(this->sz));
+    this->ptr_ = alloc->template reallocate<false, T>(
+      const_cast<T *>(this->ptr_), ptrdiff_t(capacity_), newCapacity,
+      ptrdiff_t(this->sz_));
     // T *oldPtr =
     //   std::exchange(this->data(), alloc->template
     //   allocate<T>(newCapacity));

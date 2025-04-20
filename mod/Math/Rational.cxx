@@ -234,7 +234,7 @@ private:
     return x * y;
   }
   friend constexpr auto operator==(int64_t x, Rational y) -> bool {
-    return y == x;
+    return y.isEqual(x);
   }
   friend auto operator<<(std::ostream &os, const Rational &x)
     -> std::ostream & {

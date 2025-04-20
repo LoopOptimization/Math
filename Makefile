@@ -24,19 +24,19 @@ buildgcc/nosan/:
 	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/nosan/ -DCMAKE_BUILD_TYPE=Debug
 
 buildgcc/test/:
-	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined' -DPOLYMATHNOEXPLICITSIMDARRAY=OFF
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined' -DPOLYMATHNOEXPLICITSIMDARRAY=OFF
 
 buildclang/nosan/:
-	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosan/ -DCMAKE_BUILD_TYPE=Debug
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosan/ -DCMAKE_BUILD_TYPE=Debug
 
 buildclang/test/:
-	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+	CXXFLAGS="" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/test/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 	
 buildgcc/avx2/:
 	CXXFLAGS="-Og -march=x86-64-v3" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
 buildgcc/modules/:
-	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B buildgcc/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
 
 buildclang/basearch/:
 	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/basearch/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
