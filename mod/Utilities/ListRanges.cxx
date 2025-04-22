@@ -170,59 +170,59 @@ struct NoInnerEnd {};
 template <std::forward_iterator O, std::forward_iterator I, class P, class J,
           class F, class L>
 class NestedIterator {
-  [[no_unique_address]] O outer;
-  [[no_unique_address]] P outerend;
-  [[no_unique_address]] F innerfun;
+  [[no_unique_address]] O outer_;
+  [[no_unique_address]] P outerend_;
+  [[no_unique_address]] F innerfun_;
   union {
-    [[no_unique_address]] NoInnerObj noobj{};
-    [[no_unique_address]] L innerobj; // keep the inner object alive!
+    [[no_unique_address]] NoInnerObj noobj_{};
+    [[no_unique_address]] L innerobj_; // keep the inner object alive!
   };
   union {
-    [[no_unique_address]] NoInnerState nostate{};
-    [[no_unique_address]] I inner;
+    [[no_unique_address]] NoInnerState nostate_{};
+    [[no_unique_address]] I inner_;
   };
   union {
-    [[no_unique_address]] NoInnerEnd noend{};
-    [[no_unique_address]] J innerend;
+    [[no_unique_address]] NoInnerEnd noend_{};
+    [[no_unique_address]] J innerend_;
   };
 
   constexpr void initInner() {
     for (;;) {
-      innerobj = innerfun(*outer);
-      inner = innerobj.begin();
-      innerend = innerobj.end();
-      if (inner != innerend) break;
-      if (++outer == outerend) break;
+      innerobj_ = innerfun_(*outer_);
+      inner_ = innerobj_.begin();
+      innerend_ = innerobj_.end();
+      if (inner_ != innerend_) break;
+      if (++outer_ == outerend_) break;
     }
   }
   constexpr void initInnerConstructor() {
-    ::new (&innerobj) L{innerfun(*outer)};
-    ::new (&inner) I{innerobj.begin()};
-    ::new (&innerend) J{innerobj.end()};
-    if ((inner == innerend) && (++outer != outerend)) initInner();
+    ::new (&innerobj_) L{innerfun_(*outer_)};
+    ::new (&inner_) I{innerobj_.begin()};
+    ::new (&innerend_) J{innerobj_.end()};
+    if ((inner_ == innerend_) && (++outer_ != outerend_)) initInner();
   }
   constexpr void destroyInner() {
-    if constexpr (!std::is_trivially_destructible_v<J>) innerend.~J();
-    if constexpr (!std::is_trivially_destructible_v<I>) inner.~I();
-    if constexpr (!std::is_trivially_destructible_v<L>) innerobj.~L();
-    noend = {};
-    nostate = {};
-    noobj = {};
+    if constexpr (!std::is_trivially_destructible_v<J>) innerend_.~J();
+    if constexpr (!std::is_trivially_destructible_v<I>) inner_.~I();
+    if constexpr (!std::is_trivially_destructible_v<L>) innerobj_.~L();
+    noend_ = {};
+    nostate_ = {};
+    noobj_ = {};
   }
 
 public:
-  using value_type = decltype(*inner);
+  using value_type = decltype(*inner_);
 
   constexpr auto operator==(NestedIterator const &other) const noexcept
     -> bool {
-    return outer == other.outer && inner == other.inner;
+    return outer_ == other.outer_ && inner_ == other.inner_;
   }
   constexpr auto operator==(End) const noexcept -> bool {
-    return outer == outerend;
+    return outer_ == outerend_;
   }
   constexpr auto operator++() noexcept -> NestedIterator & {
-    if (++inner != innerend) return *this;
-    if (++outer != outerend) initInner();
+    if (++inner_ != innerend_) return *this;
+    if (++outer_ != outerend_) initInner();
     else destroyInner(); // outer == outerend means undef
     return *this;
   }
@@ -231,8 +231,8 @@ public:
     ++*this;
     return tmp;
   }
-  constexpr auto operator*() const noexcept -> value_type { return *inner; }
-  constexpr auto operator->() const noexcept -> I { return inner; }
+  constexpr auto operator*() const noexcept -> value_type { return *inner_; }
+  constexpr auto operator->() const noexcept -> I { return inner_; }
   constexpr auto operator-(NestedIterator const &other) const noexcept
     -> ptrdiff_t {
     ptrdiff_t count = 0;
@@ -247,59 +247,60 @@ public:
   // constexpr auto operator=(NestedIterator &&) noexcept
   //   -> NestedIterator & = default;
 
-  constexpr NestedIterator(auto &out, auto &innerfun_) noexcept
-    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_} {
-    if (outer != outerend) initInnerConstructor();
+  constexpr NestedIterator(auto &out, auto &innerfun) noexcept
+    : outer_{out.begin()}, outerend_{out.end()}, innerfun_{innerfun} {
+    if (outer_ != outerend_) initInnerConstructor();
   }
-  constexpr NestedIterator(const auto &out, const auto &innerfun_) noexcept
-    : outer{out.begin()}, outerend{out.end()}, innerfun{innerfun_} {
-    if (outer != outerend) initInnerConstructor();
+  constexpr NestedIterator(const auto &out, const auto &innerfun) noexcept
+    : outer_{out.begin()}, outerend_{out.end()}, innerfun_{innerfun} {
+    if (outer_ != outerend_) initInnerConstructor();
   }
   constexpr NestedIterator(const NestedIterator &other) noexcept
-    : outer{other.outer}, outerend{other.outerend}, innerfun{other.innerfun} {
-    if (outer != outerend) {
-      ::new (&innerobj) L{other.innerobj};
-      ::new (&inner) I{other.inner};
-      ::new (&innerend) J{other.innerend};
+    : outer_{other.outer_}, outerend_{other.outerend_},
+      innerfun_{other.innerfun_} {
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{other.innerobj_};
+      ::new (&inner_) I{other.inner_};
+      ::new (&innerend_) J{other.innerend_};
     }
   }
   constexpr NestedIterator(NestedIterator &&other) noexcept
-    : outer{std::move(other.outer)}, outerend{std::move(other.outerend)},
-      innerfun{std::move(other.innerfun)} {
-    if (outer != outerend) {
-      ::new (&innerobj) L{std::move(other.innerobj)};
-      ::new (&inner) I{std::move(other.inner)};
-      ::new (&innerend) J{std::move(other.innerend)};
+    : outer_{std::move(other.outer_)}, outerend_{std::move(other.outerend_)},
+      innerfun_{std::move(other.innerfun_)} {
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{std::move(other.innerobj_)};
+      ::new (&inner_) I{std::move(other.inner_)};
+      ::new (&innerend_) J{std::move(other.innerend_)};
     }
   }
   constexpr auto operator=(const NestedIterator &other) noexcept
     -> NestedIterator & {
     if (this == &other) return *this;
-    if (outer != outerend) destroyInner();
-    outer = other.outer;
-    outerend = other.outerend;
-    innerfun = other.innerfun;
-    if (outer != outerend) {
-      ::new (&innerobj) L{other.innerobj};
-      ::new (&inner) I{other.inner};
-      ::new (&innerend) J{other.innerend};
+    if (outer_ != outerend_) destroyInner();
+    outer_ = other.outer_;
+    outerend_ = other.outerend_;
+    innerfun_ = other.innerfun_;
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{other.innerobj_};
+      ::new (&inner_) I{other.inner_};
+      ::new (&innerend_) J{other.innerend_};
     }
   }
   constexpr auto operator=(NestedIterator &&other) noexcept
     -> NestedIterator & {
     if (this == &other) return *this;
-    if (outer != outerend) destroyInner();
-    outer = std::move(other.outer);
-    outerend = std::move(other.outerend);
-    innerfun = std::move(other.innerfun);
-    if (outer != outerend) {
-      ::new (&innerobj) L{std::move(other.innerobj)};
-      ::new (&inner) I{std::move(other.inner)};
-      ::new (&innerend) J{std::move(other.innerend)};
+    if (outer_ != outerend_) destroyInner();
+    outer_ = std::move(other.outer_);
+    outerend_ = std::move(other.outerend_);
+    innerfun_ = std::move(other.innerfun_);
+    if (outer_ != outerend_) {
+      ::new (&innerobj_) L{std::move(other.innerobj_)};
+      ::new (&inner_) I{std::move(other.inner_)};
+      ::new (&innerend_) J{std::move(other.innerend_)};
     }
   }
   ~NestedIterator() {
-    if (outer != outerend) destroyInner();
+    if (outer_ != outerend_) destroyInner();
   }
 };
 
@@ -313,11 +314,11 @@ template <std::ranges::forward_range O, class F>
 class NestedList : public std::ranges::view_interface<NestedList<O, F>> {
   static_assert(std::ranges::view<O>);
   static_assert(std::is_trivially_destructible_v<O>);
-  [[no_unique_address]] O outer;
-  [[no_unique_address]] F inner;
+  [[no_unique_address]] O outer_;
+  [[no_unique_address]] F inner_;
 
 public:
-  using InnerType = decltype(inner(*(outer.begin())));
+  using InnerType = decltype(inner_(*(outer_.begin())));
   static_assert(std::ranges::view<InnerType>);
   static_assert(std::is_trivially_destructible_v<InnerType>);
 
@@ -325,16 +326,16 @@ private:
   using InnerBegin = decltype(std::declval<InnerType>().begin());
   using InnerEnd = decltype(std::declval<InnerType>().end());
   using IteratorType =
-    NestedIterator<decltype(outer.begin()), InnerBegin, decltype(outer.end()),
+    NestedIterator<decltype(outer_.begin()), InnerBegin, decltype(outer_.end()),
                    InnerEnd, F, InnerType>;
 
 public:
   constexpr auto begin() noexcept -> IteratorType {
-    return IteratorType(outer, inner);
+    return IteratorType(outer_, inner_);
   }
   static constexpr auto end() noexcept -> End { return {}; }
   constexpr NestedList(O out, F inn) noexcept
-    : outer{std::move(out)}, inner{std::move(inn)} {}
+    : outer_{std::move(out)}, inner_{std::move(inn)} {}
   constexpr NestedList(const NestedList &) noexcept = default;
   constexpr NestedList(NestedList &&) noexcept = default;
   constexpr auto operator=(const NestedList &) noexcept
