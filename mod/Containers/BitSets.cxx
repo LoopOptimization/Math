@@ -96,12 +96,12 @@ public:
   constexpr auto operator==(BitSetIterator j) const -> bool {
     return (it_ == j.it_) && (istate_ == j.istate_);
   }
-  friend constexpr auto operator==(EndSentinel,
-                                   const BitSetIterator &bt) -> bool {
+  friend constexpr auto operator==(EndSentinel, const BitSetIterator &bt)
+    -> bool {
     return bt.it_ == bt.end_ && (bt.istate_ == 0);
   }
-  friend constexpr auto operator!=(EndSentinel,
-                                   const BitSetIterator &bt) -> bool {
+  friend constexpr auto operator!=(EndSentinel, const BitSetIterator &bt)
+    -> bool {
     return bt.it_ != bt.end_ || (bt.istate_ != 0);
   }
 };
@@ -130,7 +130,9 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   static constexpr auto numElementsNeeded(ptrdiff_t N) -> math::Length<> {
     return math::length(((N + usize - 1) >> ushift));
   }
-  constexpr explicit BitSet(ptrdiff_t N) : data_{numElementsNeeded(N), 0} {}
+  constexpr explicit BitSet(ptrdiff_t N)
+  requires(!std::is_trivially_destructible_v<T>)
+    : data_{numElementsNeeded(N), 0} {}
   static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
   constexpr void resizeData(ptrdiff_t N) {
     if constexpr (CanResize<T>) data_.resize(N);
@@ -161,6 +163,11 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   [[nodiscard]] constexpr auto maxValue() const -> ptrdiff_t {
     ptrdiff_t N = std::ssize(data_);
     return N ? ((usize * N) - std::countl_zero(data_[N - 1])) : 0;
+  }
+  [[nodiscard]] constexpr auto count() const -> ptrdiff_t {
+    ptrdiff_t c = 0;
+    for (uint64_t x : data_) c += std::popcount(x);
+    return c;
   }
   // BitSet::Iterator(std::vector<std::U> &seta)
   //     : set(seta), didx(0), offset(0), state(seta[0]), count(0) {};
@@ -317,8 +324,8 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   }
   // Ranks higher elements as more important, thus iterating
   // backwards.
-  constexpr auto
-  operator<=>(const BitSet &other) const -> std::strong_ordering {
+  constexpr auto operator<=>(const BitSet &other) const
+    -> std::strong_ordering {
     ptrdiff_t ntd = data_.size(), nod = other.data_.size();
     if (ntd != nod) {
       bool larger = ntd > nod;
@@ -415,12 +422,12 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   }
   [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
   [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i.size(); }
-  [[nodiscard]] friend constexpr auto operator-(EndSentinel,
-                                                Iterator v) -> ptrdiff_t {
+  [[nodiscard]] friend constexpr auto operator-(EndSentinel, Iterator v)
+    -> ptrdiff_t {
     return EndSentinel{} - v.it;
   }
-  [[nodiscard]] friend constexpr auto operator-(EndSentinel,
-                                                ConstIterator v) -> ptrdiff_t {
+  [[nodiscard]] friend constexpr auto operator-(EndSentinel, ConstIterator v)
+    -> ptrdiff_t {
     return EndSentinel{} - v.it;
   }
 };

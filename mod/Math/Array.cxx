@@ -996,7 +996,7 @@ static_assert(std::is_same_v<ITEST, MutArray<int64_t, StridedRange<>, false>>);
 
 /// Non-owning view of a managed array, capable of resizing,
 /// but not of re-allocating in case the capacity is exceeded.
-template <class T, Dimension S>
+template <class T, Dimension S = Length<>>
 struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   using BaseT = MutArray<T, S>;
   using U = containers::default_capacity_type_t<S>;
@@ -1007,6 +1007,9 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr ResizeableView(alloc::Arena<> *a, U c) noexcept
     : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), S{}, c} {
   }
+  constexpr ResizeableView(alloc::Arena<> *a, std::integral auto c) noexcept
+    : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), S{},
+                     capacity(c)} {}
   constexpr ResizeableView(alloc::Arena<> *a, S s, U c) noexcept
     : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), s, c} {}
 
