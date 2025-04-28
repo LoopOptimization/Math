@@ -4,6 +4,11 @@ module;
 #pragma once
 #endif
 #ifndef USE_MODULE
+#include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -18,13 +23,6 @@ module;
 #include <ranges>
 #include <string>
 #include <type_traits>
-
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Utilities/Invariant.cxx"
 #else
 export module BitSet;
 
@@ -360,6 +358,15 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     // for (auto u : data)
     //   if (u) return false;
     // return true;
+  }
+  constexpr auto findFirstZero() -> ptrdiff_t {
+    ptrdiff_t offset = 0;
+    for (U x : data_) {
+      U c = std::countr_one(x);
+      offset += c;
+      if (c != usize) return offset;
+    }
+    return usize;
   }
 };
 

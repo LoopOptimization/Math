@@ -30,7 +30,9 @@ TEST(BitSetTest, BasicAssertions) {
   bs[117] = true;
   bs[87] = true;
   bs[991] = true;
+  ASSERT_EQ(bs.findFirstZero(), 0);
   bs[0] = true;
+  ASSERT_EQ(bs.findFirstZero(), 1);
   std::cout << bs << "\n";
   // EXPECT_EQ(std::ranges::begin(bs), bs.begin());
   // EXPECT_EQ(std::ranges::end(bs), bs.end());
