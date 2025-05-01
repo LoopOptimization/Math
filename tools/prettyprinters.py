@@ -27,12 +27,12 @@ class BaseVectorPrinter(Iterator):
 class VectorPrinter(BaseVectorPrinter):
     def __init__(self, val):
         t = val.type.template_argument(0).pointer()
-        BaseVectorPrinter.__init__(self, val["ptr"].cast(t), val["sz"]["value_"].cast(gdb.lookup_type("long")))
+        BaseVectorPrinter.__init__(self, val["ptr_"].cast(t), val["sz_"]["value_"].cast(gdb.lookup_type("long")))
 
 class TinyVectorPrinter(BaseVectorPrinter):
     def __init__(self, val):
         t = val.type.template_argument(0).pointer()
-        BaseVectorPrinter.__init__(self, val["data_"]["mem"][0].address.cast(t), val["len_"]["value_"].cast(gdb.lookup_type("long")))
+        BaseVectorPrinter.__init__(self, val["data_"]["mem_"][0].address.cast(t), val["len_"]["value_"].cast(gdb.lookup_type("long")))
 
 class BaseMatrixPrinter:
     """Print a StridedMatrix<>"""
@@ -69,8 +69,8 @@ class SquareMatrixPrinter(BaseMatrixPrinter):
 
     def __init__(self, val):
         t = val.type.template_argument(0).pointer()
-        M = val["sz"]["m_"]["value_"].cast(gdb.lookup_type("long"))
-        BaseMatrixPrinter.__init__(self, val["ptr"].cast(t), M, M, M)
+        M = val["sz_"]["m_"]["value_"].cast(gdb.lookup_type("long"))
+        BaseMatrixPrinter.__init__(self, val["ptr_"].cast(t), M, M, M)
 
 
 class DenseMatrixPrinter(BaseMatrixPrinter):
@@ -78,9 +78,9 @@ class DenseMatrixPrinter(BaseMatrixPrinter):
 
     def __init__(self, val):
         t = val.type.template_argument(0).pointer()
-        M = val["sz"]["m_"]["value_"].cast(gdb.lookup_type("long"))
-        N = val["sz"]["n_"]["value_"].cast(gdb.lookup_type("long"))
-        BaseMatrixPrinter.__init__(self, val["ptr"].cast(t), M, N, N)
+        M = val["sz_"]["m_"]["value_"].cast(gdb.lookup_type("long"))
+        N = val["sz_"]["n_"]["value_"].cast(gdb.lookup_type("long"))
+        BaseMatrixPrinter.__init__(self, val["ptr_"].cast(t), M, N, N)
 
 
 class StridedMatrixPrinter(BaseMatrixPrinter):
@@ -90,10 +90,10 @@ class StridedMatrixPrinter(BaseMatrixPrinter):
         t = val.type.template_argument(0).pointer()
         BaseMatrixPrinter.__init__(
             self,
-            val["ptr"].cast(t),
-            val["sz"]["m_"]["value_"].cast(gdb.lookup_type("long")),
-            val["sz"]["n_"]["value_"].cast(gdb.lookup_type("long")),
-            val["sz"]["stride_m_"]["value_"].cast(gdb.lookup_type("long")),
+            val["ptr_"].cast(t),
+            val["sz_"]["m_"]["value_"].cast(gdb.lookup_type("long")),
+            val["sz_"]["n_"]["value_"].cast(gdb.lookup_type("long")),
+            val["sz_"]["stride_m_"]["value_"].cast(gdb.lookup_type("long")),
         )
 
 
