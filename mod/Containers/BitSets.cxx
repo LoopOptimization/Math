@@ -320,6 +320,11 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   constexpr auto operator==(const BitSet &bs) const -> bool {
     return data_ == bs.data_;
   }
+  constexpr auto operator~() const -> BitSet {
+    BitSet r = *this;
+    for (U &u : r.data_) u = ~u;
+    return r;
+  }
   // Ranks higher elements as more important, thus iterating
   // backwards.
   constexpr auto operator<=>(const BitSet &other) const
@@ -380,62 +385,62 @@ static_assert(std::is_trivially_destructible_v<FixedSizeBitSet<2>>);
 static_assert(std::ranges::range<FixedSizeBitSet<2>>);
 
 template <typename T, typename B = BitSet<>> struct BitSliceView {
-  [[no_unique_address]] math::MutPtrVector<T> a;
-  [[no_unique_address]] const B &i;
+  [[no_unique_address]] math::MutPtrVector<T> a_;
+  [[no_unique_address]] const B &i_;
   struct Iterator {
-    [[no_unique_address]] math::MutPtrVector<T> a;
-    [[no_unique_address]] BitSetIterator<uint64_t> it;
+    [[no_unique_address]] math::MutPtrVector<T> a_;
+    [[no_unique_address]] BitSetIterator<uint64_t> it_;
     constexpr auto operator==(EndSentinel) const -> bool {
-      return it == EndSentinel{};
+      return it_ == EndSentinel{};
     }
     constexpr auto operator++() -> Iterator & {
-      ++it;
+      ++it_;
       return *this;
     }
     constexpr auto operator++(int) -> Iterator {
       Iterator temp = *this;
-      ++it;
+      ++it_;
       return temp;
     }
-    constexpr auto operator*() -> T & { return a[*it]; }
-    constexpr auto operator*() const -> const T & { return a[*it]; }
-    constexpr auto operator->() -> T * { return &a[*it]; }
-    constexpr auto operator->() const -> const T * { return &a[*it]; }
+    constexpr auto operator*() -> T & { return a_[*it_]; }
+    constexpr auto operator*() const -> const T & { return a_[*it_]; }
+    constexpr auto operator->() -> T * { return &a_[*it_]; }
+    constexpr auto operator->() const -> const T * { return &a_[*it_]; }
   };
-  constexpr auto begin() -> Iterator { return {a, i.begin()}; }
+  constexpr auto begin() -> Iterator { return {a_, i_.begin()}; }
   struct ConstIterator {
-    [[no_unique_address]] math::PtrVector<T> a;
-    [[no_unique_address]] BitSetIterator<uint64_t> it;
+    [[no_unique_address]] math::PtrVector<T> a_;
+    [[no_unique_address]] BitSetIterator<uint64_t> it_;
     constexpr auto operator==(EndSentinel) const -> bool {
-      return it == EndSentinel{};
+      return it_ == EndSentinel{};
     }
     constexpr auto operator==(ConstIterator c) const -> bool {
-      return (it == c.it) && (a.data() == c.a.data());
+      return (it_ == c.it_) && (a_.data() == c.a_.data());
     }
     constexpr auto operator++() -> ConstIterator & {
-      ++it;
+      ++it_;
       return *this;
     }
     constexpr auto operator++(int) -> ConstIterator {
       ConstIterator temp = *this;
-      ++it;
+      ++it_;
       return temp;
     }
-    constexpr auto operator*() const -> const T & { return a[*it]; }
-    constexpr auto operator->() const -> const T * { return &a[*it]; }
+    constexpr auto operator*() const -> const T & { return a_[*it_]; }
+    constexpr auto operator->() const -> const T * { return &a_[*it_]; }
   };
   [[nodiscard]] constexpr auto begin() const -> ConstIterator {
-    return {a, i.begin()};
+    return {a_, i_.begin()};
   }
   [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i.size(); }
+  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i_.size(); }
   [[nodiscard]] friend constexpr auto operator-(EndSentinel, Iterator v)
     -> ptrdiff_t {
-    return EndSentinel{} - v.it;
+    return EndSentinel{} - v.it_;
   }
   [[nodiscard]] friend constexpr auto operator-(EndSentinel, ConstIterator v)
     -> ptrdiff_t {
-    return EndSentinel{} - v.it;
+    return EndSentinel{} - v.it_;
   }
 };
 template <typename T, typename B>

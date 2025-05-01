@@ -24,6 +24,9 @@ using containers::BitSet, math::Vector;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSetTest, BasicAssertions) {
   BitSet bs(1000);
+  ptrdiff_t count = 0;
+  for (ptrdiff_t _ : bs) ++count;
+  ASSERT_EQ(count, 0);
   bs[4] = true;
   bs[10] = true;
   bs[200] = true;
@@ -67,6 +70,9 @@ TEST(BitSetTest, BasicAssertions) {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSetInsert, BasicAssertions) {
   BitSet<std::array<uint64_t, 2>> bs;
+  ptrdiff_t count = 0;
+  for (ptrdiff_t _ : bs) ++count;
+  ASSERT_EQ(count, 0);
   bs.insert(1);
   bs.insert(5);
   bs.insert(6);
@@ -79,6 +85,11 @@ TEST(BitSetInsert, BasicAssertions) {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(DynSizeBitSetTest, BasicAssertions) {
   BitSet bs, bsd{BitSet<>::dense(11)};
+  ptrdiff_t count = 0;
+  for (ptrdiff_t _ : bs) ++count;
+  ASSERT_EQ(count, 0);
+  for (ptrdiff_t _ : bsd) ++count;
+  ASSERT_EQ(count, 11);
   EXPECT_EQ(bs.data_.size(), 0);
   bs[4] = true;
   bs[10] = true;
@@ -129,6 +140,9 @@ TEST(FixedSizeSmallBitSetTest, BasicAssertions) {
   using SB = BitSet<std::array<uint16_t, 1>>;
   static_assert(sizeof(SB) == 2);
   SB bs;
+  ptrdiff_t count = 0;
+  for (ptrdiff_t _ : bs) ++count;
+  ASSERT_EQ(count, 0);
   bs[4] = true;
   bs[10] = true;
   bs[7] = true;

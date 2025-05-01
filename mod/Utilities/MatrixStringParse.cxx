@@ -35,17 +35,12 @@ template <String S> consteval auto dims_eltype() -> std::array<ptrdiff_t, 2> {
   // count numCols
   const char *s = S.data_ + 1; // skip `[`
   // while (*s != ';'){
-  while (true) {
+  for (;;) {
     char c = *s;
     while (c == ' ') c = *(++s);
     if (c == ';') break;
     if (c == ']') return {num_rows, num_cols};
-    while (true) {
-      c = *(++s);
-      if (c == '-') continue;
-      if (c >= '0' && c <= '9') continue;
-      break;
-    }
+    do { c = *(++s); } while ((c == '-') || (c >= '0' && c <= '9'));
     ++num_cols;
   }
   ++num_rows;
@@ -70,11 +65,13 @@ template <String S> consteval auto matrix_from_string() {
   //     (dims[0] > 1) && (dims[1] % simd::VecLen<dims[1], int64_t>) != 0;
   //   math::StaticArray<int64_t, dims[0], dims[1], compress> A(int64_t(0));
   // #else
-  math::StaticArray<int64_t, dims[0], dims[1], true> A{};
+  constexpr ptrdiff_t num_rows = dims[0];
+  constexpr ptrdiff_t num_cols = dims[1];
+  math::StaticArray<int64_t, num_rows, num_cols, true> A{};
   // #endif
   const char *s = S.data_;
-  for (ptrdiff_t i = 0; i < dims[0]; ++i) {
-    for (ptrdiff_t j = 0; j < dims[1]; ++j) {
+  for (ptrdiff_t i = 0; i < num_rows; ++i) {
+    for (ptrdiff_t j = 0; j < num_cols; ++j) {
       int64_t x = 0;
       char c = *s;
       while (c != '-' && (c < '0' || c > '9')) c = *(++s);
