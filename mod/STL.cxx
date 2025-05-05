@@ -173,6 +173,7 @@ export using ::std::optional;
 export using ::std::ostream;
 export using ::std::ostringstream;
 export using ::std::output_iterator;
+export using ::std::pair;
 export using ::std::partial_ordering;
 export using ::std::plus;
 export using ::std::popcount;
@@ -212,6 +213,8 @@ export using ::std::unreachable;
 export using ::std::unsigned_integral;
 export using ::std::weakly_incrementable;
 
+export using ::std::operator ==;
+
 #ifdef MATHTESTSTLDEFINITIONS
 export using ::std::exp2;
 export using ::std::exponential_distribution;
@@ -226,6 +229,7 @@ namespace ranges {
 export using ::std::ranges::all_of;
 export using ::std::ranges::any_of;
 export using ::std::ranges::enable_borrowed_range;
+export using ::std::ranges::find;
 export using ::std::ranges::forward_range;
 export using ::std::ranges::range;
 export using ::std::ranges::swap;
@@ -236,6 +240,7 @@ export using ::std::ranges::filter_view;
 export using ::std::ranges::owning_view;
 export using ::std::ranges::reverse_view;
 export using ::std::ranges::transform;
+export using ::std::ranges::operator |;
 namespace views {
 export using ::std::ranges::views::filter;
 export using ::std::ranges::views::reverse;
