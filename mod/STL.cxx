@@ -105,6 +105,7 @@ export using ::std::exchange;
 export using ::std::false_type;
 export using ::std::fill;
 export using ::std::fill_n;
+export using ::std::find;
 export using ::std::find_if;
 export using ::std::floating_point;
 export using ::std::floor;
@@ -148,6 +149,7 @@ export using ::std::log;
 export using ::std::log1p;
 export using ::std::log2;
 export using ::std::logical_not;
+export using ::std::lower_bound;
 export using ::std::make_index_sequence;
 export using ::std::make_pair;
 export using ::std::make_signed_t;
@@ -184,12 +186,14 @@ export using ::std::remove_const_t;
 export using ::std::remove_cvref_t;
 export using ::std::remove_reference_t;
 export using ::std::reverse_iterator;
+export using ::std::rotate;
 export using ::std::round;
 export using ::std::same_as;
 export using ::std::signbit;
 export using ::std::signed_integral;
 export using ::std::size;
 export using ::std::ssize;
+export using ::std::string;
 export using ::std::strong_ordering;
 export using ::std::swap;
 export using ::std::to_chars;
@@ -213,7 +217,8 @@ export using ::std::unreachable;
 export using ::std::unsigned_integral;
 export using ::std::weakly_incrementable;
 
-export using ::std::operator ==;
+export using ::std::operator==;
+export using ::std::operator<<;
 
 #ifdef MATHTESTSTLDEFINITIONS
 export using ::std::exp2;
@@ -230,7 +235,9 @@ export using ::std::ranges::all_of;
 export using ::std::ranges::any_of;
 export using ::std::ranges::enable_borrowed_range;
 export using ::std::ranges::find;
+export using ::std::ranges::find_if;
 export using ::std::ranges::forward_range;
+export using ::std::ranges::mismatch;
 export using ::std::ranges::range;
 export using ::std::ranges::swap;
 export using ::std::ranges::view;
@@ -240,10 +247,11 @@ export using ::std::ranges::filter_view;
 export using ::std::ranges::owning_view;
 export using ::std::ranges::reverse_view;
 export using ::std::ranges::transform;
-export using ::std::ranges::operator |;
+export using ::std::ranges::operator|;
 namespace views {
 export using ::std::ranges::views::filter;
 export using ::std::ranges::views::reverse;
+export using ::std::ranges::views::transform;
 export using ::std::ranges::views::zip;
 } // namespace views
 #endif
