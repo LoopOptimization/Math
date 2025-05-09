@@ -26,7 +26,7 @@ export module SIMD:Intrin;
 
 import AxisTypes;
 import Invariant;
-import STL;
+import std;
 import :Mask;
 import :Vec;
 #endif

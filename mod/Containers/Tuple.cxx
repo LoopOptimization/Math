@@ -15,7 +15,7 @@ module;
 export module Tuple;
 
 import Pair;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

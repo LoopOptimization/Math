@@ -26,7 +26,7 @@ export module ArrayPrint;
 import Allocator;
 import Flat;
 import Rational;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

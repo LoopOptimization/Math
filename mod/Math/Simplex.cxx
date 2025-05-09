@@ -55,7 +55,7 @@ import NormalForm;
 import Range;
 import Rational;
 import SIMD;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

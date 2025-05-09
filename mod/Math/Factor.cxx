@@ -10,7 +10,7 @@ module;
 
 #else
 export module Factor;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

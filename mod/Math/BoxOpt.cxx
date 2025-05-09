@@ -46,7 +46,7 @@ import Pair;
 import Param;
 import Reductions;
 import SIMD;
-import STL;
+import std;
 import Tuple;
 #endif
 

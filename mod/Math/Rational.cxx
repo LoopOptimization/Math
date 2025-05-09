@@ -21,7 +21,7 @@ export module Rational;
 
 import GCD;
 import Invariant;
-import STL;
+import std;
 import TypeCompression;
 import Widen;
 #endif

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28.2)
+cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
@@ -11,13 +11,46 @@ option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_MODULES "Use C++ Modules" OFF)
 option(FOR_TESTING "Build for testing" OFF)
 
+if(ENABLE_STACK_PROTECTOR)
+    if(ENABLE_RTTI)
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong>")
+    else()
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
+    endif()
+else()
+    if(ENABLE_RTTI)
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
+    else()
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
+    endif()
+endif()
+if (USE_MODULES)
+    # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+    #     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      # This specific value changes as experimental support evolves. See
+      # `Help/dev/experimental.rst` in the CMake source corresponding to
+      # your CMake build for the exact value to use.
+        "a9e1cf81-9932-4810-974b-6eccaf14e457")
+      # cmake master uses:
+        # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+endif()
 # ---- Project ----
 
+message(STATUS "CMAKE_EXPERIMENTAL_CXX_IMPORT_STD = ${CMAKE_EXPERIMENTAL_CXX_IMPORT_STD}")
 # Note: update this to your new project's name and version
 project(
   Math
   VERSION 1.0
   LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+if (USE_MODULES)
+    set(CMAKE_CXX_MODULE_STD 1)
+else()
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
+endif()
 
 # ---- Include guards ----
 
@@ -46,18 +79,8 @@ if(USE_MODULES)
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
   file(GLOB_RECURSE modules CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
-else()
-  file(GLOB_RECURSE headers CONFIGURE_DEPENDS
-       "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
-       "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
-endif()
-# message(STATUS "Headers: ${headers}") message(STATUS "Modules: ${modules}")
 
-# ---- Create library ----
-
-# Note: for header-only libraries change all PUBLIC flags to INTERFACE and
-# create an interface target: add_library(${PROJECT_NAME} INTERFACE ${headers})
-if(USE_MODULES)
+    # ---- Create library ----
   add_library(${PROJECT_NAME} OBJECT) # ${headers})
   target_sources(
     ${PROJECT_NAME}
@@ -68,13 +91,6 @@ if(USE_MODULES)
     ${PROJECT_NAME}
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
            $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
-  if(NOT ENABLE_RTTI)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
-  endif()
-  if(ENABLE_STACK_PROTECTOR)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
-  endif()
   # --- Maybe Use SIMD Array Ops ---
   if(POLYMATHNOEXPLICITSIMDARRAY)
     target_compile_definitions(${PROJECT_NAME}
@@ -93,8 +109,12 @@ if(USE_MODULES)
               -fno-semantic-interposition -fdiagnostics-color=always
               -Wno-comma-subscript -Wno-psabi)
   endif()
-
 else()
+  file(GLOB_RECURSE headers CONFIGURE_DEPENDS
+       "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
+       "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
+
+    # ---- Create library ----
   add_library(${PROJECT_NAME} INTERFACE ${headers})
   target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
   target_include_directories(
@@ -108,6 +128,11 @@ else()
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
+target_compile_features(${PROJECT_NAME}
+  PRIVATE   cxx_std_23
+  INTERFACE cxx_std_23)
+
+
 
 # being a cross-platform target, we enforce standards conformance on MSVC
 # target_compile_options( ${PROJECT_NAME} INTERFACE

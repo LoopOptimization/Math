@@ -51,7 +51,7 @@ import Param;
 import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
-import STL;
+import std;
 import TypeCompression;
 #endif
 

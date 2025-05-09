@@ -50,7 +50,7 @@ import MatDim;
 import Pair;
 import Range;
 import SIMD;
-import STL;
+import std;
 import TypeCompression;
 #endif
 

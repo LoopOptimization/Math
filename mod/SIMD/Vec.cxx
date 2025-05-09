@@ -10,7 +10,7 @@ module;
 
 #else
 export module SIMD:Vec;
-import STL;
+import std;
 #endif
 
 template <ptrdiff_t W, typename T>

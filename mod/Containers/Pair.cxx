@@ -11,7 +11,7 @@ module;
 
 #else
 export module Pair;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

@@ -15,7 +15,7 @@ export module SIMD:Index;
 
 import :Mask;
 import AxisTypes;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

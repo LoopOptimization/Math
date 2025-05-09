@@ -17,7 +17,7 @@ module;
 export module Int8;
 
 import Invariant;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

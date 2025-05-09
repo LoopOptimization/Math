@@ -23,7 +23,7 @@ import :Intrin;
 import :Mask;
 import :Unroll;
 import :Vec;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

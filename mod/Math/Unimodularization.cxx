@@ -22,7 +22,7 @@ import ManagedArray;
 import MatDim;
 import NormalForm;
 import Pair;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

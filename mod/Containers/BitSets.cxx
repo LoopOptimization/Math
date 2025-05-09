@@ -32,7 +32,7 @@ import Invariant;
 import ManagedArray;
 import MatDim;
 import Range;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

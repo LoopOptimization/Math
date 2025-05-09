@@ -29,7 +29,7 @@ import AxisTypes;
 import ManagedArray;
 import MatDim;
 import Storage;
-import STL;
+import std;
 #endif
 
 template <typename T>

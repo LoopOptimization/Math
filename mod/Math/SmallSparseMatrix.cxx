@@ -22,7 +22,7 @@ import Array;
 import AxisTypes;
 import ManagedArray;
 import MatDim;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

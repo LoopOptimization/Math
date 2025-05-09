@@ -20,7 +20,7 @@ export module GCD;
 
 import Invariant;
 import SIMD;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

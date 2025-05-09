@@ -19,7 +19,7 @@ module;
 export module Comparisons;
 import ArrayConcepts;
 import SIMD;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

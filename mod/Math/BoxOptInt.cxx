@@ -18,7 +18,7 @@ export module BoxOptInt;
 import Arena;
 import Array;
 import BoxOpt;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

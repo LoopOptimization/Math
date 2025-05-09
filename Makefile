@@ -48,7 +48,7 @@ buildclang/nosimdarrayop/:
 	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/nosimdarrayop/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
 
 buildclang/modules/:
-	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
+	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B buildclang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
 
 buildclang/bench/:
 	CXXFLAGS="-Og" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B buildclang/bench/ -DCMAKE_BUILD_TYPE=Release

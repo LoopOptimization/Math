@@ -30,7 +30,7 @@ import ManagedArray;
 import Pair;
 import Param;
 import Rational;
-import STL;
+import std;
 import TypeCompression;
 #endif
 

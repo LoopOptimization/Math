@@ -14,7 +14,7 @@ export module EmptyMatrix;
 
 import ArrayConcepts;
 import AxisTypes;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

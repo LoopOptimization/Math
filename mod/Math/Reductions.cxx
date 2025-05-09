@@ -12,7 +12,7 @@ module;
 #else
 export module Reductions;
 import ArrayConcepts;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

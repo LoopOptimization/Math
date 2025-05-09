@@ -13,7 +13,7 @@ module;
 export module CompressReference;
 
 import TypeCompression;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

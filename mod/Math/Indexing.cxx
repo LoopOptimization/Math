@@ -24,7 +24,7 @@ import CompressReference;
 import Range;
 import MatDim;
 import SIMD;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

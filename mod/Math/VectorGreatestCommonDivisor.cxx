@@ -19,7 +19,7 @@ export import GCD;
 import Pair;
 import Array;
 import ArrayConcepts;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

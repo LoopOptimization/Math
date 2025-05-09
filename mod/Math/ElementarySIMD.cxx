@@ -19,7 +19,7 @@ export module Elementary;
 
 import BitHack;
 import SIMD;
-import STL;
+import std;
 #endif
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)

@@ -16,7 +16,7 @@ export module Flat;
 
 import Allocator;
 import Invariant;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

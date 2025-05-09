@@ -20,7 +20,7 @@ export module Range;
 
 import AxisTypes;
 import Invariant;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

@@ -1,4 +1,17 @@
-cmake_minimum_required(VERSION 3.28.2)
+cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
+
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
+if (USE_MODULES)
+    # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+    #     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      # This specific value changes as experimental support evolves. See
+      # `Help/dev/experimental.rst` in the CMake source corresponding to
+      # your CMake build for the exact value to use.
+        "a9e1cf81-9932-4810-974b-6eccaf14e457")
+      # cmake master uses:
+        # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+endif()
 
 # # ---- Static Analyzers ---- find_program(CLANGTIDY clang-tidy) if(NOT
 # CLANGTIDY MATCHES CLANGTIDY-NOTFOUND) set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY})
@@ -7,6 +20,14 @@ cmake_minimum_required(VERSION 3.28.2)
 # --enable=warning,style,performance,information") endif()
 
 project(MathTests LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+if (USE_MODULES)
+    set(CMAKE_CXX_MODULE_STD 1)
+else()
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
+endif()
 
 # ---- Options ----
 
@@ -79,7 +100,6 @@ add_executable(${PROJECT_NAME} ${sources})
 target_link_libraries(${PROJECT_NAME} Math GTest::gtest_main)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
-target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
   target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer

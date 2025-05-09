@@ -14,7 +14,7 @@ module;
 export module ScalarizeViaCast;
 
 import MatDim;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

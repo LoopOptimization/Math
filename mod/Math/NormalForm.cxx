@@ -50,7 +50,7 @@ import Pair;
 import Range;
 import Rational;
 import SIMD;
-import STL;
+import std;
 import Tuple;
 import VGCD;
 #endif

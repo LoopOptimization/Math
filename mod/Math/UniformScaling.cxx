@@ -29,7 +29,7 @@ import ArrayConcepts;
 import AxisTypes;
 import ExprTemplates;
 import SIMD;
-import STL;
+import std;
 import Widen;
 #endif
 

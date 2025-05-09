@@ -32,7 +32,7 @@ import Indexing;
 import Invariant;
 import ScalarizeViaCast;
 import SIMD;
-import STL;
+import std;
 import Tuple;
 import TypeCompression;
 import UniformScaling;

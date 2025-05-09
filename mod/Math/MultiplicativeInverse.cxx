@@ -20,7 +20,7 @@ export module MultiplicativeInverse;
 
 import Int8;
 import Invariant;
-import STL;
+import std;
 import Widen;
 #endif
 

@@ -33,7 +33,7 @@ import GCD;
 import GenericArrayConstructors;
 import ManagedArray;
 import NormalForm;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

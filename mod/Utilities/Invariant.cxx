@@ -11,22 +11,21 @@ module;
 #ifdef __cpp_lib_unreachable
 #include <utility>
 #include <version>
-#endif
-#endif
-#include <cstdlib>
-#endif
+#endif // __cpp_lib_unreachable
+#endif // NDEBUG
+#endif // ! USE_MODULE
+
 #if __has_builtin(__builtin_trap)
 #define TRAP() __builtin_trap()
 #else
+#include <cstdlib>
 #define TRAP() std::abort()
 #endif
 
 #ifdef USE_MODULE
 export module Invariant;
-import STL;
-#endif
+import std;
 
-#ifdef USE_MODULE
 export namespace utils {
 #else
 namespace utils {

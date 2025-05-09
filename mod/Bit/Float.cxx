@@ -11,7 +11,7 @@ module;
 
 #else
 export module BitHack;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

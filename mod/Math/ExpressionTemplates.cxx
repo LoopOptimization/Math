@@ -38,7 +38,7 @@ import Range;
 import Reductions;
 import ScalarizeViaCast;
 import SIMD;
-import STL;
+import std;
 #endif
 
 #ifndef USE_MODULE

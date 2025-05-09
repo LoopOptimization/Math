@@ -36,7 +36,7 @@ import AxisTypes;
 import MatDim;
 import Pair;
 import Storage;
-import STL;
+import std;
 import TypeCompression;
 #endif
 

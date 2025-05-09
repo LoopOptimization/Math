@@ -13,7 +13,7 @@ module;
 export module LinearDiophantine;
 
 import GCD;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE

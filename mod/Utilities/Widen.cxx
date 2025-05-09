@@ -12,7 +12,7 @@ module;
 #else
 
 export module Widen;
-import STL;
+import std;
 #endif
 
 #ifdef USE_MODULE
