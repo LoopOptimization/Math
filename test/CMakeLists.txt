@@ -1,6 +1,35 @@
 cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
+# ---- Options ----
 
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
+option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
+option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
+option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
+option(ENABLE_LLD "Use lld as the linker" ON)
+option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
+
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer>")
+if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
+                                                "([Aa]ddress);([Uu]ndefined)"))
+    set(USE_MI_MALLOC
+      OFF
+      CACHE BOOL "No mimalloc with sanitizers")
+    set(USE_JE_MALLOC
+      OFF
+      CACHE BOOL "No jemalloc with sanitizers")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
+    endif()
+else()
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti;-fstack-protector-strong>")
+endif()
+if(USE_TYPE_SANITIZER)
+  set(USE_MI_MALLOC
+      OFF
+      CACHE BOOL "No mimalloc with sanitizers")
+  set(USE_JE_MALLOC
+      OFF
+      CACHE BOOL "No jemalloc with sanitizers")
+endif()
 if (USE_MODULES)
     # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     #     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
@@ -29,13 +58,6 @@ else()
     set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
 endif()
 
-# ---- Options ----
-
-option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
-option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
-option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
-option(ENABLE_LLD "Use lld as the linker" ON)
-option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
 # --- Import tools ----
 
@@ -59,35 +81,7 @@ FetchContent_MakeAvailable(googletest)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
-if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
-                                                "([Aa]ddress);([Uu]ndefined)"))
-  set(ENABLE_RTTI
-      ON
-      CACHE BOOL "Use RTTI")
-  set(USE_MI_MALLOC
-      OFF
-      CACHE BOOL "No mimalloc with sanitizers")
-  set(USE_JE_MALLOC
-      OFF
-      CACHE BOOL "No jemalloc with sanitizers")
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(ENABLE_STACK_PROTECTOR
-        ON
-        CACHE BOOL "Use stack potection")
-  endif()
-else()
-  set(ENABLE_STACK_PROTECTOR
-      ON
-      CACHE BOOL "Use stack potection")
-endif()
-if(USE_TYPE_SANITIZER)
-  set(USE_MI_MALLOC
-      OFF
-      CACHE BOOL "No mimalloc with sanitizers")
-  set(USE_JE_MALLOC
-      OFF
-      CACHE BOOL "No jemalloc with sanitizers")
-endif()
+
 set(FOR_TESTING
     ON
     CACHE BOOL "Build for testing")
@@ -102,14 +96,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
-  target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
-                                                 -fsanitize-trap=all)
-else()
-  target_compile_options(${PROJECT_NAME} PRIVATE -fno-rtti)
-endif()
-if(USE_TYPE_SANITIZER)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fno-omit-frame-pointer
-                                                 -fsanitize-trap=all
+  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-trap=all)
+elseif(USE_TYPE_SANITIZER)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-trap=all
                                                  -fsanitize=type)
   target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=type)
 endif()
@@ -134,18 +123,13 @@ if(NOT TEST_INSTALLED_VERSION)
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
-    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics
-                            -fstack-protector-strong -ftime-trace)
+    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(
     ${PROJECT_NAME}
     PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4
             -fno-semantic-interposition -fdiagnostics-color=always
             -Wno-comma-subscript -Wno-psabi)
-  if(NOT ((USE_SANITIZER MATCHES "([Aa]ddress)")
-          OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)")))
-    target_compile_options(${PROJECT_NAME} PRIVATE -fstack-protector-strong)
-  endif()
 endif()
 # target_compile_options(Math INTERFACE -D_GLIBCXX_ASSERTIONS)
 target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_ASSERTIONS
