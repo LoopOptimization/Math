@@ -31,18 +31,18 @@ template <typename T> struct EmptyMatrix {
   static constexpr auto numRow() -> Row<0> { return {}; }
   static constexpr auto numCol() -> Col<0> { return {}; }
   static constexpr auto rowStride() -> RowStride<0> { return {}; }
-  static constexpr auto getConstCol() -> ptrdiff_t { return 0; }
+  static constexpr auto getConstCol() -> std::ptrdiff_t { return 0; }
 
   static constexpr auto data() -> T * { return nullptr; }
-  static constexpr auto operator[](ptrdiff_t, ptrdiff_t) -> T { return 0; }
-  static constexpr auto shape() -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
+  static constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) -> T { return 0; }
+  static constexpr auto shape() -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
     return {0, 0};
   }
   static constexpr auto view() -> EmptyMatrix<T> { return EmptyMatrix<T>{}; }
   static constexpr auto dim() -> SquareDims<0> { return {numRow()}; }
 };
 
-static_assert(AbstractMatrix<EmptyMatrix<ptrdiff_t>>);
+static_assert(AbstractMatrix<EmptyMatrix<std::ptrdiff_t>>);
 
 // template <typename T>
 // constexpr auto matmul(EmptyMatrix<T>, PtrMatrix<T>) -> EmptyMatrix<T> {
@@ -54,7 +54,7 @@ static_assert(AbstractMatrix<EmptyMatrix<ptrdiff_t>>);
 // }
 
 template <typename T> struct EmptyVector {
-  static constexpr auto size() -> ptrdiff_t { return 0; };
+  static constexpr auto size() -> std::ptrdiff_t { return 0; };
   static constexpr auto begin() -> T * { return nullptr; }
   static constexpr auto end() -> T * { return nullptr; }
 };

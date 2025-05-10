@@ -14,16 +14,16 @@ import ArrayParse;
 import ManagedArray;
 import MatDim;
 import StaticArray;
-import STL;
+import std;
 #endif
 
 using namespace math;
 using utils::operator""_mat;
 
-auto autoConvert(math::PtrMatrix<int64_t> A) -> int64_t {
-  int64_t s = 0;
-  for (ptrdiff_t m = 0; m < A.numRow(); ++m)
-    for (ptrdiff_t n = 0; n < A.numCol(); ++n) s += A[m, n];
+auto autoConvert(math::PtrMatrix<std::int64_t> A) -> std::int64_t {
+  std::int64_t s = 0;
+  for (std::ptrdiff_t m = 0; m < A.numRow(); ++m)
+    for (std::ptrdiff_t n = 0; n < A.numCol(); ++n) s += A[m, n];
   return s;
 }
 
@@ -44,10 +44,10 @@ TEST(StringParse, BasicAssertions) {
   EXPECT_EQ((A[2, 2]), -3);
   EXPECT_EQ((A[2, 3]), 0);
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
-  static_assert(std::same_as<math::StaticDims<int64_t, 2, 3, false>,
+  static_assert(std::same_as<math::StaticDims<std::int64_t, 2, 3, false>,
                              math::StridedDims<2, 3, 4>>);
 #else
-  static_assert(std::same_as<math::StaticDims<int64_t, 2, 3, false>,
+  static_assert(std::same_as<math::StaticDims<std::int64_t, 2, 3, false>,
                              math::DenseDims<2, 3>>);
 #endif
   EXPECT_EQ(autoConvert("[1 2 3; 4 5 6]"_mat), 21);

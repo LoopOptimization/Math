@@ -25,7 +25,7 @@ import BoxOptInt;
 import Dual;
 import Elementary;
 import ManagedArray;
-import STL;
+import std;
 #endif
 
 namespace {
@@ -73,29 +73,29 @@ TEST(BoxOptTest, Basic) {
   EXPECT_EQ(u01, 3.0);
   EXPECT_LT(std::abs(9.09724 - u11), 1e-3);
 
-  math::Vector<int32_t> r{std::array{0, 0}};
+  math::Vector<std::int32_t> r{std::array{0, 0}};
   double opti = math::minimizeIntSol(&arena, r, 1, 32, fsoft);
   EXPECT_GT(opti, opt1);
   EXPECT_EQ(r[0], 3);
   EXPECT_EQ(r[1], 9);
 };
 
-// constexpr int32_t KiB = 1 << 10;
-constexpr int32_t MiB = 1 << 20;
-constexpr int32_t GiB = 1 << 30;
-// constexpr int32_t L1c = 32 * KiB;
-constexpr int32_t L2c = 1 * MiB;
-constexpr int32_t L3c = 14417920;
+// constexpr std::int32_t KiB = 1 << 10;
+constexpr std::int32_t MiB = 1 << 20;
+constexpr std::int32_t GiB = 1 << 30;
+// constexpr std::int32_t L1c = 32 * KiB;
+constexpr std::int32_t L2c = 1 * MiB;
+constexpr std::int32_t L3c = 14417920;
 // constexpr double L1b = 430.0 * GiB;
 constexpr double L2b = 150.0 * GiB;
 constexpr double L3b = 40.0 * GiB;
 constexpr double RAMb = 15.0 * GiB;
 
-constexpr int32_t m_r = 24;
-constexpr int32_t n_r = 9;
+constexpr std::int32_t m_r = 24;
+constexpr std::int32_t n_r = 9;
 
 namespace {
-auto cld(int32_t n, int32_t d) -> int32_t { return (n + d - 1) / d; }
+auto cld(std::int32_t n, std::int32_t d) -> std::int32_t { return (n + d - 1) / d; }
 
 auto l1_use(auto k_c) { return ((m_r + n_r) * k_c) + (m_r * n_r); }
 auto l2_use(auto m_c, auto k_c) { return ((m_c + n_r) * k_c) + (m_c * n_r); }
@@ -107,7 +107,7 @@ auto l3_use(auto m_c, auto k_c, auto n_c) {
 struct MatOpt {
   double KN;
   double MKN;
-  constexpr MatOpt(int32_t M, int32_t K, int32_t N)
+  constexpr MatOpt(std::int32_t M, std::int32_t K, std::int32_t N)
     : KN(double(K) * double(N)), MKN(double(M) * KN) {}
   [[nodiscard]] auto ram_to_l3_datavolume(auto k_c, auto n_c) const {
     // Our l3 multiplies C[m_c, n_c] = A[m_c, k_c] * B[k_c, n_c]
@@ -182,10 +182,10 @@ struct MatOpt {
 };
 
 namespace {
-auto optimizeFloat(int32_t M, int32_t K, int32_t N) -> std::array<double, 4> {
+auto optimizeFloat(std::int32_t M, std::int32_t K, std::int32_t N) -> std::array<double, 4> {
 
-  math::BoxTransform box(std::array<int32_t, 3>{1, 1, 1},
-                         std::array<int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
+  math::BoxTransform box(std::array<std::int32_t, 3>{1, 1, 1},
+                         std::array<std::int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
   { // init, we set `m_c = 3*m_r` and then use l2 and l3 sizes for rest
     box.transformed()[0] = 8;
     double m_c = 8 * m_r,
@@ -201,10 +201,10 @@ auto optimizeFloat(int32_t M, int32_t K, int32_t N) -> std::array<double, 4> {
   return {opt, m_r * box.transformed()[0], box.transformed()[1],
           n_r * box.transformed()[2]};
 }
-auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
+auto optimize(std::int32_t M, std::int32_t K, std::int32_t N) -> std::array<std::int32_t, 3> {
 
-  math::BoxTransform box(std::array<int32_t, 3>{1, 1, 1},
-                         std::array<int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
+  math::BoxTransform box(std::array<std::int32_t, 3>{1, 1, 1},
+                         std::array<std::int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
   { // init, we set `m_c = 3*m_r` and then use l2 and l3 sizes for rest
     box.transformed()[0] = 4;
     double m_c = 4 * m_r,
@@ -216,7 +216,7 @@ auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
   }
 
   alloc::OwningArena<> arena;
-  math::Vector<int32_t> r{math::length(3)};
+  math::Vector<std::int32_t> r{math::length(3)};
   math::minimizeIntSol(&arena, r, box, MatOpt{M, K, N});
   return {m_r * r[0], r[1], n_r * r[2]};
 }
@@ -224,7 +224,7 @@ auto optimize(int32_t M, int32_t K, int32_t N) -> std::array<int32_t, 3> {
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BoxOptTest, Matmul) {
-  int32_t M = 1000, K = 2000, N = 1000;
+  std::int32_t M = 1000, K = 2000, N = 1000;
   auto [opt, m_cf, k_cf, n_cf] = optimizeFloat(M, K, N);
   std::cout << "opt result = " << opt << "\nm_cf = " << m_cf
             << "\nk_cf = " << k_cf << "\nn_cf = " << n_cf << "\n";

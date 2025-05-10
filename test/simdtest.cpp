@@ -11,7 +11,7 @@ import AxisTypes;
 import Elementary;
 import ExprTemplates;
 import ManagedArray;
-import STL;
+import std;
 #endif
 
 TEST(ElementarySIMD, BasicAssertions) {
@@ -30,5 +30,5 @@ TEST(ElementarySIMD, BasicAssertions) {
     z{math::length(15)};
 
   z << math::elementwise(x.view(), [](auto a) { return math::exp(a); });
-  for (ptrdiff_t i = 0; i < 15; ++i) EXPECT_DOUBLE_EQ(y[i], z[i]);
+  for (std::ptrdiff_t i = 0; i < 15; ++i) EXPECT_DOUBLE_EQ(y[i], z[i]);
 }

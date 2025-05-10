@@ -5,19 +5,19 @@
 #else
 
 import MultiplicativeInverse;
-import STL;
+import std;
 #endif
 
 using math::MultiplicativeInverse, math::cld;
 
 TEST(MultiplicativeInverse, BasicAssertions) {
-  for (int32_t j = -100; j <= 100; ++j) {
+  for (std::int32_t j = -100; j <= 100; ++j) {
     if (j == 0) continue;
     auto mij = MultiplicativeInverse(j);
     auto mijf = MultiplicativeInverse(float(j));
-    for (int32_t i = -1000; i <= 1000; ++i) {
+    for (std::int32_t i = -1000; i <= 1000; ++i) {
       auto [d, r] = mij.divrem(i);
-      int32_t qref = i / j, rref = i % j, cref = cld(i, j);
+      std::int32_t qref = i / j, rref = i % j, cref = cld(i, j);
       EXPECT_EQ(qref, d);
       EXPECT_EQ(rref, r);
       EXPECT_EQ(cref, cld(i, mij));
@@ -30,13 +30,13 @@ TEST(MultiplicativeInverse, BasicAssertions) {
       EXPECT_EQ(mijf * i, j * i);
     }
   }
-  for (int64_t j = -100; j <= 100; ++j) {
+  for (std::int64_t j = -100; j <= 100; ++j) {
     if (j == 0) continue;
     auto mij = MultiplicativeInverse(j);
     auto mijf = MultiplicativeInverse(double(j));
-    for (int64_t i = -1000; i <= 1000; ++i) {
+    for (std::int64_t i = -1000; i <= 1000; ++i) {
       auto [d, r] = mij.divrem(i);
-      int64_t qref = i / j, rref = i % j, cref = cld(i, j);
+      std::int64_t qref = i / j, rref = i % j, cref = cld(i, j);
       EXPECT_EQ(qref, d);
       EXPECT_EQ(rref, r);
       EXPECT_EQ(cref, cld(i, mij));
@@ -48,22 +48,22 @@ TEST(MultiplicativeInverse, BasicAssertions) {
       EXPECT_EQ(mijf * i, j * i);
     }
   }
-  for (uint32_t j = 1; j <= 200; ++j) {
+  for (std::uint32_t j = 1; j <= 200; ++j) {
     auto mij = MultiplicativeInverse(j);
-    for (uint32_t i = 0; i <= 2000; ++i) {
+    for (std::uint32_t i = 0; i <= 2000; ++i) {
       auto [d, r] = mij.divrem(i);
-      uint32_t qref = i / j, rref = i % j, cref = cld(i, j);
+      std::uint32_t qref = i / j, rref = i % j, cref = cld(i, j);
       EXPECT_EQ(qref, d);
       EXPECT_EQ(rref, r);
       EXPECT_EQ(cref, cld(i, mij));
       EXPECT_EQ(mij * i, j * i);
     }
   }
-  for (uint64_t j = 1; j <= 200; ++j) {
+  for (std::uint64_t j = 1; j <= 200; ++j) {
     auto mij = MultiplicativeInverse(j);
-    for (uint64_t i = 0; i <= 2000; ++i) {
+    for (std::uint64_t i = 0; i <= 2000; ++i) {
       auto [d, r] = mij.divrem(i);
-      uint64_t qref = i / j, rref = i % j, cref = cld(i, j);
+      std::uint64_t qref = i / j, rref = i % j, cref = cld(i, j);
       EXPECT_EQ(qref, d);
       EXPECT_EQ(rref, r);
       EXPECT_EQ(cref, cld(i, mij));

@@ -136,7 +136,7 @@ consteval auto ScalarizeViaCastTo() -> bool {
 }
 
 // returns Unroll, Iters, Remainder
-template <ptrdiff_t R> consteval auto unrollf() -> std::array<ptrdiff_t, 2> {
+template <std::ptrdiff_t R> consteval auto unrollf() -> std::array<std::ptrdiff_t, 2> {
   if (R <= 5) return {0, R};
   if (R == 7) return {0, 7};
   if ((R % 4) == 0) return {4, 0};
@@ -147,7 +147,7 @@ template <ptrdiff_t R> consteval auto unrollf() -> std::array<ptrdiff_t, 2> {
 }
 
 // template <typename D, typename S>
-// constexpr void fastCopy(D *d, const S *s, size_t N) {
+// constexpr void fastCopy(D *d, const S *s, std::size_t N) {
 //   if (!N) return;
 //   // if constexpr (std::same_as<D, S> && std::is_trivially_copyable_v<D>)
 //   //   std::memcpy(d, s, N * sizeof(D));
@@ -159,7 +159,7 @@ template <ptrdiff_t R> consteval auto unrollf() -> std::array<ptrdiff_t, 2> {
 template <typename A, typename B>
 TRIVIAL constexpr auto promote_shape(const A &a, const B &b) {
   if constexpr (AbstractVector<A> && AbstractVector<B>) {
-    return CartesianIndex(std::integral_constant<ptrdiff_t, 1>{},
+    return CartesianIndex(std::integral_constant<std::ptrdiff_t, 1>{},
                           check_sizes(a.size(), b.size()));
   } else {
     auto sa = shape(a);
@@ -190,11 +190,11 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
   using PT = std::common_type_t<utils::eltype_t<LHS>, utils::eltype_t<RHS>>;
   invariant(L >= 0);
   if constexpr (StaticInt<I>) {
-    constexpr std::array<ptrdiff_t, 3> vdr =
-      simd::VectorDivRem<ptrdiff_t(L), PT>();
-    constexpr ptrdiff_t W = vdr[0];
-    constexpr ptrdiff_t fulliter = vdr[1];
-    constexpr ptrdiff_t remainder = vdr[2];
+    constexpr std::array<std::ptrdiff_t, 3> vdr =
+      simd::VectorDivRem<std::ptrdiff_t(L), PT>();
+    constexpr std::ptrdiff_t W = vdr[0];
+    constexpr std::ptrdiff_t fulliter = vdr[1];
+    constexpr std::ptrdiff_t remainder = vdr[2];
     if constexpr (remainder > 0) {
       auto u{simd::index::unrollmask<fulliter + 1, W>(L, 0)};
       detail::assign(A, B, row, u, op);
@@ -203,20 +203,20 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
       detail::assign(A, B, row, u, op);
     }
   } else {
-    constexpr ptrdiff_t W = simd::Width<PT>;
+    constexpr std::ptrdiff_t W = simd::Width<PT>;
 #ifdef __AVX512VL__
-    // ptrdiff_t i = 0;
-    // for (ptrdiff_t j = W; j <= L; j += W) {
+    // std::ptrdiff_t i = 0;
+    // for (std::ptrdiff_t j = W; j <= L; j += W) {
     //   simd::index::Unroll<1, W> u{i};
     //   detail::assign(A, B, row, u, op);
     //   i = j;
     // }
-    // if (ptrdiff_t M = L % W) {
+    // if (std::ptrdiff_t M = L % W) {
     //   auto u{simd::index::tailmask<W>(i, M)};
     //   detail::assign(A, B, row, u, op);
     // }
-    ptrdiff_t i = 0;
-    static constexpr ptrdiff_t vbody = std::min(4 * W, ptrdiff_t(64));
+    std::ptrdiff_t i = 0;
+    static constexpr std::ptrdiff_t vbody = std::min(4 * W, std::ptrdiff_t(64));
     POLYMATHNOUNROLL
     for (; i <= L - vbody; i += vbody) {
       simd::index::Unroll<vbody / W, W> u{i};
@@ -234,10 +234,10 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
         // ufull.index_);
       }
     }
-    // for (ptrdiff_t i = 0;;) {
+    // for (std::ptrdiff_t i = 0;;) {
     //   auto ufull{simd::index::unrollmask<1, 64>(L, i)};
     //   POLYMATHIVDEP
-    //   for (ptrdiff_t j = 0; (j < (64 / W)); ++j) {
+    //   for (std::ptrdiff_t j = 0; (j < (64 / W)); ++j) {
     //     if (!ufull) return;
     //     auto u{ufull.template sub<W>()};
     //     detail::assign(A, B, row, u, op);
@@ -245,16 +245,16 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
     //   i = ufull.index_;
     // }
 #else
-    ptrdiff_t i = 0;
+    std::ptrdiff_t i = 0;
     for (; i <= L - W; i += W) {
       simd::index::Unroll<1, W> u{i};
       detail::assign(A, B, row, u, op);
     }
-    if (ptrdiff_t M = L - i) {
+    if (std::ptrdiff_t M = L - i) {
       auto u{simd::index::tailmask<W>(i, M)};
       detail::assign(A, B, row, u, op);
     }
-    // for (ptrdiff_t i = 0;; i += W) {
+    // for (std::ptrdiff_t i = 0;; i += W) {
     //   auto u{simd::index::unrollmask<1, W>(L, i)};
     //   if (!u) break;
     //   detail::assign(A, B, row, u, op);
@@ -272,7 +272,7 @@ template <class T, class S, class P> class ArrayOps {
   // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
   //   return static_cast<const P *>(this)->data();
   // }
-  TRIVIAL [[nodiscard]] constexpr auto size_() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto size_() const -> std::ptrdiff_t {
     return static_cast<const P *>(this)->size();
   }
   TRIVIAL [[nodiscard]] constexpr auto dim_() const -> S {
@@ -281,8 +281,8 @@ template <class T, class S, class P> class ArrayOps {
   // returns a mutable view of self
   TRIVIAL constexpr auto Self() -> P & { return *static_cast<P *>(this); }
   TRIVIAL constexpr auto SelfView() { return static_cast<P *>(this)->mview(); }
-  [[nodiscard]] TRIVIAL constexpr auto nr() const -> ptrdiff_t {
-    return ptrdiff_t(static_cast<const P *>(this)->numRow());
+  [[nodiscard]] TRIVIAL constexpr auto nr() const -> std::ptrdiff_t {
+    return std::ptrdiff_t(static_cast<const P *>(this)->numRow());
   }
   [[nodiscard]] TRIVIAL constexpr auto nc() const {
     return unwrapCol(static_cast<const P *>(this)->numCol());
@@ -323,17 +323,17 @@ protected:
       else if constexpr (IsOne<decltype(N)>)
         vcopyToSIMD(self, view(B), M, detail::NoRowIndex{}, op);
       else if constexpr (StaticInt<decltype(M)>) {
-        constexpr std::array<ptrdiff_t, 2> UIR =
-          detail::unrollf<ptrdiff_t(M)>();
-        constexpr ptrdiff_t U = UIR[0];
+        constexpr std::array<std::ptrdiff_t, 2> UIR =
+          detail::unrollf<std::ptrdiff_t(M)>();
+        constexpr std::ptrdiff_t U = UIR[0];
         if constexpr (U != 0)
-          for (ptrdiff_t r = 0; r < (M - U + 1); r += U)
+          for (std::ptrdiff_t r = 0; r < (M - U + 1); r += U)
             vcopyToSIMD(self, B, N, simd::index::Unroll<U>{r}, op);
-        constexpr ptrdiff_t R = UIR[1];
+        constexpr std::ptrdiff_t R = UIR[1];
         if constexpr (R != 0)
           vcopyToSIMD(self, B, N, simd::index::Unroll<R>{M - R}, op);
       } else {
-        ptrdiff_t r = 0;
+        std::ptrdiff_t r = 0;
         for (; r < (M - 3); r += 4)
           vcopyToSIMD(self, B, N, simd::index::Unroll<4>{r}, op);
         switch (M & 3) {
@@ -345,30 +345,30 @@ protected:
       }
     } else if constexpr (AbstractVector<P>) {
 #endif
-      ptrdiff_t L = IsOne<decltype(N)> ? M : N;
+      std::ptrdiff_t L = IsOne<decltype(N)> ? M : N;
       constexpr bool isstatic =
         IsOne<decltype(N)> ? StaticInt<decltype(M)> : StaticInt<decltype(N)>;
       if constexpr (!std::is_copy_assignable_v<PT> && assign) {
         POLYMATHIVDEP
-        for (ptrdiff_t j = 0; j < L; ++j)
+        for (std::ptrdiff_t j = 0; j < L; ++j)
           if constexpr (std::convertible_to<decltype(B), PT>) self[j] = auto{B};
           else self[j] = auto{B[j]};
       } else if constexpr (isstatic) {
         POLYMATHFULLUNROLL
-        for (ptrdiff_t j = 0; j < L; ++j)
+        for (std::ptrdiff_t j = 0; j < L; ++j)
           detail::assign(self, B, detail::NoRowIndex{}, j, op);
       } else {
         POLYMATHIVDEP
-        for (ptrdiff_t j = 0; j < L; ++j)
+        for (std::ptrdiff_t j = 0; j < L; ++j)
           detail::assign(self, B, detail::NoRowIndex{}, j, op);
       }
     } else {
-      ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
+      std::ptrdiff_t R = std::ptrdiff_t(M), C = std::ptrdiff_t(N);
       POLYMATHNOVECTORIZE
-      for (ptrdiff_t i = 0; i < R; ++i) {
+      for (std::ptrdiff_t i = 0; i < R; ++i) {
         if constexpr (!std::is_copy_assignable_v<PT> && assign) {
           POLYMATHIVDEP
-          for (ptrdiff_t j = 0; j < C; ++j)
+          for (std::ptrdiff_t j = 0; j < C; ++j)
             if constexpr (std::convertible_to<decltype(B), PT>)
               self[i, j] = auto{B};
             else if constexpr (RowVector<decltype(B)>) self[i, j] = auto{B[j]};
@@ -376,7 +376,7 @@ protected:
             else self[i, j] = auto{B[i, j]};
         } else {
           POLYMATHIVDEP
-          for (ptrdiff_t j = 0; j < C; ++j) detail::assign(self, B, i, j, op);
+          for (std::ptrdiff_t j = 0; j < C; ++j) detail::assign(self, B, i, j, op);
         }
       }
     }
@@ -389,7 +389,7 @@ public:
   [[gnu::flatten]] TRIVIAL constexpr auto operator<<(const UniformScaling<Y> &B)
     -> P & {
     static_assert(MatrixDimension<S>);
-    std::fill_n(data_(), ptrdiff_t(this->dim_()), T{});
+    std::fill_n(data_(), std::ptrdiff_t(this->dim_()), T{});
     static_cast<P *>(this)->diag() << B.value;
     return *static_cast<P *>(this);
   }
@@ -453,11 +453,11 @@ TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
   using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
   if constexpr (math::StaticInt<I>) {
-    constexpr ptrdiff_t SL = ptrdiff_t(L);
-    constexpr std::array<ptrdiff_t, 3> vdr = simd::VectorDivRem<SL, T>();
-    constexpr ptrdiff_t W = vdr[0];
-    constexpr ptrdiff_t fulliter = vdr[1];
-    constexpr ptrdiff_t remainder = vdr[2];
+    constexpr std::ptrdiff_t SL = std::ptrdiff_t(L);
+    constexpr std::array<std::ptrdiff_t, 3> vdr = simd::VectorDivRem<SL, T>();
+    constexpr std::ptrdiff_t W = vdr[0];
+    constexpr std::ptrdiff_t fulliter = vdr[1];
+    constexpr std::ptrdiff_t remainder = vdr[2];
     if constexpr (remainder > 0) {
       auto u{simd::index::unrollmask<fulliter + 1, W>(L, 0)};
       if constexpr (std::same_as<R, math::detail::NoRowIndex>)
@@ -481,8 +481,8 @@ TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
         [=](auto &d, const auto &s) { d[row, u] = s; });
     }
   } else {
-    constexpr ptrdiff_t W = simd::Width<T>;
-    for (ptrdiff_t i = 0;; i += W) {
+    constexpr std::ptrdiff_t W = simd::Width<T>;
+    for (std::ptrdiff_t i = 0;; i += W) {
       auto u{simd::index::unrollmask<1, W>(L, i)};
       if (!u) break;
       if constexpr (std::same_as<R, math::detail::NoRowIndex>)
@@ -532,17 +532,17 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
     else if constexpr (math::IsOne<decltype(N)>)
       vcopyToSIMD(dst, src, M, math::detail::NoRowIndex{});
     else if constexpr (math::StaticInt<decltype(M)>) {
-      constexpr std::array<ptrdiff_t, 2> UIR =
-        math::detail::unrollf<ptrdiff_t(M)>();
-      constexpr ptrdiff_t U = UIR[0];
+      constexpr std::array<std::ptrdiff_t, 2> UIR =
+        math::detail::unrollf<std::ptrdiff_t(M)>();
+      constexpr std::ptrdiff_t U = UIR[0];
       if constexpr (U != 0)
-        for (ptrdiff_t r = 0; r < (M - U + 1); r += U)
+        for (std::ptrdiff_t r = 0; r < (M - U + 1); r += U)
           vcopyToSIMD(dst, src, N, simd::index::Unroll<U>{r});
-      constexpr ptrdiff_t R = UIR[1];
+      constexpr std::ptrdiff_t R = UIR[1];
       if constexpr (R != 0)
         vcopyToSIMD(dst, src, N, simd::index::Unroll<R>{M - R});
     } else {
-      ptrdiff_t r = 0;
+      std::ptrdiff_t r = 0;
       for (; r < (M - 3); r += 4)
         vcopyToSIMD(dst, src, N, simd::index::Unroll<4>{r});
       switch (M & 3) {
@@ -556,10 +556,10 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
 #else
   if constexpr (math::AbstractVector<A>) {
 #endif
-    ptrdiff_t L = math::IsOne<decltype(N)> ? M : N;
+    std::ptrdiff_t L = math::IsOne<decltype(N)> ? M : N;
     if constexpr (!std::is_copy_assignable_v<T>) {
       POLYMATHIVDEP
-      for (ptrdiff_t j = 0; j < L; ++j)
+      for (std::ptrdiff_t j = 0; j < L; ++j)
         dst.apply(src.map([=](const auto &s) {
           if constexpr (std::convertible_to<decltype(s), T>) return s;
           else return s[j];
@@ -567,17 +567,17 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
                   [=](auto &d, auto s) { d[j] = s; });
     } else {
       POLYMATHIVDEP
-      for (ptrdiff_t j = 0; j < L; ++j)
+      for (std::ptrdiff_t j = 0; j < L; ++j)
         dst.apply(src.map([=](const auto &s) { return s[j]; }),
                   [=](auto &d, const auto &s) { d[j] = s; });
     }
   } else {
-    ptrdiff_t R = ptrdiff_t(M), C = ptrdiff_t(N);
+    std::ptrdiff_t R = std::ptrdiff_t(M), C = std::ptrdiff_t(N);
     POLYMATHNOVECTORIZE
-    for (ptrdiff_t i = 0; i < R; ++i) {
+    for (std::ptrdiff_t i = 0; i < R; ++i) {
       // if constexpr (!std::is_copy_assignable_v<T>) {
       POLYMATHIVDEP
-      for (ptrdiff_t j = 0; j < C; ++j)
+      for (std::ptrdiff_t j = 0; j < C; ++j)
         dst.apply(src.map([=](const auto &s) {
           if constexpr (std::convertible_to<decltype(s), T>) return auto{s};
           else if constexpr (math::RowVector<decltype(s)>) return auto{s[j]};
@@ -591,7 +591,7 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
                   });
       // } else {
       //   POLYMATHIVDEP
-      //   for (ptrdiff_t j = 0; j < C; ++j)
+      //   for (std::ptrdiff_t j = 0; j < C; ++j)
       //     dst.apply(src.map([=](const auto &s) { return s[i, j]; }),
       //               [=](auto &d, const auto &s) { d[i, j] = s; });
       // }

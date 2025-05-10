@@ -30,11 +30,11 @@ template <class F, class S> struct Pair {
   constexpr operator Pair<A, B>() {
     return {A{first}, B{second}};
   }
-  template <size_t I> constexpr auto get() -> auto & {
+  template <std::size_t I> constexpr auto get() -> auto & {
     if constexpr (I == 0) return first;
     else return second;
   }
-  template <size_t I> constexpr auto get() const -> const auto & {
+  template <std::size_t I> constexpr auto get() const -> const auto & {
     if constexpr (I == 0) return first;
     else return second;
   }
@@ -52,7 +52,7 @@ private:
 
 template <typename F, typename S>
 struct std::tuple_size<containers::Pair<F, S>>
-  : public std::integral_constant<size_t, 2> {};
+  : public std::integral_constant<std::size_t, 2> {};
 
 template <typename F, typename S>
 struct std::tuple_element<0, containers::Pair<F, S>> {

@@ -72,11 +72,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 # using `FIND_PACKAGE_ARGS` causes it to try `find_package`
+if (USE_MODULES)
 FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG 305e5a238b3c8d11266fbafd85520fb6b3184851 # May 24, 2024 main
-  FIND_PACKAGE_ARGS NAMES GTest)
+  googletest NAMES GTest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+  # GIT_REPOSITORY https://github.com/google/googletest.git
+  # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+  )
+else()
+FetchContent_Declare(
+  googletest FIND_PACKAGE_ARGS NAMES GTest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+  # GIT_REPOSITORY https://github.com/google/googletest.git
+  # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+  )
+endif()
 FetchContent_MakeAvailable(googletest)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")

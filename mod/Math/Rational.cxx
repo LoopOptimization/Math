@@ -33,35 +33,35 @@ namespace math {
 #endif
 
 struct Rational {
-  [[no_unique_address]] int64_t numerator_{0};
-  [[no_unique_address]] int64_t denominator_{1};
+  [[no_unique_address]] std::int64_t numerator_{0};
+  [[no_unique_address]] std::int64_t denominator_{1};
   // should be invariant that denominator >= 0
   constexpr Rational() = default;
-  constexpr Rational(int64_t coef) : numerator_(coef) {};
+  constexpr Rational(std::int64_t coef) : numerator_(coef) {};
   constexpr Rational(int coef) : numerator_(coef) {};
-  constexpr Rational(int64_t n, int64_t d)
+  constexpr Rational(std::int64_t n, std::int64_t d)
     : numerator_(d > 0 ? n : -n), denominator_(n ? (d > 0 ? d : -d) : 1) {}
-  static constexpr auto createPositiveDenominator(int64_t n, int64_t d)
+  static constexpr auto createPositiveDenominator(std::int64_t n, std::int64_t d)
     -> Rational {
     utils::assume(d > 0);
     if (!n) Rational{0, 1};
-    int64_t g = gcd(n, d);
+    std::int64_t g = gcd(n, d);
     if (g != 1) {
       n /= g;
       d /= g;
     }
     return Rational{n, d};
   }
-  static constexpr auto create(int64_t n, int64_t d) -> Rational {
+  static constexpr auto create(std::int64_t n, std::int64_t d) -> Rational {
     if (!n) return Rational{0, 1};
-    int64_t sign = 2 * (d > 0) - 1;
+    std::int64_t sign = 2 * (d > 0) - 1;
     return createPositiveDenominator(n * sign, d * sign);
   }
 
   [[nodiscard]] constexpr auto safeAdd(Rational y) const
     -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator_, y.denominator_);
-    int64_t a, b, n, d;
+    std::int64_t a, b, n, d;
     bool o1 = __builtin_smull_overflow(numerator_, yd, &a);
     bool o2 = __builtin_smull_overflow(y.numerator_, xd, &b);
     bool o3 = __builtin_smull_overflow(denominator_, yd, &d);
@@ -83,7 +83,7 @@ struct Rational {
   [[nodiscard]] constexpr auto safeSub(Rational y) const
     -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator_, y.denominator_);
-    int64_t a, b, n, d;
+    std::int64_t a, b, n, d;
     bool o1 = __builtin_smull_overflow(numerator_, yd, &a);
     bool o2 = __builtin_smull_overflow(y.numerator_, xd, &b);
     bool o3 = __builtin_smull_overflow(denominator_, yd, &d);
@@ -102,10 +102,10 @@ struct Rational {
     *this = *a;
     return *this;
   }
-  [[nodiscard]] constexpr auto safeMul(int64_t y) const
+  [[nodiscard]] constexpr auto safeMul(std::int64_t y) const
     -> std::optional<Rational> {
     auto [xd, yn] = divgcd(denominator_, y);
-    int64_t n;
+    std::int64_t n;
     if (__builtin_mul_overflow(numerator_, yn, &n)) return {};
     return Rational{n, xd};
   }
@@ -114,7 +114,7 @@ struct Rational {
     if ((numerator_ == 0) | (y.numerator_ == 0)) return Rational{0, 1};
     auto [xn, yd] = divgcd(numerator_, y.denominator_);
     auto [xd, yn] = divgcd(denominator_, y.numerator_);
-    int64_t n, d;
+    std::int64_t n, d;
     bool o1 = __builtin_smull_overflow(xn, yn, &n);
     bool o2 = __builtin_smull_overflow(xd, yd, &d);
     if (o1 | o2) return {};
@@ -137,7 +137,7 @@ struct Rational {
   }
   [[nodiscard]] constexpr auto inv() const -> Rational {
     if (numerator_ > 0) return Rational{denominator_, numerator_};
-    invariant(denominator_ != std::numeric_limits<int64_t>::min());
+    invariant(denominator_ != std::numeric_limits<std::int64_t>::min());
     invariant(numerator_ != 0);
     return Rational{-denominator_, -numerator_};
   }
@@ -173,15 +173,15 @@ struct Rational {
   constexpr auto operator!=(Rational y) const -> bool {
     return (numerator_ != y.numerator_) | (denominator_ != y.denominator_);
   }
-  [[nodiscard]] constexpr auto isEqual(int64_t y) const -> bool {
+  [[nodiscard]] constexpr auto isEqual(std::int64_t y) const -> bool {
     utils::invariant(denominator_ > 0);
     if (denominator_ == 1) return (numerator_ == y);
     return false;
   }
   constexpr auto operator==(int y) const -> bool { return isEqual(y); }
-  constexpr auto operator==(int64_t y) const -> bool { return isEqual(y); }
+  constexpr auto operator==(std::int64_t y) const -> bool { return isEqual(y); }
   constexpr auto operator!=(int y) const -> bool { return !isEqual(y); }
-  constexpr auto operator!=(int64_t y) const -> bool { return !isEqual(y); }
+  constexpr auto operator!=(std::int64_t y) const -> bool { return !isEqual(y); }
   constexpr auto operator<(Rational y) const -> bool {
     return (utils::widen(numerator_) * utils::widen(y.denominator_)) <
            (utils::widen(y.numerator_) * utils::widen(denominator_));
@@ -215,25 +215,25 @@ struct Rational {
 #endif
 
 private:
-  friend constexpr auto operator+(Rational x, int64_t y) -> Rational {
+  friend constexpr auto operator+(Rational x, std::int64_t y) -> Rational {
     return Rational{x.numerator_ + y * x.denominator_, x.denominator_};
   }
-  friend constexpr auto operator+(int64_t y, Rational x) -> Rational {
+  friend constexpr auto operator+(std::int64_t y, Rational x) -> Rational {
     return x + y;
   }
-  friend constexpr auto operator-(Rational x, int64_t y) -> Rational {
+  friend constexpr auto operator-(Rational x, std::int64_t y) -> Rational {
     return Rational{x.numerator_ - y * x.denominator_, x.denominator_};
   }
-  friend constexpr auto operator-(int64_t y, Rational x) -> Rational {
+  friend constexpr auto operator-(std::int64_t y, Rational x) -> Rational {
     return Rational{y * x.denominator_ - x.numerator_, x.denominator_};
   }
-  friend constexpr auto operator*(Rational x, int64_t y) -> Rational {
+  friend constexpr auto operator*(Rational x, std::int64_t y) -> Rational {
     return *x.safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
   }
-  friend constexpr auto operator*(int64_t y, Rational x) -> Rational {
+  friend constexpr auto operator*(std::int64_t y, Rational x) -> Rational {
     return x * y;
   }
-  friend constexpr auto operator==(int64_t x, Rational y) -> bool {
+  friend constexpr auto operator==(std::int64_t x, Rational y) -> bool {
     return y.isEqual(x);
   }
   friend auto operator<<(std::ostream &os, const Rational &x)
@@ -257,10 +257,10 @@ export {
   template <> struct std::common_type<int, math::Rational> {
     using type = math::Rational;
   };
-  template <> struct std::common_type<math::Rational, int64_t> {
+  template <> struct std::common_type<math::Rational, std::int64_t> {
     using type = math::Rational;
   };
-  template <> struct std::common_type<int64_t, math::Rational> {
+  template <> struct std::common_type<std::int64_t, math::Rational> {
     using type = math::Rational;
   };
 #ifdef USE_MODULE

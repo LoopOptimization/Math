@@ -92,8 +92,8 @@ struct MATH_GSL_POINTER MutArray;
 
 // Cases we need to consider:
 // 1. Slice-indexing
-// 2.a. `ptrdiff_t` indexing, not compressed
-// 2.b. `ptrdiff_t` indexing, compressed
+// 2.a. `std::ptrdiff_t` indexing, not compressed
+// 2.b. `std::ptrdiff_t` indexing, compressed
 // 3.a.i. Vector indexing, contig, no mask
 // 3.a.ii. Vector indexing, contig, mask
 // 3.b.i. Vector indexing, discontig, no mask
@@ -148,7 +148,7 @@ static_assert(
   std::same_as<StridedDims<3>, decltype(calcNewDim(
                                  std::declval<StridedDims<3>>(), _, _(1, 5)))>);
 
-template <typename T, bool Column, ptrdiff_t L, ptrdiff_t X>
+template <typename T, bool Column, std::ptrdiff_t L, std::ptrdiff_t X>
 struct SliceIterator {
   using dim_type = std::conditional_t<Column, StridedRange<L, X>, Length<L>>;
   using value_type =
@@ -161,7 +161,7 @@ struct SliceIterator {
   storage_type *data_;
   [[no_unique_address]] Length<L> len_;
   [[no_unique_address]] RowStride<X> row_stride_;
-  ptrdiff_t idx_;
+  std::ptrdiff_t idx_;
   // constexpr auto operator=(const SliceIterator &) -> SliceIterator & =
   // default;
   // constexpr auto operator*() -> value_type;
@@ -185,10 +185,10 @@ struct SliceIterator {
     return ret;
   }
   TRIVIAL friend constexpr auto operator-(SliceIterator a, SliceIterator b)
-    -> ptrdiff_t {
+    -> std::ptrdiff_t {
     return a.idx_ - b.idx_;
   }
-  TRIVIAL friend constexpr auto operator+(SliceIterator a, ptrdiff_t i)
+  TRIVIAL friend constexpr auto operator+(SliceIterator a, std::ptrdiff_t i)
     -> SliceIterator {
     return {a.data_, a.len_, a.row_stride_, a.idx_ + i};
   }
@@ -224,12 +224,12 @@ struct SliceIterator {
   }
 };
 
-template <typename T, bool Column, ptrdiff_t L = -1, ptrdiff_t X = -1>
+template <typename T, bool Column, std::ptrdiff_t L = -1, std::ptrdiff_t X = -1>
 struct SliceRange {
   T *data_;
   [[no_unique_address]] Length<L> len_;
   [[no_unique_address]] RowStride<X> row_stride_;
-  ptrdiff_t stop_;
+  std::ptrdiff_t stop_;
   TRIVIAL [[nodiscard]] constexpr auto begin() const
     -> SliceIterator<T, Column, L, X> {
     return {data_, len_, row_stride_, 0};
@@ -252,7 +252,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   using value_type = T;
   using reference = T &;
   using const_reference = const T &;
-  using size_type = ptrdiff_t;
+  using size_type = std::ptrdiff_t;
   using difference_type = int;
   using iterator = storage_type *;
   using const_iterator = const storage_type *;
@@ -274,20 +274,20 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL constexpr auto operator=(Array &&) noexcept -> Array & = default;
   TRIVIAL constexpr Array(const storage_type *p, S s) : ptr_{p}, sz_{s} {}
   TRIVIAL constexpr Array(Valid<const storage_type> p, S s) : ptr_{p}, sz_{s} {}
-  template <ptrdiff_t R, ptrdiff_t C>
+  template <std::ptrdiff_t R, std::ptrdiff_t C>
   TRIVIAL constexpr Array(const storage_type *p, Row<R> r, Col<C> c)
     : ptr_(p), sz_(S{r, c}) {}
-  template <ptrdiff_t R, ptrdiff_t C>
+  template <std::ptrdiff_t R, std::ptrdiff_t C>
   TRIVIAL constexpr Array(Valid<const storage_type> p, Row<R> r, Col<C> c)
     : ptr_(p), sz_(dimension<S>(r, c)) {}
   template <std::convertible_to<S> V>
   TRIVIAL constexpr Array(Array<T, V> a) : ptr_{a.data()}, sz_{a.dim()} {}
-  template <size_t N>
+  template <std::size_t N>
   TRIVIAL constexpr Array(const std::array<T, N> &a)
     : ptr_(a.data()), sz_(length(N)) {}
   TRIVIAL [[nodiscard]] constexpr auto data() const noexcept
     -> const storage_type * {
-    invariant(ptr_ != nullptr || ptrdiff_t(sz_) == 0);
+    invariant(ptr_ != nullptr || std::ptrdiff_t(sz_) == 0);
     return ptr_;
   }
   TRIVIAL [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
@@ -307,7 +307,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL [[nodiscard]] constexpr auto end() const noexcept
   requires(flatstride)
   {
-    return begin() + ptrdiff_t(sz_);
+    return begin() + std::ptrdiff_t(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto rbegin() const noexcept
   requires(flatstride)
@@ -324,7 +324,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
   TRIVIAL [[nodiscard]] constexpr auto back() const noexcept -> const T & {
     if constexpr (flatstride) return *(end() - 1);
-    else return ptr_[(sride(sz_) * ptrdiff_t(row(sz_))) - 1];
+    else return ptr_[(sride(sz_) * std::ptrdiff_t(row(sz_))) - 1];
   }
   // indexing has two components:
   // 1. offsetting the pointer
@@ -342,15 +342,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     -> decltype(auto) {
     return index<T>(ptr_, sz_, r, c);
   }
-  template <size_t I>
+  template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const T &
   requires(VectorDimension<S>)
   {
     return index<T>(ptr_, sz_, I);
   }
 
-  TRIVIAL [[nodiscard]] constexpr auto minRowCol() const -> ptrdiff_t {
-    return std::min(ptrdiff_t(numRow()), ptrdiff_t(numCol()));
+  TRIVIAL [[nodiscard]] constexpr auto minRowCol() const -> std::ptrdiff_t {
+    return std::min(std::ptrdiff_t(numRow()), std::ptrdiff_t(numCol()));
   }
 
   TRIVIAL [[nodiscard]] constexpr auto diag() const noexcept {
@@ -361,15 +361,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL [[nodiscard]] constexpr auto antiDiag() const noexcept {
     StridedRange<> r{length(minRowCol()), --stride(sz_)};
     invariant(ptr_ != nullptr);
-    return Array<T, StridedRange<>>{ptr_ + ptrdiff_t(Col(sz_)) - 1, r};
+    return Array<T, StridedRange<>>{ptr_ + std::ptrdiff_t(Col(sz_)) - 1, r};
   }
   TRIVIAL [[nodiscard]] constexpr auto isSquare() const noexcept -> bool {
-    return ptrdiff_t(Row(sz_)) == ptrdiff_t(Col(sz_));
+    return std::ptrdiff_t(Row(sz_)) == std::ptrdiff_t(Col(sz_));
   }
   TRIVIAL [[nodiscard]] constexpr auto checkSquare() const
-    -> Optional<ptrdiff_t> {
-    ptrdiff_t N = ptrdiff_t(numRow());
-    if (N != ptrdiff_t(numCol())) return {};
+    -> Optional<std::ptrdiff_t> {
+    std::ptrdiff_t N = std::ptrdiff_t(numRow());
+    if (N != std::ptrdiff_t(numCol())) return {};
     return N;
   }
 
@@ -390,14 +390,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
   TRIVIAL [[nodiscard]] constexpr auto size() const noexcept {
     if constexpr (StaticLength<S>) return S::staticint();
-    else return ptrdiff_t(sz_);
+    else return std::ptrdiff_t(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz_; }
   TRIVIAL constexpr void clear()
   requires(std::same_as<S, Length<>>)
   {
     if constexpr (!std::is_trivially_destructible_v<T>)
-      std::destroy_n(ptr_, ptrdiff_t(sz_));
+      std::destroy_n(ptr_, std::ptrdiff_t(sz_));
     sz_ = S{};
   }
   TRIVIAL [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
@@ -406,18 +406,18 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool
   requires(MatrixDimension<S>)
   {
-    ptrdiff_t N = ptrdiff_t(numRow());
-    if (N != ptrdiff_t(numCol())) return false;
-    for (ptrdiff_t i = 0; i < N; ++i) {
-      for (ptrdiff_t j = 0; j < N; ++j)
+    std::ptrdiff_t N = std::ptrdiff_t(numRow());
+    if (N != std::ptrdiff_t(numCol())) return false;
+    for (std::ptrdiff_t i = 0; i < N; ++i) {
+      for (std::ptrdiff_t j = 0; j < N; ++j)
         if ((*this)[i, j] != (i + j == N - 1)) return false;
     }
   }
   [[nodiscard]] constexpr auto isDiagonal() const -> bool
   requires(MatrixDimension<S>)
   {
-    for (ptrdiff_t r = 0; r < numRow(); ++r)
-      for (ptrdiff_t c = 0; c < numCol(); ++c)
+    for (std::ptrdiff_t r = 0; r < numRow(); ++r)
+      for (std::ptrdiff_t c = 0; c < numCol(); ++c)
         if (r != c && (*this)[r, c] != 0) return false;
     return true;
   }
@@ -435,20 +435,20 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept
     -> bool {
     if constexpr (MatrixDimension<S> && !DenseLayout<S>) {
-      ptrdiff_t M = ptrdiff_t(other.numRow());
+      std::ptrdiff_t M = std::ptrdiff_t(other.numRow());
       if ((numRow() != M) || (numCol() != other.numCol())) return false;
       // may not be dense, iterate over rows
-      for (ptrdiff_t i = 0; i < M; ++i)
+      for (std::ptrdiff_t i = 0; i < M; ++i)
         if ((*this)[i, _] != other[i, _]) return false;
     } else if constexpr (!MatrixDimension<S>) {
-      constexpr ptrdiff_t W = simd::Width<T>;
-      ptrdiff_t N = size();
+      constexpr std::ptrdiff_t W = simd::Width<T>;
+      std::ptrdiff_t N = size();
       if (N != other.size()) return false;
       if constexpr (W == 1) {
-        for (ptrdiff_t i = 0; i < N; ++i)
+        for (std::ptrdiff_t i = 0; i < N; ++i)
           if ((*this)[i] != other[i]) return false;
       } else {
-        for (ptrdiff_t i = 0;; i += W) {
+        for (std::ptrdiff_t i = 0;; i += W) {
           auto u{simd::index::unrollmask<1, W>(N, i)};
           if (!u) break;
           if (simd::cmp::ne<W, T>((*this)[u], other[u])) return false;
@@ -493,20 +493,20 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       constexpr auto ratio = sizeof(storage_type) / sizeof(U);
 #ifdef __cpp_lib_start_lifetime_as
       U *p = std::start_lifetime_as_array(reinterpret_cast<const U *>(data()),
-                                          ratio * ptrdiff_t(rowStride()) * r);
+                                          ratio * std::ptrdiff_t(rowStride()) * r);
 #else
       const U *p = std::launder(reinterpret_cast<const U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
         if constexpr (StaticInt<decltype(c)>)
-          return Array<U, std::integral_constant<ptrdiff_t, c * ratio>>{p, {}};
-        else return Array<U, ptrdiff_t>{p, c * ratio};
+          return Array<U, std::integral_constant<std::ptrdiff_t, c * ratio>>{p, {}};
+        else return Array<U, std::ptrdiff_t>{p, c * ratio};
       } else if constexpr (DenseLayout<S>) {
         return Array<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
       } else {
-        ptrdiff_t str = ptrdiff_t(rowStride()) * ratio;
+        std::ptrdiff_t str = std::ptrdiff_t(rowStride()) * ratio;
         if constexpr (IsOne<decltype(c)>) {
-          constexpr auto sr = std::integral_constant<ptrdiff_t, ratio>{};
+          constexpr auto sr = std::integral_constant<std::ptrdiff_t, ratio>{};
           return Array<U, StridedDims<-1, ratio, -1>>(
             p, StridedDims(row(r), col(sr), stride(str)));
         } else
@@ -517,9 +517,9 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
   [[nodiscard]] friend constexpr auto operator<=>(Array x, Array y)
     -> std::strong_ordering {
-    ptrdiff_t M = x.size();
-    ptrdiff_t N = y.size();
-    for (ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
+    std::ptrdiff_t M = x.size();
+    std::ptrdiff_t N = y.size();
+    for (std::ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
       if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
     return M <=> N;
   };
@@ -528,25 +528,25 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(col(this->sz_)), stride(this->sz_),
-            ptrdiff_t(row(this->sz_))};
+            std::ptrdiff_t(row(this->sz_))};
   }
   TRIVIAL [[nodiscard]] constexpr auto eachCol() const
     -> SliceRange<const T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(row(this->sz_)), stride(this->sz_),
-            ptrdiff_t(col(this->sz_))};
+            std::ptrdiff_t(col(this->sz_))};
   }
   friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
-      return utils::printMatrix(os, x.data(), ptrdiff_t(x.numRow()),
-                                ptrdiff_t(x.numCol()),
-                                ptrdiff_t(x.rowStride()));
+      return utils::printMatrix(os, x.data(), std::ptrdiff_t(x.numRow()),
+                                std::ptrdiff_t(x.numCol()),
+                                std::ptrdiff_t(x.rowStride()));
     else return utils::printVector(os, x.begin(), x.end());
   }
-  TRIVIAL [[nodiscard]] constexpr auto split(ptrdiff_t at) const
+  TRIVIAL [[nodiscard]] constexpr auto split(std::ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
   requires(VectorDimension<S>)
   {
@@ -565,7 +565,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     // we can't combine `gnu::used` with `requires(utils::Printable<T>)`
     // requires(utils::Printable<T>)
     if constexpr (utils::Printable<T>)
-      std::cout << "Size: " << ptrdiff_t(sz_) << " " << *this << "\n";
+      std::cout << "Size: " << std::ptrdiff_t(sz_) << " " << *this << "\n";
   }
   // [[gnu::used]] void dump(const char *filename) const {
   //   if constexpr (std::integral<T>) {
@@ -573,15 +573,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   //     if (f == nullptr) return;
   //     (void)std::fprintf(f, "C= [");
   //     if constexpr (MatrixDimension<S>) {
-  //       for (ptrdiff_t i = 0; i < Row(sz); ++i) {
+  //       for (std::ptrdiff_t i = 0; i < Row(sz); ++i) {
   //         if (i) (void)std::fprintf(f, "\n");
   //         (void)std::fprintf(f, "%ld", long((*this)[i, 0]));
-  //         for (ptrdiff_t j = 1; j < Col(sz); ++j)
+  //         for (std::ptrdiff_t j = 1; j < Col(sz); ++j)
   //           (void)std::fprintf(f, " %ld", long((*this)[i, j]));
   //       }
   //     } else {
   //       (void)std::fprintf(f, "%ld", long((*this)[0]));
-  //       for (ptrdiff_t i = 1; (i < ptrdiff_t(sz)); ++i)
+  //       for (std::ptrdiff_t i = 1; (i < std::ptrdiff_t(sz)); ++i)
   //         (void)std::fprintf(f, ", %ld", long((*this)[i]));
   //     }
   //     (void)std::fprintf(f, "]");
@@ -603,11 +603,11 @@ TRIVIAL constexpr auto view(Array<T, S> x) -> Array<T, S> {
 }
 
 static_assert(
-  std::same_as<utils::eltype_t<Array<int64_t, SquareDims<>>>, int64_t>);
-static_assert(AbstractMatrix<Array<int64_t, SquareDims<>>>);
+  std::same_as<utils::eltype_t<Array<std::int64_t, SquareDims<>>>, std::int64_t>);
+static_assert(AbstractMatrix<Array<std::int64_t, SquareDims<>>>);
 
 static_assert(
-  std::is_trivially_default_constructible_v<Array<int64_t, DenseDims<>>>);
+  std::is_trivially_default_constructible_v<Array<std::int64_t, DenseDims<>>>);
 
 template <class T, Dimension S, bool Compress>
 struct MutArray : Array<T, S, Compress>,
@@ -631,21 +631,21 @@ struct MutArray : Array<T, S, Compress>,
     S oz = this->sz_;
     this->sz_ = nz;
     if constexpr (std::same_as<S, Length<>>) {
-      invariant(ptrdiff_t(nz) <= ptrdiff_t(oz));
+      invariant(std::ptrdiff_t(nz) <= std::ptrdiff_t(oz));
       if constexpr (!std::is_trivially_destructible_v<T>)
-        if (nz < oz) std::destroy_n(this->data() + ptrdiff_t(nz), oz - nz);
+        if (nz < oz) std::destroy_n(this->data() + std::ptrdiff_t(nz), oz - nz);
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(
         std::is_trivially_destructible_v<T>,
         "Truncating matrices holding non-is_trivially_destructible_v "
         "objects is not yet supported.");
-      auto new_x = ptrdiff_t{RowStride(nz)}, old_x = ptrdiff_t{RowStride(oz)},
-           new_n = ptrdiff_t{Col(nz)}, old_n = ptrdiff_t{Col(oz)},
-           new_m = ptrdiff_t{Row(nz)}, old_m = ptrdiff_t{Row(oz)};
+      auto new_x = std::ptrdiff_t{RowStride(nz)}, old_x = std::ptrdiff_t{RowStride(oz)},
+           new_n = std::ptrdiff_t{Col(nz)}, old_n = std::ptrdiff_t{Col(oz)},
+           new_m = std::ptrdiff_t{Row(nz)}, old_m = std::ptrdiff_t{Row(oz)};
       invariant(new_m <= old_m);
       invariant(new_n <= old_n);
       invariant(new_x <= old_x);
-      ptrdiff_t cols_to_copy = new_n, rows_to_copy = new_m;
+      std::ptrdiff_t cols_to_copy = new_n, rows_to_copy = new_m;
       // we only need to copy if memory shifts position
       bool copy_cols = ((cols_to_copy > 0) && (new_x != old_x));
       // if we're in place, we have 1 less row to copy
@@ -664,7 +664,7 @@ struct MutArray : Array<T, S, Compress>,
       invariant(nz.col() <= oz.col());
     }
   }
-  TRIVIAL constexpr void truncate(ptrdiff_t nz)
+  TRIVIAL constexpr void truncate(std::ptrdiff_t nz)
   requires(std::same_as<S, Length<>>)
   {
     truncate(length(nz));
@@ -708,10 +708,10 @@ struct MutArray : Array<T, S, Compress>,
 
   template <std::convertible_to<T> U, std::convertible_to<S> V>
   TRIVIAL constexpr MutArray(Array<U, V> a) : Array<T, S>(a) {}
-  template <size_t N>
+  template <std::size_t N>
   TRIVIAL constexpr MutArray(std::array<T, N> &a) : Array<T, S>(a) {}
   TRIVIAL [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
-    invariant(this->ptr_ != nullptr || ptrdiff_t(this->sz_) == 0);
+    invariant(this->ptr_ != nullptr || std::ptrdiff_t(this->sz_) == 0);
     return const_cast<storage_type *>(this->ptr_);
   }
   TRIVIAL [[nodiscard]] constexpr auto wrappedPtr() noexcept -> Valid<T> {
@@ -731,7 +731,7 @@ struct MutArray : Array<T, S, Compress>,
     }
 
   TRIVIAL [[nodiscard]] constexpr auto end() noexcept {
-    return begin() + ptrdiff_t(this->sz_);
+    return begin() + std::ptrdiff_t(this->sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto rbegin() noexcept {
     return std::reverse_iterator(end());
@@ -757,7 +757,7 @@ struct MutArray : Array<T, S, Compress>,
     return index<T>(data(), this->sz_, r, c);
   }
 
-  template <size_t I>
+  template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() -> T &
   requires(VectorDimension<S>)
   {
@@ -765,7 +765,7 @@ struct MutArray : Array<T, S, Compress>,
   }
 
   constexpr void fill(T value) {
-    std::fill_n(this->data(), ptrdiff_t(this->dim()), value);
+    std::fill_n(this->data(), std::ptrdiff_t(this->dim()), value);
   }
   constexpr void zero() {
     if constexpr (std::is_trivially_default_constructible_v<T> &&
@@ -775,7 +775,7 @@ struct MutArray : Array<T, S, Compress>,
   }
   [[nodiscard]] constexpr auto diag() noexcept {
     Length l =
-      length(std::min(ptrdiff_t(Row(this->sz_)), ptrdiff_t(Col(this->sz_))));
+      length(std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(Col(this->sz_))));
     RowStride rs = RowStride(this->sz_);
     StridedRange<> r{l, ++rs};
     return MutArray<T, StridedRange<>>{data(), r};
@@ -783,22 +783,22 @@ struct MutArray : Array<T, S, Compress>,
   [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col<> c = Col(this->sz_);
     Length l =
-      length(ptrdiff_t(std::min(ptrdiff_t(Row(this->sz_)), ptrdiff_t(c))));
+      length(std::ptrdiff_t(std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(c))));
     RowStride rs = RowStride(this->sz_);
     StridedRange<> r{l, --rs};
-    return MutArray<T, StridedRange<>>{data() + ptrdiff_t(c) - 1, r};
+    return MutArray<T, StridedRange<>>{data() + std::ptrdiff_t(c) - 1, r};
   }
-  constexpr void erase(ptrdiff_t i)
+  constexpr void erase(std::ptrdiff_t i)
   requires(std::same_as<S, Length<>>)
   {
-    auto old_len = ptrdiff_t(this->sz_--);
+    auto old_len = std::ptrdiff_t(this->sz_--);
     if (i < this->sz_) std::copy(data() + i + 1, data() + old_len, data() + i);
   }
-  constexpr void erase_swap_last(ptrdiff_t i)
+  constexpr void erase_swap_last(std::ptrdiff_t i)
   requires(std::same_as<S, Length<>>)
   {
     --(this->sz_);
-    if (i < this->sz_) std::swap(data()[i], data()[ptrdiff_t(this->sz_)]);
+    if (i < this->sz_) std::swap(data()[i], data()[std::ptrdiff_t(this->sz_)]);
   }
   constexpr void erase(Row<> r) {
     if constexpr (std::same_as<S, Length<>>) {
@@ -806,30 +806,30 @@ struct MutArray : Array<T, S, Compress>,
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if erasing a row, matrix must be strided or dense.");
-      auto col = ptrdiff_t{Col(this->sz_)},
-           new_row = ptrdiff_t{Row(this->sz_)} - 1;
+      auto col = std::ptrdiff_t{Col(this->sz_)},
+           new_row = std::ptrdiff_t{Row(this->sz_)} - 1;
       this->sz_.set(row(new_row));
       if ((col == 0) || (r == new_row)) return;
-      storage_type *dst = data() + (ptrdiff_t(r) * col);
-      std::copy_n(dst + col, (new_row - ptrdiff_t(r)) * col, dst);
+      storage_type *dst = data() + (std::ptrdiff_t(r) * col);
+      std::copy_n(dst + col, (new_row - std::ptrdiff_t(r)) * col, dst);
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
-      auto stride = ptrdiff_t{RowStride(this->sz_)},
-           col = ptrdiff_t{Col(this->sz_)},
-           new_row = ptrdiff_t{Row(this->sz_)} - 1;
+      auto stride = std::ptrdiff_t{RowStride(this->sz_)},
+           col = std::ptrdiff_t{Col(this->sz_)},
+           new_row = std::ptrdiff_t{Row(this->sz_)} - 1;
       this->sz_.set(row(new_row));
       if ((col == 0) || (r == new_row)) return;
       invariant(col <= stride);
       if ((col + (512 / (sizeof(T)))) <= stride) {
-        storage_type *dst = data() + (ptrdiff_t(r) * stride);
-        for (auto m = ptrdiff_t(r); m < new_row; ++m) {
+        storage_type *dst = data() + (std::ptrdiff_t(r) * stride);
+        for (auto m = std::ptrdiff_t(r); m < new_row; ++m) {
           storage_type *src = dst + stride;
           std::copy_n(src, col, dst);
           dst = src;
         }
       } else {
-        storage_type *dst = data() + (ptrdiff_t(r) * stride);
-        std::copy_n(dst + stride, (new_row - ptrdiff_t(r)) * stride, dst);
+        storage_type *dst = data() + (std::ptrdiff_t(r) * stride);
+        std::copy_n(dst + stride, (new_row - std::ptrdiff_t(r)) * stride, dst);
       }
     }
   }
@@ -839,28 +839,28 @@ struct MutArray : Array<T, S, Compress>,
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
                     "if erasing a col, matrix must be strided or dense.");
-      auto new_col = ptrdiff_t{Col(this->sz_)}, old_col = new_col--,
-           row = ptrdiff_t{Row(this->sz_)};
+      auto new_col = std::ptrdiff_t{Col(this->sz_)}, old_col = new_col--,
+           row = std::ptrdiff_t{Row(this->sz_)};
       this->sz_.set(col(new_col));
-      ptrdiff_t cols_to_copy = new_col - ptrdiff_t(c);
+      std::ptrdiff_t cols_to_copy = new_col - std::ptrdiff_t(c);
       if ((cols_to_copy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
-      for (ptrdiff_t m = 0; m < row; ++m) {
-        storage_type *dst = data() + (m * new_col) + ptrdiff_t(c);
-        storage_type *src = data() + (m * old_col) + ptrdiff_t(c) + 1;
+      for (std::ptrdiff_t m = 0; m < row; ++m) {
+        storage_type *dst = data() + (m * new_col) + std::ptrdiff_t(c);
+        storage_type *src = data() + (m * old_col) + std::ptrdiff_t(c) + 1;
         std::copy_n(src, cols_to_copy, dst);
       }
     } else {
       static_assert(std::convertible_to<S, StridedDims<>>);
-      auto stride = ptrdiff_t{RowStride(this->sz_)},
-           new_col = ptrdiff_t{Col(this->sz_)} - 1,
-           row = ptrdiff_t{Row(this->sz_)};
+      auto stride = std::ptrdiff_t{RowStride(this->sz_)},
+           new_col = std::ptrdiff_t{Col(this->sz_)} - 1,
+           row = std::ptrdiff_t{Row(this->sz_)};
       this->sz_.set(col(new_col));
-      ptrdiff_t cols_to_copy = new_col - ptrdiff_t(c);
+      std::ptrdiff_t cols_to_copy = new_col - std::ptrdiff_t(c);
       if ((cols_to_copy == 0) || (row == 0)) return;
       // we only need to copy if memory shifts position
-      for (ptrdiff_t m = 0; m < row; ++m) {
-        storage_type *dst = data() + (m * stride) + ptrdiff_t(c);
+      for (std::ptrdiff_t m = 0; m < row; ++m) {
+        storage_type *dst = data() + (m * stride) + std::ptrdiff_t(c);
         std::copy_n(dst + 1, cols_to_copy, dst);
       }
     }
@@ -869,10 +869,10 @@ struct MutArray : Array<T, S, Compress>,
     static_assert(MatrixDimension<S>);
     if (j == this->numCol()) return;
     Col Nd = this->numCol() - 1;
-    for (ptrdiff_t m = 0; m < this->numRow(); ++m) {
-      auto x = (*this)[m, ptrdiff_t(j)];
-      for (auto n = ptrdiff_t(j); n < Nd;) {
-        ptrdiff_t o = n++;
+    for (std::ptrdiff_t m = 0; m < this->numRow(); ++m) {
+      auto x = (*this)[m, std::ptrdiff_t(j)];
+      for (auto n = std::ptrdiff_t(j); n < Nd;) {
+        std::ptrdiff_t o = n++;
         (*this)[m, o] = (*this)[m, n];
       }
       (*this)[m, Nd] = x;
@@ -882,13 +882,13 @@ struct MutArray : Array<T, S, Compress>,
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(col(this->sz_)), stride(this->sz_),
-            ptrdiff_t(row(this->sz_))};
+            std::ptrdiff_t(row(this->sz_))};
   }
   TRIVIAL constexpr auto eachCol() -> SliceRange<T, true, S::nrow, S::nstride>
   requires(MatrixDimension<S>)
   {
     return {data(), aslength(row(this->sz_)), stride(this->sz_),
-            ptrdiff_t(col(this->sz_))};
+            std::ptrdiff_t(col(this->sz_))};
   }
   template <typename U> TRIVIAL [[nodiscard]] auto reinterpretImpl() {
     static_assert(sizeof(storage_type) % sizeof(U) == 0);
@@ -897,24 +897,24 @@ struct MutArray : Array<T, S, Compress>,
     else {
       auto r = unwrapRow(this->numRow());
       auto c = unwrapCol(this->numCol());
-      constexpr size_t ratio = sizeof(storage_type) / sizeof(U);
+      constexpr std::size_t ratio = sizeof(storage_type) / sizeof(U);
 #ifdef __cpp_lib_start_lifetime_as
       U *p = std::start_lifetime_as_array(reinterpret_cast<const U *>(data()),
-                                          ratio * ptrdiff_t(rowStride()) * r);
+                                          ratio * std::ptrdiff_t(rowStride()) * r);
 #else
       U *p = std::launder(reinterpret_cast<U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
         if constexpr (StaticInt<decltype(c)>)
-          return MutArray<U, std::integral_constant<ptrdiff_t, c * ratio>>(
-            p, std::integral_constant<ptrdiff_t, c * ratio>{});
-        else return MutArray<U, ptrdiff_t>{p, c * ratio};
+          return MutArray<U, std::integral_constant<std::ptrdiff_t, c * ratio>>(
+            p, std::integral_constant<std::ptrdiff_t, c * ratio>{});
+        else return MutArray<U, std::ptrdiff_t>{p, c * ratio};
       } else if constexpr (DenseLayout<S>) {
         return MutArray<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
       } else {
-        ptrdiff_t str = ptrdiff_t(this->rowStride()) * ratio;
+        std::ptrdiff_t str = std::ptrdiff_t(this->rowStride()) * ratio;
         if constexpr (IsOne<decltype(c)>) {
-          constexpr auto sr = std::integral_constant<ptrdiff_t, ratio>{};
+          constexpr auto sr = std::integral_constant<std::ptrdiff_t, ratio>{};
           return MutArray<U, StridedDims<-1, ratio, -1>>(
             p, StridedDims(row(r), col(sr), stride(str)));
         } else
@@ -937,33 +937,33 @@ MutArray(T *, S) -> MutArray<decompressed_t<T>, S>;
 
 template <typename T, typename S> MutArray(MutArray<T, S>) -> MutArray<T, S>;
 
-static_assert(std::convertible_to<Array<int64_t, SquareDims<>>,
-                                  Array<int64_t, DenseDims<>>>);
-static_assert(std::convertible_to<Array<int64_t, DenseDims<8, 8>>,
-                                  Array<int64_t, DenseDims<>>>);
-static_assert(std::convertible_to<Array<int64_t, SquareDims<>>,
-                                  Array<int64_t, StridedDims<>>>);
-static_assert(std::convertible_to<Array<int64_t, DenseDims<>>,
-                                  Array<int64_t, StridedDims<>>>);
-static_assert(std::convertible_to<MutArray<int64_t, SquareDims<>>,
-                                  Array<int64_t, DenseDims<>>>);
-static_assert(std::convertible_to<MutArray<int64_t, SquareDims<>>,
-                                  Array<int64_t, StridedDims<>>>);
-static_assert(std::convertible_to<MutArray<int64_t, DenseDims<>>,
-                                  Array<int64_t, StridedDims<>>>);
-static_assert(std::convertible_to<MutArray<int64_t, SquareDims<>>,
-                                  MutArray<int64_t, DenseDims<>>>);
-static_assert(std::convertible_to<MutArray<int64_t, SquareDims<>>,
-                                  MutArray<int64_t, StridedDims<>>>);
-static_assert(std::convertible_to<MutArray<int64_t, DenseDims<>>,
-                                  MutArray<int64_t, StridedDims<>>>);
-static_assert(AbstractVector<Array<int64_t, Length<>>>);
-static_assert(!AbstractVector<Array<int64_t, StridedDims<>>>);
-static_assert(AbstractMatrix<Array<int64_t, StridedDims<>>>);
-static_assert(RowVector<Array<int64_t, Length<>>>);
-static_assert(ColVector<Transpose<int64_t, Array<int64_t, Length<>>>>);
-static_assert(ColVector<Array<int64_t, StridedRange<>>>);
-static_assert(RowVector<Transpose<int64_t, Array<int64_t, StridedRange<>>>>);
+static_assert(std::convertible_to<Array<std::int64_t, SquareDims<>>,
+                                  Array<std::int64_t, DenseDims<>>>);
+static_assert(std::convertible_to<Array<std::int64_t, DenseDims<8, 8>>,
+                                  Array<std::int64_t, DenseDims<>>>);
+static_assert(std::convertible_to<Array<std::int64_t, SquareDims<>>,
+                                  Array<std::int64_t, StridedDims<>>>);
+static_assert(std::convertible_to<Array<std::int64_t, DenseDims<>>,
+                                  Array<std::int64_t, StridedDims<>>>);
+static_assert(std::convertible_to<MutArray<std::int64_t, SquareDims<>>,
+                                  Array<std::int64_t, DenseDims<>>>);
+static_assert(std::convertible_to<MutArray<std::int64_t, SquareDims<>>,
+                                  Array<std::int64_t, StridedDims<>>>);
+static_assert(std::convertible_to<MutArray<std::int64_t, DenseDims<>>,
+                                  Array<std::int64_t, StridedDims<>>>);
+static_assert(std::convertible_to<MutArray<std::int64_t, SquareDims<>>,
+                                  MutArray<std::int64_t, DenseDims<>>>);
+static_assert(std::convertible_to<MutArray<std::int64_t, SquareDims<>>,
+                                  MutArray<std::int64_t, StridedDims<>>>);
+static_assert(std::convertible_to<MutArray<std::int64_t, DenseDims<>>,
+                                  MutArray<std::int64_t, StridedDims<>>>);
+static_assert(AbstractVector<Array<std::int64_t, Length<>>>);
+static_assert(!AbstractVector<Array<std::int64_t, StridedDims<>>>);
+static_assert(AbstractMatrix<Array<std::int64_t, StridedDims<>>>);
+static_assert(RowVector<Array<std::int64_t, Length<>>>);
+static_assert(ColVector<Transpose<std::int64_t, Array<std::int64_t, Length<>>>>);
+static_assert(ColVector<Array<std::int64_t, StridedRange<>>>);
+static_assert(RowVector<Transpose<std::int64_t, Array<std::int64_t, StridedRange<>>>>);
 
 // template <typename T, bool Column>
 // inline constexpr auto SliceIterator<T, Column>::operator*()
@@ -971,12 +971,12 @@ static_assert(RowVector<Transpose<int64_t, Array<int64_t, StridedRange<>>>>);
 //   if constexpr (Column) return {data + idx, StridedRange<>{len, rowStride}};
 //   else return {data + rowStride * idx, len};
 // }
-template <typename T, bool Column, ptrdiff_t L, ptrdiff_t X>
+template <typename T, bool Column, std::ptrdiff_t L, std::ptrdiff_t X>
 constexpr auto SliceIterator<T, Column, L, X>::operator*() const
   -> SliceIterator<T, Column, L, X>::value_type {
   if constexpr (Column)
     return {data_ + idx_, StridedRange<L, X>{len_, row_stride_}};
-  else return {data_ + (ptrdiff_t(row_stride_) * idx_), len_};
+  else return {data_ + (std::ptrdiff_t(row_stride_) * idx_), len_};
 }
 // template <typename T, bool Column>
 // inline constexpr auto operator*(SliceIterator<T, Column> it)
@@ -986,13 +986,13 @@ constexpr auto SliceIterator<T, Column, L, X>::operator*() const
 //   else return {it.data + it.rowStride * it.idx, it.len};
 // }
 
-static_assert(std::weakly_incrementable<SliceIterator<int64_t, false, -1, -1>>);
-static_assert(std::forward_iterator<SliceIterator<int64_t, false, -1, -1>>);
-static_assert(std::ranges::forward_range<SliceRange<int64_t, false>>);
-static_assert(std::ranges::range<SliceRange<int64_t, false>>);
+static_assert(std::weakly_incrementable<SliceIterator<std::int64_t, false, -1, -1>>);
+static_assert(std::forward_iterator<SliceIterator<std::int64_t, false, -1, -1>>);
+static_assert(std::ranges::forward_range<SliceRange<std::int64_t, false>>);
+static_assert(std::ranges::range<SliceRange<std::int64_t, false>>);
 using ITEST =
-  std::iter_rvalue_reference_t<SliceIterator<int64_t, true, -1, -1>>;
-static_assert(std::is_same_v<ITEST, MutArray<int64_t, StridedRange<>, false>>);
+  std::iter_rvalue_reference_t<SliceIterator<std::int64_t, true, -1, -1>>;
+static_assert(std::is_same_v<ITEST, MutArray<std::int64_t, StridedRange<>, false>>);
 
 /// Non-owning view of a managed array, capable of resizing,
 /// but not of re-allocating in case the capacity is exceeded.
@@ -1005,23 +1005,23 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr ResizeableView(storage_type *p, S s, U c) noexcept
     : BaseT(p, s), capacity_(c) {}
   constexpr ResizeableView(alloc::Arena<> *a, U c) noexcept
-    : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), S{}, c} {
+    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), S{}, c} {
   }
   constexpr ResizeableView(alloc::Arena<> *a, std::integral auto c) noexcept
-    : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), S{},
+    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), S{},
                      capacity(c)} {}
   constexpr ResizeableView(alloc::Arena<> *a, S s, U c) noexcept
-    : ResizeableView{a->template allocate<storage_type>(ptrdiff_t(c)), s, c} {}
+    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), s, c} {}
 
   [[nodiscard]] constexpr auto isFull() const -> bool {
-    return ptrdiff_t(this->sz_) == capacity_;
+    return std::ptrdiff_t(this->sz_) == capacity_;
   }
 
   template <class... Args>
   constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
-    auto s = ptrdiff_t(this->sz_), c = ptrdiff_t(this->capacity_);
+    auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
     T &ret =
       *std::construct_at<T>(this->data() + s, std::forward<Args>(args)...);
@@ -1035,14 +1035,14 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     -> decltype(auto)
   requires(std::same_as<S, Length<>>)
   {
-    if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
-    return *std::construct_at(this->data() + ptrdiff_t(this->sz_++),
+    if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
+    return *std::construct_at(this->data() + std::ptrdiff_t(this->sz_++),
                               std::forward<Args>(args)...);
   }
   constexpr void push_back_within_capacity(T value)
   requires(std::same_as<S, Length<>>)
   {
-    auto s = ptrdiff_t(this->sz_), c = ptrdiff_t(this->capacity_);
+    auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
     std::construct_at<T>(this->data() + s, std::move(value));
     this->sz_ = length(s + 1z);
@@ -1050,8 +1050,8 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr void push_back(alloc::Arena<> *alloc, T value)
   requires(std::same_as<S, Length<>>)
   {
-    if (isFull()) reserve(alloc, (ptrdiff_t(capacity_) + 1z) * 2z);
-    std::construct_at<T>(this->data() + ptrdiff_t(this->sz_++),
+    if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
+    std::construct_at<T>(this->data() + std::ptrdiff_t(this->sz_++),
                          std::move(value));
   }
   constexpr void pop_back()
@@ -1059,15 +1059,15 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   {
     invariant(this->sz_ > 0);
     if constexpr (std::is_trivially_destructible_v<T>) --this->sz_;
-    else std::destroy_at(this->data() + ptrdiff_t(--this->sz_));
+    else std::destroy_at(this->data() + std::ptrdiff_t(--this->sz_));
   }
   constexpr auto pop_back_val() -> T
   requires(std::same_as<S, Length<>>)
   {
     invariant(this->sz_ > 0);
-    return std::move(this->data()[ptrdiff_t(--this->sz_)]);
+    return std::move(this->data()[std::ptrdiff_t(--this->sz_)]);
   }
-  constexpr void resize(ptrdiff_t nz)
+  constexpr void resize(std::ptrdiff_t nz)
   requires(std::same_as<S, Length<>>)
   {
     resize(length(nz));
@@ -1082,12 +1082,12 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     S oz = this->sz_;
     this->sz_ = nz;
     if constexpr (std::same_as<S, Length<>>) {
-      auto ozs = ptrdiff_t(oz), nzs = ptrdiff_t(nz);
+      auto ozs = std::ptrdiff_t(oz), nzs = std::ptrdiff_t(nz);
       invariant(nzs <= capacity_);
       if constexpr (!std::is_trivially_destructible_v<T>) {
         if (nzs < ozs) std::destroy_n(this->data() + nz, oz - nz);
         else if (nzs > ozs)
-          for (ptrdiff_t i = ozs; i < nzs; ++i)
+          for (std::ptrdiff_t i = ozs; i < nzs; ++i)
             std::construct_at(this->data() + i);
       } else if (nz > oz)
         std::fill(this->data() + ozs, this->data() + nzs, T{});
@@ -1096,9 +1096,9 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
                     "Resizing matrices holding non-is_trivially_destructible_v "
                     "objects is not yet supported.");
       static_assert(MatrixDimension<S>, "Can only resize 1 or 2d containers.");
-      auto new_x = ptrdiff_t{RowStride(nz)}, old_x = ptrdiff_t{RowStride(oz)},
-           new_n = ptrdiff_t{Col(nz)}, old_n = ptrdiff_t{Col(oz)},
-           new_m = ptrdiff_t{Row(nz)}, old_m = ptrdiff_t{Row(oz)};
+      auto new_x = std::ptrdiff_t{RowStride(nz)}, old_x = std::ptrdiff_t{RowStride(oz)},
+           new_n = std::ptrdiff_t{Col(nz)}, old_n = std::ptrdiff_t{Col(oz)},
+           new_m = std::ptrdiff_t{Row(nz)}, old_m = std::ptrdiff_t{Row(oz)};
       invariant(U(nz) <= capacity_);
       U len = U(nz);
       T *npt = this->data();
@@ -1106,12 +1106,12 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
       // so that the start of the dst range is outside of the src range
       // we can also safely forward copy if we allocated a new ptr
       bool forward_copy = (new_x <= old_x);
-      ptrdiff_t cols_to_copy = std::min(old_n, new_n);
+      std::ptrdiff_t cols_to_copy = std::min(old_n, new_n);
       // we only need to copy if memory shifts position
       bool copy_cols = ((cols_to_copy > 0) && (new_x != old_x));
       // if we're in place, we have 1 less row to copy
-      ptrdiff_t rows_to_copy = std::min(old_m, new_m) - 1;
-      ptrdiff_t fill_count = new_n - cols_to_copy;
+      std::ptrdiff_t rows_to_copy = std::min(old_m, new_m) - 1;
+      std::ptrdiff_t fill_count = new_n - cols_to_copy;
       if ((rows_to_copy) && (copy_cols || fill_count)) {
         if (forward_copy) {
           // truncation, we need to copy rows to increase stride
@@ -1140,7 +1140,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
         }
       }
       // zero init remaining rows
-      for (ptrdiff_t m = old_m; m < new_m; ++m)
+      for (std::ptrdiff_t m = old_m; m < new_m; ++m)
         std::fill_n(npt + m * new_x, new_n, T{});
     }
   }
@@ -1162,16 +1162,16 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     }
   }
   constexpr void resizeForOverwrite(S M) {
-    invariant(ptrdiff_t(M) <= ptrdiff_t(this->sz_));
+    invariant(std::ptrdiff_t(M) <= std::ptrdiff_t(this->sz_));
     if constexpr (!std::is_trivially_destructible_v<T>) {
-      ptrdiff_t nz = ptrdiff_t(M), oz = ptrdiff_t(this->sz_);
+      std::ptrdiff_t nz = std::ptrdiff_t(M), oz = std::ptrdiff_t(this->sz_);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
       else if (nz > oz) // FIXME: user should initialize?
-        for (ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
+        for (std::ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
     }
     this->sz_ = M;
   }
-  constexpr void resizeForOverwrite(ptrdiff_t M)
+  constexpr void resizeForOverwrite(std::ptrdiff_t M)
   requires(std::same_as<S, Length<>>)
   {
     resizeForOverwrite(length(M));
@@ -1205,7 +1205,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     if constexpr (std::is_same_v<S, StridedDims<>>)
       resizeForOverwrite(S{M, N, X});
     else if constexpr (std::is_same_v<S, SquareDims<>>) {
-      invariant(ptrdiff_t(M) == ptrdiff_t(N));
+      invariant(std::ptrdiff_t(M) == std::ptrdiff_t(N));
       resizeForOverwrite(S{M});
     } else {
       static_assert(std::is_same_v<S, DenseDims<>>);
@@ -1214,9 +1214,9 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
   constexpr void resizeForOverwrite(Row<> M, Col<> N) {
     if constexpr (std::is_same_v<S, StridedDims<>>)
-      resizeForOverwrite(S{M, N, {ptrdiff_t(N)}});
+      resizeForOverwrite(S{M, N, {std::ptrdiff_t(N)}});
     else if constexpr (std::is_same_v<S, SquareDims<>>) {
-      invariant(ptrdiff_t(M) == ptrdiff_t(N));
+      invariant(std::ptrdiff_t(M) == std::ptrdiff_t(N));
       resizeForOverwrite(S{M});
     } else resizeForOverwrite(S{M, N});
   }
@@ -1224,7 +1224,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr auto insert_within_capacity(T *p, T x)
     -> T *requires(std::same_as<S, Length<>>) {
       invariant(p >= this->data());
-      T *e = this->data() + ptrdiff_t(this->sz_);
+      T *e = this->data() + std::ptrdiff_t(this->sz_);
       invariant(p <= e);
       invariant(this->sz_ < capacity_);
       if constexpr (BaseT::trivial) {
@@ -1239,13 +1239,13 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
       return p;
     }
 
-  template <size_t SlabSize, bool BumpUp>
+  template <std::size_t SlabSize, bool BumpUp>
   constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,
-                         ptrdiff_t newCapacity) {
+                         std::ptrdiff_t newCapacity) {
     if (newCapacity <= capacity_) return;
     this->ptr_ = alloc->template reallocate<false, T>(
-      const_cast<T *>(this->ptr_), ptrdiff_t(capacity_), newCapacity,
-      ptrdiff_t(this->sz_));
+      const_cast<T *>(this->ptr_), std::ptrdiff_t(capacity_), newCapacity,
+      std::ptrdiff_t(this->sz_));
     // T *oldPtr =
     //   std::exchange(this->data(), alloc->template
     //   allocate<T>(newCapacity));
@@ -1264,7 +1264,7 @@ static_assert(std::is_copy_assignable_v<Array<void *, Length<>>>);
 static_assert(std::is_copy_assignable_v<MutArray<void *, Length<>>>);
 static_assert(std::is_trivially_copyable_v<MutArray<void *, Length<>>>);
 static_assert(std::is_trivially_move_assignable_v<MutArray<void *, Length<>>>);
-[[nodiscard]] constexpr auto newCapacity(ptrdiff_t c) -> ptrdiff_t {
+[[nodiscard]] constexpr auto newCapacity(std::ptrdiff_t c) -> std::ptrdiff_t {
   return c ? c + c : 4z;
 }
 
@@ -1275,152 +1275,152 @@ concept AbstractSimilar = (MatrixDimension<S> && AbstractMatrix<T>) ||
 template <class T> using PtrVector = Array<T, Length<>>;
 template <class T> using MutPtrVector = MutArray<T, Length<>>;
 
-static_assert(AbstractVector<Array<int64_t, Length<>>>);
-static_assert(AbstractVector<MutArray<int64_t, Length<>>>);
-static_assert(!AbstractVector<int64_t>);
+static_assert(AbstractVector<Array<std::int64_t, Length<>>>);
+static_assert(AbstractVector<MutArray<std::int64_t, Length<>>>);
+static_assert(!AbstractVector<std::int64_t>);
 
 template <typename T> using StridedVector = Array<T, StridedRange<>>;
 template <typename T> using MutStridedVector = MutArray<T, StridedRange<>>;
 
-static_assert(!AbstractMatrix<StridedVector<int64_t>>);
+static_assert(!AbstractMatrix<StridedVector<std::int64_t>>);
 
-static_assert(std::is_trivially_copyable_v<MutStridedVector<int64_t>>);
+static_assert(std::is_trivially_copyable_v<MutStridedVector<std::int64_t>>);
 // static_assert(std::is_trivially_copyable_v<
-//               Elementwise<std::negate<>, StridedVector<int64_t>>>);
-// static_assert(Trivial<Elementwise<std::negate<>, StridedVector<int64_t>>>);
-static_assert(AbstractVector<StridedVector<int64_t>>);
-static_assert(AbstractVector<MutStridedVector<int64_t>>);
-static_assert(std::is_trivially_copyable_v<StridedVector<int64_t>>);
+//               Elementwise<std::negate<>, StridedVector<std::int64_t>>>);
+// static_assert(Trivial<Elementwise<std::negate<>, StridedVector<std::int64_t>>>);
+static_assert(AbstractVector<StridedVector<std::int64_t>>);
+static_assert(AbstractVector<MutStridedVector<std::int64_t>>);
+static_assert(std::is_trivially_copyable_v<StridedVector<std::int64_t>>);
 
-template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1, ptrdiff_t X = -1>
+template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1, std::ptrdiff_t X = -1>
 using PtrMatrix = Array<T, StridedDims<R, C, X>>;
-template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1, ptrdiff_t X = -1>
+template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1, std::ptrdiff_t X = -1>
 using MutPtrMatrix = MutArray<T, StridedDims<R, C, X>>;
-template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1>
+template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1>
 using DensePtrMatrix = Array<T, DenseDims<R, C>>;
-template <class T, ptrdiff_t R = -1, ptrdiff_t C = -1>
+template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1>
 using MutDensePtrMatrix = MutArray<T, DenseDims<R, C>>;
 template <class T> using SquarePtrMatrix = Array<T, SquareDims<>>;
 template <class T> using MutSquarePtrMatrix = MutArray<T, SquareDims<>>;
 
 // static_assert(AbstractMatrix<Elementwise<std::negate<>,
-// PtrMatrix<int64_t>>>);
-static_assert(utils::ElementOf<int, DensePtrMatrix<int64_t>>);
-static_assert(utils::ElementOf<int64_t, DensePtrMatrix<int64_t>>);
-static_assert(utils::ElementOf<int64_t, DensePtrMatrix<double>>);
+// PtrMatrix<std::int64_t>>>);
+static_assert(utils::ElementOf<int, DensePtrMatrix<std::int64_t>>);
+static_assert(utils::ElementOf<std::int64_t, DensePtrMatrix<std::int64_t>>);
+static_assert(utils::ElementOf<std::int64_t, DensePtrMatrix<double>>);
 static_assert(
   !utils::ElementOf<DensePtrMatrix<double>, DensePtrMatrix<double>>);
-// static_assert(HasConcreteSize<DensePtrMatrix<int64_t>>);
-static_assert(sizeof(PtrMatrix<int64_t>) ==
-              3 * sizeof(ptrdiff_t) + sizeof(int64_t *));
-static_assert(sizeof(MutPtrMatrix<int64_t>) ==
-              3 * sizeof(ptrdiff_t) + sizeof(int64_t *));
-static_assert(sizeof(DensePtrMatrix<int64_t>) ==
-              2 * sizeof(ptrdiff_t) + sizeof(int64_t *));
-static_assert(sizeof(MutDensePtrMatrix<int64_t>) ==
-              2 * sizeof(ptrdiff_t) + sizeof(int64_t *));
-static_assert(sizeof(SquarePtrMatrix<int64_t>) ==
-              sizeof(ptrdiff_t) + sizeof(int64_t *));
-static_assert(sizeof(MutSquarePtrMatrix<int64_t>) ==
-              sizeof(ptrdiff_t) + sizeof(int64_t *));
-static_assert(std::is_trivially_copyable_v<PtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> is not trivially copyable!");
-static_assert(std::is_trivially_copyable_v<PtrVector<int64_t>>,
-              "PtrVector<int64_t,0> is not trivially copyable!");
-// static_assert(std::is_trivially_copyable_v<MutPtrMatrix<int64_t>>,
-//               "MutPtrMatrix<int64_t> is not trivially copyable!");
+// static_assert(HasConcreteSize<DensePtrMatrix<std::int64_t>>);
+static_assert(sizeof(PtrMatrix<std::int64_t>) ==
+              3 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
+static_assert(sizeof(MutPtrMatrix<std::int64_t>) ==
+              3 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
+static_assert(sizeof(DensePtrMatrix<std::int64_t>) ==
+              2 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
+static_assert(sizeof(MutDensePtrMatrix<std::int64_t>) ==
+              2 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
+static_assert(sizeof(SquarePtrMatrix<std::int64_t>) ==
+              sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
+static_assert(sizeof(MutSquarePtrMatrix<std::int64_t>) ==
+              sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
+static_assert(std::is_trivially_copyable_v<PtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> is not trivially copyable!");
+static_assert(std::is_trivially_copyable_v<PtrVector<std::int64_t>>,
+              "PtrVector<std::int64_t,0> is not trivially copyable!");
+// static_assert(std::is_trivially_copyable_v<MutPtrMatrix<std::int64_t>>,
+//               "MutPtrMatrix<std::int64_t> is not trivially copyable!");
 
-static_assert(!AbstractVector<PtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractVector succeeded");
-static_assert(!AbstractVector<MutPtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractVector succeeded");
-static_assert(!AbstractVector<const PtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractVector succeeded");
+static_assert(!AbstractVector<PtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractVector succeeded");
+static_assert(!AbstractVector<MutPtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractVector succeeded");
+static_assert(!AbstractVector<const PtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractVector succeeded");
 
-static_assert(AbstractMatrix<PtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractMatrix failed");
+static_assert(AbstractMatrix<PtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractMatrix failed");
 static_assert(
-  std::same_as<decltype(PtrMatrix<int64_t>(nullptr, row(0),
-                                           col(0))[ptrdiff_t(0), ptrdiff_t(0)]),
-               const int64_t &>);
+  std::same_as<decltype(PtrMatrix<std::int64_t>(nullptr, row(0),
+                                           col(0))[std::ptrdiff_t(0), std::ptrdiff_t(0)]),
+               const std::int64_t &>);
 static_assert(
-  std::same_as<std::remove_reference_t<decltype(MutPtrMatrix<int64_t>(
-                 nullptr, row(0), col(0))[ptrdiff_t(0), ptrdiff_t(0)])>,
-               int64_t>);
+  std::same_as<std::remove_reference_t<decltype(MutPtrMatrix<std::int64_t>(
+                 nullptr, row(0), col(0))[std::ptrdiff_t(0), std::ptrdiff_t(0)])>,
+               std::int64_t>);
 
-static_assert(AbstractMatrix<MutPtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractMatrix failed");
-static_assert(AbstractMatrix<const PtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractMatrix failed");
-static_assert(AbstractMatrix<const MutPtrMatrix<int64_t>>,
-              "PtrMatrix<int64_t> isa AbstractMatrix failed");
+static_assert(AbstractMatrix<MutPtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractMatrix failed");
+static_assert(AbstractMatrix<const PtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractMatrix failed");
+static_assert(AbstractMatrix<const MutPtrMatrix<std::int64_t>>,
+              "PtrMatrix<std::int64_t> isa AbstractMatrix failed");
 
-static_assert(AbstractVector<MutPtrVector<int64_t>>,
-              "PtrVector<int64_t> isa AbstractVector failed");
-static_assert(AbstractVector<PtrVector<int64_t>>,
-              "PtrVector<const int64_t> isa AbstractVector failed");
-static_assert(AbstractVector<const PtrVector<int64_t>>,
-              "PtrVector<const int64_t> isa AbstractVector failed");
-static_assert(AbstractVector<const MutPtrVector<int64_t>>,
-              "PtrVector<const int64_t> isa AbstractVector failed");
+static_assert(AbstractVector<MutPtrVector<std::int64_t>>,
+              "PtrVector<std::int64_t> isa AbstractVector failed");
+static_assert(AbstractVector<PtrVector<std::int64_t>>,
+              "PtrVector<const std::int64_t> isa AbstractVector failed");
+static_assert(AbstractVector<const PtrVector<std::int64_t>>,
+              "PtrVector<const std::int64_t> isa AbstractVector failed");
+static_assert(AbstractVector<const MutPtrVector<std::int64_t>>,
+              "PtrVector<const std::int64_t> isa AbstractVector failed");
 
-static_assert(!AbstractMatrix<MutPtrVector<int64_t>>,
-              "PtrVector<int64_t> isa AbstractMatrix succeeded");
-static_assert(!AbstractMatrix<PtrVector<int64_t>>,
-              "PtrVector<const int64_t> isa AbstractMatrix succeeded");
-static_assert(!AbstractMatrix<const PtrVector<int64_t>>,
-              "PtrVector<const int64_t> isa AbstractMatrix succeeded");
-static_assert(!AbstractMatrix<const MutPtrVector<int64_t>>,
-              "PtrVector<const int64_t> isa AbstractMatrix succeeded");
+static_assert(!AbstractMatrix<MutPtrVector<std::int64_t>>,
+              "PtrVector<std::int64_t> isa AbstractMatrix succeeded");
+static_assert(!AbstractMatrix<PtrVector<std::int64_t>>,
+              "PtrVector<const std::int64_t> isa AbstractMatrix succeeded");
+static_assert(!AbstractMatrix<const PtrVector<std::int64_t>>,
+              "PtrVector<const std::int64_t> isa AbstractMatrix succeeded");
+static_assert(!AbstractMatrix<const MutPtrVector<std::int64_t>>,
+              "PtrVector<const std::int64_t> isa AbstractMatrix succeeded");
 
-template <class S> using IntArray = Array<int64_t, S>;
+template <class S> using IntArray = Array<std::int64_t, S>;
 
-static_assert(std::convertible_to<Array<int64_t, SquareDims<>>,
-                                  Array<int64_t, StridedDims<>>>);
+static_assert(std::convertible_to<Array<std::int64_t, SquareDims<>>,
+                                  Array<std::int64_t, StridedDims<>>>);
 
-static_assert(std::same_as<const int64_t &,
-                           decltype(std::declval<PtrMatrix<int64_t>>()[0, 0])>);
-static_assert(std::is_trivially_copyable_v<MutArray<int64_t, Length<>>>);
+static_assert(std::same_as<const std::int64_t &,
+                           decltype(std::declval<PtrMatrix<std::int64_t>>()[0, 0])>);
+static_assert(std::is_trivially_copyable_v<MutArray<std::int64_t, Length<>>>);
 
-constexpr void swap(MutPtrMatrix<int64_t> A, Row<> i, Row<> j) {
+constexpr void swap(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j) {
   if (i == j) return;
   Col N = A.numCol();
   invariant((i < A.numRow()) && (j < A.numRow()));
-  for (ptrdiff_t n = 0; n < N; ++n)
-    std::swap(A[ptrdiff_t(i), n], A[ptrdiff_t(j), n]);
+  for (std::ptrdiff_t n = 0; n < N; ++n)
+    std::swap(A[std::ptrdiff_t(i), n], A[std::ptrdiff_t(j), n]);
 }
-constexpr void swap(MutPtrMatrix<int64_t> A, Col<> i, Col<> j) {
+constexpr void swap(MutPtrMatrix<std::int64_t> A, Col<> i, Col<> j) {
   if (i == j) return;
   Row M = A.numRow();
   invariant((i < A.numCol()) && (j < A.numCol()));
-  for (ptrdiff_t m = 0; m < M; ++m)
-    std::swap(A[m, ptrdiff_t(i)], A[m, ptrdiff_t(j)]);
+  for (std::ptrdiff_t m = 0; m < M; ++m)
+    std::swap(A[m, std::ptrdiff_t(i)], A[m, std::ptrdiff_t(j)]);
 }
 // static_assert(
-//   AbstractMatrix<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
+//   AbstractMatrix<MatMatMul<PtrMatrix<std::int64_t>, PtrMatrix<std::int64_t>>>);
 
-static_assert(std::copy_constructible<PtrMatrix<int64_t>>);
-// static_assert(std::is_trivially_copyable_v<MutPtrMatrix<int64_t>>);
-static_assert(std::is_trivially_copyable_v<PtrMatrix<int64_t>>);
-static_assert(utils::TriviallyCopyable<PtrMatrix<int64_t>>);
+static_assert(std::copy_constructible<PtrMatrix<std::int64_t>>);
+// static_assert(std::is_trivially_copyable_v<MutPtrMatrix<std::int64_t>>);
+static_assert(std::is_trivially_copyable_v<PtrMatrix<std::int64_t>>);
+static_assert(utils::TriviallyCopyable<PtrMatrix<std::int64_t>>);
 // static_assert(
-//   Trivial<ElementwiseBinaryOp<PtrMatrix<int64_t>, int, std::multiplies<>>>);
-// static_assert(Trivial<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>);
-// static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<int64_t>, int,
+//   Trivial<ElementwiseBinaryOp<PtrMatrix<std::int64_t>, int, std::multiplies<>>>);
+// static_assert(Trivial<MatMatMul<PtrMatrix<std::int64_t>, PtrMatrix<std::int64_t>>>);
+// static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<std::int64_t>, int,
 //                                                  std::multiplies<>>>,
 //               "ElementwiseBinaryOp isa AbstractMatrix failed");
 
 // static_assert(
-//   !AbstractVector<MatMatMul<PtrMatrix<int64_t>, PtrMatrix<int64_t>>>,
+//   !AbstractVector<MatMatMul<PtrMatrix<std::int64_t>, PtrMatrix<std::int64_t>>>,
 //   "MatMul should not be an AbstractVector!");
-// static_assert(AbstractMatrix<MatMatMul<PtrMatrix<int64_t>,
-// PtrMatrix<int64_t>>>,
+// static_assert(AbstractMatrix<MatMatMul<PtrMatrix<std::int64_t>,
+// PtrMatrix<std::int64_t>>>,
 //               "MatMul is not an AbstractMatrix!");
-static_assert(AbstractMatrix<Transpose<int64_t, PtrMatrix<int64_t>>>);
-static_assert(ColVector<StridedVector<int64_t>>);
+static_assert(AbstractMatrix<Transpose<std::int64_t, PtrMatrix<std::int64_t>>>);
+static_assert(ColVector<StridedVector<std::int64_t>>);
 static_assert(
-  AbstractVector<decltype(-std::declval<StridedVector<int64_t>>())>);
-static_assert(ColVector<decltype(-std::declval<StridedVector<int64_t>>() * 0)>);
+  AbstractVector<decltype(-std::declval<StridedVector<std::int64_t>>())>);
+static_assert(ColVector<decltype(-std::declval<StridedVector<std::int64_t>>() * 0)>);
 
 static_assert(RowVector<math::Array<double, math::Length<-1, long>, false>>);
 static_assert(
@@ -1429,9 +1429,9 @@ static_assert(
 // -1>, false>, double>);
 
 // template <typename T> constexpr auto countNonZero(PtrMatrix<T> x) ->
-// ptrdiff_t {
-//   ptrdiff_t count = 0;
-//   for (ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x[r, _]);
+// std::ptrdiff_t {
+//   std::ptrdiff_t count = 0;
+//   for (std::ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x[r, _]);
 //   return count;
 // }
 
@@ -1454,37 +1454,37 @@ static_assert(
   std::same_as<utils::eltype_t<math::Array<unsigned, math::Length<>>>,
                unsigned>);
 
-template <class T, ptrdiff_t L>
+template <class T, std::ptrdiff_t L>
 requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_size<::math::Array<T, ::math::Length<L>>>
-  : std::integral_constant<ptrdiff_t, L> {};
+  : std::integral_constant<std::ptrdiff_t, L> {};
 
-template <size_t I, class T, ptrdiff_t L>
+template <std::size_t I, class T, std::ptrdiff_t L>
 requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_element<I, ::math::Array<T, ::math::Length<L>>> {
   using type = T;
 };
 
-template <class T, ptrdiff_t L,
-          ptrdiff_t X>
+template <class T, std::ptrdiff_t L,
+          std::ptrdiff_t X>
 requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_size<::math::Array<T, ::math::StridedRange<L, X>>>
-  : std::integral_constant<ptrdiff_t, L> {};
+  : std::integral_constant<std::ptrdiff_t, L> {};
 
-template <size_t I, class T, ptrdiff_t L,
-          ptrdiff_t X>
+template <std::size_t I, class T, std::ptrdiff_t L,
+          std::ptrdiff_t X>
 requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_element<I, ::math::Array<T, ::math::StridedRange<L, X>>> {
   using type = T;
 };
-template <class T, ptrdiff_t L,
-          ptrdiff_t X>
+template <class T, std::ptrdiff_t L,
+          std::ptrdiff_t X>
 requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_size<::math::MutArray<T, ::math::StridedRange<L, X>>>
-  : std::integral_constant<ptrdiff_t, L> {};
+  : std::integral_constant<std::ptrdiff_t, L> {};
 
-template <size_t I, class T, ptrdiff_t L,
-          ptrdiff_t X>
+template <std::size_t I, class T, std::ptrdiff_t L,
+          std::ptrdiff_t X>
 requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_element<I, ::math::MutArray<T, ::math::StridedRange<L, X>>> {
   using type = T;

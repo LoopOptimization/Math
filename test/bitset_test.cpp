@@ -14,7 +14,7 @@
 
 import BitSet;
 import ManagedArray;
-import STL;
+import std;
 #endif
 
 #define STRINGIZE_DETAIL(x) #x
@@ -24,8 +24,8 @@ using containers::BitSet, math::Vector;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSetTest, BasicAssertions) {
   BitSet bs(1000);
-  ptrdiff_t count = 0;
-  for (ptrdiff_t _ : bs) ++count;
+  std::ptrdiff_t count = 0;
+  for (std::ptrdiff_t _ : bs) ++count;
   ASSERT_EQ(count, 0);
   bs[4] = true;
   bs[10] = true;
@@ -39,8 +39,8 @@ TEST(BitSetTest, BasicAssertions) {
   std::cout << bs << "\n";
   // EXPECT_EQ(std::ranges::begin(bs), bs.begin());
   // EXPECT_EQ(std::ranges::end(bs), bs.end());
-  Vector<size_t> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
-  ptrdiff_t j = 0;
+  Vector<std::size_t> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
+  std::ptrdiff_t j = 0;
   for (auto J = bs.begin(); J != decltype(bs)::end(); ++J) {
     EXPECT_EQ(*J, bsc[j++]);
     EXPECT_TRUE(bs[*J]);
@@ -56,7 +56,7 @@ TEST(BitSetTest, BasicAssertions) {
   EXPECT_EQ(j, bs.size());
   std::println("About to create empty!");
   BitSet empty;
-  ptrdiff_t c = 0, d = 0;
+  std::ptrdiff_t c = 0, d = 0;
   std::println("About to iterate empty!");
   for (auto b : empty) {
     ++c;
@@ -69,9 +69,9 @@ TEST(BitSetTest, BasicAssertions) {
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSetInsert, BasicAssertions) {
-  BitSet<std::array<uint64_t, 2>> bs;
-  ptrdiff_t count = 0;
-  for (ptrdiff_t _ : bs) ++count;
+  BitSet<std::array<std::uint64_t, 2>> bs;
+  std::ptrdiff_t count = 0;
+  for (std::ptrdiff_t _ : bs) ++count;
   ASSERT_EQ(count, 0);
   bs.insert(1);
   bs.insert(5);
@@ -85,17 +85,17 @@ TEST(BitSetInsert, BasicAssertions) {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(DynSizeBitSetTest, BasicAssertions) {
   BitSet bs, bsd{BitSet<>::dense(11)};
-  ptrdiff_t count = 0;
-  for (ptrdiff_t _ : bs) ++count;
+  std::ptrdiff_t count = 0;
+  for (std::ptrdiff_t _ : bs) ++count;
   ASSERT_EQ(count, 0);
-  for (ptrdiff_t _ : bsd) ++count;
+  for (std::ptrdiff_t _ : bsd) ++count;
   ASSERT_EQ(count, 11);
   EXPECT_EQ(bs.data_.size(), 0);
   bs[4] = true;
   bs[10] = true;
   EXPECT_EQ(bs.data_.size(), 1);
   EXPECT_EQ(bs.data_.front(), 1040);
-  for (ptrdiff_t i = 0; i < 11; ++i)
+  for (std::ptrdiff_t i = 0; i < 11; ++i)
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-else"
@@ -105,7 +105,7 @@ TEST(DynSizeBitSetTest, BasicAssertions) {
 #pragma GCC diagnostic pop
 #endif
   EXPECT_EQ(bs, bsd);
-  Vector<size_t> sv;
+  Vector<std::size_t> sv;
   for (auto i : bs) sv.push_back(i);
   EXPECT_EQ(sv.size(), 2);
   EXPECT_EQ(sv[0], 4);
@@ -114,7 +114,7 @@ TEST(DynSizeBitSetTest, BasicAssertions) {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(FixedSizeBitSetTest, BasicAssertions) {
   std::println(STRINGIZE(__LINE__));
-  BitSet<std::array<uint64_t, 2>> bs;
+  BitSet<std::array<std::uint64_t, 2>> bs;
   std::println(STRINGIZE(__LINE__));
   bs[4] = true;
   std::println(STRINGIZE(__LINE__));
@@ -124,7 +124,7 @@ TEST(FixedSizeBitSetTest, BasicAssertions) {
   std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(bs.data_[1], 0);
   std::println(STRINGIZE(__LINE__));
-  Vector<size_t> sv;
+  Vector<std::size_t> sv;
   std::println(STRINGIZE(__LINE__));
   for (auto i : bs) sv.push_back(i);
   std::println(STRINGIZE(__LINE__));
@@ -137,18 +137,18 @@ TEST(FixedSizeBitSetTest, BasicAssertions) {
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(FixedSizeSmallBitSetTest, BasicAssertions) {
-  using SB = BitSet<std::array<uint16_t, 1>>;
+  using SB = BitSet<std::array<std::uint16_t, 1>>;
   static_assert(sizeof(SB) == 2);
   SB bs;
-  ptrdiff_t count = 0;
-  for (ptrdiff_t _ : bs) ++count;
+  std::ptrdiff_t count = 0;
+  for (std::ptrdiff_t _ : bs) ++count;
   ASSERT_EQ(count, 0);
   bs[4] = true;
   bs[10] = true;
   bs[7] = true;
   bs.insert(5);
   EXPECT_EQ(bs.data_[0], 1200);
-  Vector<size_t> sv;
+  Vector<std::size_t> sv;
   for (auto i : bs) sv.push_back(i);
   EXPECT_EQ(sv.size(), 4);
   EXPECT_EQ(sv[0], 4);

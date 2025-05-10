@@ -65,27 +65,27 @@ public:
     invariant(value_ != nullptr);
     return *value_;
   }
-  TRIVIAL constexpr auto operator[](ptrdiff_t index) -> T & {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t index) -> T & {
     invariant(value_ != nullptr);
     return value_[index];
   }
-  TRIVIAL constexpr auto operator[](ptrdiff_t index) const -> const T & {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t index) const -> const T & {
     invariant(value_ != nullptr);
     return value_[index];
   }
-  TRIVIAL constexpr auto operator+(ptrdiff_t offset) -> Valid<T> {
+  TRIVIAL constexpr auto operator+(std::ptrdiff_t offset) -> Valid<T> {
     invariant(value_ != nullptr);
     return value_ + offset;
   }
-  TRIVIAL constexpr auto operator-(ptrdiff_t offset) -> Valid<T> {
+  TRIVIAL constexpr auto operator-(std::ptrdiff_t offset) -> Valid<T> {
     invariant(value_ != nullptr);
     return value_ - offset;
   }
-  TRIVIAL constexpr auto operator+(ptrdiff_t offset) const -> Valid<T> {
+  TRIVIAL constexpr auto operator+(std::ptrdiff_t offset) const -> Valid<T> {
     invariant(value_ != nullptr);
     return value_ + offset;
   }
-  TRIVIAL constexpr auto operator-(ptrdiff_t offset) const -> Valid<T> {
+  TRIVIAL constexpr auto operator-(std::ptrdiff_t offset) const -> Valid<T> {
     invariant(value_ != nullptr);
     return value_ - offset;
   }
@@ -107,12 +107,12 @@ public:
     invariant(value_ != nullptr);
     return value_--;
   }
-  TRIVIAL constexpr auto operator+=(ptrdiff_t offset) -> Valid<T> & {
+  TRIVIAL constexpr auto operator+=(std::ptrdiff_t offset) -> Valid<T> & {
     invariant(value_ != nullptr);
     value_ += offset;
     return *this;
   }
-  TRIVIAL constexpr auto operator-=(ptrdiff_t offset) -> Valid<T> & {
+  TRIVIAL constexpr auto operator-=(std::ptrdiff_t offset) -> Valid<T> & {
     invariant(value_ != nullptr);
     value_ -= offset;
     return *this;
@@ -141,17 +141,17 @@ public:
   //   invariant(value != nullptr);
   //   return value >= other.value;
   // }
-  TRIVIAL constexpr auto operator-(const Valid<T> &other) const -> ptrdiff_t {
+  TRIVIAL constexpr auto operator-(const Valid<T> &other) const -> std::ptrdiff_t {
     invariant(value_ != nullptr);
     return value_ - other.value_;
   }
-  TRIVIAL [[nodiscard]] constexpr auto isAligned(ptrdiff_t x) const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto isAligned(std::ptrdiff_t x) const -> bool {
     invariant(value_ != nullptr);
-    return (reinterpret_cast<ptrdiff_t>(value_) % x) == 0;
+    return (reinterpret_cast<std::ptrdiff_t>(value_) % x) == 0;
   }
 };
 template <typename T> Valid(T &) -> Valid<T>;
 template <typename T> Valid(T *) -> Valid<T *>;
-static_assert(std::is_trivially_destructible_v<Valid<ptrdiff_t>>);
-static_assert(std::is_trivially_copy_constructible_v<Valid<ptrdiff_t>>);
+static_assert(std::is_trivially_destructible_v<Valid<std::ptrdiff_t>>);
+static_assert(std::is_trivially_copy_constructible_v<Valid<std::ptrdiff_t>>);
 } // namespace utils

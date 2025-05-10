@@ -5,7 +5,7 @@
 #else
 
 import Factor;
-import STL;
+import std;
 #endif
 
 TEST(FactorLowerBound, BasicAssertions) {

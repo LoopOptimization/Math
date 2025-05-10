@@ -25,7 +25,7 @@ namespace containers {
 using utils::invariant;
 template <typename T> class UList {
   T data_[6]; // NOLINT(modernize-avoid-c-arrays)
-  ptrdiff_t count_{0};
+  std::ptrdiff_t count_{0};
   UList<T> *next_{nullptr};
 
 public:
@@ -36,18 +36,18 @@ public:
   }
   // constexpr UList(T t, UList *n) : count_(1), next_(n) { data_[0] = t; }
   constexpr UList(const UList &other) = default;
-  [[nodiscard]] constexpr auto getHeadCount() const -> ptrdiff_t {
+  [[nodiscard]] constexpr auto getHeadCount() const -> std::ptrdiff_t {
     return count_;
   }
   constexpr void forEach(const auto &f) {
     invariant(count_ <= std::ssize(data_));
     for (auto *L = this; L != nullptr; L = L->next_)
-      for (ptrdiff_t i = 0, N = L->count_; i < N; i++) f(L->data_[i]);
+      for (std::ptrdiff_t i = 0, N = L->count_; i < N; i++) f(L->data_[i]);
   }
   constexpr void forEachRev(const auto &f) {
     invariant(count_ <= std::ssize(data_));
     for (auto *L = this; L != nullptr; L = L->next_)
-      for (ptrdiff_t i = L->count_; i;) f(L->data_[--i]);
+      for (std::ptrdiff_t i = L->count_; i;) f(L->data_[--i]);
   }
   constexpr void forEachStack(const auto &f) {
     invariant(count_ <= std::ssize(data_));
@@ -56,20 +56,20 @@ public:
     // allocated this.
     UList<T> C{*this};
     while (true) {
-      for (ptrdiff_t i = 0, N = C.count_; i < N; i++) f(C.data_[i]);
+      for (std::ptrdiff_t i = 0, N = C.count_; i < N; i++) f(C.data_[i]);
       if (C.next_ == nullptr) return;
       C = *C.next_;
     }
   }
   constexpr void forEachNoRecurse(const auto &f) {
     invariant(count_ <= std::ssize(data_));
-    for (ptrdiff_t i = 0; i < count_; i++) f(data_[i]);
+    for (std::ptrdiff_t i = 0; i < count_; i++) f(data_[i]);
   }
   constexpr auto reduce(auto init, const auto &f) const {
     invariant(count_ <= std::ssize(data_));
     decltype(f(init, std::declval<T>())) acc = init;
     for (auto *L = this; L != nullptr; L = L->next_)
-      for (ptrdiff_t i = 0, N = L->count_; i < N; i++)
+      for (std::ptrdiff_t i = 0, N = L->count_; i < N; i++)
         acc = f(acc, L->data_[i]);
     return acc;
   }
@@ -77,7 +77,7 @@ public:
     invariant(count_ <= std::ssize(data_));
     decltype(f(init, std::declval<T &>())) acc = init;
     for (auto *L = this; L != nullptr; L = L->next_)
-      for (ptrdiff_t i = 0, N = L->count_; i < N; i++)
+      for (std::ptrdiff_t i = 0, N = L->count_; i < N; i++)
         acc = f(acc, L->data_[i]);
     return acc;
   }
@@ -113,7 +113,7 @@ public:
   [[nodiscard]] constexpr auto contains(T t) const -> bool {
     invariant(count_ <= std::ssize(data_));
     for (const UList *L = this; L; L = L->getNext())
-      for (size_t i = 0, N = L->getHeadCount(); i < N; ++i)
+      for (std::size_t i = 0, N = L->getHeadCount(); i < N; ++i)
         if (data_[i] == t) return true;
     return false;
   }
@@ -226,16 +226,16 @@ public:
   [[nodiscard]] constexpr auto empty() const -> bool { return count_ == 0; }
   [[nodiscard]] constexpr auto operator==(const UList &other) const -> bool {
     if (count_ != other.count_) return false;
-    for (ptrdiff_t i = 0; i < count_; i++)
+    for (std::ptrdiff_t i = 0; i < count_; i++)
       if (data_[i] != other.data_[i]) return false;
     if (next_ == nullptr && other.getNext() == nullptr) return true;
     if (next_ == nullptr || other.getNext() == nullptr) return false;
     return *next_ == *other.getNext();
   }
-  constexpr auto operator[](ptrdiff_t i) -> T & {
+  constexpr auto operator[](std::ptrdiff_t i) -> T & {
     return (i < count_) ? data_[i] : next_->operator[](i - count_);
   }
-  constexpr auto operator[](ptrdiff_t i) const -> const T & {
+  constexpr auto operator[](std::ptrdiff_t i) const -> const T & {
     return (i < count_) ? data_[i] : next_->operator[](i - count_);
   }
   constexpr auto operator=(const UList &other) -> UList & = default;
@@ -243,7 +243,7 @@ public:
   struct MutIterator {
 
     UList *list;
-    ptrdiff_t index;
+    std::ptrdiff_t index;
     constexpr auto operator==(End) const -> bool { return list == nullptr; }
     constexpr auto operator==(MutIterator other) const -> bool {
       return list == other.list && index == other.index;
@@ -270,7 +270,7 @@ public:
   };
   struct Iterator {
     const UList *list;
-    ptrdiff_t index;
+    std::ptrdiff_t index;
     constexpr auto operator==(End) const -> bool { return list == nullptr; }
     constexpr auto operator==(Iterator other) const -> bool {
       return list == other.list && index == other.index;

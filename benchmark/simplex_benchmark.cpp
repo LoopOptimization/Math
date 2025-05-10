@@ -16,14 +16,14 @@ import Arena;
 import Array;
 import ArrayParse;
 import Simplex;
-import STL;
+import std;
 import Valid;
 #endif
 
 using utils::operator""_mat, math::_;
 
 static void BM_Simplex0(benchmark::State &state) {
-  math::DenseMatrix<int64_t> tableau{
+  math::DenseMatrix<std::int64_t> tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
@@ -892,8 +892,8 @@ static void BM_Simplex0(benchmark::State &state) {
 
   tableau[0, _] << -5859553999884210514;
   alloc::OwningArena<> alloc;
-  ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
-  ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
+  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
+  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
   utils::Valid<math::Simplex> simpBackup{
     math::Simplex::create(&alloc, math::row(numCon), math::col(numVar))};
   simpBackup->getTableau() << tableau;
@@ -1133,8 +1133,8 @@ static void BM_Simplex1(benchmark::State &state) {
     "0 0 0 0 0 0 0 0 0 ]"_mat};
 
   alloc::OwningArena<> alloc;
-  ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
-  ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
+  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
+  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
   utils::Valid<math::Simplex> simpBackup{
     math::Simplex::create(&alloc, math::row(numCon), math::col(numVar), 0)};
   simpBackup->getTableau() << tableau;

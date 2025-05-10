@@ -353,7 +353,7 @@ static inline constexpr double magic_round_const = 6.755399441055744e15;
 template <> inline constexpr float magic_round_const<float> = 1.048576e7F;
 
 constexpr auto trunclo(double x) -> double {
-  return std::bit_cast<double>(std::bit_cast<uint64_t>(x) & 0xfffffffff8000000);
+  return std::bit_cast<double>(std::bit_cast<std::uint64_t>(x) & 0xfffffffff8000000);
 }
 
 constexpr auto fmadd(double x, double y, double z) -> double {
@@ -407,17 +407,17 @@ template <int B> constexpr auto exp_impl(double x) -> double {
   // #endif
   if (x <= subnormal_exp(x, base)) return 0.0;
   double float_n = fmadd(x, LogBo256INV(base), magic_round_const<double>);
-  auto N = std::bit_cast<uint64_t>(float_n);
+  auto N = std::bit_cast<std::uint64_t>(float_n);
   float_n -= magic_round_const<double>;
   double r = fmadd(float_n, LogBo256U(base), x);
   r = fmadd(float_n, LogBo256L(base), r);
   double jU = J_TABLE[N & 255];
   double small = fmadd(jU, expm1b_kernel(base, r), jU);
-  auto twopk = int64_t(N >> 8) << 52;
-  return std::bit_cast<double>(twopk + std::bit_cast<int64_t>(small));
+  auto twopk = std::int64_t(N >> 8) << 52;
+  return std::bit_cast<double>(twopk + std::bit_cast<std::int64_t>(small));
 }
 
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 2>,
                                      simd::Vec<W, double> x)
   -> simd::Vec<W, double> {
@@ -425,7 +425,7 @@ TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 2>,
                0.2402265069590989) *
               x * 0.6931471805599393);
 }
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 3>,
                                      simd::Vec<W, double> x)
   -> simd::Vec<W, double> {
@@ -434,7 +434,7 @@ TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 3>,
                 x +
               0.9999999999999998);
 }
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 10>,
                                      simd::Vec<W, double> x)
   -> simd::Vec<W, double> {
@@ -445,7 +445,7 @@ TRIVIAL constexpr auto expm1b_kernel(std::integral_constant<int, 10>,
                 x +
               2.302585092994046);
 }
-template <int B, ptrdiff_t W>
+template <int B, std::ptrdiff_t W>
 constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   constexpr std::integral_constant<int, B> base{};
   // #if __FAST_MATH__
@@ -462,27 +462,27 @@ constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   // #endif
   V float_n = x * simd::vbroadcast<W, double>(LogBo256INV(base)) +
               simd::vbroadcast<W, double>(magic_round_const<double>);
-  auto N = std::bit_cast<simd::Vec<W, int64_t>>(float_n);
+  auto N = std::bit_cast<simd::Vec<W, std::int64_t>>(float_n);
   float_n -= simd::vbroadcast<W, double>(magic_round_const<double>);
 
   V r = float_n * simd::vbroadcast<W, double>(LogBo256U(base)) + x;
   r = float_n * simd::vbroadcast<W, double>(LogBo256L(base)) + r;
   V jU = simd::gather(J_TABLE, simd::mask::None<W>{},
-                      N & simd::vbroadcast<W, int64_t>(255));
+                      N & simd::vbroadcast<W, std::int64_t>(255));
   V small = jU * expm1b_kernel<W>(base, r) + jU;
-  simd::Vec<W, int64_t> twopk = std::bit_cast<simd::Vec<W, int64_t>>(
-    (std::bit_cast<simd::Vec<W, int64_t>>(N) >> 8) << 52);
-  V z = std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, int64_t>>(small));
+  simd::Vec<W, std::int64_t> twopk = std::bit_cast<simd::Vec<W, std::int64_t>>(
+    (std::bit_cast<simd::Vec<W, std::int64_t>>(N) >> 8) << 52);
+  V z = std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, std::int64_t>>(small));
   return simd::select<double>(altmask, alt, z);
 }
-template <int B, ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+template <int B, std::ptrdiff_t R, std::ptrdiff_t U, std::ptrdiff_t W>
 constexpr auto exp_impl(simd::Unroll<R, U, W, double> x)
   -> simd::Unroll<R, U, W, double> {
   if constexpr (R * U == 1) {
     return {exp_impl_core<B, W>(x.vec_)};
   } else {
     simd::Unroll<R, U, W, double> ret;
-    for (ptrdiff_t i = 0; i < R * U; ++i)
+    for (std::ptrdiff_t i = 0; i < R * U; ++i)
       ret.data_[i] = exp_impl_core<B, W>(x.data_[i]);
     return ret;
   }
@@ -497,10 +497,10 @@ constexpr auto exp(double x) -> double { return exp_impl<3>(x); }
 constexpr auto exp2(double x) -> double { return exp_impl<2>(x); }
 constexpr auto exp10(double x) -> double { return exp_impl<10>(x); }
 
-constexpr auto exp2(int64_t x) -> double {
+constexpr auto exp2(std::int64_t x) -> double {
   // if (x > 1023) return std::numeric_limits<double>::infinity();
   if (x > 1023) return std::numeric_limits<double>::max();
-  if (x <= -1023) return std::bit_cast<double>(uint64_t(1) << ((x + 1074)));
+  if (x <= -1023) return std::bit_cast<double>(std::uint64_t(1) << ((x + 1074)));
   return std::bit_cast<double>((x + 1023) << 52);
 }
 constexpr auto exp2(unsigned x) -> double {
@@ -524,35 +524,35 @@ template <int l = 8> constexpr auto smax(auto x, auto y) {
 template <int l = 8> constexpr auto smin(auto x, auto y) {
   return smax<-l>(x, y);
 }
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 constexpr auto exp(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return exp_impl_core<3, W>(x);
 }
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 constexpr auto exp2(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return exp_impl_core<2, W>(x);
 }
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 constexpr auto exp10(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return exp_impl_core<10, W>(x);
 }
-template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+template <std::ptrdiff_t R, std::ptrdiff_t U, std::ptrdiff_t W>
 constexpr auto exp(simd::Unroll<R, U, W, double> x)
   -> simd::Unroll<R, U, W, double> {
   return exp_impl<3>(x);
 }
-template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+template <std::ptrdiff_t R, std::ptrdiff_t U, std::ptrdiff_t W>
 constexpr auto exp2(simd::Unroll<R, U, W, double> x)
   -> simd::Unroll<R, U, W, double> {
   return exp_impl<2>(x);
 }
-template <ptrdiff_t R, ptrdiff_t U, ptrdiff_t W>
+template <std::ptrdiff_t R, std::ptrdiff_t U, std::ptrdiff_t W>
 constexpr auto exp10(simd::Unroll<R, U, W, double> x)
   -> simd::Unroll<R, U, W, double> {
   return exp_impl<10>(x);
 }
 
-template <ptrdiff_t W>
+template <std::ptrdiff_t W>
 constexpr auto sigmoid(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   return 1.0 / (1.0 + exp<W>(-x));
 }

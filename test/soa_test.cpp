@@ -17,7 +17,7 @@ import ManagedArray;
 import Pair;
 import Range;
 import SOA;
-import STL;
+import std;
 import Tuple;
 #endif
 
@@ -46,7 +46,7 @@ TEST(SOATest, BasicAssertions) {
   soa.template get<2>()[3] = 6.5F;
   soa[4] = {11, 3.0, 7.0F};
   {
-    ptrdiff_t j = 0;
+    std::ptrdiff_t j = 0;
     for (auto [i, d, f] : soa) {
       static_assert(std::same_as<decltype(i), int>);
       static_assert(std::same_as<decltype(d), double>);
@@ -63,7 +63,7 @@ TEST(SOATest, BasicAssertions) {
   soa.resize(7);
   soa[5] = {13, 3.25, 7.5F};
   soa[6] = {15, 3.5, 8.0F};
-  for (ptrdiff_t j = 0; j < 7; ++j) {
+  for (std::ptrdiff_t j = 0; j < 7; ++j) {
     decltype(x) y = *(soa.begin() + j);
     // decltype(x) y = soa[j];
     auto [i, d, f] = y;
@@ -84,7 +84,7 @@ TEST(SOATest, BasicAssertions) {
     if (j & 1) soa.emplace_back(i, d, f);
     else soa.push_back({i, d, f});
   }
-  for (ptrdiff_t j = 0; j < 65; ++j) {
+  for (std::ptrdiff_t j = 0; j < 65; ++j) {
     decltype(x) y = soa[j];
     auto [i, d, f] = y;
     static_assert(std::same_as<decltype(i), int>);
@@ -118,7 +118,7 @@ TEST(SOAPairTest, BasicAssertions) {
   soa.template get<0>()[3] = 9;
   soa.template get<1>()[3] = 2.75;
   soa[4] = {11, 3.0};
-  for (ptrdiff_t j = 0; j < 5; ++j) {
+  for (std::ptrdiff_t j = 0; j < 5; ++j) {
     decltype(x) y = soa[j];
     auto [i, d] = y;
     static_assert(std::same_as<decltype(i), int>);
@@ -131,7 +131,7 @@ TEST(SOAPairTest, BasicAssertions) {
   soa.resize(7);
   soa[5] = {13, 3.25};
   soa[6] = {15, 3.5};
-  for (ptrdiff_t j = 0; j < 7; ++j) {
+  for (std::ptrdiff_t j = 0; j < 7; ++j) {
     decltype(x) y = soa[j];
     auto [i, d] = y;
     static_assert(std::same_as<decltype(i), int>);
@@ -147,7 +147,7 @@ TEST(SOAPairTest, BasicAssertions) {
     if (j & 1) soa.emplace_back(i, d);
     else soa.push_back({i, d});
   }
-  for (ptrdiff_t j = 0; j < 65; ++j) {
+  for (std::ptrdiff_t j = 0; j < 65; ++j) {
     decltype(x) y = soa[j];
     auto [i, d] = y;
     static_assert(std::same_as<decltype(i), int>);

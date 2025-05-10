@@ -248,21 +248,23 @@ private:
   }
 };
 
-template <typename T> TRIVIAL constexpr auto ref(T *p, ptrdiff_t i) -> T & {
+template <typename T>
+TRIVIAL constexpr auto ref(T *p, std::ptrdiff_t i) -> T & {
   return p[i];
 }
 template <typename T>
-TRIVIAL constexpr auto ref(const T *p, ptrdiff_t i) -> const T & {
+TRIVIAL constexpr auto ref(const T *p, std::ptrdiff_t i) -> const T & {
   return p[i];
 }
 template <utils::Compressible T>
-TRIVIAL constexpr auto ref(utils::compressed_t<T> *p, ptrdiff_t i)
+TRIVIAL constexpr auto ref(utils::compressed_t<T> *p, std::ptrdiff_t i)
   -> Reference<T> {
   return Reference<T>{p + i};
 }
 
 template <utils::Compressible T>
-TRIVIAL constexpr auto ref(const utils::compressed_t<T> *p, ptrdiff_t i) -> T {
+TRIVIAL constexpr auto ref(const utils::compressed_t<T> *p, std::ptrdiff_t i)
+  -> T {
   return T::decompress(p + i);
 }
 

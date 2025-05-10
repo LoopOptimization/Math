@@ -31,7 +31,7 @@ import ManagedArray;
 import MatDim;
 import Reductions;
 import StaticArray;
-import STL;
+import std;
 import TinyVector;
 import Tuple;
 import TypeCompression;
@@ -66,8 +66,8 @@ TEST(DualTest, BasicAssertions) {
   EXPECT_TRUE(norm2(g - gxx) < 1e-10);
   std::cout << "g = " << g << "\ngxx = " << gxx << '\n';
   std::cout << "B = " << B << "\nhxx = " << hxx << '\n';
-  for (ptrdiff_t i = 0; i < hxx.numRow(); ++i)
-    for (ptrdiff_t j = i + 1; j < hxx.numCol(); ++j) hxx[i, j] = hxx[j, i];
+  for (std::ptrdiff_t i = 0; i < hxx.numRow(); ++i)
+    for (std::ptrdiff_t j = i + 1; j < hxx.numCol(); ++j) hxx[i, j] = hxx[j, i];
   std::cout << "hxx = " << hxx << '\n';
   EXPECT_TRUE(norm2(B - hxx) < 1e-10);
 };
@@ -75,12 +75,12 @@ TEST(DualTest, BasicAssertions) {
 template <typename T>
 constexpr void evalpoly(MutSquarePtrMatrix<T> B, MutSquarePtrMatrix<T> A,
                         SquarePtrMatrix<T> C, const auto &p) {
-  ptrdiff_t N = p.size();
+  std::ptrdiff_t N = p.size();
   invariant(N > 0);
-  invariant(ptrdiff_t(B.numRow()), ptrdiff_t(C.numRow()));
+  invariant(std::ptrdiff_t(B.numRow()), std::ptrdiff_t(C.numRow()));
   if (N & 1) std::swap(A, B);
   B << p[0] * C + p[1] * I;
-  for (ptrdiff_t i = 2; i < N; ++i) {
+  for (std::ptrdiff_t i = 2; i < N; ++i) {
     std::swap(A, B);
     B << A * C + p[i] * I;
   }
@@ -92,9 +92,9 @@ template <AbstractMatrix T> constexpr auto opnorm1(const T &A) {
   invariant(M > 0);
   invariant(N > 0);
   S a{};
-  for (ptrdiff_t n = 0; n < N; ++n) {
+  for (std::ptrdiff_t n = 0; n < N; ++n) {
     S s{};
-    for (ptrdiff_t m = 0; m < M; ++m) s += std::abs(extractvalue(A[m, n]));
+    for (std::ptrdiff_t m = 0; m < M; ++m) s += std::abs(extractvalue(A[m, n]));
     a = std::max(a, s);
   }
   return a;
@@ -103,12 +103,12 @@ template <AbstractMatrix T> constexpr auto opnorm1(const T &A) {
 /// computes ceil(log2(x)) for x >= 1
 constexpr auto log2ceil(double x) -> unsigned {
   invariant(x >= 1);
-  uint64_t u = std::bit_cast<uint64_t>(x) - 1;
+  std::uint64_t u = std::bit_cast<std::uint64_t>(x) - 1;
   return (u >> 52) - 1022;
 }
 
 template <typename T> constexpr void expmimpl(MutSquarePtrMatrix<T> A) {
-  ptrdiff_t n = ptrdiff_t(A.numRow()), s = 0;
+  std::ptrdiff_t n = std::ptrdiff_t(A.numRow()), s = 0;
   SquareMatrix<T> A2{SquareDims<>{row(n)}}, U_{SquareDims<>{row(n)}};
   MutSquarePtrMatrix<T> U{U_};
   if (double nA = opnorm1(A); nA <= 0.015) {
@@ -165,10 +165,10 @@ template <typename T> constexpr auto expm(SquarePtrMatrix<T> A) {
   return V;
 }
 constexpr auto dualDeltaCmp(double x, double y) -> bool { return x < y; }
-template <typename T, ptrdiff_t N>
+template <typename T, std::ptrdiff_t N>
 constexpr auto dualDeltaCmp(Dual<T, N> x, double y) -> bool {
   if (!dualDeltaCmp(x.value(), y)) return false;
-  for (ptrdiff_t i = 0; i < N; ++i)
+  for (std::ptrdiff_t i = 0; i < N; ++i)
     if (!dualDeltaCmp(x.gradient()[i], y)) return false;
   return true;
 }
@@ -328,7 +328,7 @@ TEST(IntDivDualTest, BasicAssertions) {
   Dual<double, 2> x{
     -0.1025638204862866,
     SVector<double, 2>{0.5621700920192116, -0.7417763253026113}};
-  int32_t a = 4, b = 3;
+  std::int32_t a = 4, b = 3;
   Dual<double, 2> y = a / x + b;
   EXPECT_NEAR(y.value(), -36.00010726038452, 1e-14);
   EXPECT_NEAR(y.gradient()[0], -213.76635331423668, 1e-14);

@@ -93,8 +93,8 @@ public:
     return tmp;
   }
   constexpr auto operator-(ListIterator const &other) const noexcept
-    -> ptrdiff_t {
-    ptrdiff_t count = 0;
+    -> std::ptrdiff_t {
+    std::ptrdiff_t count = 0;
     for (auto iter = other; iter != *this; ++iter) ++count;
     return count;
   }
@@ -234,8 +234,8 @@ public:
   constexpr auto operator*() const noexcept -> value_type { return *inner_; }
   constexpr auto operator->() const noexcept -> I { return inner_; }
   constexpr auto operator-(NestedIterator const &other) const noexcept
-    -> ptrdiff_t {
-    ptrdiff_t count = 0;
+    -> std::ptrdiff_t {
+    std::ptrdiff_t count = 0;
     for (auto iter = other; iter != *this; ++iter) ++count;
     return count;
   }

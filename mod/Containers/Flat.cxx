@@ -26,11 +26,11 @@ namespace containers {
 #endif
 template <typename T> struct MATH_GSL_OWNER Flat {
   static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
-  explicit constexpr Flat(ptrdiff_t len)
+  explicit constexpr Flat(std::ptrdiff_t len)
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
     std::uninitialized_default_construct_n(ptr_, len_);
   };
-  explicit constexpr Flat(ptrdiff_t len, T x)
+  explicit constexpr Flat(std::ptrdiff_t len, T x)
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
     std::uninitialized_fill_n(ptr_, len_, x);
   };
@@ -74,15 +74,15 @@ template <typename T> struct MATH_GSL_OWNER Flat {
   constexpr ~Flat() { maybeDeallocate(); }
   constexpr auto data() -> T * { return ptr_; }
   constexpr auto data() const -> const T * { return ptr_; }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
     utils::invariant(len_ >= 0);
     return len_;
   }
-  constexpr auto operator[](ptrdiff_t i) -> T & {
+  constexpr auto operator[](std::ptrdiff_t i) -> T & {
     utils::invariant((i >= 0) && i < size());
     return ptr_[i];
   }
-  constexpr auto operator[](ptrdiff_t i) const -> const T & {
+  constexpr auto operator[](std::ptrdiff_t i) const -> const T & {
     utils::invariant((i >= 0) && i < size());
     return ptr_[i];
   }
@@ -100,6 +100,6 @@ private:
   }
 
   T *ptr_{nullptr};
-  ptrdiff_t len_{0};
+  std::ptrdiff_t len_{0};
 };
 } // namespace containers

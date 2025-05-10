@@ -57,8 +57,8 @@ import Valid;
 // These declarations exist to support ASan with MSVC. If MSVC eventually ships
 // asan_interface.h in their headers, then we can remove this.
 extern "C" {
-void __asan_poison_memory_region(void const volatile *addr, size_t size);
-void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
+void __asan_poison_memory_region(void const volatile *addr, std::size_t size);
+void __asan_unpoison_memory_region(void const volatile *addr, std::size_t size);
 } // extern "C"
 #endif
 #endif
@@ -95,17 +95,18 @@ using utils::invariant, utils::Valid;
 /// Here, first/next slab_ point to the end, while `s_end_` points to the start.
 /// In both cases, the start/end references are to the region
 /// So, meta is indexed with negative/positive indices depending on size.
-template <size_t SlabSize = 16384, bool BumpUp = true> class Arena {
-  static constexpr size_t Alignment = alignof(int64_t); // std::max_align_t);
-  static constexpr auto align(size_t x) -> size_t {
+template <std::size_t SlabSize = 16384, bool BumpUp = true> class Arena {
+  static constexpr std::size_t Alignment =
+    alignof(std::int64_t); // std::max_align_t);
+  static constexpr auto align(std::size_t x) -> std::size_t {
     return (x + Alignment - 1) & ~(Alignment - 1);
   }
 
 protected:
   // meta data is always in front, so we don't have to handle
   // the rare accidental case of huge slabs separately.
-  static constexpr size_t MetaSize = align(2 * sizeof(void *));
-  static constexpr size_t SlabSpace = SlabSize - 2 * MetaSize;
+  static constexpr std::size_t MetaSize = align(2 * sizeof(void *));
+  static constexpr std::size_t SlabSpace = SlabSize - 2 * MetaSize;
   static_assert(std::has_single_bit(Alignment));
   static_assert(__STDCPP_DEFAULT_NEW_ALIGNMENT__ >= Alignment);
 
@@ -116,11 +117,11 @@ public:
   constexpr Arena(Arena &&) noexcept = default;
   constexpr auto operator=(const Arena &) -> Arena & = default;
 #ifndef NDEBUG
-  constexpr void fillWithJunk(void *p, size_t Size) {
+  constexpr void fillWithJunk(void *p, std::size_t Size) {
     std::memset(p, 254, Size);
   }
 #endif
-  constexpr void bigAlloc(size_t Size) {
+  constexpr void bigAlloc(std::size_t Size) {
     void **old_meta = getMetaEnd(s_end_);
     void *next = old_meta[0];
     if (next && Size <= SlabSpace) return initSlab(next);
@@ -133,7 +134,7 @@ public:
   }
   [[using gnu: returns_nonnull, alloc_size(2), assume_aligned(Alignment),
     malloc]] constexpr auto
-  allocate(size_t Size) -> void * {
+  allocate(std::size_t Size) -> void * {
     void *p = allocCore(Size);
     if (outOfSlab()) [[unlikely]] {
       bigAlloc(Size);
@@ -151,18 +152,19 @@ public:
     return p;
   }
   // [[using gnu: returns_nonnull, alloc_size(2), alloc_align(3), malloc]]
-  template <size_t Align> constexpr auto allocate(size_t Size) -> void * {
+  template <std::size_t Align>
+  constexpr auto allocate(std::size_t Size) -> void * {
     static_assert(std::popcount(Align) == 1, "Alignment must be a power of 2");
     if constexpr (Align > Alignment) {
-      size_t space = Size + Align - Alignment;
+      std::size_t space = Size + Align - Alignment;
       void *p = allocate(space);
       // TODO: rollback s_end_ by the amount `space` decreased?
       return std::assume_aligned<Align>(std::align(Align, Size, p, space));
     } else return std::assume_aligned<Alignment>(allocate(Size));
   }
   template <typename T>
-  [[gnu::returns_nonnull, gnu::flatten]] constexpr auto allocate(size_t N = 1)
-    -> T * {
+  [[gnu::returns_nonnull, gnu::flatten]] constexpr auto
+  allocate(std::size_t N = 1) -> T * {
     static_assert(std::is_trivially_destructible_v<T>,
                   "Arena only supports trivially destructible types.");
     return static_cast<T *>(allocate(N * sizeof(T)));
@@ -177,7 +179,7 @@ public:
     return std::construct_at(static_cast<T *>(allocate<alignof(T)>(sizeof(T))),
                              std::forward<Args>(args)...);
   }
-  constexpr void deallocate(void *Ptr, size_t Size) {
+  constexpr void deallocate(void *Ptr, std::size_t Size) {
 #if MATH_ADDRESS_SANITIZER_BUILD
     __asan_poison_memory_region(Ptr, Size);
 #endif
@@ -188,17 +190,17 @@ public:
       return;
     }
   }
-  template <typename T> constexpr void deallocate(T *Ptr, size_t N = 1) {
+  template <typename T> constexpr void deallocate(T *Ptr, std::size_t N = 1) {
     deallocate((void *)Ptr, N * sizeof(T));
   }
 
-  /// reallocate<ForOverwrite>(void *Ptr, ptrdiff_t OldSize, ptrdiff_t NewSize,
-  /// size_t Align) Should be safe with OldSize == 0, as it checks before
-  /// copying
+  /// reallocate<ForOverwrite>(void *Ptr, std::ptrdiff_t OldSize, std::ptrdiff_t
+  /// NewSize, std::size_t Align) Should be safe with OldSize == 0, as it checks
+  /// before copying
   template <bool ForOverwrite = false>
   [[gnu::returns_nonnull, nodiscard]] constexpr auto
-  reallocateImpl(void *Ptr, size_t capOld, size_t capNew, size_t szOld)
-    -> void * {
+  reallocateImpl(void *Ptr, std::size_t capOld, std::size_t capNew,
+                 std::size_t szOld) -> void * {
     if (capOld >= capNew) return Ptr;
     char *cptr = static_cast<char *>(Ptr);
     if (Ptr) {
@@ -221,7 +223,7 @@ public:
           }
         }
       } else if (Ptr == slab_) {
-        size_t extra_size = align(capNew - capOld);
+        std::size_t extra_size = align(capNew - capOld);
         slab_ = static_cast<char *>(slab_) - extra_size;
         if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
@@ -265,15 +267,15 @@ public:
   }
   template <bool ForOverwrite = false, typename T>
   [[gnu::returns_nonnull, gnu::flatten, nodiscard]] constexpr auto
-  reallocate(T *Ptr, size_t oldCapacity, size_t newCapacity) -> T * {
+  reallocate(T *Ptr, std::size_t oldCapacity, std::size_t newCapacity) -> T * {
     return static_cast<T *>(reallocateImpl<ForOverwrite>(
       Ptr, oldCapacity * sizeof(T), newCapacity * sizeof(T),
       oldCapacity * sizeof(T)));
   }
   template <bool ForOverwrite = false, typename T>
   [[gnu::returns_nonnull, gnu::flatten, nodiscard]] constexpr auto
-  reallocate(T *Ptr, size_t oldCapacity, size_t newCapacity, size_t oldSize)
-    -> T * {
+  reallocate(T *Ptr, std::size_t oldCapacity, std::size_t newCapacity,
+             std::size_t oldSize) -> T * {
     return static_cast<T *>(reallocateImpl<ForOverwrite>(
       Ptr, oldCapacity * sizeof(T), newCapacity * sizeof(T),
       oldSize * sizeof(T)));
@@ -310,8 +312,8 @@ public:
   constexpr auto scope() -> ScopeLifetime { return *this; }
 
 private:
-  constexpr auto tryReallocate(void *Ptr, size_t capOld, size_t capNew)
-    -> void * {
+  constexpr auto tryReallocate(void *Ptr, std::size_t capOld,
+                               std::size_t capNew) -> void * {
     if constexpr (BumpUp) {
       if (Ptr == (char *)slab_ - align(capOld)) {
         slab_ = (char *)Ptr + align(capNew);
@@ -326,7 +328,7 @@ private:
         }
       }
     } else if (Ptr == slab_) {
-      size_t extra_size = align(capNew - capOld);
+      std::size_t extra_size = align(capNew - capOld);
       slab_ = (char *)slab_ - extra_size;
       if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
@@ -341,11 +343,12 @@ private:
     return nullptr;
   }
   template <typename T>
-  constexpr auto tryReallocate(T *Ptr, size_t OldSize, size_t NewSize) -> T * {
+  constexpr auto tryReallocate(T *Ptr, std::size_t OldSize, std::size_t NewSize)
+    -> T * {
     return static_cast<T *>(
       tryReallocate(Ptr, OldSize * sizeof(T), NewSize * sizeof(T)));
   }
-  static constexpr auto bump(void *ptr, ptrdiff_t N) -> void * {
+  static constexpr auto bump(void *ptr, std::ptrdiff_t N) -> void * {
     if constexpr (BumpUp) return static_cast<char *>(ptr) + N;
     else return static_cast<char *>(ptr) - N;
   }
@@ -359,11 +362,12 @@ private:
     s_end_ = getEnd(p);
   }
   // updates SlabCur and returns the allocated pointer
-  [[gnu::returns_nonnull]] constexpr auto allocCore(ptrdiff_t Size) -> void * {
+  [[gnu::returns_nonnull]] constexpr auto allocCore(std::ptrdiff_t Size)
+    -> void * {
     // we know we already have Alignment
     // and we need to preserve it.
     // Thus, we align `Size` and offset it.
-    invariant((reinterpret_cast<ptrdiff_t>(slab_) % Alignment) == 0);
+    invariant((reinterpret_cast<std::ptrdiff_t>(slab_) % Alignment) == 0);
 #if MATH_ADDRESS_SANITIZER_BUILD
     slab_ = bump(slab_, Alignment); // poisoned zone
 #endif
@@ -401,7 +405,7 @@ protected:
   static constexpr auto getNext(void *p) -> void * { return getMetaEnd(p)[0]; }
   static constexpr auto getEnd(void *p) -> void * { return getMetaStart(p)[0]; }
 
-  constexpr void initNewSlab(size_t size) {
+  constexpr void initNewSlab(std::size_t size) {
     auto [p, sz] = alloc_at_least(size);
     char *c = static_cast<char *>(p) + MetaSize;
     char *q = static_cast<char *>(p) + sz - MetaSize;
@@ -427,10 +431,11 @@ protected:
 static_assert(sizeof(Arena<>) == 16);
 static_assert(std::is_trivially_copyable_v<Arena<>>);
 static_assert(std::is_trivially_destructible_v<Arena<>>);
-static_assert(std::same_as<std::allocator_traits<Arena<>>::size_type, size_t>);
+static_assert(
+  std::same_as<std::allocator_traits<Arena<>>::size_type, std::size_t>);
 
 /// RAII type that allocates and deallocates.
-template <size_t SlabSize = 16384, bool BumpUp = true>
+template <std::size_t SlabSize = 16384, bool BumpUp = true>
 class OwningArena : public Arena<SlabSize, BumpUp> {
 public:
   constexpr explicit OwningArena() {
@@ -444,8 +449,8 @@ public:
   OwningArena(const OwningArena &) = delete;
   constexpr ~OwningArena() {
     char *p = static_cast<char *>(this->getFirstEnd(this->s_end_));
-    constexpr size_t m = Arena<SlabSize, BumpUp>::MetaSize;
-    constexpr size_t mpad = 2 * m;
+    constexpr std::size_t m = Arena<SlabSize, BumpUp>::MetaSize;
+    constexpr std::size_t mpad = 2 * m;
     while (p) {
       char *end = static_cast<char *>(this->getEnd(p));
       char *next = static_cast<char *>(this->getNext(end)); // load before free!
@@ -462,7 +467,7 @@ static_assert(!std::is_trivially_destructible_v<OwningArena<>>);
 // Alloc wrapper people can pass and store by value
 // with a specific value type, so that it can act more like a
 // `std::allocator`.
-template <typename T, size_t SlabSize = 16384, bool BumpUp = true>
+template <typename T, std::size_t SlabSize = 16384, bool BumpUp = true>
 class WArena {
   using Alloc = Arena<SlabSize, BumpUp>;
   [[no_unique_address]] Valid<Alloc> alloc_;
@@ -482,8 +487,10 @@ public:
     -> Alloc * {
     return alloc_;
   }
-  constexpr void deallocate(T *p, ptrdiff_t n) { alloc_->deallocate(p, n); }
-  [[gnu::returns_nonnull]] constexpr auto allocate(ptrdiff_t n) -> T * {
+  constexpr void deallocate(T *p, std::ptrdiff_t n) {
+    alloc_->deallocate(p, n);
+  }
+  [[gnu::returns_nonnull]] constexpr auto allocate(std::ptrdiff_t n) -> T * {
     return alloc_->template allocate<T>(n);
   }
   constexpr auto checkpoint() -> typename Alloc::CheckPoint {
@@ -491,23 +498,24 @@ public:
   }
   constexpr void rollback(typename Alloc::CheckPoint p) { alloc_->rollback(p); }
 };
-template <typename T, size_t SlabSize, bool BumpUp>
+template <typename T, std::size_t SlabSize, bool BumpUp>
 constexpr auto wrap(Valid<Arena<SlabSize, BumpUp>> a)
   -> WArena<T, SlabSize, BumpUp> {
   return WArena<T, SlabSize, BumpUp>(a);
 }
 
 static_assert(
-  std::same_as<std::allocator_traits<WArena<int64_t *>>::size_type, size_t>);
-static_assert(
-  std::same_as<std::allocator_traits<WArena<int64_t>>::pointer, int64_t *>);
+  std::same_as<std::allocator_traits<WArena<std::int64_t *>>::size_type,
+               std::size_t>);
+static_assert(std::same_as<std::allocator_traits<WArena<std::int64_t>>::pointer,
+                           std::int64_t *>);
 
 static_assert(std::is_trivially_copyable_v<Valid<Arena<>>>);
-static_assert(std::is_trivially_copyable_v<WArena<int64_t>>);
+static_assert(std::is_trivially_copyable_v<WArena<std::int64_t>>);
 
-static_assert(Allocator<WArena<int64_t>>);
-static_assert(!FreeAllocator<WArena<int64_t>>);
-static_assert(FreeAllocator<std::allocator<int64_t>>);
+static_assert(Allocator<WArena<std::int64_t>>);
+static_assert(!FreeAllocator<WArena<std::int64_t>>);
+static_assert(FreeAllocator<std::allocator<std::int64_t>>);
 
 struct NoCheckpoint {};
 
@@ -556,11 +564,11 @@ constexpr auto call(Arena<> alloc, const F &f, T &&...t) {
 
 } // namespace alloc
 
-template <size_t SlabSize, bool BumpUp>
-auto operator new(size_t Size, alloc::Arena<SlabSize, BumpUp> &Alloc)
+template <std::size_t SlabSize, bool BumpUp>
+auto operator new(std::size_t Size, alloc::Arena<SlabSize, BumpUp> &Alloc)
   -> void * {
   return Alloc.allocate(Size);
 }
 
-template <size_t SlabSize, bool BumpUp>
+template <std::size_t SlabSize, bool BumpUp>
 void operator delete(void *, alloc::Arena<SlabSize, BumpUp> &) {}

@@ -27,12 +27,12 @@ static_assert(std::convertible_to<int, Dual<Dual<double, 4>, 2>>);
 template <typename T>
 constexpr void evalpoly(MutSquarePtrMatrix<T> B, MutSquarePtrMatrix<T> A,
                         SquarePtrMatrix<T> C, const auto &p) {
-  ptrdiff_t N = p.size();
+  std::ptrdiff_t N = p.size();
   invariant(N > 0);
-  invariant(ptrdiff_t(B.numRow()), ptrdiff_t(C.numRow()));
+  invariant(std::ptrdiff_t(B.numRow()), std::ptrdiff_t(C.numRow()));
   if (N & 1) std::swap(A, B);
   B << (p[0] * C) + (p[1] * I);
-  for (ptrdiff_t i = 2; i < N; ++i) {
+  for (std::ptrdiff_t i = 2; i < N; ++i) {
     std::swap(A, B);
     B << (A * C) + (p[i] * I);
   }
@@ -44,32 +44,32 @@ template <AbstractMatrix T> constexpr auto opnorm1(const T &A) {
   invariant(M > 0);
   invariant(N > 0);
   S a{};
-  for (ptrdiff_t n = 0; n < N; ++n) {
+  for (std::ptrdiff_t n = 0; n < N; ++n) {
     S s{};
-    for (ptrdiff_t m = 0; m < M; ++m) s += std::abs(extractvalue(A[m, n]));
+    for (std::ptrdiff_t m = 0; m < M; ++m) s += std::abs(extractvalue(A[m, n]));
     a = std::max(a, s);
   }
   return a;
   // Vector<S> v{N};
-  // for (ptrdiff_t n = 0; n < N; ++n)
+  // for (std::ptrdiff_t n = 0; n < N; ++n)
   //   v[n] = std::abs(extractvalue(A[0, n]));
-  // for (ptrdiff_t m = 1; m < M; ++m)
-  //   for (ptrdiff_t n = 0; n < N; ++n)
+  // for (std::ptrdiff_t m = 1; m < M; ++m)
+  //   for (std::ptrdiff_t n = 0; n < N; ++n)
   //     v[n] += std::abs(extractvalue(A[m, n]));
   // return *std::max_element(v.begin(), v.end());
 }
 
 /// computes ceil(log2(x)) for x >= 1
-constexpr auto log2ceil(double x) -> ptrdiff_t {
+constexpr auto log2ceil(double x) -> std::ptrdiff_t {
   invariant(x >= 1);
-  uint64_t u = std::bit_cast<uint64_t>(x) - 1;
-  auto y = ptrdiff_t((u >> 52) - 1022);
+  std::uint64_t u = std::bit_cast<std::uint64_t>(x) - 1;
+  auto y = std::ptrdiff_t((u >> 52) - 1022);
   invariant(y >= 0);
   return y;
 }
 
 template <typename T> constexpr void expm(MutSquarePtrMatrix<T> A) {
-  ptrdiff_t n = ptrdiff_t(A.numRow()), s = 0;
+  std::ptrdiff_t n = std::ptrdiff_t(A.numRow()), s = 0;
   SquareMatrix<T> A2{SquareDims<>{math::row(n)}},
     U_{SquareDims<>{math::row(n)}};
   MutSquarePtrMatrix<T> U{U_};
@@ -127,7 +127,7 @@ using math::Dual, math::SquareDims, math::SquareMatrix, math::URand;
 auto expwork(const auto &A) {
   SquareMatrix<math::eltype_t<decltype(A)>> C{SquareDims{A.numRow()}}, B{A};
   expm(B);
-  for (int64_t i = 0; i < 8; ++i) {
+  for (std::int64_t i = 0; i < 8; ++i) {
     expm(C << A * ::math::exp2(-i));
     B += C;
   }

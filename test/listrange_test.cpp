@@ -13,7 +13,7 @@
 import Arena;
 import ListRange;
 import ManagedArray;
-import STL;
+import std;
 #endif
 
 template <typename T> class List {

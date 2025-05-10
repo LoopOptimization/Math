@@ -21,17 +21,17 @@ import std;
 // #if !defined(__clang__)
 #define CONSTEVAL_LITERAL_ARRAYS
 // #endif
-template <size_t N> struct String {
+template <std::size_t N> struct String {
   char data_[N];
 
-  static constexpr auto size() -> size_t { return N; }
+  static constexpr auto size() -> std::size_t { return N; }
   constexpr String(char const (&p)[N]) { std::copy_n(p, N, data_); }
-  constexpr auto operator[](ptrdiff_t i) const -> char { return data_[i]; }
+  constexpr auto operator[](std::ptrdiff_t i) const -> char { return data_[i]; }
 };
 
 // returns an array {nrows, ncols}
-template <String S> consteval auto dims_eltype() -> std::array<ptrdiff_t, 2> {
-  ptrdiff_t num_rows = 1, num_cols = 0;
+template <String S> consteval auto dims_eltype() -> std::array<std::ptrdiff_t, 2> {
+  std::ptrdiff_t num_rows = 1, num_cols = 0;
   // count numCols
   const char *s = S.data_ + 1; // skip `[`
   // while (*s != ';'){
@@ -56,23 +56,23 @@ template <String S> constexpr auto matrix_from_string() {
 #else
 template <String S> consteval auto matrix_from_string() {
 #endif
-  constexpr std::array<ptrdiff_t, 2> dims = dims_eltype<S>();
+  constexpr std::array<std::ptrdiff_t, 2> dims = dims_eltype<S>();
   // #if !defined(__clang__)
   //   // we want the array to be dense, so we check if the remainder
   //   // of the number of cols by simd width would allow it to be dense.
   //   // If so, we set `Compess = false`.
   //   constexpr bool compress =
-  //     (dims[0] > 1) && (dims[1] % simd::VecLen<dims[1], int64_t>) != 0;
-  //   math::StaticArray<int64_t, dims[0], dims[1], compress> A(int64_t(0));
+  //     (dims[0] > 1) && (dims[1] % simd::VecLen<dims[1], std::int64_t>) != 0;
+  //   math::StaticArray<std::int64_t, dims[0], dims[1], compress> A(std::int64_t(0));
   // #else
-  constexpr ptrdiff_t num_rows = dims[0];
-  constexpr ptrdiff_t num_cols = dims[1];
-  math::StaticArray<int64_t, num_rows, num_cols, true> A{};
+  constexpr std::ptrdiff_t num_rows = dims[0];
+  constexpr std::ptrdiff_t num_cols = dims[1];
+  math::StaticArray<std::int64_t, num_rows, num_cols, true> A{};
   // #endif
   const char *s = S.data_;
-  for (ptrdiff_t i = 0; i < num_rows; ++i) {
-    for (ptrdiff_t j = 0; j < num_cols; ++j) {
-      int64_t x = 0;
+  for (std::ptrdiff_t i = 0; i < num_rows; ++i) {
+    for (std::ptrdiff_t j = 0; j < num_cols; ++j) {
+      std::int64_t x = 0;
       char c = *s;
       while (c != '-' && (c < '0' || c > '9')) c = *(++s);
       bool neg = c == '-';
@@ -94,8 +94,8 @@ export namespace utils {
 namespace utils {
 #endif
 
-// constexpr auto cstoll(const char *s, ptrdiff_t &cur) -> int64_t {
-//   int64_t res = 0;
+// constexpr auto cstoll(const char *s, std::ptrdiff_t &cur) -> std::int64_t {
+//   std::int64_t res = 0;
 //   bool neg = false;
 //   while (s[cur] == ' ') ++cur;
 //   if (s[cur] == '-') {

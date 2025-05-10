@@ -9,10 +9,10 @@
 namespace math {
 template <class T> struct URand {};
 
-template <class T, ptrdiff_t N> struct URand<Dual<T, N>> {
+template <class T, std::ptrdiff_t N> struct URand<Dual<T, N>> {
   auto operator()(std::mt19937_64 &rng) -> Dual<T, N> {
     Dual<T, N> x{URand<T>{}(rng)};
-    for (size_t i = 0; i < N; ++i) x.gradient()[i] = URand<T>{}(rng);
+    for (std::size_t i = 0; i < N; ++i) x.gradient()[i] = URand<T>{}(rng);
     return x;
   }
 };

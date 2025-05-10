@@ -22,30 +22,30 @@ export namespace simd {
 namespace simd {
 #endif
 
-template <ptrdiff_t C, typename T>
+template <std::ptrdiff_t C, typename T>
 constexpr auto transpose(Unroll<1, C, 1, T> u) -> Unroll<C, 1, 1, T> {
   Unroll<C, 1, 1, T> z;
   POLYMATHFULLUNROLL
-  for (ptrdiff_t i = 0; i < C; ++i) z[i] = u[i];
+  for (std::ptrdiff_t i = 0; i < C; ++i) z[i] = u[i];
   return z;
 }
 // 4 x 4C -> 4C x 4
-template <ptrdiff_t C, typename T>
+template <std::ptrdiff_t C, typename T>
 constexpr auto transpose(Unroll<2, C, 2, T> u) -> Unroll<2 * C, 1, 2, T> {
   Unroll<2 * C, 1, 2, T> z;
   POLYMATHFULLUNROLL
-  for (ptrdiff_t i = 0; i < C; ++i) {
+  for (std::ptrdiff_t i = 0; i < C; ++i) {
     Vec<2, T> a{u[0, i]}, b{u[1, i]};
     z[0, i] = __builtin_shufflevector(a, b, 0, 2);
     z[1, i] = __builtin_shufflevector(a, b, 1, 3);
   }
   return z;
 }
-template <ptrdiff_t C, typename T>
+template <std::ptrdiff_t C, typename T>
 constexpr auto transpose(Unroll<4, C, 4, T> u) -> Unroll<4 * C, 1, 4, T> {
   Unroll<4 * C, 1, 4, T> z;
   POLYMATHFULLUNROLL
-  for (ptrdiff_t i = 0; i < C; ++i) {
+  for (std::ptrdiff_t i = 0; i < C; ++i) {
     Vec<4, T> a{u[0, i]}, b{u[1, i]}, c{u[2, i]}, d{u[3, i]};
     Vec<4, T> e{__builtin_shufflevector(a, b, 0, 1, 4, 5)};
     Vec<4, T> f{__builtin_shufflevector(a, b, 2, 3, 6, 7)};
@@ -58,11 +58,11 @@ constexpr auto transpose(Unroll<4, C, 4, T> u) -> Unroll<4 * C, 1, 4, T> {
   }
   return z;
 }
-template <ptrdiff_t C, typename T>
+template <std::ptrdiff_t C, typename T>
 constexpr auto transpose(Unroll<8, C, 8, T> u) -> Unroll<8 * C, 1, 8, T> {
   Unroll<8 * C, 1, 8, T> z;
   POLYMATHFULLUNROLL
-  for (ptrdiff_t i = 0; i < C; ++i) {
+  for (std::ptrdiff_t i = 0; i < C; ++i) {
     Vec<4, T> a{u[0, i]}, b{u[1, i]}, c{u[2, i]}, d{u[3, i]}, e{u[4, i]},
       f{u[5, i]}, g{u[6, i]}, h{u[7, i]};
     Vec<4, T> j{__builtin_shufflevector(a, b, 0, 8, 2, 10, 4, 12, 6, 14)},

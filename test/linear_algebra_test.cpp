@@ -16,7 +16,7 @@ import ManagedArray;
 import MatDim;
 import Rational;
 import Reductions;
-import STL;
+import std;
 #endif
 
 using namespace math;
@@ -24,7 +24,7 @@ using namespace math;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(LinearAlgebraTest, BasicAssertions) {
   const SquareMatrix<Rational> identity = SquareMatrix<Rational>::identity(4);
-  SquareMatrix<int64_t> A(SquareDims{row(4)});
+  SquareMatrix<std::int64_t> A(SquareDims{row(4)});
   A[0, 0] = 2;
   A[0, 1] = -10;
   A[0, 2] = 6;
@@ -66,7 +66,7 @@ TEST(DoubleFactorization, BasicAssertions) {
     C(SquareDims{row(7)}), D(SquareDims{row(7)});
   std::mt19937 gen(0);
   std::uniform_real_distribution<double> dist(-1, 1);
-  for (ptrdiff_t i = 0; i < 10; ++i) {
+  for (std::ptrdiff_t i = 0; i < 10; ++i) {
     for (auto &a : A) a = dist(gen);
     for (auto &b : B) b = dist(gen);
     C << B;

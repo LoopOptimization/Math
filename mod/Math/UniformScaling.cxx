@@ -43,10 +43,10 @@ template <class T> struct UniformScaling {
   using value_type = T;
   T value_;
   TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
-  TRIVIAL constexpr auto operator[](ptrdiff_t r, ptrdiff_t c) const -> T {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const -> T {
     return r == c ? value_ : T{};
   }
-  template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M>
+  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M>
   TRIVIAL constexpr auto operator[](simd::index::Unroll<R> r,
                                     simd::index::Unroll<C, W, M> c) const
     -> simd::Unroll<R, C, W, T> {
@@ -61,36 +61,36 @@ template <class T> struct UniformScaling {
     } else {
       simd::Unroll<R, C, W, T> ret;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 0; i < R; ++i) {
+      for (std::ptrdiff_t i = 0; i < R; ++i) {
         VI vr = simd::vbroadcast<W, I>(i + r.index_),
            vc = simd::range<W, I>() + c.index_;
         POLYMATHFULLUNROLL
-        for (ptrdiff_t j = 0; j < C; ++j, vc += W)
+        for (std::ptrdiff_t j = 0; j < C; ++j, vc += W)
           ret[i, j] = (vr == vc) ? vv : vz;
       }
       return ret;
     }
   }
-  template <ptrdiff_t C, ptrdiff_t W, typename M>
-  TRIVIAL constexpr auto operator[](ptrdiff_t r,
+  template <std::ptrdiff_t C, std::ptrdiff_t W, typename M>
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t r,
                                     simd::index::Unroll<C, W, M> c) const
     -> simd::Unroll<1, C, W, T> {
     return (*this)[simd::index::Unroll<1>{.index_ = r}, c];
   }
-  // template <ptrdiff_t C, ptrdiff_t W, typename M>
+  // template <std::ptrdiff_t C, std::ptrdiff_t W, typename M>
   // TRIVIAL constexpr auto
-  // operator[](simd::index::Unroll<C, W, M> r, ptrdiff_t c) const
+  // operator[](simd::index::Unroll<C, W, M> r, std::ptrdiff_t c) const
   //   -> simd::Unroll<1, C, W, T> {
   //   return (*this)[r, simd::index::Unroll<1>{c}];
   // }
 
   TRIVIAL static constexpr auto numRow() -> Row<0> { return {}; }
   TRIVIAL static constexpr auto numCol() -> Col<0> { return {}; }
-  TRIVIAL static constexpr auto size() -> std::integral_constant<ptrdiff_t, 0> {
+  TRIVIAL static constexpr auto size() -> std::integral_constant<std::ptrdiff_t, 0> {
     return {};
   }
   TRIVIAL static constexpr auto shape()
-    -> CartesianIndex<ptrdiff_t, ptrdiff_t> {
+    -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
     return {.row_idx_ = 0, .col_idx_ = 0};
   }
   TRIVIAL static constexpr auto dim() -> DenseDims<0, 0> { return {{}, {}}; }
@@ -101,10 +101,10 @@ template <class T> struct UniformScaling {
     else return UniformScaling<U>{value_ * x};
   }
   TRIVIAL constexpr auto isEqual(const AbstractMatrix auto &A) const -> bool {
-    auto R = ptrdiff_t(A.numRow());
+    auto R = std::ptrdiff_t(A.numRow());
     if (R != A.numCol()) return false;
-    for (ptrdiff_t r = 0; r < R; ++r)
-      for (ptrdiff_t c = 0; c < R; ++c)
+    for (std::ptrdiff_t r = 0; r < R; ++r)
+      for (std::ptrdiff_t c = 0; c < R; ++c)
         if (A[r, c] != ((r == c) * value_)) return false;
     return true;
   }
@@ -211,6 +211,6 @@ private:
   std::true_type{}}; // identity
 
 template <class T> UniformScaling(T) -> UniformScaling<T>;
-static_assert(AbstractMatrix<UniformScaling<int64_t>>);
+static_assert(AbstractMatrix<UniformScaling<std::int64_t>>);
 
 } // namespace math

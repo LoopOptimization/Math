@@ -9,12 +9,12 @@
 #else
 
 import BitHack;
-import STL;
+import std;
 #endif
 
 TEST(BitTest, BasicAssertions) {
   for (int i = 0; i < 63; ++i) {
-    auto e2 = double(uint64_t(1) << i);
+    auto e2 = double(std::uint64_t(1) << i);
     EXPECT_EQ(bit::exp2unchecked(i), e2);
     EXPECT_EQ(bit::exp2unchecked(-i), 1.0 / e2);
   }

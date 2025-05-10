@@ -117,13 +117,13 @@ private:
   {
     if constexpr (sizeof(J) >= sizeof(I)) return y <=> static_cast<J>(x);
     else if constexpr (nowrap)
-      return static_cast<ptrdiff_t>(x) <=> static_cast<ptrdiff_t>(y);
+      return static_cast<std::ptrdiff_t>(x) <=> static_cast<std::ptrdiff_t>(y);
     else return static_cast<I>(x) <=> static_cast<I>(y);
   }
   TRIVIAL friend inline constexpr auto operator<=>(strong x, strong y)
     -> std::strong_ordering {
     if constexpr (nowrap)
-      return static_cast<ptrdiff_t>(x) <=> static_cast<ptrdiff_t>(y);
+      return static_cast<std::ptrdiff_t>(x) <=> static_cast<std::ptrdiff_t>(y);
     else return static_cast<I>(x) <=> static_cast<I>(y);
   }
 

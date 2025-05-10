@@ -65,15 +65,15 @@ public:
   constexpr BoxTransformView(char *d, unsigned ntotal, unsigned nraw)
     : data_{d}, ntotal_{ntotal}, nraw_{nraw} {}
   [[nodiscard]] constexpr auto size() const -> unsigned { return ntotal_; }
-  constexpr auto operator()(const AbstractVector auto &x, ptrdiff_t i) const
+  constexpr auto operator()(const AbstractVector auto &x, std::ptrdiff_t i) const
     -> utils::eltype_t<decltype(x)> {
-    invariant(std::cmp_less(i, ptrdiff_t(ntotal_)));
+    invariant(std::cmp_less(i, std::ptrdiff_t(ntotal_)));
     int j = getInds()[i];
     double off = offs()[i];
     if (j < 0) return off;
     return scales()[i] * sigmoid(x[j]) + off;
   }
-  template <ptrdiff_t U, ptrdiff_t W, typename M>
+  template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
   constexpr auto operator()(const AbstractVector auto &x,
                             simd::index::Unroll<U, W, M> i) const
     -> simd::Unroll<1, U, W, utils::eltype_t<decltype(x)>> {
@@ -86,15 +86,15 @@ public:
 #ifdef __AVX512F__
       auto m = simd::cmp::ge<W, int>(j.vec_, simd::Vec<W, int>{});
 #else
-      auto m = simd::cmp::ge<W, int64_t>(simd::zextelts<W>(j.vec_),
-                                         simd::Vec<W, int64_t>{});
+      auto m = simd::cmp::ge<W, std::int64_t>(simd::zextelts<W>(j.vec_),
+                                         simd::Vec<W, std::int64_t>{});
 #endif
       V xload = simd::gather(x.data(), i.mask_ & m, j.vec_);
       y.vec_ = simd::select<double>(
         m, scale.vec_ * sigmoid<W>(xload) + off.vec_, off.vec_);
     } else {
       POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) {
+      for (std::ptrdiff_t u = 0; u < U; ++u) {
         auto m = simd::cmp::ge<W, int>(j.data_[u], simd::Vec<W, int>{});
         V xload = simd::gather(x.data(), i.mask_ & m, j.data_[u]);
         y.data_[u] = simd::select<double>(
@@ -103,7 +103,7 @@ public:
     }
     return y;
   }
-  constexpr void set(AbstractVector auto &x, auto y, ptrdiff_t i) {
+  constexpr void set(AbstractVector auto &x, auto y, std::ptrdiff_t i) {
     invariant(i < ntotal_);
     int j = getInds()[i];
     if (j < 0) return;
@@ -113,20 +113,20 @@ public:
   [[nodiscard]] constexpr auto view() const -> BoxTransformView {
     return *this;
   }
-  [[nodiscard]] constexpr auto getLowerBounds() -> MutPtrVector<int32_t> {
+  [[nodiscard]] constexpr auto getLowerBounds() -> MutPtrVector<std::int32_t> {
     return {i32() + ntotal_, length(ntotal_)};
   }
-  [[nodiscard]] constexpr auto getUpperBounds() -> MutPtrVector<int32_t> {
-    return {i32() + ptrdiff_t(2) * ntotal_, length(ntotal_)};
+  [[nodiscard]] constexpr auto getUpperBounds() -> MutPtrVector<std::int32_t> {
+    return {i32() + std::ptrdiff_t(2) * ntotal_, length(ntotal_)};
   }
   // gives max fractional ind on the transformed scale
   template <bool Relative = true>
   constexpr auto maxFractionalComponent()
-    -> containers::Pair<ptrdiff_t, int32_t> {
+    -> containers::Pair<std::ptrdiff_t, std::int32_t> {
     double max = 0.0, lb = 0.0;
-    ptrdiff_t k = -1;
+    std::ptrdiff_t k = -1;
     MutPtrVector<double> x{getRaw()};
-    for (ptrdiff_t i = 0, j = 0; i < ntotal_; ++i) {
+    for (std::ptrdiff_t i = 0, j = 0; i < ntotal_; ++i) {
       double s = scales()[i];
       if (s == 0.0) continue;
       double a = s * sigmoid(x[j++]) + offs()[i], fa = std::floor(a),
@@ -138,18 +138,18 @@ public:
       k = i;
       lb = fa;
     }
-    return {k, static_cast<int32_t>(lb)};
+    return {k, static_cast<std::int32_t>(lb)};
   }
   [[nodiscard]] constexpr auto getRaw() -> MutPtrVector<double> {
-    return {f64() + ptrdiff_t(2) * ntotal_, length(nraw_)};
+    return {f64() + std::ptrdiff_t(2) * ntotal_, length(nraw_)};
   }
   [[nodiscard]] constexpr auto getRaw() const -> PtrVector<double> {
-    return {f64() + ptrdiff_t(2) * ntotal_, length(nraw_)};
+    return {f64() + std::ptrdiff_t(2) * ntotal_, length(nraw_)};
   }
 
 protected:
-  static constexpr ptrdiff_t NDV = 3;
-  static constexpr ptrdiff_t NIV = 3;
+  static constexpr std::ptrdiff_t NDV = 3;
+  static constexpr std::ptrdiff_t NIV = 3;
 
   char *data_;
   /// f64 data:
@@ -168,40 +168,40 @@ protected:
   [[nodiscard]] auto f64() const -> const double * {
     return reinterpret_cast<const double *>(data_);
   }
-  [[nodiscard]] static constexpr auto f64Bytes(size_t Ntotal) -> size_t {
+  [[nodiscard]] static constexpr auto f64Bytes(std::size_t Ntotal) -> std::size_t {
     return (NDV * sizeof(double)) * Ntotal;
   }
-  [[nodiscard]] static constexpr auto i32Bytes(size_t Ntotal) -> size_t {
-    return (NIV * sizeof(int32_t)) * Ntotal;
+  [[nodiscard]] static constexpr auto i32Bytes(std::size_t Ntotal) -> std::size_t {
+    return (NIV * sizeof(std::int32_t)) * Ntotal;
   }
-  [[nodiscard]] static constexpr auto dataBytes(size_t Ntotal) -> size_t {
+  [[nodiscard]] static constexpr auto dataBytes(std::size_t Ntotal) -> std::size_t {
     // dataBytes must be a multiple of the alignment to make aligned alloc happy
     // so, if Ntotal is odd, we padd with an extra 4 bytes
-    return f64Bytes(Ntotal) + i32Bytes(Ntotal) + (Ntotal & 1) * sizeof(int32_t);
+    return f64Bytes(Ntotal) + i32Bytes(Ntotal) + (Ntotal & 1) * sizeof(std::int32_t);
   }
-  [[nodiscard]] constexpr auto f64Bytes() const -> size_t {
+  [[nodiscard]] constexpr auto f64Bytes() const -> std::size_t {
     return f64Bytes(ntotal_);
   }
-  [[nodiscard]] constexpr auto i32Bytes() const -> size_t {
+  [[nodiscard]] constexpr auto i32Bytes() const -> std::size_t {
     return i32Bytes(ntotal_);
   }
-  [[nodiscard]] constexpr auto dataBytes() const -> size_t {
+  [[nodiscard]] constexpr auto dataBytes() const -> std::size_t {
     return dataBytes(ntotal_);
   }
-  [[nodiscard]] auto i32() -> int32_t * {
-    return reinterpret_cast<int32_t *>(data_ + f64Bytes());
+  [[nodiscard]] auto i32() -> std::int32_t * {
+    return reinterpret_cast<std::int32_t *>(data_ + f64Bytes());
   }
-  [[nodiscard]] auto i32() const -> const int32_t * {
-    return reinterpret_cast<const int32_t *>(data_ + f64Bytes());
+  [[nodiscard]] auto i32() const -> const std::int32_t * {
+    return reinterpret_cast<const std::int32_t *>(data_ + f64Bytes());
   }
-  [[nodiscard]] constexpr auto getInds() const -> PtrVector<int32_t> {
+  [[nodiscard]] constexpr auto getInds() const -> PtrVector<std::int32_t> {
     return {i32(), length(ntotal_)};
   }
-  [[nodiscard]] constexpr auto getLowerBounds() const -> PtrVector<int32_t> {
+  [[nodiscard]] constexpr auto getLowerBounds() const -> PtrVector<std::int32_t> {
     return {i32() + ntotal_, length(ntotal_)};
   }
-  [[nodiscard]] constexpr auto getUpperBounds() const -> PtrVector<int32_t> {
-    return {i32() + ptrdiff_t(2) * ntotal_, length(ntotal_)};
+  [[nodiscard]] constexpr auto getUpperBounds() const -> PtrVector<std::int32_t> {
+    return {i32() + std::ptrdiff_t(2) * ntotal_, length(ntotal_)};
   }
   [[nodiscard]] constexpr auto offs() const -> PtrVector<double> {
     return {f64(), length(ntotal_)};
@@ -209,7 +209,7 @@ protected:
   [[nodiscard]] constexpr auto scales() const -> PtrVector<double> {
     return {f64() + ntotal_, length(ntotal_)};
   }
-  [[nodiscard]] constexpr auto getInds() -> MutPtrVector<int32_t> {
+  [[nodiscard]] constexpr auto getInds() -> MutPtrVector<std::int32_t> {
     return {i32(), length(ntotal_)};
   }
   [[nodiscard]] constexpr auto offs() -> MutPtrVector<double> {
@@ -218,7 +218,7 @@ protected:
   [[nodiscard]] constexpr auto scales() -> MutPtrVector<double> {
     return {f64() + ntotal_, length(ntotal_)};
   }
-  static constexpr auto scaleOff(int32_t lb, int32_t ub)
+  static constexpr auto scaleOff(std::int32_t lb, std::int32_t ub)
     -> containers::Pair<double, double> {
 #ifdef __cpp_if_consteval
     // constexpr std::fma requires c++23
@@ -235,7 +235,7 @@ protected:
   }
 };
 template <typename V>
-concept IsMutable = requires(V v, utils::eltype_t<V> x, ptrdiff_t i) {
+concept IsMutable = requires(V v, utils::eltype_t<V> x, std::ptrdiff_t i) {
   { v.data()[i] = x };
 };
 static_assert(IsMutable<math::MutArray<double, Length<>>>);
@@ -247,25 +247,25 @@ template <AbstractVector V> struct BoxTransformVector {
   V v_;
   BoxTransformView btv_;
 
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return btv_.size(); }
-  constexpr auto operator[](ptrdiff_t i) const -> value_type {
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t { return btv_.size(); }
+  constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
     return btv_(v_, i);
   }
-  template <ptrdiff_t U, ptrdiff_t W, typename M>
+  template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
   constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
     -> simd::Unroll<1, U, W, double> {
     return btv_(v_, i);
   }
   struct Reference {
     BoxTransformVector &x;
-    ptrdiff_t i;
+    std::ptrdiff_t i;
     constexpr operator value_type() const { return x.btv_(x.v_, i); }
     constexpr auto operator=(value_type y) -> Reference & {
       x.btv_.set(x.v_, y, i);
       return *this;
     }
   };
-  constexpr auto operator[](ptrdiff_t i) -> Reference
+  constexpr auto operator[](std::ptrdiff_t i) -> Reference
   requires(IsMutable<V>)
   {
     return {*this, i};
@@ -278,22 +278,22 @@ template <AbstractVector V>
 BoxTransformVector(V, BoxTransformView) -> BoxTransformVector<V>;
 
 class BoxTransform : public BoxTransformView {
-  [[nodiscard]] static auto allocate(size_t ntotal) -> char * {
+  [[nodiscard]] static auto allocate(std::size_t ntotal) -> char * {
     return alloc::Mallocator<char>::allocate(dataBytes(ntotal),
                                              std::align_val_t{alignof(double)});
   }
-  static void deallocate(char *data, size_t ntotal) {
+  static void deallocate(char *data, std::size_t ntotal) {
     if (data)
       alloc::Mallocator<char>::deallocate(data, dataBytes(ntotal),
                                           std::align_val_t{alignof(double)});
   }
 
 public:
-  template <size_t N>
-  constexpr BoxTransform(std::array<int32_t, N> lb, std::array<int32_t, N> ub)
+  template <std::size_t N>
+  constexpr BoxTransform(std::array<std::int32_t, N> lb, std::array<std::int32_t, N> ub)
     : BoxTransformView{allocate(N), N} {
-    for (int32_t i = 0; i < int32_t(N); ++i) {
-      int32_t l = lb[i], u = ub[i];
+    for (std::int32_t i = 0; i < std::int32_t(N); ++i) {
+      std::int32_t l = lb[i], u = ub[i];
       invariant(l < u);
       auto [s, o] = scaleOff(l, u);
       getInds()[i] = i;
@@ -304,11 +304,11 @@ public:
     }
   }
 
-  constexpr BoxTransform(unsigned ntotal, int32_t lb, int32_t ub)
+  constexpr BoxTransform(unsigned ntotal, std::int32_t lb, std::int32_t ub)
     : BoxTransformView{allocate(ntotal), ntotal} {
     invariant(lb < ub);
     auto [s, o] = scaleOff(lb, ub);
-    for (ptrdiff_t i = 0; i < ptrdiff_t(ntotal); ++i) {
+    for (std::ptrdiff_t i = 0; i < std::ptrdiff_t(ntotal); ++i) {
       getInds()[i] = i;
       getLowerBounds()[i] = lb;
       getUpperBounds()[i] = ub;
@@ -316,10 +316,10 @@ public:
       offs()[i] = o;
     }
   }
-  constexpr void increaseLowerBound(ptrdiff_t idx, int32_t lb) {
-    invariant(idx < ptrdiff_t(ntotal_));
+  constexpr void increaseLowerBound(std::ptrdiff_t idx, std::int32_t lb) {
+    invariant(idx < std::ptrdiff_t(ntotal_));
     invariant(lb > getLowerBounds()[idx]);
-    int32_t ub = getUpperBounds()[idx];
+    std::int32_t ub = getUpperBounds()[idx];
     invariant(lb <= ub);
     getLowerBounds()[idx] = lb;
     double new_scale, new_off;
@@ -329,7 +329,7 @@ public:
       untrf.erase(getInds()[idx]);
       getInds()[idx] = -1;
       // we remove a fixed, so we must now decrement all following inds
-      for (ptrdiff_t i = idx; ++i < ntotal_;) --getInds()[i];
+      for (std::ptrdiff_t i = idx; ++i < ntotal_;) --getInds()[i];
       new_scale = 0.0;
       new_off = lb;
     } else {
@@ -339,10 +339,10 @@ public:
     scales()[idx] = new_scale;
     offs()[idx] = new_off;
   }
-  constexpr void decreaseUpperBound(ptrdiff_t idx, int32_t ub) {
+  constexpr void decreaseUpperBound(std::ptrdiff_t idx, std::int32_t ub) {
     invariant(idx < ntotal_);
     invariant(ub < getUpperBounds()[idx]);
-    int32_t lb = getLowerBounds()[idx];
+    std::int32_t lb = getLowerBounds()[idx];
     invariant(lb <= ub);
     getUpperBounds()[idx] = ub;
     double new_scale, new_off;
@@ -352,7 +352,7 @@ public:
       untrf.erase(getInds()[idx]);
       getInds()[idx] = -1;
       // we remove a fixed, so we must now decrement all following inds
-      for (ptrdiff_t i = idx; ++i < ntotal_;) --getInds()[i];
+      for (std::ptrdiff_t i = idx; ++i < ntotal_;) --getInds()[i];
       new_scale = 0.0;
       new_off = lb;
     } else {
@@ -381,7 +381,7 @@ public:
   }
   // returns a copy of `this` with the `i`th upper bound decreased to `nlb`
   // this's `i`th lower bound gets increased to `nlb+1`
-  constexpr auto fork(ptrdiff_t i, int32_t nlb) -> BoxTransform {
+  constexpr auto fork(std::ptrdiff_t i, std::int32_t nlb) -> BoxTransform {
     BoxTransform ret{*this};
     ret.getRaw() << getRaw();
     decreaseUpperBound(i, nlb);
@@ -426,12 +426,12 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
   constexpr double c = 0.5;
   constexpr double tau = 0.5;
   double alpha = 0.25, fx;
-  ptrdiff_t L = x.size();
+  std::ptrdiff_t L = x.size();
   auto scope = alloc->scope();
   auto *data = alloc->allocate<double>(2 * L);
   MutPtrVector<double> xnew{data, length(L)}, dir{data + L, length(L)}, xcur{x};
   HessianResultCore hr{alloc, L};
-  for (ptrdiff_t n = 0; n < 1000; ++n) {
+  for (std::ptrdiff_t n = 0; n < 1000; ++n) {
     fx = hessian(hr, xcur, f);
     invariant(fx == fx);
     if (hr.gradient().norm2() < tol2) break;
@@ -439,7 +439,7 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
     if constexpr (!constrained)
       if (dir.norm2() < tol4) break;
     double t = 0.0;
-    for (ptrdiff_t i = 0; i < L; ++i) {
+    for (std::ptrdiff_t i = 0; i < L; ++i) {
       // TODO: 0 clamped dirs
       t += hr.gradient()[i] * dir[i];
       double xi = xcur[i] - alpha * dir[i];
@@ -471,7 +471,7 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
         // xtmp == xnew + (alpha - alphanew) * dir;
         // thus, we can use `xcur` as an `xtmp` buffer
         double a = alpha - alphanew;
-        for (ptrdiff_t i = 0; i < L; ++i) {
+        for (std::ptrdiff_t i = 0; i < L; ++i) {
           double xi = xnew[i] + a * dir[i];
           if constexpr (constrained) xi = std::clamp(xi, -EXTREME, EXTREME);
           xcur[i] = xi;
@@ -489,7 +489,7 @@ constexpr auto minimize(alloc::Arena<> *alloc, MutPtrVector<double> x,
       // failure, we shrink alpha
       for (;;) {
         alpha *= tau;
-        for (ptrdiff_t i = 0; i < L; ++i) {
+        for (std::ptrdiff_t i = 0; i < L; ++i) {
           double xi = xcur[i] - alpha * dir[i];
           if constexpr (constrained) xi = std::clamp(xi, -EXTREME, EXTREME);
           xnew[i] = xi;

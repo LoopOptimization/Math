@@ -41,7 +41,7 @@ namespace math {
 // }
 
 // constexpr auto anyNEZero(const auto &x) -> bool {
-//   return std::any_of(x.begin(), x.end(), [](int64_t y) { return y != 0; });
+//   return std::any_of(x.begin(), x.end(), [](std::int64_t y) { return y != 0; });
 // }
 NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A,
                                             const auto &f) -> bool {
@@ -51,22 +51,22 @@ NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A,
   if constexpr (simd::SIMDSupported<T>) {
     if constexpr (AbstractMatrix<TA>) {
       if constexpr (StaticInt<decltype(N)>) {
-        constexpr std::array<ptrdiff_t, 3> vdr =
-          simd::VectorDivRem<ptrdiff_t(N), T>();
-        constexpr ptrdiff_t W = vdr[0];
-        constexpr ptrdiff_t fulliter = vdr[1];
-        constexpr ptrdiff_t remainder = vdr[2];
-        for (ptrdiff_t r = 0; r < M; ++r) {
-          ptrdiff_t L = W * fulliter;
-          for (ptrdiff_t i = 0; i < L; i += W)
+        constexpr std::array<std::ptrdiff_t, 3> vdr =
+          simd::VectorDivRem<std::ptrdiff_t(N), T>();
+        constexpr std::ptrdiff_t W = vdr[0];
+        constexpr std::ptrdiff_t fulliter = vdr[1];
+        constexpr std::ptrdiff_t remainder = vdr[2];
+        for (std::ptrdiff_t r = 0; r < M; ++r) {
+          std::ptrdiff_t L = W * fulliter;
+          for (std::ptrdiff_t i = 0; i < L; i += W)
             if (f(A[r, simd::index::Unroll<1, W>{i}])) return true;
           if constexpr (remainder > 0)
             if (f(A[r, simd::index::unrollmask<1, W>(N, L)])) return true;
         }
       } else {
-        constexpr ptrdiff_t W = simd::Width<T>;
-        for (ptrdiff_t r = 0; r < M; ++r) {
-          for (ptrdiff_t i = 0;; i += W) {
+        constexpr std::ptrdiff_t W = simd::Width<T>;
+        for (std::ptrdiff_t r = 0; r < M; ++r) {
+          for (std::ptrdiff_t i = 0;; i += W) {
             auto u{simd::index::unrollmask<1, W>(N, i)};
             if (!u) break;
             if (f(A[r, u])) return true;
@@ -74,41 +74,41 @@ NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A,
         }
       }
     } else if constexpr (StaticInt<decltype(M)> && StaticInt<decltype(N)>) {
-      ptrdiff_t L = RowVector<TA> ? N : M;
+      std::ptrdiff_t L = RowVector<TA> ? N : M;
       using SL = std::conditional_t<RowVector<TA>, decltype(N), decltype(M)>;
-      constexpr std::array<ptrdiff_t, 3> vdr =
-        simd::VectorDivRem<ptrdiff_t(SL{}), T>();
-      constexpr ptrdiff_t W = vdr[0];
-      constexpr ptrdiff_t fulliter = vdr[1];
-      constexpr ptrdiff_t remainder = vdr[2];
-      ptrdiff_t K = W * fulliter;
-      for (ptrdiff_t i = 0; i < K; i += W)
+      constexpr std::array<std::ptrdiff_t, 3> vdr =
+        simd::VectorDivRem<std::ptrdiff_t(SL{}), T>();
+      constexpr std::ptrdiff_t W = vdr[0];
+      constexpr std::ptrdiff_t fulliter = vdr[1];
+      constexpr std::ptrdiff_t remainder = vdr[2];
+      std::ptrdiff_t K = W * fulliter;
+      for (std::ptrdiff_t i = 0; i < K; i += W)
         if (f(A[simd::index::Unroll<1, W>{i}])) return true;
       if constexpr (remainder > 0)
         if (f(A[simd::index::unrollmask<1, W>(L, K)])) return true;
     } else {
-      constexpr ptrdiff_t W = simd::Width<T>;
-      ptrdiff_t L = RowVector<TA> ? N : M;
-      for (ptrdiff_t i = 0;; i += W) {
+      constexpr std::ptrdiff_t W = simd::Width<T>;
+      std::ptrdiff_t L = RowVector<TA> ? N : M;
+      for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
         if (f(A[u])) return true;
       }
     }
   } else if constexpr (AbstractMatrix<TA>) {
-    for (ptrdiff_t r = 0; r < M; ++r)
-      for (ptrdiff_t i = 0; i < N; ++i)
+    for (std::ptrdiff_t r = 0; r < M; ++r)
+      for (std::ptrdiff_t i = 0; i < N; ++i)
         if (f(A[r, i])) return true;
   } else {
-    ptrdiff_t L = RowVector<TA> ? N : M;
-    for (ptrdiff_t i = 0; i < L; ++i)
+    std::ptrdiff_t L = RowVector<TA> ? N : M;
+    for (std::ptrdiff_t i = 0; i < L; ++i)
       if (f(A[i])) return true;
   }
   return false;
 }
 NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
-  constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
+  constexpr std::ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
@@ -118,7 +118,7 @@ NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
 }
 NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
-  constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
+  constexpr std::ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
@@ -128,7 +128,7 @@ NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
 }
 NODEBUG constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
-  constexpr ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
+  constexpr std::ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
                                          decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
@@ -136,7 +136,7 @@ NODEBUG constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
     });
   else return any(A, [](T x) -> bool { return x > T{}; });
 }
-NODEBUG constexpr auto countNonZero(const auto &x) -> ptrdiff_t {
+NODEBUG constexpr auto countNonZero(const auto &x) -> std::ptrdiff_t {
   return std::count_if(x.begin(), x.end(), [](auto a) { return a != 0; });
   // return std::ranges::count_if(x, [](auto x) { return x != 0; });
 }

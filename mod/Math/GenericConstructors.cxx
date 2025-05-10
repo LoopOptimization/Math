@@ -51,82 +51,82 @@ using rebound_alloc_t =
 // using alloc_type = typename std::allocator_traits<A>::value_type;
 
 template <alloc::FreeAllocator A>
-constexpr auto vector(A, ptrdiff_t M)
+constexpr auto vector(A, std::ptrdiff_t M)
   -> ManagedArray<eltype_t<A>, Length<>,
                   containers::PreAllocStorage<eltype_t<A>, Length<>>(), A> {
   return {length(M), A{}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto vector(A, ptrdiff_t M, eltype_t<A> x)
+constexpr auto vector(A, std::ptrdiff_t M, eltype_t<A> x)
   -> ManagedArray<eltype_t<A>, Length<>,
                   containers::PreAllocStorage<eltype_t<A>, Length<>>(), A> {
   return {length(M), x, A{}};
 }
 
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto vector(A, ptrdiff_t M) {
+constexpr auto vector(A, std::ptrdiff_t M) {
   if constexpr (std::same_as<T, eltype_t<A>>) return vector(A{}, M);
   else return vector(rebound_alloc_t<A, T>{}, M);
 }
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto vector(A, ptrdiff_t M, std::type_identity_t<T> x) {
+constexpr auto vector(A, std::ptrdiff_t M, std::type_identity_t<T> x) {
   if constexpr (std::same_as<T, eltype_t<A>>) return vector<A>(A{}, M, x);
   else return vector<A>(rebound_alloc_t<A, T>{}, M, x);
 }
 
-template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+template <alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
 constexpr auto matrix(A, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, A{}};
 }
-template <alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+template <alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
 constexpr auto matrix(A, Row<R> M, Col<C> N,
                       eltype_t<A> x) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, A{}};
 }
 
-template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+template <NonEmpty T, alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
 constexpr auto matrix(A, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, rebound_alloc_t<A, T>{}};
 }
-template <NonEmpty T, alloc::FreeAllocator A, ptrdiff_t R, ptrdiff_t C>
+template <NonEmpty T, alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
 constexpr auto matrix(A, Row<R> M, Col<C> N,
                       std::type_identity_t<T> x) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, rebound_alloc_t<A, T>{}};
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A, ptrdiff_t M) -> SquareMatrixAlloc<A> {
+constexpr auto square_matrix(A, std::ptrdiff_t M) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, A{}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A, ptrdiff_t M,
+constexpr auto square_matrix(A, std::ptrdiff_t M,
                              utils::eltype_t<A> x) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, x, A{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto
-square_matrix(A, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
+square_matrix(A, std::ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, rebound_alloc_t<A, T>{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto square_matrix(A, ptrdiff_t M, std::type_identity_t<T> x)
+constexpr auto square_matrix(A, std::ptrdiff_t M, std::type_identity_t<T> x)
   -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, x, rebound_alloc_t<A, T>{}};
 }
 
 template <alloc::FreeAllocator A>
-constexpr auto identity(A, ptrdiff_t M) -> SquareMatrixAlloc<A> {
+constexpr auto identity(A, std::ptrdiff_t M) -> SquareMatrixAlloc<A> {
   SquareMatrixAlloc<A> B{SquareDims<>{row(M)}, utils::eltype_t<A>{}, A{}};
   B.diag() << eltype_t<A>{1};
   return B;
 }
 template <NonEmpty T, alloc::FreeAllocator A>
 constexpr auto
-identity(A, ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
+identity(A, std::ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return identity<rebound_alloc_t<A, T>>(rebound_alloc_t<A, T>{}, M);
 }
 template <typename T, typename I>
-concept Alloc = requires(T t, ptrdiff_t M, Row<> r, Col<> c, I i) {
+concept Alloc = requires(T t, std::ptrdiff_t M, Row<> r, Col<> c, I i) {
   { identity<I>(t, M) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
   { square_matrix<I>(t, M) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
   { square_matrix<I>(t, M, i) } -> std::convertible_to<MutSquarePtrMatrix<I>>;
@@ -134,8 +134,8 @@ concept Alloc = requires(T t, ptrdiff_t M, Row<> r, Col<> c, I i) {
   { matrix(t, r, c, i) } -> std::convertible_to<MutDensePtrMatrix<I>>;
   { vector<I>(t, M) } -> std::convertible_to<MutPtrVector<I>>;
 };
-static_assert(Alloc<std::allocator<int64_t>, int64_t>);
-static_assert(Alloc<alloc::Mallocator<int64_t>, int64_t>);
-static_assert(Alloc<alloc::Arena<> *, int64_t>);
+static_assert(Alloc<std::allocator<std::int64_t>, std::int64_t>);
+static_assert(Alloc<alloc::Mallocator<std::int64_t>, std::int64_t>);
+static_assert(Alloc<alloc::Arena<> *, std::int64_t>);
 
 } // namespace math

@@ -54,7 +54,7 @@ constexpr auto bound(alloc::Arena<> *alloc, BoxTransform &box, double upper,
 // set floor and ceil
 // Assumes that integer floor of values is optimal
 constexpr auto
-minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r,
+minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<std::int32_t> r,
                BoxTransform &box, const auto &f,
                double globalupper = std::numeric_limits<double>::infinity())
   -> double {
@@ -64,7 +64,7 @@ minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r,
   // cache upper bound result
   {
     auto btf = box.transformed();
-    for (ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] = std::floor(btf[i]);
+    for (std::ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] = std::floor(btf[i]);
   }
   // TODO: simd floor support?
   // r << Elementwise{[](auto x) { return std::floor(x); }, box.transformed()};
@@ -77,14 +77,14 @@ minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r,
     // TODO: fix these
     r << box.transformed();
     // auto btf = box.transformed();
-    // for (ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] =
+    // for (std::ptrdiff_t i = 0, L = r.size(); i < L; ++i) r[i] =
     // std::floor(btf[i]);
   }
   return opt;
 }
 constexpr auto
-minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<int32_t> r, int32_t lb,
-               int32_t ub, const auto &f,
+minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<std::int32_t> r, std::int32_t lb,
+               std::int32_t ub, const auto &f,
                double globalupper = std::numeric_limits<double>::infinity())
   -> double {
   // goal is to shrink all bounds such that lb==ub, i.e. we have all

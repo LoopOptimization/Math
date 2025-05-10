@@ -43,8 +43,8 @@ namespace containers {
 using utils::invariant;
 
 struct EndSentinel {
-  [[nodiscard]] constexpr auto operator-(auto it) -> ptrdiff_t {
-    ptrdiff_t i = 0;
+  [[nodiscard]] constexpr auto operator-(auto it) -> std::ptrdiff_t {
+    std::ptrdiff_t i = 0;
     for (; it != EndSentinel{}; ++it, ++i) {}
     return i;
   }
@@ -59,15 +59,15 @@ template <std::unsigned_integral U> class BitSetIterator {
   [[no_unique_address]] const U *it_;
   [[no_unique_address]] const U *end_;
   [[no_unique_address]] U istate_;
-  ptrdiff_t cstate0_{-1};
-  ptrdiff_t cstate1_{0};
+  std::ptrdiff_t cstate0_{-1};
+  std::ptrdiff_t cstate1_{0};
 
 public:
   constexpr explicit BitSetIterator(const U *_it, const U *_end, U _istate)
     : it_{_it}, end_{_end}, istate_{_istate} {}
-  using value_type = ptrdiff_t;
-  using difference_type = ptrdiff_t;
-  constexpr auto operator*() const -> ptrdiff_t { return cstate0_ + cstate1_; }
+  using value_type = std::ptrdiff_t;
+  using difference_type = std::ptrdiff_t;
+  constexpr auto operator*() const -> std::ptrdiff_t { return cstate0_ + cstate1_; }
   constexpr auto operator++() -> BitSetIterator & {
     while (istate_ == 0) {
       if (++it_ == end_) return *this;
@@ -75,7 +75,7 @@ public:
       cstate0_ = -1;
       cstate1_ += 8 * sizeof(U);
     }
-    ptrdiff_t tzp1 = std::countr_zero(istate_);
+    std::ptrdiff_t tzp1 = std::countr_zero(istate_);
     cstate0_ += ++tzp1;
     istate_ >>= tzp1;
     return *this;
@@ -106,65 +106,65 @@ public:
 
 template <typename T>
 concept Collection = requires(T t) {
-  { std::size(t) } -> std::convertible_to<size_t>;
-  { std::ssize(t) } -> std::convertible_to<ptrdiff_t>;
-  { *t.begin() } -> std::convertible_to<uint64_t>;
+  { std::size(t) } -> std::convertible_to<std::size_t>;
+  { std::ssize(t) } -> std::convertible_to<std::ptrdiff_t>;
+  { *t.begin() } -> std::convertible_to<std::uint64_t>;
 };
 
-/// A set of `ptrdiff_t` elements.
+/// A set of `std::ptrdiff_t` elements.
 /// Initially constructed
-template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
+template <Collection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   using U = utils::eltype_t<T>;
   static constexpr U usize = 8 * sizeof(U);
   static constexpr U umask = usize - 1;
   static constexpr U ushift = std::countr_zero(usize);
   [[no_unique_address]] T data_{};
-  // ptrdiff_t operator[](ptrdiff_t i) const {
+  // std::ptrdiff_t operator[](std::ptrdiff_t i) const {
   //     return data[i];
   // } // allow `getindex` but not `setindex`
   constexpr explicit BitSet() = default;
   constexpr explicit BitSet(T &&_data) : data_{std::move(_data)} {}
   constexpr explicit BitSet(const T &_data) : data_{_data} {}
-  static constexpr auto numElementsNeeded(ptrdiff_t N) -> math::Length<> {
+  static constexpr auto numElementsNeeded(std::ptrdiff_t N) -> math::Length<> {
     return math::length(((N + usize - 1) >> ushift));
   }
-  constexpr explicit BitSet(ptrdiff_t N)
+  constexpr explicit BitSet(std::ptrdiff_t N)
   requires(!std::is_trivially_destructible_v<T>)
     : data_{numElementsNeeded(N), 0} {}
   static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
-  constexpr void resizeData(ptrdiff_t N) {
+  constexpr void resizeData(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) data_.resize(N);
     else invariant(N <= std::ssize(data_));
   }
-  constexpr void resize(ptrdiff_t N) {
+  constexpr void resize(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) data_.resize(numElementsNeeded(N));
     else invariant(N <= std::ssize(data_) * usize);
   }
-  constexpr void maybeResize(ptrdiff_t N) {
+  constexpr void maybeResize(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) {
       math::Length<> M = numElementsNeeded(N);
       if (M > std::ssize(data_)) data_.resize(M);
-    } else invariant(N <= std::ssize(data_) * ptrdiff_t(usize));
+    } else invariant(N <= std::ssize(data_) * std::ptrdiff_t(usize));
   }
-  static constexpr auto dense(ptrdiff_t N) -> BitSet {
+  static constexpr auto dense(std::ptrdiff_t N) -> BitSet {
     BitSet b{};
     math::Length M = numElementsNeeded(N);
     if (!M) return b;
     U maxval = std::numeric_limits<U>::max();
     if constexpr (CanResize<T>) b.data_.resizeForOverwrite(M);
     --M;
-    for (ptrdiff_t i = 0z; i < M; ++i) b.data_[i] = maxval;
-    if (ptrdiff_t rem = N & (usize - 1))
-      b.data_[ptrdiff_t(M)] = (1z << rem) - 1z;
+    for (std::ptrdiff_t i = 0z; i < M; ++i) b.data_[i] = maxval;
+    if (std::ptrdiff_t rem = N & (usize - 1))
+      b.data_[std::ptrdiff_t(M)] = (1z << rem) - 1z;
     return b;
   }
-  [[nodiscard]] constexpr auto maxValue() const -> ptrdiff_t {
-    ptrdiff_t N = std::ssize(data_);
+  [[nodiscard]] constexpr auto maxValue() const -> std::ptrdiff_t {
+    std::ptrdiff_t N = std::ssize(data_);
     return N ? ((usize * N) - std::countl_zero(data_[N - 1])) : 0;
   }
-  [[nodiscard]] constexpr auto count() const -> ptrdiff_t {
-    ptrdiff_t c = 0;
-    for (uint64_t x : data_) c += std::popcount(x);
+  [[nodiscard]] constexpr auto count() const -> std::ptrdiff_t {
+    std::ptrdiff_t c = 0;
+    for (std::uint64_t x : data_) c += std::popcount(x);
     return c;
   }
   // BitSet::Iterator(std::vector<std::U> &seta)
@@ -181,33 +181,33 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   [[nodiscard]] static constexpr auto end() -> EndSentinel {
     return EndSentinel{};
   };
-  [[nodiscard]] constexpr auto front() const -> ptrdiff_t {
-    for (ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+  [[nodiscard]] constexpr auto front() const -> std::ptrdiff_t {
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
       if (data_[i]) return (usize * i) + std::countr_zero(data_[i]);
-    return std::numeric_limits<ptrdiff_t>::max();
+    return std::numeric_limits<std::ptrdiff_t>::max();
   }
-  static constexpr auto contains(math::PtrVector<U> data, ptrdiff_t x) -> U {
+  static constexpr auto contains(math::PtrVector<U> data, std::ptrdiff_t x) -> U {
     if (data.empty()) return 0;
-    ptrdiff_t d = x >> ptrdiff_t(ushift);
+    std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
     U r = U(x) & umask;
     U mask = U(1) << r;
     return (data[d] & (mask));
   }
   /// Returns `true` if `i` is in the `BitSet`
-  [[nodiscard]] constexpr auto contains(ptrdiff_t i) const -> U {
+  [[nodiscard]] constexpr auto contains(std::ptrdiff_t i) const -> U {
     return contains(data_, i);
   }
   struct Contains {
     const T &d_;
-    constexpr auto operator()(ptrdiff_t i) const -> U {
+    constexpr auto operator()(std::ptrdiff_t i) const -> U {
       return contains(d_, i);
     }
   };
   [[nodiscard]] constexpr auto contains() const -> Contains {
     return Contains{data_};
   }
-  constexpr auto insert(ptrdiff_t x) -> bool {
-    ptrdiff_t d = x >> ptrdiff_t(ushift);
+  constexpr auto insert(std::ptrdiff_t x) -> bool {
+    std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
     U r = U(x) & umask;
     U mask = U(1) << r;
     if (d >= std::ssize(data_)) resizeData(d + 1);
@@ -215,8 +215,8 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     if (!contained) data_[d] |= (mask);
     return contained;
   }
-  constexpr void uncheckedInsert(ptrdiff_t x) {
-    ptrdiff_t d = x >> ushift;
+  constexpr void uncheckedInsert(std::ptrdiff_t x) {
+    std::ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;
     U mask = U(1) << r;
     if (d >= std::ssize(data_)) resizeData(d + 1);
@@ -224,32 +224,32 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   }
   // returns `true` the bitset contained `x`, i.e. if the
   // removal was succesful.
-  constexpr auto remove(ptrdiff_t x) -> bool {
-    ptrdiff_t d = x >> ushift;
+  constexpr auto remove(std::ptrdiff_t x) -> bool {
+    std::ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;
     U mask = U(1) << r;
     bool contained = ((data_[d] & mask) != 0);
     if (contained) data_[d] &= (~mask);
     return contained;
   }
-  static constexpr void set(U &d, ptrdiff_t r, bool b) {
+  static constexpr void set(U &d, std::ptrdiff_t r, bool b) {
     U mask = U(1) << r;
     if (b == ((d & mask) != 0)) return;
     if (b) d |= mask;
     else d &= (~mask);
   }
-  static constexpr void set(math::MutPtrVector<U> data, ptrdiff_t x, bool b) {
-    ptrdiff_t d = x >> ushift;
+  static constexpr void set(math::MutPtrVector<U> data, std::ptrdiff_t x, bool b) {
+    std::ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;
     set(data[d], r, b);
   }
 
   class Reference {
     [[no_unique_address]] math::MutPtrVector<U> data_;
-    [[no_unique_address]] ptrdiff_t i_;
+    [[no_unique_address]] std::ptrdiff_t i_;
 
   public:
-    constexpr explicit Reference(math::MutPtrVector<U> dd, ptrdiff_t ii)
+    constexpr explicit Reference(math::MutPtrVector<U> dd, std::ptrdiff_t ii)
       : data_(dd), i_(ii) {}
     constexpr operator bool() const { return contains(data_, i_); }
     constexpr auto operator=(bool b) -> Reference & {
@@ -258,16 +258,16 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     }
   };
 
-  constexpr auto operator[](ptrdiff_t i) const -> bool {
+  constexpr auto operator[](std::ptrdiff_t i) const -> bool {
     return contains(data_, i);
   }
-  constexpr auto operator[](ptrdiff_t i) -> Reference {
+  constexpr auto operator[](std::ptrdiff_t i) -> Reference {
     maybeResize(i + 1);
     math::MutPtrVector<U> d{data_};
     return Reference{d, i};
   }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    ptrdiff_t s = 0;
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    std::ptrdiff_t s = 0;
     for (auto u : data_) s += std::popcount(u);
     return s;
   }
@@ -281,9 +281,9 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     // return false;
   }
   constexpr void setUnion(const BitSet &bs) {
-    ptrdiff_t O = std::ssize(bs.data_), N = std::ssize(data_);
+    std::ptrdiff_t O = std::ssize(bs.data_), N = std::ssize(data_);
     if (O > N) resizeData(O);
-    for (ptrdiff_t i = 0; i < O; ++i) {
+    for (std::ptrdiff_t i = 0; i < O; ++i) {
       U d = data_[i] | bs.data_[i];
       data_[i] = d;
     }
@@ -291,21 +291,21 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   constexpr auto operator&=(const BitSet &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
-    for (ptrdiff_t i = 0; i < std::ssize(data_); ++i) data_[i] &= bs.data_[i];
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i) data_[i] &= bs.data_[i];
     return *this;
   }
   // &!
   constexpr auto operator-=(const BitSet &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
-    for (ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
       data_[i] &= (~bs.data_[i]);
     return *this;
   }
   constexpr auto operator|=(const BitSet &bs) -> BitSet & {
     if (std::ssize(bs.data_) > std::ssize(data_))
       resizeData(std::ssize(bs.data_));
-    for (ptrdiff_t i = 0; i < std::ssize(bs.data_); ++i)
+    for (std::ptrdiff_t i = 0; i < std::ssize(bs.data_); ++i)
       data_[i] |= bs.data_[i];
     return *this;
   }
@@ -329,19 +329,19 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   // backwards.
   constexpr auto operator<=>(const BitSet &other) const
     -> std::strong_ordering {
-    ptrdiff_t ntd = data_.size(), nod = other.data_.size();
+    std::ptrdiff_t ntd = data_.size(), nod = other.data_.size();
     if (ntd != nod) {
       bool larger = ntd > nod;
-      ptrdiff_t l = std::min(ntd, nod), L = std::max(ntd, nod);
+      std::ptrdiff_t l = std::min(ntd, nod), L = std::max(ntd, nod);
       const T &d = larger ? data_ : other.data_;
       // The other is effectively all `0`, thus we may as well iterate forwards.
-      for (ptrdiff_t i = l; i < L; ++i)
+      for (std::ptrdiff_t i = l; i < L; ++i)
         if (d[i])
           return larger ? std::strong_ordering::greater
                         : std::strong_ordering::less;
       ntd = l;
     }
-    for (ptrdiff_t i = ntd; i--;)
+    for (std::ptrdiff_t i = ntd; i--;)
       if (auto cmp = data_[i] <=> other.data_[i]; cmp != 0) return cmp;
     return std::strong_ordering::equal;
   }
@@ -364,8 +364,8 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
     //   if (u) return false;
     // return true;
   }
-  constexpr auto findFirstZero() -> ptrdiff_t {
-    ptrdiff_t offset = 0;
+  constexpr auto findFirstZero() -> std::ptrdiff_t {
+    std::ptrdiff_t offset = 0;
     for (U x : data_) {
       U c = std::countr_one(x);
       offset += c;
@@ -375,7 +375,7 @@ template <Collection T = math::Vector<uint64_t, 1>> struct BitSet {
   }
 };
 
-template <unsigned N> using FixedSizeBitSet = BitSet<std::array<uint64_t, N>>;
+template <unsigned N> using FixedSizeBitSet = BitSet<std::array<std::uint64_t, N>>;
 // BitSet with length 64
 using BitSet64 = FixedSizeBitSet<1>;
 static_assert(std::is_trivially_destructible_v<BitSet64>);
@@ -389,7 +389,7 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   [[no_unique_address]] const B &i_;
   struct Iterator {
     [[no_unique_address]] math::MutPtrVector<T> a_;
-    [[no_unique_address]] BitSetIterator<uint64_t> it_;
+    [[no_unique_address]] BitSetIterator<std::uint64_t> it_;
     constexpr auto operator==(EndSentinel) const -> bool {
       return it_ == EndSentinel{};
     }
@@ -410,7 +410,7 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   constexpr auto begin() -> Iterator { return {a_, i_.begin()}; }
   struct ConstIterator {
     [[no_unique_address]] math::PtrVector<T> a_;
-    [[no_unique_address]] BitSetIterator<uint64_t> it_;
+    [[no_unique_address]] BitSetIterator<std::uint64_t> it_;
     constexpr auto operator==(EndSentinel) const -> bool {
       return it_ == EndSentinel{};
     }
@@ -433,19 +433,19 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
     return {a_, i_.begin()};
   }
   [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t { return i_.size(); }
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t { return i_.size(); }
   [[nodiscard]] friend constexpr auto operator-(EndSentinel, Iterator v)
-    -> ptrdiff_t {
+    -> std::ptrdiff_t {
     return EndSentinel{} - v.it_;
   }
   [[nodiscard]] friend constexpr auto operator-(EndSentinel, ConstIterator v)
-    -> ptrdiff_t {
+    -> std::ptrdiff_t {
     return EndSentinel{} - v.it_;
   }
 };
 template <typename T, typename B>
 BitSliceView(math::MutPtrVector<T>, const B &) -> BitSliceView<T, B>;
 
-static_assert(std::movable<BitSliceView<int64_t>::Iterator>);
-static_assert(std::movable<BitSliceView<int64_t>::ConstIterator>);
+static_assert(std::movable<BitSliceView<std::int64_t>::Iterator>);
+static_assert(std::movable<BitSliceView<std::int64_t>::ConstIterator>);
 } // namespace containers

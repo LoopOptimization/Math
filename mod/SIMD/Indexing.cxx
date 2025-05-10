@@ -24,8 +24,8 @@ export namespace simd::index {
 namespace simd::index {
 #endif
 
-// template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, ptrdiff_t X>
-// constexpr auto unroll(ptrdiff_t index, M mask, RowStride<X> rs){
+// template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M, std::ptrdiff_t X>
+// constexpr auto unroll(std::ptrdiff_t index, M mask, RowStride<X> rs){
 //   return Unroll<R,C,W,M,X>{index,mask,rs};
 // }
 
@@ -35,8 +35,8 @@ namespace simd::index {
 /// Note that `UnrollDims<R,C,1,mask::None<1>,false>` is thus morally
 /// equivalent to `UnrollDims<C,R,1,mask::None<1>,true>`
 ///
-template <ptrdiff_t R, ptrdiff_t C = 1, ptrdiff_t W = 1,
-          typename M = mask::None<W>, bool Transposed = false, ptrdiff_t X = -1>
+template <std::ptrdiff_t R, std::ptrdiff_t C = 1, std::ptrdiff_t W = 1,
+          typename M = mask::None<W>, bool Transposed = false, std::ptrdiff_t X = -1>
 struct UnrollDims {
   static_assert(W != 1 || std::same_as<M, mask::None<1>>,
                 "Only mask vector dims");
@@ -48,7 +48,7 @@ struct UnrollDims {
 
 template <typename T> inline constexpr bool issimd = false;
 
-template <ptrdiff_t R, ptrdiff_t C, ptrdiff_t W, typename M, bool Transposed,
-          ptrdiff_t X>
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M, bool Transposed,
+          std::ptrdiff_t X>
 inline constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
 } // namespace simd::index

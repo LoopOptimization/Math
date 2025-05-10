@@ -61,7 +61,7 @@ export namespace math {
 namespace math {
 #endif
 
-template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
+template <class T, std::ptrdiff_t N, bool Compress = false> struct Dual {
   static_assert(Compress);
   using CT = utils::compressed_t<T>;
   CT val{};
@@ -108,8 +108,8 @@ template <class T, ptrdiff_t N, bool Compress = false> struct Dual {
   // }
 };
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-requires(std::popcount(size_t(N)) > 1)
+template <simd::SIMDSupported T, std::ptrdiff_t N>
+requires(std::popcount(std::size_t(N)) > 1)
 struct Dual<T, N, true> {
   SVector<T, N + 1, true> data{T{}};
 
@@ -151,7 +151,7 @@ struct Dual<T, N, true> {
   // }
 };
 
-template <class T, ptrdiff_t N> struct Dual<T, N, false> {
+template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
   // default decompressed separates the value and partials
   using data_type = SVector<T, N, false>;
   T val{};
@@ -164,7 +164,7 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
 
   TRIVIAL constexpr Dual() = default;
   TRIVIAL constexpr Dual(T v) : val(v) {}
-  TRIVIAL constexpr Dual(T v, ptrdiff_t n) : val(v) { partials[n] = T{1}; }
+  TRIVIAL constexpr Dual(T v, std::ptrdiff_t n) : val(v) { partials[n] = T{1}; }
   TRIVIAL constexpr Dual(T v, data_type g) : val(v), partials(g) {}
   TRIVIAL constexpr Dual(T v, AbstractVector auto g) {
     value() = v;
@@ -176,14 +176,14 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
   // constexpr auto operator=(const Dual &) -> Dual & = default;
   TRIVIAL constexpr auto value() -> T & { return val; }
   TRIVIAL constexpr auto gradient() -> data_type & { return partials; }
-  TRIVIAL constexpr auto gradient(ptrdiff_t i) -> T & { return partials[i]; }
+  TRIVIAL constexpr auto gradient(std::ptrdiff_t i) -> T & { return partials[i]; }
   TRIVIAL [[nodiscard]] constexpr auto value() const -> const T & {
     return val;
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() const -> const data_type & {
     return partials;
   }
-  TRIVIAL [[nodiscard]] constexpr auto gradient(ptrdiff_t i) const
+  TRIVIAL [[nodiscard]] constexpr auto gradient(std::ptrdiff_t i) const
     -> const T & {
     return partials[i];
   }
@@ -199,14 +199,14 @@ template <class T, ptrdiff_t N> struct Dual<T, N, false> {
     if constexpr (std::same_as<T, double> && (N > 1)) {
       Dual ret(val * other.val);
       using V = typename data_type::V;
-      constexpr ptrdiff_t W = data_type::W;
+      constexpr std::ptrdiff_t W = data_type::W;
       V va = simd::vbroadcast<W, double>(val),
         vb = simd::vbroadcast<W, double>(other.val);
       if constexpr (data_type::L == 1) {
         ret.partials.data_ = va * other.partials.data_ + vb * partials.data_;
       } else {
         POLYMATHFULLUNROLL
-        for (ptrdiff_t i = 0; i < data_type::L; ++i)
+        for (std::ptrdiff_t i = 0; i < data_type::L; ++i)
           ret.partials.memory_[i] =
             va * other.partials.memory_[i] + vb * partials.memory_[i];
       }
@@ -395,7 +395,7 @@ private:
   }
   friend auto operator<<(std::ostream &os, const Dual &x) -> std::ostream & {
     os << "Dual<" << N << ">{" << x.value();
-    for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
+    for (std::ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
     os << "}";
     return os;
   };
@@ -437,26 +437,26 @@ private:
   }
 };
 
-template <simd::SIMDSupported T, ptrdiff_t N>
-requires(std::popcount(size_t(N)) > 1)
+template <simd::SIMDSupported T, std::ptrdiff_t N>
+requires(std::popcount(std::size_t(N)) > 1)
 struct Dual<T, N, false> {
-  static constexpr ptrdiff_t value_idx = 0; // N;
-  static constexpr ptrdiff_t partial_offset = value_idx != N;
+  static constexpr std::ptrdiff_t value_idx = 0; // N;
+  static constexpr std::ptrdiff_t partial_offset = value_idx != N;
   using data_type = SVector<T, N + 1, false>;
   data_type data{T{}};
   using compressed_type = Dual<T, N, true>;
   using decompressed_type = Dual<T, N, false>;
 
   using V = typename data_type::V;
-  static constexpr ptrdiff_t W = data_type::W;
+  static constexpr std::ptrdiff_t W = data_type::W;
   // constexpr Dual() = default;
   TRIVIAL constexpr Dual() = default;
   TRIVIAL constexpr Dual(T v) { data[value_idx] = v; }
-  TRIVIAL constexpr Dual(T v, ptrdiff_t n) {
+  TRIVIAL constexpr Dual(T v, std::ptrdiff_t n) {
     data[value_idx] = v;
     data[partial_offset + n] = T{1};
   }
-  // constexpr Dual(T v, ptrdiff_t n, T p) {
+  // constexpr Dual(T v, std::ptrdiff_t n, T p) {
   //   data[value_idx] = v;
   //   data[partial_offset + n] = p;
   // }
@@ -481,10 +481,10 @@ struct Dual<T, N, false> {
   TRIVIAL [[nodiscard]] constexpr auto vvalue() const -> V {
     // return data[value_idx];
     if constexpr (data_type::L == 1)
-      return (simd::range<W, int64_t>() == simd::Vec<W, int64_t>{}) ? data.data_
+      return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{}) ? data.data_
                                                                     : V{};
     else
-      return (simd::range<W, int64_t>() == simd::Vec<W, int64_t>{})
+      return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{})
                ? data.memory_[0]
                : V{};
   }
@@ -510,14 +510,14 @@ struct Dual<T, N, false> {
   //   if constexpr (data_type::L == 1) {
   //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
   //     return {
-  //       {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, int64_t>())}};
+  //       {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, std::int64_t>())}};
   //   } else {
   //     Dual ret;
   //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
   //     ret.data.memory_[0] =
-  //       simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, int64_t>());
+  //       simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, std::int64_t>());
   //     POLYMATHFULLUNROLL
-  //     for (ptrdiff_t i = 1; i < data_type::L; ++i)
+  //     for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
   //       ret.data.memory_[i] = vt * other.data.memory_[i] + vo *
   //       data.memory_[i];
   //     return ret;
@@ -533,15 +533,15 @@ struct Dual<T, N, false> {
   //       x = vo * data.data_;
   //     ret.data.data_ =
   //       simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W,
-  //       int64_t>()) / vo2;
+  //       std::int64_t>()) / vo2;
   //   } else {
   //     V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
   //       x = vo * data.memory_[0];
   //     ret.data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
-  //                                           simd::firstoff<W, int64_t>()) /
+  //                                           simd::firstoff<W, std::int64_t>()) /
   //                           vo2;
   //     POLYMATHFULLUNROLL
-  //     for (ptrdiff_t i = 1; i < data_type::L; ++i)
+  //     for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
   //       ret.data.memory_[i] =
   //         (vo * data.memory_[i] - vt * other.data.memory_[i]) / vo2;
   //   }
@@ -569,13 +569,13 @@ struct Dual<T, N, false> {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
       data.data_ =
-        simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, int64_t>());
+        simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, std::int64_t>());
     } else {
       V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
       data.memory_[0] =
-        simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, int64_t>());
+        simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, std::int64_t>());
       POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         data.memory_[i] = vt * other.data.memory_[i] + vo * data.memory_[i];
     }
     // data << conditional(std::plus<>{},
@@ -588,16 +588,16 @@ struct Dual<T, N, false> {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
         x = vo * data.data_;
       data.data_ =
-        simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W, int64_t>()) /
+        simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W, std::int64_t>()) /
         vo2;
     } else {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
         x = vo * data.memory_[0];
       data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
-                                        simd::firstoff<W, int64_t>()) /
+                                        simd::firstoff<W, std::int64_t>()) /
                         vo2;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         data.memory_[i] =
           (vo * data.memory_[i] - vt * other.data.memory_[i]) / vo2;
     }
@@ -709,16 +709,16 @@ private:
       V vt = simd::vbroadcast<W, double>(a), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * simd::Vec<W, double>{a};
       ret.data.data_ =
-        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, int64_t>()) /
+        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, std::int64_t>()) /
         vo2;
     } else {
       V vt = simd::vbroadcast<W, double>(a), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * simd::Vec<W, double>{a};
       ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
-                                            simd::firstoff<W, int64_t>()) /
+                                            simd::firstoff<W, std::int64_t>()) /
                             vo2;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         ret.data.memory_[i] = (-vt * b.data.memory_[i]) / vo2;
     }
     return ret;
@@ -748,7 +748,7 @@ private:
   }
   friend auto operator<<(std::ostream &os, const Dual &x) -> std::ostream & {
     os << "Dual<" << N << ">{" << x.value();
-    for (ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
+    for (std::ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
     os << "}";
     return os;
   };
@@ -766,14 +766,14 @@ private:
     if constexpr (data_type::L == 1) {
       V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.data_;
       return {
-        {simd::fmadd<T>(vo, a.data.data_, x, simd::firstoff<D::W, int64_t>())}};
+        {simd::fmadd<T>(vo, a.data.data_, x, simd::firstoff<D::W, std::int64_t>())}};
     } else {
       Dual<T, N, false> ret;
       V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.memory_[0];
       ret.data.memory_[0] = simd::fmadd<T>(vo, a.data.memory_[0], x,
-                                           simd::firstoff<D::W, int64_t>());
+                                           simd::firstoff<D::W, std::int64_t>());
       POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         ret.data.memory_[i] = vt * b.data.memory_[i] + vo * a.data.memory_[i];
       return ret;
     }
@@ -784,16 +784,16 @@ private:
       V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * a.data.data_;
       ret.data.data_ =
-        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, int64_t>()) /
+        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, std::int64_t>()) /
         vo2;
     } else {
       V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * a.data.memory_[0];
       ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
-                                            simd::firstoff<W, int64_t>()) /
+                                            simd::firstoff<W, std::int64_t>()) /
                             vo2;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t i = 1; i < data_type::L; ++i)
+      for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         ret.data.memory_[i] =
           (vo * a.data.memory_[i] - vt * b.data.memory_[i]) / vo2;
     }
@@ -826,7 +826,7 @@ private:
       b.data.memory_[0] =
         simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data.memory_[0];
       POLYMATHFULLUNROLL
-      for (ptrdiff_t l = 1; l < data_type::L; ++l)
+      for (std::ptrdiff_t l = 1; l < data_type::L; ++l)
         b.data.memory_[l] = -b.data.memory_[l];
     }
     return b;
@@ -862,56 +862,56 @@ static_assert(sizeof(Dual<Dual<double, 8>, 2>) ==
 //                                 double, std::multiplies<void>>,
 //     std::plus<void>>>);
 
-template <class T, ptrdiff_t N> Dual(T, SVector<T, N>) -> Dual<T, N>;
+template <class T, std::ptrdiff_t N> Dual(T, SVector<T, N>) -> Dual<T, N>;
 
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto exp(const Dual<T, N> &x) -> Dual<T, N> {
   T expx = exp(x.value());
   return {expx, expx * x.gradient()};
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto sigmoid(const Dual<T, N> &x) -> Dual<T, N> {
   T s = sigmoid(x.value());
   return {s, (s - s * s) * x.gradient()};
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto softplus(const Dual<T, N> &x) -> Dual<T, N> {
   return {softplus(x.value()), sigmoid(x.value()) * x.gradient()};
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto log(const Dual<T, N> &x) -> Dual<T, N> {
   constexpr double logof2 = 0.6931471805599453; // log(2);
   return {log2(x.value()) * logof2, x.gradient() / x.value()};
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto log2(const Dual<T, N> &x) -> Dual<T, N> {
   constexpr double logof2 = 0.6931471805599453; // log(2);
   return {log2(x.value()), x.gradient() / (logof2 * x.value())};
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto log1p(const Dual<T, N> &x) -> Dual<T, N> {
   // d log(1+x)/dx = dx/1+x
   return {log1p(x.value()), x.gradient() / (1.0 + x.value())};
 }
 
 // Reference support...
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto exp(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return exp(Dual<T, N>{x});
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto sigmoid(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return sigmoid(Dual<T, N>{x});
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto log(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return log(Dual<T, N>{x});
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto log2(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return log2(Dual<T, N>{x});
 }
-template <class T, ptrdiff_t N>
+template <class T, std::ptrdiff_t N>
 TRIVIAL constexpr auto log1p(utils::Reference<Dual<T, N>> x) -> Dual<T, N> {
   return log1p(Dual<T, N>{x});
 }
@@ -929,19 +929,19 @@ TRIVIAL constexpr auto smax(auto w, auto x, auto y, auto z) {
   return m + i * log(exp(f * (w - m)) + exp(f * (x - m)) + exp(f * (y - m)) +
                      exp(f * (z - m)));
 }
-template <int l = 8, typename T, ptrdiff_t N>
+template <int l = 8, typename T, std::ptrdiff_t N>
 TRIVIAL constexpr auto smax(SVector<T, N> x) -> T {
   static_assert(!std::is_integral_v<T>);
   static constexpr double f = l, i = 1 / f;
   double m = -std::numeric_limits<double>::max();
-  for (ptrdiff_t n = 0; n < N; ++n) m = std::max(m, extractvalue(x[n]));
+  for (std::ptrdiff_t n = 0; n < N; ++n) m = std::max(m, extractvalue(x[n]));
   T a{};
-  for (ptrdiff_t n = 0; n < N; ++n) a += exp(f * (x[n] - m));
+  for (std::ptrdiff_t n = 0; n < N; ++n) a += exp(f * (x[n] - m));
   return m + i * log(a);
 }
 
 TRIVIAL constexpr auto dval(double &x) -> double & { return x; }
-template <typename T, ptrdiff_t N>
+template <typename T, std::ptrdiff_t N>
 TRIVIAL constexpr auto dval(Dual<T, N> &x) -> double & {
   return dval(x.value());
 }
@@ -959,7 +959,7 @@ public:
 };
 class HessianResultCore {
   double *ptr;
-  ptrdiff_t dim;
+  std::ptrdiff_t dim;
 
 public:
   TRIVIAL [[nodiscard]] constexpr auto gradient() const
@@ -970,8 +970,8 @@ public:
     -> MutSquarePtrMatrix<double> {
     return {ptr + dim, SquareDims<>{row(dim)}};
   }
-  TRIVIAL constexpr HessianResultCore(alloc::Arena<> *alloc, ptrdiff_t d)
-    : ptr{alloc->allocate<double>(size_t(d) * (d + 1))}, dim{d} {}
+  TRIVIAL constexpr HessianResultCore(alloc::Arena<> *alloc, std::ptrdiff_t d)
+    : ptr{alloc->allocate<double>(std::size_t(d) * (d + 1))}, dim{d} {}
 };
 class HessianResult : public HessianResultCore {
   double x{};
@@ -983,26 +983,26 @@ public:
   constexpr HessianResult(alloc::Arena<> *alloc, unsigned d)
     : HessianResultCore{alloc, d} {}
 
-  template <size_t I> constexpr auto get() const {
+  template <std::size_t I> constexpr auto get() const {
     if constexpr (I == 0) return x;
     else if constexpr (I == 1) return gradient();
     else return hessian();
   }
 };
 
-template <ptrdiff_t N, AbstractVector T>
+template <std::ptrdiff_t N, AbstractVector T>
 struct DualVector : Expr<Dual<utils::eltype_t<T>, N>, DualVector<N, T>> {
   using value_type = Dual<utils::eltype_t<T>, N>;
   static_assert(utils::TriviallyCopyable<T>);
   T x;
-  ptrdiff_t offset;
-  TRIVIAL [[nodiscard]] constexpr auto operator[](ptrdiff_t i) const
+  std::ptrdiff_t offset;
+  TRIVIAL [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const
     -> value_type {
     value_type v{x[i]};
     if ((i >= offset) && (i < offset + N)) dval(v.gradient()[i - offset]) = 1.0;
     return v;
   }
-  TRIVIAL [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
     return x.size();
   }
   TRIVIAL [[nodiscard]] constexpr auto numRow() const -> Row<1> { return {}; }
@@ -1016,8 +1016,8 @@ struct DualVector : Expr<Dual<utils::eltype_t<T>, N>, DualVector<N, T>> {
 static_assert(AbstractVector<DualVector<8, PtrVector<double>>>);
 static_assert(AbstractVector<DualVector<2, DualVector<8, PtrVector<double>>>>);
 
-template <ptrdiff_t N>
-TRIVIAL constexpr auto dual(const AbstractVector auto &x, ptrdiff_t offset) {
+template <std::ptrdiff_t N>
+TRIVIAL constexpr auto dual(const AbstractVector auto &x, std::ptrdiff_t offset) {
   return DualVector<N, decltype(x.view())>{.x = x.view(), .offset = offset};
 }
 
@@ -1037,14 +1037,14 @@ struct ScaledIncrement {
 TRIVIAL constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
                                 const auto &f)
   -> containers::Pair<double, MutPtrVector<double>> {
-  constexpr ptrdiff_t U = 8;
+  constexpr std::ptrdiff_t U = 8;
   using D = Dual<double, U>;
-  ptrdiff_t N = x.size();
+  std::ptrdiff_t N = x.size();
   MutPtrVector<double> grad = vector<double>(arena, N);
   auto p = arena->scope();
-  for (ptrdiff_t i = 0;; i += U) {
+  for (std::ptrdiff_t i = 0;; i += U) {
     D fx = alloc::call(*arena, f, dual<U>(x, i));
-    for (ptrdiff_t j = 0; ((j < U) && (i + j < N)); ++j)
+    for (std::ptrdiff_t j = 0; ((j < U) && (i + j < N)); ++j)
       grad[i + j] = fx.gradient()[j];
     if (i + U >= N) return {fx.value(), grad};
   }
@@ -1054,29 +1054,29 @@ TRIVIAL constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
 /// fills the lower triangle of the hessian
 TRIVIAL constexpr auto hessian(HessianResultCore hr, PtrVector<double> x,
                                const auto &f, auto update) -> double {
-  constexpr ptrdiff_t Ui = 8;
-  constexpr ptrdiff_t Uj = 2;
+  constexpr std::ptrdiff_t Ui = 8;
+  constexpr std::ptrdiff_t Uj = 2;
   using D = Dual<double, Ui>;
   using DD = Dual<D, Uj>;
-  ptrdiff_t N = x.size();
+  std::ptrdiff_t N = x.size();
   MutPtrVector<double> grad = hr.gradient();
   MutSquarePtrMatrix<double> hess = hr.hessian();
   invariant(N == grad.size());
   invariant(N == hess.numCol());
-  for (ptrdiff_t j = 0;; j += Uj) {
+  for (std::ptrdiff_t j = 0;; j += Uj) {
     bool jbr = j + Uj >= N;
-    for (ptrdiff_t i = 0;; i += Ui) {
+    for (std::ptrdiff_t i = 0;; i += Ui) {
       // df^2/dx_i dx_j
       bool ibr = i + Ui - Uj >= j;
       // we want to copy into both regions _(j, j+Uj) and _(i, i+Ui)
       // these regions overlap for the last `i` iteration only
       DD fx = f(dual<Uj>(dual<Ui>(x, i), j));
       // DD fx = alloc::call(arena, f, x);
-      for (ptrdiff_t k = 0; ((k < Uj) && (j + k < N)); ++k)
-        for (ptrdiff_t l = 0; ((l < Ui) && (i + l < N)); ++l)
+      for (std::ptrdiff_t k = 0; ((k < Uj) && (j + k < N)); ++k)
+        for (std::ptrdiff_t l = 0; ((l < Ui) && (i + l < N)); ++l)
           update(hess[j + k, i + l], fx.gradient()[k].gradient()[l]);
       if (jbr)
-        for (ptrdiff_t k = 0; ((k < Ui) && (i + k < N)); ++k)
+        for (std::ptrdiff_t k = 0; ((k < Ui) && (i + k < N)); ++k)
           grad[i + k] = fx.value().gradient()[k];
       if (!ibr) continue;
       if (jbr) return fx.value().value();
@@ -1101,10 +1101,10 @@ static_assert(MatrixDimension<SquareDims<>>);
 static_assert(std::same_as<utils::compressed_t<Dual<Dual<double, 8>, 2>>,
                            Dual<Dual<double, 8>, 2, true>>);
 
-template <typename T, ptrdiff_t N, bool Compress>
+template <typename T, std::ptrdiff_t N, bool Compress>
 struct IsDualImpl<::math::Dual<T, N, Compress>> : std::true_type {};
 
-template <typename T, ptrdiff_t N>
+template <typename T, std::ptrdiff_t N>
 struct ScalarizeEltViaCast<Dual<T, N, true>> {
   using type = std::conditional_t<std::same_as<T, double>, double,
                                   scalarize_elt_cast_t<utils::compressed_t<T>>>;
@@ -1116,15 +1116,15 @@ struct ScalarizeEltViaCast<Dual<T, N, true>> {
 export {
 #endif
   template <> struct std::tuple_size<math::HessianResult> {
-    static constexpr size_t value = 3;
+    static constexpr std::size_t value = 3;
   };
-  template <> struct std::tuple_element<size_t(0), math::HessianResult> {
+  template <> struct std::tuple_element<std::size_t(0), math::HessianResult> {
     using type = double;
   };
-  template <> struct std::tuple_element<size_t(1), math::HessianResult> {
+  template <> struct std::tuple_element<std::size_t(1), math::HessianResult> {
     using type = math::MutPtrVector<double>;
   };
-  template <> struct std::tuple_element<size_t(2), math::HessianResult> {
+  template <> struct std::tuple_element<std::size_t(2), math::HessianResult> {
     using type = math::MutSquarePtrMatrix<double>;
   };
 

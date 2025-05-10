@@ -17,7 +17,7 @@ import Array;
 import ManagedArray;
 import MatDim;
 import NormalForm;
-import STL;
+import std;
 #endif
 
 using math::DenseMatrix, math::DenseDims, math::row, math::col;
@@ -28,20 +28,20 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-2, 2);
 
-  constexpr ptrdiff_t M = 7;
-  constexpr ptrdiff_t N = 7;
-  int64_t mem[M * N * 2];
+  constexpr std::ptrdiff_t M = 7;
+  constexpr std::ptrdiff_t N = 7;
+  std::int64_t mem[M * N * 2];
   alloc::OwningArena<> alloc;
-  math::MutDensePtrMatrix<int64_t> A{mem, DenseDims<>{row(M), col(N)}};
-  constexpr size_t iters = 1000;
-  for (size_t i = 0; i < iters; ++i) {
+  math::MutDensePtrMatrix<std::int64_t> A{mem, DenseDims<>{row(M), col(N)}};
+  constexpr std::size_t iters = 1000;
+  for (std::size_t i = 0; i < iters; ++i) {
     for (auto &&a : A) a = distrib(gen);
     // std::cout << "Random A =\n" << A << "\n";
-    ptrdiff_t r = math::NormalForm::rank(alloc, A);
+    std::ptrdiff_t r = math::NormalForm::rank(alloc, A);
     auto orth = math::orthogonalize(&alloc, A);
     ASSERT_EQ(orth.numCol(), A.numCol());
     ASSERT_EQ(orth.numRow(), r);
-    math::MutDensePtrMatrix<int64_t> B{mem + (M * N),
+    math::MutDensePtrMatrix<std::int64_t> B{mem + (M * N),
                                        DenseDims<>{row(r), col(r)}};
     // std::cout << "Orthogonal A =\n" << A << "\n";
     // note, A'A is not diagonal
@@ -52,8 +52,8 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-else"
 #endif
-    for (ptrdiff_t m = 0; m < r; ++m)
-      for (ptrdiff_t n = 0; n < r; ++n)
+    for (std::ptrdiff_t m = 0; m < r; ++m)
+      for (std::ptrdiff_t n = 0; n < r; ++n)
         if (m != n) ASSERT_EQ((B[m, n]), 0);
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic pop

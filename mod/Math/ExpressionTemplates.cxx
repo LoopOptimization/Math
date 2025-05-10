@@ -49,9 +49,9 @@ using namespace math;
 
 using utils::TriviallyCopyable;
 
-template <typename T, typename I> consteval auto getWidth() -> ptrdiff_t {
-  if constexpr (std::same_as<I, ptrdiff_t>) return simd::Width<T>;
-  else return simd::VecLen<ptrdiff_t(I{}), T>;
+template <typename T, typename I> consteval auto getWidth() -> std::ptrdiff_t {
+  if constexpr (std::same_as<I, std::ptrdiff_t>) return simd::Width<T>;
+  else return simd::VecLen<std::ptrdiff_t(I{}), T>;
 }
 
 template <class T, class C>
@@ -80,11 +80,11 @@ concept BinaryFuncOfElts =
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op> struct Elementwise;
 
-TRIVIAL constexpr auto size(const std::integral auto) -> ptrdiff_t { return 1; }
-TRIVIAL constexpr auto size(const std::floating_point auto) -> ptrdiff_t {
+TRIVIAL constexpr auto size(const std::integral auto) -> std::ptrdiff_t { return 1; }
+TRIVIAL constexpr auto size(const std::floating_point auto) -> std::ptrdiff_t {
   return 1;
 }
-TRIVIAL constexpr auto size(const AbstractVector auto &x) -> ptrdiff_t {
+TRIVIAL constexpr auto size(const AbstractVector auto &x) -> std::ptrdiff_t {
   return x.size();
 }
 
@@ -93,7 +93,7 @@ concept HasConcreteSize = requires(T) {
   std::is_same_v<typename std::remove_reference_t<T>::concrete, std::true_type>;
 };
 
-static_assert(!HasConcreteSize<int64_t>);
+static_assert(!HasConcreteSize<std::int64_t>);
 template <typename T, typename U>
 using is_concrete_t =
   std::conditional_t<HasConcreteSize<T> || HasConcreteSize<U>, std::true_type,
@@ -273,7 +273,7 @@ public:
     if constexpr (!std::convertible_to<std::remove_cvref_t<B>, T>) {
       auto AA{v()};
       auto BB{b.view()};
-      invariant(ptrdiff_t(numCols(AA)), ptrdiff_t(numRows(BB)));
+      invariant(std::ptrdiff_t(numCols(AA)), std::ptrdiff_t(numRows(BB)));
       if constexpr (RowVector<decltype(AA)> && ColVector<decltype(BB)>)
         return dot(AA, BB.t());
       else if constexpr (AbstractVector<decltype(AA)> &&
@@ -296,28 +296,28 @@ public:
     auto b{view(B)};
     if constexpr (simd::Width<CT> <= 2) {
       if constexpr (AbstractMatrix<A>) {
-        for (ptrdiff_t r = 0; r < M; ++r)
-          for (ptrdiff_t i = 0; i < N; ++i)
+        for (std::ptrdiff_t r = 0; r < M; ++r)
+          for (std::ptrdiff_t i = 0; i < N; ++i)
             if (a[r, i] != b[r, i]) return false;
       } else {
-        ptrdiff_t L = RowVector<A> ? N : M;
-        for (ptrdiff_t i = 0; i < L; ++i)
+        std::ptrdiff_t L = RowVector<A> ? N : M;
+        for (std::ptrdiff_t i = 0; i < L; ++i)
           if (a[i] != b[i]) return false;
       }
     } else if constexpr (AbstractMatrix<A>) {
-      constexpr ptrdiff_t W = getWidth<CT, decltype(N)>();
-      for (ptrdiff_t r = 0; r < M; ++r) {
-        for (ptrdiff_t i = 0;; i += W) {
+      constexpr std::ptrdiff_t W = getWidth<CT, decltype(N)>();
+      for (std::ptrdiff_t r = 0; r < M; ++r) {
+        for (std::ptrdiff_t i = 0;; i += W) {
           auto u{simd::index::unrollmask<1, W>(N, i)};
           if (!u) break;
           if (simd::cmp::ne<W, CT>(a[r, u], b[r, u])) return false;
         }
       }
     } else {
-      constexpr ptrdiff_t W = RowVector<A> ? getWidth<CT, decltype(N)>()
+      constexpr std::ptrdiff_t W = RowVector<A> ? getWidth<CT, decltype(N)>()
                                            : getWidth<CT, decltype(M)>();
-      ptrdiff_t L = RowVector<A> ? N : M;
-      for (ptrdiff_t i = 0;; i += W) {
+      std::ptrdiff_t L = RowVector<A> ? N : M;
+      for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
         if (simd::cmp::ne<W, CT>(a[u], b[u])) return false;
@@ -506,9 +506,9 @@ template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 Elementwise(A, Op) -> Elementwise<A, Op>;
 
 // // promote primitive element types, e.g. so
-// // operator+(int, AbstractVector<int64_t>)
+// // operator+(int, AbstractVector<std::int64_t>)
 // // turns into
-// // operator+(int64_t, AbstractVector<int64_t>)
+// // operator+(std::int64_t, AbstractVector<std::int64_t>)
 template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
           BinaryFuncOfElts<A, B> Op>
 ElementwiseBinaryOp(A, B, Op)
@@ -565,7 +565,7 @@ struct Conditional
     HasInnerReduction<A> || HasInnerReduction<B>;
   [[no_unique_address]] Op op_;
 
-  TRIVIAL constexpr auto operator[](ptrdiff_t i) const -> value_type
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type
   requires LinearlyIndexableOrConvertible<C, bool> &&
            LinearlyIndexableOrConvertible<A, value_type> &&
            LinearlyIndexableOrConvertible<B, value_type>
@@ -578,7 +578,7 @@ struct Conditional
       return this->c[i] ? op_(this->a, this->b[i]) : this->a;
     else return this->c[i] ? op_(this->a, this->b) : this->a;
   }
-  template <ptrdiff_t U, ptrdiff_t W, typename M>
+  template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
   TRIVIAL constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
   requires LinearlyIndexableOrConvertible<C, bool> &&
            LinearlyIndexableOrConvertible<A, value_type> &&
@@ -589,7 +589,7 @@ struct Conditional
       simd::Unroll<U, 1, 1, value_type> x = get<value_type>(this->a, i),
                                         y = op_(x, get<value_type>(this->b, i));
       POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u)
+      for (std::ptrdiff_t u = 0; u < U; ++u)
         x.data[u] = c.data[u] ? y.data[u] : x.data[u];
       return x;
     } else if constexpr (LinearlyIndexable<A, value_type>) {
@@ -597,7 +597,7 @@ struct Conditional
       simd::Unroll<1, U, W, value_type> x = get<value_type>(this->a, i),
                                         y = op_(x, get<value_type>(this->b, i));
       POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u)
+      for (std::ptrdiff_t u = 0; u < U; ++u)
         x.data[u] = c.data[u] ? y.data[u] : x.data[u];
       return x;
     } else if constexpr (LinearlyIndexable<B, value_type>) {
@@ -606,7 +606,7 @@ struct Conditional
       V x = simd::vbroadcast<W, value_type>(get<value_type>(this->a, i));
       simd::Unroll<1, U, W, value_type> y = op_(x, get<value_type>(this->b, i));
       POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u)
+      for (std::ptrdiff_t u = 0; u < U; ++u)
         if constexpr (LinearlyIndexable<B, value_type>)
           y.data[u] = c.data[u] ? y.data[u] : x;
       return y;
@@ -619,7 +619,7 @@ struct Conditional
         y = simd::vbroadcast<W, value_type>(ys);
       simd::Unroll<1, U, W, value_type> z;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < U; ++u) z.data[u] = c.data[u] ? y : x;
+      for (std::ptrdiff_t u = 0; u < U; ++u) z.data[u] = c.data[u] ? y : x;
       return z;
     }
     //   auto c = get<bool>(this->c, i);
@@ -627,7 +627,7 @@ struct Conditional
     //   auto y = op(x, get<value_type>(this->b, i));
     //   simd::Unroll<1, U, W, value_type> z;
     //   POLYMATHFULLUNROLL
-    //   for (ptrdiff_t u = 0; u < U; ++u)
+    //   for (std::ptrdiff_t u = 0; u < U; ++u)
     //     if constexpr (LinearlyIndexable<A, value_type>)
     //       z.data[u] = !c.data[u] ? x.data[u] : y.data[u];
     //     else if constexpr (LinearlyIndexable<B, value_type>)
@@ -677,10 +677,10 @@ struct MatMatMul : public math::Expr<
   requires(ismatrix)
   {
     static_assert(AbstractMatrix<B>, "B should be an AbstractMatrix");
-    invariant(ptrdiff_t(a_.numCol()) > 0);
+    invariant(std::ptrdiff_t(a_.numCol()) > 0);
     decltype(a_[i, 0] * b_[0, j] + a_[i, 1] * b_[1, j]) s{};
     POLYMATHNOVECTORIZE
-    for (ptrdiff_t k = 0; k < ptrdiff_t(a_.numCol()); ++k)
+    for (std::ptrdiff_t k = 0; k < std::ptrdiff_t(a_.numCol()); ++k)
       s += a_[i, k] * b_[k, j];
     return s;
   }
@@ -709,7 +709,7 @@ struct MatMatMul : public math::Expr<
       invariant(a_.size() > 0);
       decltype(a_[0] * b_[0, i] + a_[1] * b_[1, i]) s{};
       POLYMATHNOVECTORIZE
-      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
+      for (std::ptrdiff_t k = 0; k < a_.numCol(); ++k) {
         POLYMATHFAST
         s += a_[k] * b_[k, i];
       }
@@ -718,7 +718,7 @@ struct MatMatMul : public math::Expr<
       invariant(a_.numCol() == b_.size());
       invariant(b_.size() > 0);
       decltype(a_[i, 0] * b_[0] + a_[i, 1] * b_[1]) s{};
-      for (ptrdiff_t k = 0; k < a_.numCol(); ++k) {
+      for (std::ptrdiff_t k = 0; k < a_.numCol(); ++k) {
         POLYMATHFAST
         s += a_[i, k] * b_[k];
       }

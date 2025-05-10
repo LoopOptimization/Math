@@ -22,7 +22,7 @@ import ManagedArray;
 import MatDim;
 import Rational;
 import Simplex;
-import STL;
+import std;
 #endif
 
 using namespace math;
@@ -40,7 +40,7 @@ TEST(SimplexTest, BasicAssertions) {
   ASSERT_TRUE(optS0.hasValue());
   Optional<Simplex *> optS1{Simplex::positiveVariables(&alloc, A, B)};
   ASSERT_TRUE(optS1.hasValue());
-  for (ptrdiff_t i = 0; i < 2; ++i) {
+  for (std::ptrdiff_t i = 0; i < 2; ++i) {
     Simplex *S{i ? *optS1 : *optS0};
     auto C{S->getCost()};
     // minimize -2x - 3y - 4z
@@ -133,17 +133,17 @@ TEST(LexMinSmallTest, BasicAssertions) {
 
 auto simplexFromTableau(alloc::Arena<> *alloc,
                         IntMatrix<> &tableau) -> Valid<Simplex> {
-  ptrdiff_t numCon = ptrdiff_t(tableau.numRow()) - 1;
-  ptrdiff_t numVar = ptrdiff_t(tableau.numCol()) - 1;
+  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
+  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
   Simplex *simp{Simplex::create(alloc, row(numCon), col(numVar))};
-  for (ptrdiff_t r = 0, R = ptrdiff_t(numRows(tableau)); r < R; ++r)
-    for (ptrdiff_t c = 0, N = ptrdiff_t(numCols(tableau)); c < N; ++c)
-      invariant(tableau[r, c] != std::numeric_limits<int64_t>::min());
+  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(tableau)); r < R; ++r)
+    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(tableau)); c < N; ++c)
+      invariant(tableau[r, c] != std::numeric_limits<std::int64_t>::min());
   simp->getTableau() << tableau;
   auto C{simp->getConstraints()};
-  for (ptrdiff_t r = 0, R = ptrdiff_t(numRows(C)); r < R; ++r)
-    for (ptrdiff_t c = 0, N = ptrdiff_t(numCols(C)); c < N; ++c)
-      invariant(C[r, c] != std::numeric_limits<int64_t>::min());
+  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(C)); r < R; ++r)
+    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(C)); c < N; ++c)
+      invariant(C[r, c] != std::numeric_limits<std::int64_t>::min());
   return simp;
 }
 
@@ -1023,13 +1023,13 @@ TEST(LexMinSimplexTest, BasicAssertions) {
   EXPECT_EQ(sol.size(), 37);
   EXPECT_FALSE(simp->initiateFeasible());
   simp->rLexMin(sol);
-  ptrdiff_t solSum = 0;
+  std::ptrdiff_t solSum = 0;
   for (auto s : sol) {
     solSum += s.numerator_;
     EXPECT_EQ(s.denominator_, 1);
   }
   EXPECT_EQ(solSum, 3);
-  for (ptrdiff_t i = 0; i < 37; ++i)
+  for (std::ptrdiff_t i = 0; i < 37; ++i)
     EXPECT_EQ(sol[last - i], (i == 28) || (i == 30) || (i == 33));
   {
     // test that we didn't invalidate the simplex
@@ -1040,15 +1040,15 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     C[_(end - 36, end)] << 1;
     EXPECT_EQ(simp->run(), -3);
     Vector<Rational> sol2 = simp->getSolution();
-    ptrdiff_t sum = 0;
-    for (ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
+    std::ptrdiff_t sum = 0;
+    for (std::ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
       Rational r = sol2[i];
       sum += r.numerator_;
       EXPECT_EQ(r.denominator_, 1);
     }
     EXPECT_EQ(sum, 3);
     // std::cout << "sol2: " << sol2 << "\n";
-    for (ptrdiff_t i = 0; i < 37; ++i)
+    for (std::ptrdiff_t i = 0; i < 37; ++i)
       EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));
   }
   {
@@ -1060,9 +1060,9 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     C[_(end - 36, end)] << 1;
     EXPECT_EQ(simp2->run(), -3);
     auto sol2 = simp2->getSolution();
-    ptrdiff_t sum = 0;
+    std::ptrdiff_t sum = 0;
     Rational rsum = 0; // test summing rationals
-    for (ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
+    for (std::ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
       Rational r = sol2[i];
       sum += r.numerator_;
       EXPECT_EQ(r.denominator_, 1);
@@ -1072,7 +1072,7 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     EXPECT_EQ(rsum, 3);
     // std::cout << "sol2: " << sol2 << "\n";
     utils::printVector(std::cout << "sol2: ", sol2.begin(), sol2.end()) << "\n";
-    for (ptrdiff_t i = 0; i < 37; ++i) {
+    for (std::ptrdiff_t i = 0; i < 37; ++i) {
       std::cout << "sol2[last-" << i << "] = " << sol2[last - i] << "\n";
       EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));
     }
@@ -1307,7 +1307,7 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
   EXPECT_FALSE(simp->initiateFeasible());
   auto s = simp->rLexMinLast(15);
   {
-    ptrdiff_t solSum = 0, i = 0;
+    std::ptrdiff_t solSum = 0, i = 0;
     bool allNumerZero = true;
     for (auto x : s) {
       if (i++ < 5) {
@@ -1322,7 +1322,7 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     EXPECT_TRUE(allNumerZero);
   }
   {
-    ptrdiff_t solSum = 0;
+    std::ptrdiff_t solSum = 0;
     for (auto x : s[_(0, 5)]) solSum += x != 0;
     EXPECT_EQ(solSum, 2);
   }
@@ -1335,8 +1335,8 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     EXPECT_TRUE(allNumerZero);
   }
   sol << simp->getSolution()[_(end - 15, end)];
-  ptrdiff_t solSum = 0;
-  for (ptrdiff_t i = 0; i < 5; ++i) {
+  std::ptrdiff_t solSum = 0;
+  for (std::ptrdiff_t i = 0; i < 5; ++i) {
     solSum += sol[i] != 0;
     // solSum += sol[i].numerator;
     // EXPECT_EQ(sol[i].denominator, 1);
@@ -1344,12 +1344,12 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
   EXPECT_EQ(solSum, 2);
 
   solSum = 0;
-  for (ptrdiff_t i = 5; i < sol.size(); ++i) {
+  for (std::ptrdiff_t i = 5; i < sol.size(); ++i) {
     solSum += sol[i].numerator_;
     EXPECT_EQ(sol[i].denominator_, 1);
   }
   EXPECT_FALSE(solSum);
-  // for (ptrdiff_t i = 0; i < 37; ++i)
+  // for (std::ptrdiff_t i = 0; i < 37; ++i)
   //     EXPECT_EQ(sol(i), (i == 28) || (i == 30) || (i == 33));
   {
     // test that we didn't invalidate the simplex
@@ -1360,14 +1360,14 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     EXPECT_EQ(simp->run(), 0);
     Vector<Rational> sol2 = simp->getSolution();
     std::cout << "sol2 = " << sol2 << "\n";
-    ptrdiff_t sum = 0;
-    for (ptrdiff_t i = sol2.size() - 10; i < sol2.size(); ++i) {
+    std::ptrdiff_t sum = 0;
+    for (std::ptrdiff_t i = sol2.size() - 10; i < sol2.size(); ++i) {
       Rational r = sol2[i];
       sum += r.numerator_;
       EXPECT_EQ(r.denominator_, 1);
     }
     EXPECT_EQ(sum, 0);
-    // for (ptrdiff_t i = 0; i < 37; ++i)
+    // for (std::ptrdiff_t i = 0; i < 37; ++i)
     //     EXPECT_EQ(sol2(i), (i == 29) || (i == 31) || (i == 34));
   }
 }

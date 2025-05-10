@@ -28,43 +28,43 @@ export namespace math {
 namespace math {
 #endif
 
-constexpr auto gcd(PtrVector<int64_t> x) -> int64_t {
-  const ptrdiff_t N = x.size();
+constexpr auto gcd(PtrVector<std::int64_t> x) -> std::int64_t {
+  const std::ptrdiff_t N = x.size();
   if (!N) return 0;
-  int64_t g = constexpr_abs(x[0]);
-  for (ptrdiff_t n = 1; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
+  std::int64_t g = constexpr_abs(x[0]);
+  for (std::ptrdiff_t n = 1; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
   return g;
 }
-constexpr void normalizeByGCD(MutPtrVector<int64_t> x) {
-  ptrdiff_t N = x.size();
+constexpr void normalizeByGCD(MutPtrVector<std::int64_t> x) {
+  std::ptrdiff_t N = x.size();
   switch (N) {
   case 0: return;
   case 1: x[0] = 1; return;
   default:
-    int64_t g = gcd(x[0], x[1]);
-    for (ptrdiff_t n = 2; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
+    std::int64_t g = gcd(x[0], x[1]);
+    for (std::ptrdiff_t n = 2; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
     if (g > 1) x /= g;
   }
 }
 
-constexpr auto lcm(AbstractVector auto x) -> int64_t {
-  int64_t l = x[0];
-  for (int64_t xi : x[_(1, end)]) l = lcm(l, xi);
+constexpr auto lcm(AbstractVector auto x) -> std::int64_t {
+  std::int64_t l = x[0];
+  for (std::int64_t xi : x[_(1, end)]) l = lcm(l, xi);
   return l;
 }
 constexpr auto
-lcmNonUnity(AbstractVector auto x) -> containers::Pair<int64_t, bool> {
-  int64_t l = x[0];
+lcmNonUnity(AbstractVector auto x) -> containers::Pair<std::int64_t, bool> {
+  std::int64_t l = x[0];
   bool nonUnity = (l != 1);
-  for (int64_t xi : x[_(1, end)]) {
+  for (std::int64_t xi : x[_(1, end)]) {
     nonUnity |= (xi != 1);
     l = lcm(l, xi);
   }
   return {l, nonUnity};
 }
-constexpr auto lcmSkipZero(AbstractVector auto x) -> int64_t {
-  int64_t l = 1;
-  for (int64_t xi : x)
+constexpr auto lcmSkipZero(AbstractVector auto x) -> std::int64_t {
+  std::int64_t l = 1;
+  for (std::int64_t xi : x)
     if (xi) l = lcm(l, xi);
   return l;
 }

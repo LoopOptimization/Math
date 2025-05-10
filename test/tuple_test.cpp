@@ -5,7 +5,7 @@
 #include <cstdint>
 #else
 import Pair;
-import STL;
+import std;
 import Tuple;
 #endif
 

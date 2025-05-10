@@ -49,13 +49,13 @@ template <typename T, typename... Ts> struct Tuple {
     : head_(head), tail_(tail){};
 
   TRIVIAL constexpr Tuple(const Tuple &) = default;
-  template <size_t I> TRIVIAL constexpr auto get() -> auto & {
+  template <std::size_t I> TRIVIAL constexpr auto get() -> auto & {
     if constexpr (I == 0) return head_;
     else if constexpr (I == 1) return tail_.head_;
     else if constexpr (I == 2) return tail_.tail_.head_;
     else return tail_.tail_.tail_.template get<I - 3>();
   }
-  template <size_t I>
+  template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const auto & {
     if constexpr (I == 0) return head_;
     else if constexpr (I == 1) return tail_.head_;
@@ -148,11 +148,11 @@ template <typename T> struct Tuple<T> {
   // template <std::convertible_to<T> U>
   // TRIVIAL constexpr Tuple(U &&head) : head_(std::forward<U>(head)){};
   TRIVIAL constexpr Tuple(const Tuple &) = default;
-  template <size_t I> TRIVIAL constexpr auto get() -> T & {
+  template <std::size_t I> TRIVIAL constexpr auto get() -> T & {
     static_assert(I == 0);
     return head_;
   }
-  template <size_t I>
+  template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const T & {
     static_assert(I == 0);
     return head_;
@@ -258,13 +258,13 @@ TRIVIAL constexpr auto tie(Ts &&...x) -> Tuple<Ts...> {
 
 template <typename T, typename... Ts>
 struct std::tuple_size<containers::Tuple<T, Ts...>>
-  : public std::integral_constant<size_t, 1 + sizeof...(Ts)> {};
+  : public std::integral_constant<std::size_t, 1 + sizeof...(Ts)> {};
 
 template <typename T, typename... Ts>
 struct std::tuple_element<0, containers::Tuple<T, Ts...>> {
   using type = T;
 };
-template <size_t I, typename T, typename... Ts>
+template <std::size_t I, typename T, typename... Ts>
 struct std::tuple_element<I, containers::Tuple<T, Ts...>> {
   using type =
     typename std::tuple_element<I - 1, containers::Tuple<Ts...>>::type;

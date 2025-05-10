@@ -52,7 +52,7 @@ template <typename T, typename S>
   tie(C, D) << Tuple(A + B, A - B);
 }
 
-template <ptrdiff_t N> void BM_dualNdoublemul(benchmark::State &state) {
+template <std::ptrdiff_t N> void BM_dualNdoublemul(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<double, N>;
   SquareMatrix<D> A{SquareDims{math::row(state.range(0))}};
@@ -61,7 +61,7 @@ template <ptrdiff_t N> void BM_dualNdoublemul(benchmark::State &state) {
   for (auto b : state) eltmul(A, t);
 }
 
-template <ptrdiff_t M, ptrdiff_t N>
+template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualMxNdoublemul(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
@@ -71,7 +71,7 @@ void BM_dualMxNdoublemul(benchmark::State &state) {
   for (auto b : state) eltmul(A, t);
 }
 
-template <ptrdiff_t N> void BM_dualNadd(benchmark::State &state) {
+template <std::ptrdiff_t N> void BM_dualNadd(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
   SquareDims<> dim{math::row(state.range(0))};
@@ -80,7 +80,7 @@ template <ptrdiff_t N> void BM_dualNadd(benchmark::State &state) {
   for (auto &&b : B) b = URand<T>{}(rng0);
   for (auto b : state) eltadd(C, A, B);
 }
-template <ptrdiff_t M, ptrdiff_t N>
+template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualMxNadd(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
@@ -90,7 +90,7 @@ void BM_dualMxNadd(benchmark::State &state) {
   for (auto &&b : B) b = URand<T>{}(rng0);
   for (auto b : state) eltadd(C, A, B);
 }
-template <ptrdiff_t N> void BM_dualNaddsub(benchmark::State &state) {
+template <std::ptrdiff_t N> void BM_dualNaddsub(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
   SquareDims<> dim{math::row(state.range(0))};
@@ -99,7 +99,7 @@ template <ptrdiff_t N> void BM_dualNaddsub(benchmark::State &state) {
   for (auto &&b : B) b = URand<T>{}(rng0);
   for (auto b : state) eltaddsub(C, D, A, B);
 }
-template <ptrdiff_t M, ptrdiff_t N>
+template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualMxNaddsub(benchmark::State &state) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;

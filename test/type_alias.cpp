@@ -8,7 +8,7 @@
 #else
 import Array;
 import ManagedArray;
-import STL;
+import std;
 #endif
 
 using namespace math;

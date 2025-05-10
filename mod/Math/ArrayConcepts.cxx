@@ -24,11 +24,11 @@ namespace math {
 #endif
 
 template <typename T, typename S = utils::eltype_t<T>>
-concept LinearlyIndexable = requires(T t, ptrdiff_t i) {
+concept LinearlyIndexable = requires(T t, std::ptrdiff_t i) {
   { t[i] } -> std::convertible_to<S>;
 };
 template <typename T, typename S = utils::eltype_t<T>>
-concept CartesianIndexable = requires(T t, ptrdiff_t i) {
+concept CartesianIndexable = requires(T t, std::ptrdiff_t i) {
   { t[i, i] } -> std::convertible_to<S>;
 };
 // The `OrConvertible` concepts are for expression templates
@@ -41,7 +41,7 @@ concept CartesianIndexableOrConvertible =
 
 template <typename T>
 concept DefinesSize = requires(T t) {
-  { t.size() } -> std::convertible_to<ptrdiff_t>;
+  { t.size() } -> std::convertible_to<std::ptrdiff_t>;
 };
 
 template <typename T>
@@ -113,12 +113,12 @@ concept DenseTensor = AbstractTensor<T> && requires(T t) {
   { t.begin() } -> std::convertible_to<const utils::eltype_t<T> *>;
 };
 
-template <ptrdiff_t M> constexpr auto transpose_dim(Col<M> c) {
-  if constexpr (M == -1) return row(ptrdiff_t(c));
+template <std::ptrdiff_t M> constexpr auto transpose_dim(Col<M> c) {
+  if constexpr (M == -1) return row(std::ptrdiff_t(c));
   else return Row<M>{};
 }
-template <ptrdiff_t M> constexpr auto transpose_dim(Row<M> r) {
-  if constexpr (M == -1) return col(ptrdiff_t(r));
+template <std::ptrdiff_t M> constexpr auto transpose_dim(Row<M> r) {
+  if constexpr (M == -1) return col(std::ptrdiff_t(r));
   else return Col<M>{};
 }
 

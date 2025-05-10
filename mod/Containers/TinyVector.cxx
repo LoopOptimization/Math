@@ -36,10 +36,10 @@ namespace containers {
 #endif
 using utils::invariant;
 
-template <class T, size_t N, std::signed_integral L = ptrdiff_t>
+template <class T, std::size_t N, std::signed_integral L = std::ptrdiff_t>
 class MATH_GSL_OWNER TinyVector {
   static_assert(N > 0);
-  static_assert(std::numeric_limits<ptrdiff_t>::max() >= N);
+  static_assert(std::numeric_limits<std::ptrdiff_t>::max() >= N);
   using Length = math::Length<-1, L>;
   Storage<T, N> data_;
   Length len_{};
@@ -58,17 +58,17 @@ public:
     std::construct_at(data_.data(), std::move(t));
   }
 
-  constexpr auto
-  operator=(const std::initializer_list<T> &list) -> TinyVector & {
-    invariant(list.size() <= ptrdiff_t(N));
-    ptrdiff_t slen = std::ssize(list), old_len = size();
+  constexpr auto operator=(const std::initializer_list<T> &list)
+    -> TinyVector & {
+    invariant(list.size() <= std::ptrdiff_t(N));
+    std::ptrdiff_t slen = std::ssize(list), old_len = size();
     len_ = math::length(L(slen));
     auto I = list.begin();
     if constexpr (Storage<T, N>::trivial) {
       // implicit lifetime type
       std::copy_n(I, slen, data_.data());
     } else {
-      ptrdiff_t J = std::min(slen, old_len);
+      std::ptrdiff_t J = std::min(slen, old_len);
       // old values exist
       std::move(I, I + J, data_.data());
       if (old_len < len_) {
@@ -79,11 +79,11 @@ public:
     }
     return *this;
   }
-  constexpr auto operator[](ptrdiff_t i) -> T & {
+  constexpr auto operator[](std::ptrdiff_t i) -> T & {
     invariant(i < len_);
     return data_.data()[i];
   }
-  constexpr auto operator[](ptrdiff_t i) const -> const T & {
+  constexpr auto operator[](std::ptrdiff_t i) const -> const T & {
     invariant(i < len_);
     return data_.data()[i];
   }
@@ -104,16 +104,16 @@ public:
     return data_.data()[0z];
   }
   constexpr void push_back(const T &t) {
-    invariant(len_ < ptrdiff_t(N));
-    std::construct_at(data_.data() + ptrdiff_t(L(len_++)), t);
+    invariant(len_ < std::ptrdiff_t(N));
+    std::construct_at(data_.data() + std::ptrdiff_t(L(len_++)), t);
   }
   constexpr void push_back(T &&t) {
-    invariant(len_ < ptrdiff_t(N));
-    std::construct_at(data_.data() + ptrdiff_t(L(len_++)), std::move(t));
+    invariant(len_ < std::ptrdiff_t(N));
+    std::construct_at(data_.data() + std::ptrdiff_t(L(len_++)), std::move(t));
   }
   template <class... Args> constexpr auto emplace_back(Args &&...args) -> T & {
-    invariant(len_ < ptrdiff_t(N));
-    return *std::construct_at(data_.data() + ptrdiff_t(L(len_++)),
+    invariant(len_ < std::ptrdiff_t(N));
+    return *std::construct_at(data_.data() + std::ptrdiff_t(L(len_++)),
                               std::forward<Args>(args)...);
   }
   constexpr void pop_back() {
@@ -124,11 +124,11 @@ public:
   }
   [[nodiscard]] constexpr auto pop_back_val() -> T {
     invariant(len_ > 0);
-    return std::move(data_.data()[ptrdiff_t(L(--len_))]);
+    return std::move(data_.data()[std::ptrdiff_t(L(--len_))]);
   }
-  [[nodiscard]] constexpr auto size() const -> ptrdiff_t {
-    auto l = ptrdiff_t(L(len_));
-    utils::assume(l <= ptrdiff_t(N));
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    auto l = std::ptrdiff_t(L(len_));
+    utils::assume(l <= std::ptrdiff_t(N));
     return l;
   }
   [[nodiscard]] constexpr auto empty() const -> bool { return len_ == 0z; }
@@ -146,13 +146,13 @@ public:
   constexpr auto end() const -> const T * { return data_.data() + size(); }
   constexpr void resize(L new_size) {
     // initialize new data
-    for (ptrdiff_t i = size(); i < new_size; ++i)
+    for (std::ptrdiff_t i = size(); i < new_size; ++i)
       std::construct_at(data_.data() + i);
     len_ = math::length(new_size);
   }
   constexpr void reserve(L space) {
     invariant(space >= 0);
-    invariant(size_t(space) <= N);
+    invariant(std::size_t(space) <= N);
   }
   constexpr ~TinyVector()
   requires(std::is_trivially_destructible_v<T>)
@@ -164,10 +164,11 @@ public:
   }
 
 private:
-  friend auto operator<<(std::ostream &os,
-                         const TinyVector &x) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, const TinyVector &x)
+    -> std::ostream & {
     os << "[";
-    if constexpr (std::same_as<T, int8_t> || std::same_as<T, uint8_t>) {
+    if constexpr (std::same_as<T, std::int8_t> ||
+                  std::same_as<T, std::uint8_t>) {
       if (!x.empty()) os << int(x[0]);
       for (L i = 1; i < x.size(); ++i) os << ", " << int(x[i]);
     } else {

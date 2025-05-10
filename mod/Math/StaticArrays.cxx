@@ -54,20 +54,20 @@ import std;
 import TypeCompression;
 #endif
 
-template <typename T, ptrdiff_t L>
-consteval auto paddedSize() -> std::array<ptrdiff_t, 2> {
-  constexpr ptrdiff_t WF = simd::Width<T>;
-  constexpr ptrdiff_t W = L < WF ? ptrdiff_t(std::bit_ceil(uint64_t(L))) : WF;
-  constexpr ptrdiff_t N = ((L + W - 1) / W);
+template <typename T, std::ptrdiff_t L>
+consteval auto paddedSize() -> std::array<std::ptrdiff_t, 2> {
+  constexpr std::ptrdiff_t WF = simd::Width<T>;
+  constexpr std::ptrdiff_t W = L < WF ? std::ptrdiff_t(std::bit_ceil(std::uint64_t(L))) : WF;
+  constexpr std::ptrdiff_t N = ((L + W - 1) / W);
   return {N, W};
 }
-template <typename T, ptrdiff_t L, ptrdiff_t Align>
-consteval auto calcPaddedCols() -> ptrdiff_t {
-  constexpr ptrdiff_t a = Align / sizeof(T);
+template <typename T, std::ptrdiff_t L, std::ptrdiff_t Align>
+consteval auto calcPaddedCols() -> std::ptrdiff_t {
+  constexpr std::ptrdiff_t a = Align / sizeof(T);
   if constexpr (a <= 1) return L;
   else return ((L + a - 1) / a) * a;
 }
-template <typename T, ptrdiff_t L> consteval auto alignSIMD() -> size_t {
+template <typename T, std::ptrdiff_t L> consteval auto alignSIMD() -> std::size_t {
   if constexpr (!simd::SIMDSupported<T>) return alignof(T);
   else return alignof(simd::Vec<simd::VecLen<L, T>, T>);
 }
@@ -78,30 +78,30 @@ export namespace math {
 namespace math {
 #endif
 
-template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress>
+template <class T, std::ptrdiff_t M, std::ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<
   M == 1, math::Length<N>,
   std::conditional_t<
     Compress || ((N % simd::VecLen<N, T>) == 0), math::DenseDims<M, N>,
     math::StridedDims<M, N, calcPaddedCols<T, N, alignSIMD<T, N>()>()>>>;
 
-static_assert(ptrdiff_t(StridedDims<1, 1, 1>{
-                math::StaticDims<int64_t, 1, 1, true>{}}) == 1);
-static_assert(ptrdiff_t(StridedDims<>{
-                math::StaticDims<int64_t, 1, 1, true>{}}) == 1);
+static_assert(std::ptrdiff_t(StridedDims<1, 1, 1>{
+                math::StaticDims<std::int64_t, 1, 1, true>{}}) == 1);
+static_assert(std::ptrdiff_t(StridedDims<>{
+                math::StaticDims<std::int64_t, 1, 1, true>{}}) == 1);
 
-static_assert(AbstractSimilar<PtrVector<int64_t>, Length<4>>);
+static_assert(AbstractSimilar<PtrVector<std::int64_t>, Length<4>>);
 
-template <class T, ptrdiff_t M, ptrdiff_t N, bool Compress = false>
+template <class T, std::ptrdiff_t M, std::ptrdiff_t N, bool Compress = false>
 struct MATH_GSL_OWNER StaticArray
   : public ArrayOps<T, StaticDims<T, M, N, Compress>,
                     StaticArray<T, M, N, Compress>>,
     Expr<T, StaticArray<T, M, N, Compress>> {
   using storage_type = std::conditional_t<Compress, utils::compressed_t<T>, T>;
-  static constexpr ptrdiff_t Align =
+  static constexpr std::ptrdiff_t Align =
     Compress ? alignof(storage_type) : alignSIMD<T, N>();
-  static constexpr ptrdiff_t PaddedCols = calcPaddedCols<T, N, Align>();
-  static constexpr ptrdiff_t capacity = M * PaddedCols;
+  static constexpr std::ptrdiff_t PaddedCols = calcPaddedCols<T, N, Align>();
+  static constexpr std::ptrdiff_t capacity = M * PaddedCols;
 
   static_assert(alignof(storage_type) <= Align);
 
@@ -111,8 +111,8 @@ struct MATH_GSL_OWNER StaticArray
   using reference = decltype(utils::ref((storage_type *)nullptr, 0));
   using const_reference =
     decltype(utils::ref((const storage_type *)nullptr, 0));
-  using size_type = ptrdiff_t;
-  using difference_type = ptrdiff_t;
+  using size_type = std::ptrdiff_t;
+  using difference_type = std::ptrdiff_t;
   using iterator = storage_type *;
   using const_iterator = const storage_type *;
   using pointer = storage_type *;
@@ -128,7 +128,7 @@ struct MATH_GSL_OWNER StaticArray
   TRIVIAL constexpr StaticArray() = default;
   TRIVIAL constexpr explicit StaticArray(const T &x) noexcept {
     if consteval {
-      for (ptrdiff_t i = 0; i < M * N; ++i) memory_[i] = x;
+      for (std::ptrdiff_t i = 0; i < M * N; ++i) memory_[i] = x;
     } else {
       (*this) << x;
     }
@@ -145,7 +145,7 @@ struct MATH_GSL_OWNER StaticArray
       (*this) << *list.begin();
       return;
     }
-    invariant(list.size() <= size_t(capacity));
+    invariant(list.size() <= std::size_t(capacity));
     std::copy_n(list.begin(), list.size(), data());
   }
   template <AbstractSimilar<S> V>
@@ -208,8 +208,8 @@ struct MATH_GSL_OWNER StaticArray
   TRIVIAL constexpr auto operator[](R r, C c) const noexcept -> decltype(auto) {
     return index<T>(data(), S{}, r, c);
   }
-  TRIVIAL [[nodiscard]] static constexpr auto minRowCol() -> ptrdiff_t {
-    return std::min(ptrdiff_t(numRow()), ptrdiff_t(numCol()));
+  TRIVIAL [[nodiscard]] static constexpr auto minRowCol() -> std::ptrdiff_t {
+    return std::min(std::ptrdiff_t(numRow()), std::ptrdiff_t(numCol()));
   }
 
   TRIVIAL [[nodiscard]] constexpr auto diag() const noexcept {
@@ -222,14 +222,14 @@ struct MATH_GSL_OWNER StaticArray
     StridedRange<> r{length(minRowCol()), RowStride(S{}) - 1};
     auto ptr = data();
     invariant(ptr != nullptr);
-    return Array<T, StridedRange<>>{ptr + ptrdiff_t(Col(S{})) - 1, r};
+    return Array<T, StridedRange<>>{ptr + std::ptrdiff_t(Col(S{})) - 1, r};
   }
   TRIVIAL [[nodiscard]] static constexpr auto isSquare() noexcept -> bool {
     return Row(S{}) == Col(S{});
   }
 
   TRIVIAL [[nodiscard]] static constexpr auto checkSquare()
-    -> Optional<ptrdiff_t> {
+    -> Optional<std::ptrdiff_t> {
     if constexpr (M == N) return M;
     else return {};
   }
@@ -249,7 +249,7 @@ struct MATH_GSL_OWNER StaticArray
     return capacity == 0;
   }
   TRIVIAL [[nodiscard]] static constexpr auto size() noexcept
-    -> std::integral_constant<ptrdiff_t, M * N> {
+    -> std::integral_constant<std::ptrdiff_t, M * N> {
     return {};
   }
   TRIVIAL [[nodiscard]] static constexpr auto dim() noexcept -> S {
@@ -261,15 +261,15 @@ struct MATH_GSL_OWNER StaticArray
   }
   TRIVIAL [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool {
     if constexpr (M == N) {
-      for (ptrdiff_t i = 0; i < M; ++i) {
-        for (ptrdiff_t j = 0; j < M; ++j)
+      for (std::ptrdiff_t i = 0; i < M; ++i) {
+        for (std::ptrdiff_t j = 0; j < M; ++j)
           if ((*this)(i, j) != (i + j == M - 1)) return false;
       }
     } else return false;
   }
   TRIVIAL [[nodiscard]] constexpr auto isDiagonal() const -> bool {
-    for (ptrdiff_t r = 0; r < numRow(); ++r)
-      for (ptrdiff_t c = 0; c < numCol(); ++c)
+    for (std::ptrdiff_t r = 0; r < numRow(); ++r)
+      for (std::ptrdiff_t c = 0; c < numCol(); ++c)
         if (r != c && (*this)(r, c) != 0) return false;
     return true;
   }
@@ -306,7 +306,7 @@ struct MATH_GSL_OWNER StaticArray
     return index<T>(data(), S{}, r, c);
   }
   TRIVIAL constexpr void fill(T value) {
-    std::fill_n(data(), ptrdiff_t(dim()), value);
+    std::fill_n(data(), std::ptrdiff_t(dim()), value);
   }
   TRIVIAL [[nodiscard]] constexpr auto diag() noexcept {
     StridedRange<> r{length(min(Row(S{}), Col(S{}))), RowStride(S{}) + 1};
@@ -315,7 +315,7 @@ struct MATH_GSL_OWNER StaticArray
   TRIVIAL [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col c = Col(S{});
     StridedRange<> r{length(min(Row(S{}), c)), RowStride(S{}) - 1};
-    return MutArray<T, StridedRange<>>{data() + ptrdiff_t(c) - 1, r};
+    return MutArray<T, StridedRange<>>{data() + std::ptrdiff_t(c) - 1, r};
   }
   template <typename SHAPE>
   TRIVIAL constexpr
@@ -340,12 +340,12 @@ struct MATH_GSL_OWNER StaticArray
   // (requires((M==1)||(N==1))){
   //   if ((rhs.numRow() != M)||(rhs.numCol() != N)) return false;
   // }
-  template <size_t I> TRIVIAL constexpr auto get() -> T & { return memory_[I]; }
-  template <size_t I>
+  template <std::size_t I> TRIVIAL constexpr auto get() -> T & { return memory_[I]; }
+  template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const T & {
     return memory_[I];
   }
-  TRIVIAL constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {
+  TRIVIAL constexpr void set(T x, std::ptrdiff_t r, std::ptrdiff_t c) {
     memory_[(r * N) + c] = x;
   }
 
@@ -364,7 +364,7 @@ private:
   }
 };
 
-template <simd::SIMDSupported T, ptrdiff_t M, ptrdiff_t N>
+template <simd::SIMDSupported T, std::ptrdiff_t M, std::ptrdiff_t N>
 requires((M * (N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) > 1)
 struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   : ArrayOps<T, StaticDims<T, M, N, false>, StaticArray<T, M, N, false>>,
@@ -378,8 +378,8 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   using value_type = T;
   using reference = T &;
   using const_reference = const T &;
-  using size_type = ptrdiff_t;
-  using difference_type = ptrdiff_t;
+  using size_type = std::ptrdiff_t;
+  using difference_type = std::ptrdiff_t;
   using iterator = T *;
   using const_iterator = const T *;
   using pointer = T *;
@@ -392,15 +392,15 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   static constexpr auto decompress(const compressed_type *p) -> StaticArray {
     return StaticArray{*p};
   }
-  static constexpr ptrdiff_t W = simd::VecLen<N, T>;
-  static constexpr ptrdiff_t Align = alignof(simd::Vec<W, T>);
+  static constexpr std::ptrdiff_t W = simd::VecLen<N, T>;
+  static constexpr std::ptrdiff_t Align = alignof(simd::Vec<W, T>);
   using S = StaticDims<T, M, N, false>;
 
   TRIVIAL [[nodiscard]] static constexpr auto dim() noexcept -> S {
     return S{};
   }
 
-  static constexpr ptrdiff_t L = (N + W - 1) / W;
+  static constexpr std::ptrdiff_t L = (N + W - 1) / W;
   static_assert(L * W == calcPaddedCols<T, N, Align>());
   using V = simd::Vec<W, T>;
   // simd::Vec<W, T> data[M][L];
@@ -432,7 +432,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       return;
     }
     invariant(list.size() <= L * W);
-    size_t count = list.size() * sizeof(T);
+    std::size_t count = list.size() * sizeof(T);
     std::memcpy(memory_, list.begin(), count);
     std::memset((char *)memory_ + count, 0, (L * W - list.size()) * sizeof(T));
   }
@@ -464,7 +464,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   }
   TRIVIAL constexpr explicit StaticArray(T x) {
     simd::Vec<W, T> v = simd::vbroadcast<W, T>(x);
-    for (ptrdiff_t i = 0; i < M * L; ++i) memory_[i] = v;
+    for (std::ptrdiff_t i = 0; i < M * L; ++i) memory_[i] = v;
   }
   TRIVIAL constexpr auto operator=(StaticArray const &)
     -> StaticArray & = default;
@@ -479,7 +479,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     return {};
   }
   TRIVIAL [[nodiscard]] static constexpr auto size() noexcept
-    -> std::integral_constant<ptrdiff_t, M * N> {
+    -> std::integral_constant<std::ptrdiff_t, M * N> {
     return {};
   }
   template <typename SHAPE>
@@ -494,30 +494,30 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   {
     return {data(), SHAPE(dim())};
   }
-  template <ptrdiff_t U, typename Mask>
-  TRIVIAL auto operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const
+  template <std::ptrdiff_t U, typename Mask>
+  TRIVIAL auto operator[](std::ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const
     -> simd::Unroll<1, U, W, T> {
     return (*this)[simd::index::Unroll<1>{i}, j];
   }
-  template <ptrdiff_t R = 1>
-  TRIVIAL static constexpr void checkinds(ptrdiff_t i, ptrdiff_t j) {
+  template <std::ptrdiff_t R = 1>
+  TRIVIAL static constexpr void checkinds(std::ptrdiff_t i, std::ptrdiff_t j) {
     invariant(i >= 0);
     invariant(i + (R - 1) < M);
     invariant(j >= 0);
     invariant(j < N);
     invariant((j % W) == 0);
   }
-  template <ptrdiff_t R, ptrdiff_t C, typename Mask>
+  template <std::ptrdiff_t R, std::ptrdiff_t C, typename Mask>
   TRIVIAL [[gnu::flatten]] auto
   operator[](simd::index::Unroll<R> i, simd::index::Unroll<C, W, Mask> j) const
     -> simd::Unroll<R, C, W, T> {
     checkinds<R>(i.index_, j.index_);
     simd::Unroll<R, C, W, T> ret;
-    ptrdiff_t k = j.index_ / W;
+    std::ptrdiff_t k = j.index_ / W;
     POLYMATHFULLUNROLL
-    for (ptrdiff_t r = 0; r < R; ++r) {
+    for (std::ptrdiff_t r = 0; r < R; ++r) {
       POLYMATHFULLUNROLL
-      for (ptrdiff_t u = 0; u < C; ++u)
+      for (std::ptrdiff_t u = 0; u < C; ++u)
         ret[r, u] = memory_[(i.index_ + r) * L + k + u];
     }
     return ret;
@@ -526,22 +526,22 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   TRIVIAL [[gnu::flatten]] constexpr auto operator[](R r, C c) noexcept
     -> decltype(auto) {
     if constexpr (std::integral<R> && std::integral<C>)
-      return reinterpret_cast<T *>(memory_ + ptrdiff_t(r) * L)[c];
+      return reinterpret_cast<T *>(memory_ + std::ptrdiff_t(r) * L)[c];
     else return index<T>(data(), S{}, r, c);
   }
   template <class R, class C>
   TRIVIAL [[gnu::flatten]] constexpr auto operator[](R r, C c) const noexcept
     -> decltype(auto) {
     if constexpr (std::integral<R> && std::integral<C>)
-      return reinterpret_cast<const T *>(memory_ + ptrdiff_t(r) * L)[c];
+      return reinterpret_cast<const T *>(memory_ + std::ptrdiff_t(r) * L)[c];
     else return index<T>(data(), S{}, r, c);
   }
-  TRIVIAL constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {
+  TRIVIAL constexpr void set(T x, std::ptrdiff_t r, std::ptrdiff_t c) {
     if constexpr (W == 1) {
       memory_[L * r + c] = x;
     } else {
       V v = memory_[L * r + c / W];
-      using IT = std::conditional_t<sizeof(T) == 8, int64_t, int32_t>;
+      using IT = std::conditional_t<sizeof(T) == 8, std::int64_t, std::int32_t>;
       v = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c % W)
             ? simd::vbroadcast<W, T>(x)
             : v;
@@ -549,27 +549,27 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       memory_[L * r + c / W] = v;
     }
   }
-  template <ptrdiff_t R, ptrdiff_t C> struct Ref {
+  template <std::ptrdiff_t R, std::ptrdiff_t C> struct Ref {
     StaticArray *parent_;
-    ptrdiff_t i_, j_;
+    std::ptrdiff_t i_, j_;
     TRIVIAL constexpr auto operator=(simd::Unroll<R, C, W, T> x) -> Ref & {
       checkinds<R>(i_, j_);
-      ptrdiff_t k = j_ / W;
+      std::ptrdiff_t k = j_ / W;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r) {
+      for (std::ptrdiff_t r = 0; r < R; ++r) {
         POLYMATHFULLUNROLL
-        for (ptrdiff_t u = 0; u < C; ++u)
+        for (std::ptrdiff_t u = 0; u < C; ++u)
           parent_->memory_[(i_ + r) * L + k + u] = x[r, u];
       }
       return *this;
     }
     TRIVIAL constexpr auto operator=(simd::Vec<W, T> x) -> Ref & {
       checkinds<R>(i_, j_);
-      ptrdiff_t k = j_ / W;
+      std::ptrdiff_t k = j_ / W;
       POLYMATHFULLUNROLL
-      for (ptrdiff_t r = 0; r < R; ++r) {
+      for (std::ptrdiff_t r = 0; r < R; ++r) {
         POLYMATHFULLUNROLL
-        for (ptrdiff_t u = 0; u < C; ++u)
+        for (std::ptrdiff_t u = 0; u < C; ++u)
           parent_->memory_[(i_ + r) * L + k + u] = x;
       }
       return *this;
@@ -595,12 +595,12 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       return (*this) = simd::Unroll<R, C, W, T>(*this) / x;
     }
   };
-  template <ptrdiff_t U, typename Mask>
-  TRIVIAL auto operator[](ptrdiff_t i, simd::index::Unroll<U, W, Mask> j)
+  template <std::ptrdiff_t U, typename Mask>
+  TRIVIAL auto operator[](std::ptrdiff_t i, simd::index::Unroll<U, W, Mask> j)
     -> Ref<1, U> {
     return Ref<1, U>{this, i, j.index_};
   }
-  template <ptrdiff_t R, ptrdiff_t C, typename Mask>
+  template <std::ptrdiff_t R, std::ptrdiff_t C, typename Mask>
   TRIVIAL auto operator[](simd::index::Unroll<R> i,
                           simd::index::Unroll<C, W, Mask> j) -> Ref<R, C> {
     return Ref<R, C>{this, i.index_, j.index_};
@@ -619,11 +619,11 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   }
   TRIVIAL constexpr auto operator==(const StaticArray &other) const -> bool {
     // masks return `true` if `any` are on
-    for (ptrdiff_t i = 0z; i < M * L; ++i)
+    for (std::ptrdiff_t i = 0z; i < M * L; ++i)
       if (simd::cmp::ne<W, T>(memory_[i], other.memory_[i])) return false;
     return true;
   }
-  template <size_t I> TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
+  template <std::size_t I> TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
     return memory_[I / W][I % W];
   }
 
@@ -642,7 +642,7 @@ private:
   }
 };
 
-template <simd::SIMDSupported T, ptrdiff_t N>
+template <simd::SIMDSupported T, std::ptrdiff_t N>
 requires((N > 1) && ((N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) == 1)
 struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   : ArrayOps<T, StaticDims<T, 1, N, false>, StaticArray<T, 1, N, false>>,
@@ -656,8 +656,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   using value_type = T;
   using reference = T &;
   using const_reference = const T &;
-  using size_type = ptrdiff_t;
-  using difference_type = ptrdiff_t;
+  using size_type = std::ptrdiff_t;
+  using difference_type = std::ptrdiff_t;
   using iterator = T *;
   using const_iterator = const T *;
   using pointer = T *;
@@ -665,14 +665,14 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   using concrete = std::true_type;
 
   using compressed_type = StaticArray<T, 1, N, true>;
-  static constexpr ptrdiff_t L = 1;
+  static constexpr std::ptrdiff_t L = 1;
 
   constexpr void compress(compressed_type *p) const { *p << *this; }
   static constexpr auto decompress(const compressed_type *p) -> StaticArray {
     return StaticArray{*p};
   }
-  static constexpr ptrdiff_t W = simd::VecLen<N, T>;
-  static constexpr ptrdiff_t Align = alignof(simd::Vec<W, T>);
+  static constexpr std::ptrdiff_t W = simd::VecLen<N, T>;
+  static constexpr std::ptrdiff_t Align = alignof(simd::Vec<W, T>);
   using S = Length<N>;
   TRIVIAL [[nodiscard]] static constexpr auto dim() noexcept -> S {
     return S{};
@@ -702,7 +702,7 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
       return;
     }
     invariant(list.size() <= W);
-    for (size_t i = 0; i < list.size(); ++i) data_[i] = *(list.begin() + i);
+    for (std::size_t i = 0; i < list.size(); ++i) data_[i] = *(list.begin() + i);
   }
   TRIVIAL constexpr auto data() -> T * { return reinterpret_cast<T *>(&data_); }
   TRIVIAL [[nodiscard]] constexpr auto data() const -> const T * {
@@ -716,11 +716,11 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   TRIVIAL [[nodiscard]] constexpr auto end() const -> const T * {
     return data() + N;
   }
-  TRIVIAL constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r)
+  TRIVIAL constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r)
     -> MutPtrVector<T> {
     return {data() + r.b_, length(r.size())};
   }
-  TRIVIAL constexpr auto operator[](Range<ptrdiff_t, ptrdiff_t> r) const
+  TRIVIAL constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const
     -> PtrVector<T> {
     return {data() + r.b_, length(r.size())};
   }
@@ -747,34 +747,34 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     return {};
   }
   TRIVIAL [[nodiscard]] static constexpr auto size() noexcept
-    -> std::integral_constant<ptrdiff_t, N> {
+    -> std::integral_constant<std::ptrdiff_t, N> {
     return {};
   }
-  TRIVIAL auto operator[](ptrdiff_t, ptrdiff_t j) -> T & { return data()[j]; }
-  TRIVIAL auto operator[](ptrdiff_t, ptrdiff_t j) const -> T {
+  TRIVIAL auto operator[](std::ptrdiff_t, std::ptrdiff_t j) -> T & { return data()[j]; }
+  TRIVIAL auto operator[](std::ptrdiff_t, std::ptrdiff_t j) const -> T {
     return data_[j];
   }
-  TRIVIAL auto operator[](ptrdiff_t j) -> T & { return data()[j]; }
-  TRIVIAL auto operator[](ptrdiff_t j) const -> T { return data_[j]; }
+  TRIVIAL auto operator[](std::ptrdiff_t j) -> T & { return data()[j]; }
+  TRIVIAL auto operator[](std::ptrdiff_t j) const -> T { return data_[j]; }
   template <typename Mask>
-  TRIVIAL auto operator[](ptrdiff_t, simd::index::Unroll<1, W, Mask>) const
+  TRIVIAL auto operator[](std::ptrdiff_t, simd::index::Unroll<1, W, Mask>) const
     -> simd::Unroll<1, 1, W, T> {
     return {data_};
   }
-  template <ptrdiff_t R = 1>
-  TRIVIAL static constexpr void checkinds(ptrdiff_t j) {
+  template <std::ptrdiff_t R = 1>
+  TRIVIAL static constexpr void checkinds(std::ptrdiff_t j) {
     invariant(j >= 0);
     invariant(j < N);
     invariant((j % W) == 0);
   }
-  template <ptrdiff_t R, typename Mask>
+  template <std::ptrdiff_t R, typename Mask>
   TRIVIAL auto operator[](simd::index::Unroll<R>,
                           simd::index::Unroll<1, W, Mask> j) const
     -> simd::Unroll<R, 1, W, T> {
     checkinds<R>(j.index_);
     simd::Unroll<R, 1, W, T> ret;
     POLYMATHFULLUNROLL
-    for (ptrdiff_t r = 0; r < R; ++r) ret[r, 0] = data_;
+    for (std::ptrdiff_t r = 0; r < R; ++r) ret[r, 0] = data_;
     return ret;
   }
   struct Ref {
@@ -807,11 +807,11 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
       return (*this) = simd::Unroll<1, 1, W, T>(*this) / x;
     }
   };
-  template <ptrdiff_t U, typename Mask>
-  TRIVIAL auto operator[](ptrdiff_t, simd::index::Unroll<1, W, Mask>) -> Ref {
+  template <std::ptrdiff_t U, typename Mask>
+  TRIVIAL auto operator[](std::ptrdiff_t, simd::index::Unroll<1, W, Mask>) -> Ref {
     return Ref{this};
   }
-  template <ptrdiff_t R, typename Mask>
+  template <std::ptrdiff_t R, typename Mask>
   TRIVIAL auto operator[](simd::index::Unroll<R>,
                           simd::index::Unroll<1, W, Mask>) -> Ref {
     return Ref{this};
@@ -829,16 +829,16 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   TRIVIAL constexpr auto operator==(const StaticArray &other) const -> bool {
     return bool(simd::cmp::eq<W, T>(data_, other.data_));
   }
-  template <size_t I> TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
+  template <std::size_t I> TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
     return data_[I];
   }
-  TRIVIAL constexpr void set(T x, ptrdiff_t r, ptrdiff_t c) {
+  TRIVIAL constexpr void set(T x, std::ptrdiff_t r, std::ptrdiff_t c) {
     invariant(r == 0);
     invariant(c < N);
     if constexpr (W == 1) {
       data_ = x;
     } else {
-      using IT = std::conditional_t<sizeof(T) == 8, int64_t, int32_t>;
+      using IT = std::conditional_t<sizeof(T) == 8, std::int64_t, std::int32_t>;
       data_ = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c % W)
                 ? simd::vbroadcast<W, T>(x)
                 : data_;
@@ -868,24 +868,24 @@ private:
   }
 };
 
-template <class T, ptrdiff_t N, ptrdiff_t Compress = false>
+template <class T, std::ptrdiff_t N, std::ptrdiff_t Compress = false>
 using SVector = StaticArray<T, 1z, N, Compress>;
 static_assert(
-  std::same_as<Row<1>, decltype(SVector<int64_t, 3, true>::numRow())>);
-static_assert(std::same_as<Row<1>, decltype(SVector<int64_t, 3>::numRow())>);
+  std::same_as<Row<1>, decltype(SVector<std::int64_t, 3, true>::numRow())>);
+static_assert(std::same_as<Row<1>, decltype(SVector<std::int64_t, 3>::numRow())>);
 static_assert(
-  std::same_as<Row<1>, decltype(numRows(std::declval<SVector<int64_t, 3>>()))>);
+  std::same_as<Row<1>, decltype(numRows(std::declval<SVector<std::int64_t, 3>>()))>);
 
-static_assert(RowVector<SVector<int64_t, 3>>);
-static_assert(!ColVector<SVector<int64_t, 3>>);
-static_assert(!RowVector<Transpose<int64_t, SVector<int64_t, 3>>>);
-static_assert(ColVector<Transpose<int64_t, SVector<int64_t, 3>>>);
-static_assert(RowVector<StaticArray<int64_t, 1, 4, false>>);
-static_assert(RowVector<StaticArray<int64_t, 1, 4, true>>);
-static_assert(RowVector<StaticArray<int64_t, 1, 3, false>>);
-static_assert(RowVector<StaticArray<int64_t, 1, 3, true>>);
+static_assert(RowVector<SVector<std::int64_t, 3>>);
+static_assert(!ColVector<SVector<std::int64_t, 3>>);
+static_assert(!RowVector<Transpose<std::int64_t, SVector<std::int64_t, 3>>>);
+static_assert(ColVector<Transpose<std::int64_t, SVector<std::int64_t, 3>>>);
+static_assert(RowVector<StaticArray<std::int64_t, 1, 4, false>>);
+static_assert(RowVector<StaticArray<std::int64_t, 1, 4, true>>);
+static_assert(RowVector<StaticArray<std::int64_t, 1, 3, false>>);
+static_assert(RowVector<StaticArray<std::int64_t, 1, 3, true>>);
 
-template <class T, ptrdiff_t M, ptrdiff_t N>
+template <class T, std::ptrdiff_t M, std::ptrdiff_t N>
 TRIVIAL constexpr auto view(const StaticArray<T, M, N> &x) {
   return x.view();
 }
@@ -893,16 +893,16 @@ TRIVIAL constexpr auto view(const StaticArray<T, M, N> &x) {
 template <class T, class... U>
 StaticArray(T, U...) -> StaticArray<T, 1, 1 + sizeof...(U)>;
 
-static_assert(utils::Compressible<SVector<int64_t, 3>>);
-static_assert(utils::Compressible<SVector<int64_t, 7>>);
+static_assert(utils::Compressible<SVector<std::int64_t, 3>>);
+static_assert(utils::Compressible<SVector<std::int64_t, 7>>);
 
 } // namespace math
 
-template <class T, ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
+template <class T, std::ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_size<::math::SVector<T, N>>
-  : std::integral_constant<ptrdiff_t, N> {};
+  : std::integral_constant<std::ptrdiff_t, N> {};
 
-template <size_t I, class T, ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
+template <std::size_t I, class T, std::ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_element<I, math::SVector<T, N>> {
   using type = T;
 };

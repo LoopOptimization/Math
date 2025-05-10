@@ -64,11 +64,11 @@ template <class Pointer> using AllocResult = std::allocation_result<Pointer *>;
 #else
 template <class Pointer> struct AllocResult {
   Pointer *ptr;
-  size_t count;
+  std::size_t count;
 };
 #endif
 
-inline auto good_malloc_size(size_t n) -> size_t {
+inline auto good_malloc_size(std::size_t n) -> std::size_t {
 #if USE_MIMALLOC
   return mi_good_size(n);
 #elif USE_JEMALLOC
@@ -79,7 +79,7 @@ inline auto good_malloc_size(size_t n) -> size_t {
 }
 
 [[using gnu: returns_nonnull, malloc, alloc_size(1)]] inline auto
-malloc(size_t n) -> void * {
+malloc(std::size_t n) -> void * {
 #if USE_MIMALLOC
   return mi_malloc(n);
 #elif USE_JEMALLOC
@@ -90,8 +90,8 @@ malloc(size_t n) -> void * {
 }
 [[using gnu: returns_nonnull, malloc, alloc_size(1),
   alloc_align(2)]] inline auto
-malloc(size_t n, std::align_val_t al) -> void * {
-  auto a = static_cast<size_t>(al);
+malloc(std::size_t n, std::align_val_t al) -> void * {
+  auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
   return mi_malloc_aligned(n, a);
 #elif USE_JEMALLOC
@@ -102,7 +102,7 @@ malloc(size_t n, std::align_val_t al) -> void * {
 }
 
 [[using gnu: returns_nonnull, malloc, alloc_size(1)]] inline auto
-zalloc(size_t n) -> void * {
+zalloc(std::size_t n) -> void * {
 #if USE_MIMALLOC
   return mi_zalloc(n);
 #elif USE_JEMALLOC
@@ -114,8 +114,8 @@ zalloc(size_t n) -> void * {
 }
 [[using gnu: returns_nonnull, malloc, alloc_size(1),
   alloc_align(2)]] inline auto
-zalloc(size_t n, std::align_val_t al) -> void * {
-  auto a = static_cast<size_t>(al);
+zalloc(std::size_t n, std::align_val_t al) -> void * {
+  auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
   return mi_zalloc_aligned(n, a);
 #elif USE_JEMALLOC
@@ -125,7 +125,7 @@ zalloc(size_t n, std::align_val_t al) -> void * {
 #endif
 }
 
-inline auto realloc(void *p, size_t n) -> void * {
+inline auto realloc(void *p, std::size_t n) -> void * {
 #if USE_MIMALLOC
   return mi_realloc(p, n);
 #elif USE_JEMALLOC
@@ -136,7 +136,7 @@ inline auto realloc(void *p, size_t n) -> void * {
 }
 // expanding in place
 // returns `nullptr` on failure
-inline auto exalloc(void *p, size_t n) -> void * {
+inline auto exalloc(void *p, std::size_t n) -> void * {
 #if USE_MIMALLOC
   return mi_expand(p, n);
 #elif USE_JEMALLOC
@@ -148,8 +148,8 @@ inline auto exalloc(void *p, size_t n) -> void * {
 #endif
 }
 
-inline auto realloc(void *p, size_t n, std::align_val_t al) -> void * {
-  auto a = static_cast<size_t>(al);
+inline auto realloc(void *p, std::size_t n, std::align_val_t al) -> void * {
+  auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
   return mi_realloc_aligned(p, n, a);
 #elif USE_JEMALLOC
@@ -170,7 +170,7 @@ inline void free(void *p) {
 #endif
 };
 
-inline void free(void *p, size_t n) {
+inline void free(void *p, std::size_t n) {
 #if USE_MIMALLOC
   return mi_free_size(p, n);
 #elif USE_JEMALLOC
@@ -182,7 +182,7 @@ inline void free(void *p, size_t n) {
 };
 
 inline void free(void *p, std::align_val_t al) {
-  auto a = static_cast<size_t>(al);
+  auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
   return mi_free_aligned(p, a);
 #elif USE_JEMALLOC
@@ -193,8 +193,8 @@ inline void free(void *p, std::align_val_t al) {
 #endif
 };
 
-inline void free(void *p, size_t n, std::align_val_t al) {
-  auto a = static_cast<size_t>(al);
+inline void free(void *p, std::size_t n, std::align_val_t al) {
+  auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
   return mi_free_size_aligned(p, n, a);
 #elif USE_JEMALLOC
@@ -206,14 +206,14 @@ inline void free(void *p, size_t n, std::align_val_t al) {
 #endif
 };
 
-inline auto alloc_at_least(size_t n) -> AllocResult<void> {
-  size_t newn = good_malloc_size(n);
+inline auto alloc_at_least(std::size_t n) -> AllocResult<void> {
+  std::size_t newn = good_malloc_size(n);
   utils::invariant(newn >= n);
   return {malloc(newn), newn};
 }
 
-inline auto alloc_at_least(size_t n, std::align_val_t al) -> AllocResult<void> {
-  size_t newn = good_malloc_size(n);
+inline auto alloc_at_least(std::size_t n, std::align_val_t al) -> AllocResult<void> {
+  std::size_t newn = good_malloc_size(n);
   utils::invariant(newn >= n);
   return {malloc(newn, al), newn};
 }
@@ -231,19 +231,19 @@ template <class T> struct Mallocator {
 #else
   static constexpr bool overalign = alignof(T) > 16;
 #endif
-  static auto allocate(size_t n) -> T * {
+  static auto allocate(std::size_t n) -> T * {
     if constexpr (overalign)
       return static_cast<T *>(
         malloc(n * sizeof(T), std::align_val_t{alignof(T)}));
     else return static_cast<T *>(malloc(n * sizeof(T)));
   };
-  static auto allocate(size_t n, std::align_val_t al) -> T * {
+  static auto allocate(std::size_t n, std::align_val_t al) -> T * {
     return static_cast<T *>(malloc(n * sizeof(T), al));
   };
   // NOLINTNEXTLINE(readability-identifier-naming)
-  static auto allocate_at_least(size_t n) {
+  static auto allocate_at_least(std::size_t n) {
     T *t;
-    size_t m;
+    std::size_t m;
     if constexpr (overalign) {
       auto [p, l] =
         allocate_at_least(n * sizeof(T), std::align_val_t{alignof(T)});
@@ -258,18 +258,18 @@ template <class T> struct Mallocator {
     return AllocResult<T>{t, m};
   }
   // NOLINTNEXTLINE(readability-identifier-naming)
-  static auto allocate_at_least(size_t n, std::align_val_t al) {
+  static auto allocate_at_least(std::size_t n, std::align_val_t al) {
     auto [p, l] = alloc_at_least(n * sizeof(T), al);
-    size_t m = l / sizeof(T);
+    std::size_t m = l / sizeof(T);
     utils::invariant(m >= n);
     return AllocResult<T>{static_cast<T *>(p), m};
   }
-  static void deallocate(T *p, size_t n) {
+  static void deallocate(T *p, std::size_t n) {
     if constexpr (overalign)
       free(p, n * sizeof(T), std::align_val_t{alignof(T)});
     else free(p, n * sizeof(T));
   };
-  static void deallocate(T *p, size_t n, std::align_val_t al) {
+  static void deallocate(T *p, std::size_t n, std::align_val_t al) {
     free(p, n * sizeof(T), al);
   };
   constexpr auto operator==(const Mallocator &) { return true; };
@@ -281,10 +281,10 @@ concept CanAllocAtLeast = requires(A a) {
     a.allocate_at_least(1)
   } -> std::same_as<AllocResult<typename A::value_type>>;
 };
-static_assert(CanAllocAtLeast<Mallocator<ptrdiff_t>>);
+static_assert(CanAllocAtLeast<Mallocator<std::ptrdiff_t>>);
 
 template <class A>
-TRIVIAL inline auto alloc_at_least(A a, size_t n)
+TRIVIAL inline auto alloc_at_least(A a, std::size_t n)
   -> AllocResult<typename A::value_type> {
   if constexpr (CanAllocAtLeast<A>) return a.allocate_at_least(n);
   else return {a.allocate(n), n};

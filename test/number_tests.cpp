@@ -6,18 +6,18 @@
 #else
 
 import Int8;
-import STL;
+import std;
 #endif
 
 using numbers::i8, numbers::u8, numbers::Flag8;
 
 TEST(Int8Test, BasicAssertions) {
-  for (uint8_t x = 0; x < std::numeric_limits<uint8_t>::max(); ++x) {
+  for (std::uint8_t x = 0; x < std::numeric_limits<std::uint8_t>::max(); ++x) {
     auto fx = static_cast<Flag8>(x);
     if (x) EXPECT_TRUE(bool(fx));
     else EXPECT_FALSE(bool(fx));
     auto ux = static_cast<u8>(x);
-    for (uint8_t y = 0; y < std::numeric_limits<uint8_t>::max(); ++y) {
+    for (std::uint8_t y = 0; y < std::numeric_limits<std::uint8_t>::max(); ++y) {
       auto uy = static_cast<u8>(y);
       EXPECT_EQ(ux <=> uy, x <=> y);
       {
@@ -50,7 +50,7 @@ TEST(Int8Test, BasicAssertions) {
 
       {
         int z = x + y;
-        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+        if ((z >= 0) && (z <= std::numeric_limits<std::uint8_t>::max())) {
           u8 uz = ux;
           uz += uy;
           EXPECT_EQ(uz, z);
@@ -61,7 +61,7 @@ TEST(Int8Test, BasicAssertions) {
       }
       {
         int z = x * y;
-        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+        if ((z >= 0) && (z <= std::numeric_limits<std::uint8_t>::max())) {
           u8 uz = ux;
           uz *= uy;
           EXPECT_EQ(uz, z);
@@ -72,7 +72,7 @@ TEST(Int8Test, BasicAssertions) {
       }
       {
         int z = x - y;
-        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+        if ((z >= 0) && (z <= std::numeric_limits<std::uint8_t>::max())) {
           u8 uz = ux;
           uz -= uy;
           EXPECT_EQ(uz, z);
@@ -83,7 +83,7 @@ TEST(Int8Test, BasicAssertions) {
       }
       if (y) {
         int z = x / y;
-        if ((z >= 0) && (z <= std::numeric_limits<uint8_t>::max())) {
+        if ((z >= 0) && (z <= std::numeric_limits<std::uint8_t>::max())) {
           u8 uz = ux;
           uz /= uy;
           EXPECT_EQ(uz, z);
@@ -132,17 +132,17 @@ TEST(Int8Test, BasicAssertions) {
       }
     }
   }
-  for (int8_t x = std::numeric_limits<int8_t>::min();
-       x < std::numeric_limits<int8_t>::max(); ++x) {
-    for (int8_t y = std::numeric_limits<int8_t>::min();
-         y < std::numeric_limits<int8_t>::max(); ++y) {
+  for (std::int8_t x = std::numeric_limits<std::int8_t>::min();
+       x < std::numeric_limits<std::int8_t>::max(); ++x) {
+    for (std::int8_t y = std::numeric_limits<std::int8_t>::min();
+         y < std::numeric_limits<std::int8_t>::max(); ++y) {
       i8 ix = static_cast<i8>(x);
       i8 iy = static_cast<i8>(y);
 
       {
         int z = x + y;
-        if ((z >= std::numeric_limits<int8_t>::min()) &&
-            (z <= std::numeric_limits<int8_t>::max())) {
+        if ((z >= std::numeric_limits<std::int8_t>::min()) &&
+            (z <= std::numeric_limits<std::int8_t>::max())) {
           i8 iz = ix;
           iz += iy;
           EXPECT_EQ(iz, z);
@@ -153,8 +153,8 @@ TEST(Int8Test, BasicAssertions) {
       }
       {
         int z = x * y;
-        if ((z >= std::numeric_limits<int8_t>::min()) &&
-            (z <= std::numeric_limits<int8_t>::max())) {
+        if ((z >= std::numeric_limits<std::int8_t>::min()) &&
+            (z <= std::numeric_limits<std::int8_t>::max())) {
           i8 iz = ix;
           iz *= iy;
           EXPECT_EQ(iz, z);
@@ -165,8 +165,8 @@ TEST(Int8Test, BasicAssertions) {
       }
       {
         int z = x - y;
-        if ((z >= std::numeric_limits<int8_t>::min()) &&
-            (z <= std::numeric_limits<int8_t>::max())) {
+        if ((z >= std::numeric_limits<std::int8_t>::min()) &&
+            (z <= std::numeric_limits<std::int8_t>::max())) {
           i8 iz = ix;
           iz -= iy;
           EXPECT_EQ(iz, z);
@@ -177,8 +177,8 @@ TEST(Int8Test, BasicAssertions) {
       }
       if (y) {
         int z = x / y;
-        if ((z >= std::numeric_limits<int8_t>::min()) &&
-            (z <= std::numeric_limits<int8_t>::max())) {
+        if ((z >= std::numeric_limits<std::int8_t>::min()) &&
+            (z <= std::numeric_limits<std::int8_t>::max())) {
           i8 iz = ix;
           iz /= iy;
           EXPECT_EQ(iz, z);

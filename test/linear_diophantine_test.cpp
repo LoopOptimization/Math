@@ -10,7 +10,7 @@
 #else
 
 import LinearDiophantine;
-import STL;
+import std;
 #endif
 
 using namespace math;
@@ -20,8 +20,8 @@ TEST(LinearDiophantineTest, BasicAssertions) {
   {
     std::vector perm{2, 3, 4};
     do {
-      int64_t x = perm[0], y = perm[1], z = perm[2];
-      auto opts = linearDiophantine(1, std::array<int64_t, 3>{x, y, z});
+      std::int64_t x = perm[0], y = perm[1], z = perm[2];
+      auto opts = linearDiophantine(1, std::array<std::int64_t, 3>{x, y, z});
       EXPECT_TRUE(opts.has_value());
       if (opts.has_value()) {
         auto [a, b, c] = *opts;
@@ -32,8 +32,8 @@ TEST(LinearDiophantineTest, BasicAssertions) {
   {
     std::vector perm{2, 3, 4, 5};
     do {
-      int64_t w = perm[0], x = perm[1], y = perm[2], z = perm[3];
-      auto opts = linearDiophantine(1, std::array<int64_t, 4>{w, x, y, z});
+      std::int64_t w = perm[0], x = perm[1], y = perm[2], z = perm[3];
+      auto opts = linearDiophantine(1, std::array<std::int64_t, 4>{w, x, y, z});
       EXPECT_TRUE(opts.has_value());
       if (opts.has_value()) {
         auto [a, b, c, d] = *opts;
@@ -44,8 +44,8 @@ TEST(LinearDiophantineTest, BasicAssertions) {
   {
     std::vector perm{2, 3, 4, 5, 6};
     do {
-      int64_t w = perm[0], x = perm[1], y = perm[2], z = perm[3], u = perm[4];
-      auto opts = linearDiophantine(1, std::array<int64_t, 5>{w, x, y, z, u});
+      std::int64_t w = perm[0], x = perm[1], y = perm[2], z = perm[3], u = perm[4];
+      auto opts = linearDiophantine(1, std::array<std::int64_t, 5>{w, x, y, z, u});
       EXPECT_TRUE(opts.has_value());
       if (opts.has_value()) {
         auto [a, b, c, d, e] = *opts;
@@ -56,26 +56,26 @@ TEST(LinearDiophantineTest, BasicAssertions) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-100, 100);
-  ptrdiff_t solvedOneCounter = 0;
-  constexpr ptrdiff_t numIters = 10000;
-  for (ptrdiff_t n = 0; n < numIters; ++n) {
-    int64_t a0 = distrib(gen);
-    int64_t a1 = distrib(gen);
-    int64_t a2 = distrib(gen);
-    int64_t a3 = distrib(gen);
-    int64_t a4 = distrib(gen);
-    int64_t a5 = distrib(gen);
-    int64_t a6 = distrib(gen);
+  std::ptrdiff_t solvedOneCounter = 0;
+  constexpr std::ptrdiff_t numIters = 10000;
+  for (std::ptrdiff_t n = 0; n < numIters; ++n) {
+    std::int64_t a0 = distrib(gen);
+    std::int64_t a1 = distrib(gen);
+    std::int64_t a2 = distrib(gen);
+    std::int64_t a3 = distrib(gen);
+    std::int64_t a4 = distrib(gen);
+    std::int64_t a5 = distrib(gen);
+    std::int64_t a6 = distrib(gen);
     std::array t = {a0, a1, a2, a3, a4, a5, a6};
 
-    int64_t b0 = distrib(gen);
-    int64_t b1 = distrib(gen);
-    int64_t b2 = distrib(gen);
-    int64_t b3 = distrib(gen);
-    int64_t b4 = distrib(gen);
-    int64_t b5 = distrib(gen);
-    int64_t b6 = distrib(gen);
-    int64_t d =
+    std::int64_t b0 = distrib(gen);
+    std::int64_t b1 = distrib(gen);
+    std::int64_t b2 = distrib(gen);
+    std::int64_t b3 = distrib(gen);
+    std::int64_t b4 = distrib(gen);
+    std::int64_t b5 = distrib(gen);
+    std::int64_t b6 = distrib(gen);
+    std::int64_t d =
       a0 * b0 + a1 * b1 + a2 * b2 + a3 * b3 + a4 * b4 + a5 * b5 + a6 * b6;
     auto opt = linearDiophantine(d, t);
     EXPECT_TRUE(opt.has_value());
@@ -92,7 +92,7 @@ TEST(LinearDiophantineTest, BasicAssertions) {
                      a6 * x6);
     }
     {
-      auto opt1 = linearDiophantine(d * a0, std::array<int64_t, 1>{a0});
+      auto opt1 = linearDiophantine(d * a0, std::array<std::int64_t, 1>{a0});
       EXPECT_TRUE(opt1.has_value());
       if (opt1.has_value()) {
         if (a0) EXPECT_EQ(std::get<0>(*opt1), d);
@@ -101,7 +101,7 @@ TEST(LinearDiophantineTest, BasicAssertions) {
     }
     if (std::abs(a0) > 1) {
       // guaranteed coprime
-      auto opt1 = linearDiophantine(a0 + 1, std::array<int64_t, 1>{a0});
+      auto opt1 = linearDiophantine(a0 + 1, std::array<std::int64_t, 1>{a0});
       EXPECT_FALSE(opt1.has_value());
     }
   }
