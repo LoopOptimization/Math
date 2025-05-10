@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
+option(ENABLE_RTTI "Use RTTI? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
 # option(ENABLE_RTTI "Use RTTI" OFF)
@@ -11,7 +12,11 @@ option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_MODULES "Use C++ Modules" OFF)
 option(FOR_TESTING "Build for testing" OFF)
 
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+if(ENABLE_RTTI)
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
+else()
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
+endif()
 # if(ENABLE_STACK_PROTECTOR)
 #     if(ENABLE_RTTI)
 #         add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong>")
@@ -111,6 +116,11 @@ if(USE_MODULES)
   target_compile_features(${PROJECT_NAME}
     PRIVATE   cxx_std_23
     INTERFACE cxx_std_23)
+  set_target_properties(
+    ${PROJECT_NAME}
+    PROPERTIES CXX_STANDARD 23
+             CXX_VISIBILITY_PRESET hidden
+             VISIBILITY_INLINES_HIDDEN ON)
 else()
   file(GLOB_RECURSE headers CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"

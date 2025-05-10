@@ -10,15 +10,18 @@ option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer>")
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
-    set(USE_MI_MALLOC
-      OFF
-      CACHE BOOL "No mimalloc with sanitizers")
-    set(USE_JE_MALLOC
-      OFF
-      CACHE BOOL "No jemalloc with sanitizers")
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
-    endif()
+  set(USE_MI_MALLOC
+    OFF
+    CACHE BOOL "No mimalloc with sanitizers")
+  set(USE_JE_MALLOC
+    OFF
+    CACHE BOOL "No jemalloc with sanitizers")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
+  endif()
+  set(ENABLE_RTTI
+    ON
+    CACHE BOOL "enable RTTI when using ubsan")
 else()
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti;-fstack-protector-strong>")
 endif()
