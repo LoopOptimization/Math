@@ -48,9 +48,7 @@ project(
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 if (USE_MODULES)
-    set(CMAKE_CXX_MODULE_STD ON)
-else()
-    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES OFf)
+  set(CMAKE_CXX_MODULE_STD ON)
 endif()
 
 # ---- Include guards ----
@@ -110,6 +108,9 @@ if(USE_MODULES)
               -fno-semantic-interposition -fdiagnostics-color=always
               -Wno-comma-subscript -Wno-psabi)
   endif()
+  target_compile_features(${PROJECT_NAME}
+    PRIVATE   cxx_std_23
+    INTERFACE cxx_std_23)
 else()
   file(GLOB_RECURSE headers CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
@@ -117,6 +118,7 @@ else()
 
     # ---- Create library ----
   add_library(${PROJECT_NAME} INTERFACE ${headers})
+  set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES OFf)
   target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
   target_include_directories(
     ${PROJECT_NAME}
@@ -126,12 +128,10 @@ else()
     ${PROJECT_NAME}
     INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/mod>
               $<INSTALL_INTERFACE:mod/${PROJECT_NAME}-${PROJECT_VERSION}>)
+  target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
-target_compile_features(${PROJECT_NAME}
-  PRIVATE   cxx_std_23
-  INTERFACE cxx_std_23)
 
 
 

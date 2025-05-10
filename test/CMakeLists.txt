@@ -54,8 +54,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 if (USE_MODULES)
     set(CMAKE_CXX_MODULE_STD 1)
-else()
-    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
 endif()
 
 
@@ -73,18 +71,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(FetchContent)
 # using `FIND_PACKAGE_ARGS` causes it to try `find_package`
 if (USE_MODULES)
-FetchContent_Declare(
-  googletest NAMES GTest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-  # GIT_REPOSITORY https://github.com/google/googletest.git
-  # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+  FetchContent_Declare(
+    googletest NAMES GTest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+    # GIT_REPOSITORY https://github.com/google/googletest.git
+    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
   )
 else()
-FetchContent_Declare(
-  googletest FIND_PACKAGE_ARGS NAMES GTest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-  # GIT_REPOSITORY https://github.com/google/googletest.git
-  # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+  FetchContent_Declare(
+    googletest FIND_PACKAGE_ARGS NAMES GTest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+    # GIT_REPOSITORY https://github.com/google/googletest.git
+    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
   )
 endif()
 FetchContent_MakeAvailable(googletest)
@@ -93,8 +91,8 @@ cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
 
 set(FOR_TESTING
-    ON
-    CACHE BOOL "Build for testing")
+  ON
+  CACHE BOOL "Build for testing")
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----
@@ -115,6 +113,9 @@ endif()
 if(POLYMATHNOEXPLICITSIMDARRAY)
   target_compile_definitions(${PROJECT_NAME}
                              PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
+endif()
+if (NOT USE_MODULES)
+  set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
 endif()
 
 # enable compiler warnings
