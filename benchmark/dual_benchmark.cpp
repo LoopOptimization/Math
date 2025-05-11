@@ -26,7 +26,8 @@ using math::Dual, math::SquareMatrix, math::URand;
   c = a * b;
 }
 
-template <std::ptrdiff_t M, std::ptrdiff_t N> void BM_dualprod(benchmark::State &state) {
+template <std::ptrdiff_t M, std::ptrdiff_t N>
+void BM_dualprod(benchmark::State &state) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
   D a = URand<D>{}(rng0), b = URand<D>{}(rng0), c;
@@ -36,7 +37,8 @@ template <std::ptrdiff_t M, std::ptrdiff_t N> void BM_dualprod(benchmark::State 
   }
 }
 
-template <typename T, std::ptrdiff_t N, bool SIMDArray = false> struct ManualDual {
+template <typename T, std::ptrdiff_t N, bool SIMDArray = false>
+struct ManualDual {
   T value;
   math::SVector<T, N> partials;
   auto grad() -> math::SVector<T, N> & { return partials; }
@@ -60,21 +62,24 @@ struct ManualDual<ManualDual<T, N, SIMDArray>, 2, false> {
   }
 };
 
-template <std::floating_point T, std::ptrdiff_t N> struct ManualDual<T, N, false> {
+template <std::floating_point T, std::ptrdiff_t N>
+struct ManualDual<T, N, false> {
   using P = simd::Vec<std::ptrdiff_t(std::bit_ceil(std::size_t(N))), T>;
   T value;
   P partials;
   auto grad() -> P & { return partials; }
 };
-template <std::floating_point T, std::ptrdiff_t N> struct ManualDual<T, N, true> {
+template <std::floating_point T, std::ptrdiff_t N>
+struct ManualDual<T, N, true> {
   using P = math::StaticArray<T, 1, N, false>;
   T value;
   P partials;
   auto grad() -> P & { return partials; }
 };
 template <typename T, std::ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto
-operator*(ManualDual<T, N, B> a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator*(ManualDual<T, N, B> a,
+                                                ManualDual<T, N, B> b)
+  -> ManualDual<T, N, B> {
   if constexpr ((!B) && (!std::floating_point<T>) && (N == 2))
     return {a.value * b.value,
             {a.value * b.grad()[0] + b.value + a.grad()[0],
@@ -82,28 +87,29 @@ operator*(ManualDual<T, N, B> a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
   else return {a.value * b.value, a.value * b.partials + b.value * a.partials};
 }
 template <typename T, std::ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator*(ManualDual<T, N, B> a,
-                                                T b) -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator*(ManualDual<T, N, B> a, T b)
+  -> ManualDual<T, N, B> {
   return {a.value * b, b * a.partials};
 }
 template <typename T, std::ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto
-operator*(T a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator*(T a, ManualDual<T, N, B> b)
+  -> ManualDual<T, N, B> {
   return {b.value * a, a * b.partials};
 }
 template <typename T, std::ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto
-operator+(ManualDual<T, N, B> a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator+(ManualDual<T, N, B> a,
+                                                ManualDual<T, N, B> b)
+  -> ManualDual<T, N, B> {
   return {a.value + b.value, a.partials + b.partials};
 }
 template <typename T, std::ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto operator+(ManualDual<T, N, B> a,
-                                                T b) -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator+(ManualDual<T, N, B> a, T b)
+  -> ManualDual<T, N, B> {
   return {a.value + b, a.partials};
 }
 template <typename T, std::ptrdiff_t N, bool B>
-[[gnu::always_inline]] constexpr auto
-operator+(T a, ManualDual<T, N, B> b) -> ManualDual<T, N, B> {
+[[gnu::always_inline]] constexpr auto operator+(T a, ManualDual<T, N, B> b)
+  -> ManualDual<T, N, B> {
   return {b.value + a, b.partials};
 }
 
@@ -147,7 +153,8 @@ void BM_dualprod_manual(benchmark::State &state) {
     benchmark::DoNotOptimize(c);
   }
 }
-template <std::ptrdiff_t M, std::ptrdiff_t N> void BM_dualprod_simdarray(State &state) {
+template <std::ptrdiff_t M, std::ptrdiff_t N>
+void BM_dualprod_simdarray(State &state) {
   auto [a, b, c] = setup_manual<M, N, true, true>();
   for (auto _ : state) {
     prod(c, a, b);

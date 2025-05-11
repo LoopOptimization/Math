@@ -55,7 +55,8 @@ consteval auto range() -> Vec<W, I> {
 template <std::ptrdiff_t W>
 #include "Macros.hxx"
 
-TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> {
+TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v)
+  -> Vec<W, std::int64_t> {
   if constexpr (W == 2) {
     return std::bit_cast<Vec<2, std::int64_t>>(
       _mm_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
@@ -68,7 +69,8 @@ TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> 
   } else static_assert(false);
 }
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> {
+TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v)
+  -> Vec<W, std::int64_t> {
   if constexpr (W == 2) {
     return std::bit_cast<Vec<2, std::int64_t>>(
       _mm_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
@@ -81,7 +83,8 @@ TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> 
   } else static_assert(false);
 }
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v) -> Vec<W, std::int32_t> {
+TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v)
+  -> Vec<W, std::int32_t> {
   if constexpr (W == 2) {
     return std::bit_cast<Vec<2, std::int32_t>>(
       _mm_cvtepi64_epi32(std::bit_cast<__m128i>(v)));
@@ -95,15 +98,18 @@ TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v) -> Vec<W, std::int32_t>
 }
 #else
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> {
+TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v)
+  -> Vec<W, std::int64_t> {
   if constexpr (W != 1) {
     Vec<W, std::int64_t> r;
-    for (std::ptrdiff_t w = 0; w < W; ++w) r[w] = static_cast<std::int64_t>(v[w]);
+    for (std::ptrdiff_t w = 0; w < W; ++w)
+      r[w] = static_cast<std::int64_t>(v[w]);
     return r;
   } else return static_cast<std::int64_t>(v);
 }
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> {
+TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v)
+  -> Vec<W, std::int64_t> {
   using R = Vec<W, std::int64_t>;
   static constexpr Vec<W, std::int32_t> z{};
   if constexpr (W == 1)
@@ -120,7 +126,8 @@ TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v) -> Vec<W, std::int64_t> 
   else static_assert(false);
 }
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v) -> Vec<W, std::int32_t> {
+TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v)
+  -> Vec<W, std::int32_t> {
   using R = Vec<W, std::int64_t>;
   if constexpr (W == 1) return static_cast<R>(v);
   else {
@@ -162,7 +169,8 @@ template <std::ptrdiff_t W> struct Bit {
       return 64 - std::ptrdiff_t(std::countl_zero(m));
     } else return 64 - std::ptrdiff_t(std::countl_zero(mask_));
   }
-  template <std::ptrdiff_t S> TRIVIAL [[nodiscard]] constexpr auto sub() -> Bit<S> {
+  template <std::ptrdiff_t S>
+  TRIVIAL [[nodiscard]] constexpr auto sub() -> Bit<S> {
     static_assert(S <= W);
     std::uint64_t s = mask_;
     mask_ >>= S;
@@ -193,10 +201,12 @@ private:
 #ifdef __AVX512VL__
 // In: iteration count `i.i` is the total length of the loop
 // Out: mask for the final iteration. Zero indicates no masked iter.
-template <std::ptrdiff_t W> TRIVIAL constexpr auto create(std::ptrdiff_t i) -> Bit<W> {
+template <std::ptrdiff_t W>
+TRIVIAL constexpr auto create(std::ptrdiff_t i) -> Bit<W> {
   static_assert(std::popcount(std::size_t(W)) == 1);
   utils::invariant(i >= 0);
-  return {_bzhi_u64(0xffffffffffffffff, std::uint64_t(i) & std::uint64_t(W - 1))};
+  return {
+    _bzhi_u64(0xffffffffffffffff, std::uint64_t(i) & std::uint64_t(W - 1))};
 };
 // In: index::Vector where `i.i` is for the current iteration, and total loop
 // length. Out: mask for the current iteration, 0 indicates exit loop.
@@ -228,7 +238,8 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   // static_assert(sizeof(I) * W <= VECTORWIDTH);
   // TODO: add support for smaller mask types, we we can use smaller eltypes
   Vec<W, I> m;
-  template <std::size_t newBytes> TRIVIAL constexpr operator Vector<W, newBytes>() {
+  template <std::size_t newBytes>
+  TRIVIAL constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
     else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
@@ -313,7 +324,8 @@ static_assert(!std::convertible_to<Vector<4, 4>, Vector<8, 4>>);
 // but no VL!!! xeon phi
 template <std::ptrdiff_t W> TRIVIAL constexpr auto create(std::ptrdiff_t i) {
   if constexpr (W == 8)
-    return Bit<8>{_bzhi_u64(0xffffffffffffffff, std::uint64_t(i) & std::uint64_t(7))};
+    return Bit<8>{
+      _bzhi_u64(0xffffffffffffffff, std::uint64_t(i) & std::uint64_t(7))};
   else return Vector<W>{range<W, std::int64_t>() < (i & (W - 1))};
 }
 template <std::ptrdiff_t W>
@@ -340,7 +352,8 @@ TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
 }
-template <std::ptrdiff_t W, typename I = std::int64_t> using Mask = Vector<W, sizeof(I)>;
+template <std::ptrdiff_t W, typename I = std::int64_t>
+using Mask = Vector<W, sizeof(I)>;
 #endif // ifdef __AVX512F__; else
 
 #endif // ifdef __AVX512VL__; else
@@ -350,7 +363,8 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   using I = utils::signed_integer_t<Bytes>;
   static_assert(sizeof(I) == Bytes);
   Vec<W, I> m;
-  template <std::size_t newBytes> TRIVIAL constexpr operator Vector<W, newBytes>() {
+  template <std::size_t newBytes>
+  TRIVIAL constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
     else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};

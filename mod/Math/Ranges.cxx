@@ -55,16 +55,16 @@ template <typename B, typename E> struct Range {
 
 private:
   TRIVIAL friend constexpr auto operator+(Range r, std::ptrdiff_t x) {
-    return Range<std::ptrdiff_t,std::ptrdiff_t>(r.b_ + x, r.e_ + x);
+    return Range<std::ptrdiff_t, std::ptrdiff_t>(r.b_ + x, r.e_ + x);
   }
   TRIVIAL friend constexpr auto operator+(std::ptrdiff_t x, Range r) {
-    return Range<std::ptrdiff_t,std::ptrdiff_t>(r.b_ + x, r.e_ + x);
+    return Range<std::ptrdiff_t, std::ptrdiff_t>(r.b_ + x, r.e_ + x);
   }
   TRIVIAL friend constexpr auto operator-(Range r, std::ptrdiff_t x) {
-    return Range<std::ptrdiff_t,std::ptrdiff_t>(r.b_ - x, r.e_ - x);
+    return Range<std::ptrdiff_t, std::ptrdiff_t>(r.b_ - x, r.e_ - x);
   }
   TRIVIAL friend constexpr auto operator-(std::ptrdiff_t x, Range r) {
-    return Range<std::ptrdiff_t,std::ptrdiff_t>(x - r.b_, x - r.e_);
+    return Range<std::ptrdiff_t, std::ptrdiff_t>(x - r.b_, x - r.e_);
   }
 };
 template <std::integral B, std::integral E> struct Range<B, E> {
@@ -223,8 +223,9 @@ static_assert(std::indirectly_readable<StridedIterator<std::int64_t>>,
               "failed indirectly readable");
 static_assert(std::indirectly_readable<StridedIterator<std::int64_t>>,
               "failed indirectly readable");
-static_assert(std::output_iterator<StridedIterator<std::int64_t>, std::ptrdiff_t>,
-              "failed output iterator");
+static_assert(
+  std::output_iterator<StridedIterator<std::int64_t>, std::ptrdiff_t>,
+  "failed output iterator");
 static_assert(std::forward_iterator<StridedIterator<std::int64_t>>,
               "failed forward iterator");
 static_assert(std::input_iterator<StridedIterator<std::int64_t>>,

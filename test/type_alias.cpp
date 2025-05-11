@@ -44,4 +44,3 @@ TEST(TypeAliasChecks, BasicAssertions) {
     EXPECT_EQ((A43[3, 2]), 1);
   }
 }
-

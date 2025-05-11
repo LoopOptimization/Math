@@ -42,7 +42,7 @@ TEST(OrthogonalizeMatricesTest, BasicAssertions) {
     ASSERT_EQ(orth.numCol(), A.numCol());
     ASSERT_EQ(orth.numRow(), r);
     math::MutDensePtrMatrix<std::int64_t> B{mem + (M * N),
-                                       DenseDims<>{row(r), col(r)}};
+                                            DenseDims<>{row(r), col(r)}};
     // std::cout << "Orthogonal A =\n" << A << "\n";
     // note, A'A is not diagonal
     // but AA' is

@@ -141,11 +141,13 @@ public:
   //   invariant(value != nullptr);
   //   return value >= other.value;
   // }
-  TRIVIAL constexpr auto operator-(const Valid<T> &other) const -> std::ptrdiff_t {
+  TRIVIAL constexpr auto operator-(const Valid<T> &other) const
+    -> std::ptrdiff_t {
     invariant(value_ != nullptr);
     return value_ - other.value_;
   }
-  TRIVIAL [[nodiscard]] constexpr auto isAligned(std::ptrdiff_t x) const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto isAligned(std::ptrdiff_t x) const
+    -> bool {
     invariant(value_ != nullptr);
     return (reinterpret_cast<std::ptrdiff_t>(value_) % x) == 0;
   }

@@ -33,8 +33,8 @@ import Widen;
 #define CLANGNOUBSAN
 #endif
 namespace math::detail {
-CLANGNOUBSAN constexpr auto mul_high(__uint128_t a,
-                                     __uint128_t b) -> __uint128_t {
+CLANGNOUBSAN constexpr auto mul_high(__uint128_t a, __uint128_t b)
+  -> __uint128_t {
   static constexpr auto shift = 16 * 4;
   __uint128_t mask = std::numeric_limits<__uint128_t>::max();
   __uint128_t a1 = a >> shift, a2 = a & mask;

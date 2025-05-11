@@ -492,14 +492,16 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       auto c = unwrapCol(numCol());
       constexpr auto ratio = sizeof(storage_type) / sizeof(U);
 #ifdef __cpp_lib_start_lifetime_as
-      U *p = std::start_lifetime_as_array(reinterpret_cast<const U *>(data()),
-                                          ratio * std::ptrdiff_t(rowStride()) * r);
+      U *p =
+        std::start_lifetime_as_array(reinterpret_cast<const U *>(data()),
+                                     ratio * std::ptrdiff_t(rowStride()) * r);
 #else
       const U *p = std::launder(reinterpret_cast<const U *>(data()));
 #endif
       if constexpr (IsOne<decltype(r)>) {
         if constexpr (StaticInt<decltype(c)>)
-          return Array<U, std::integral_constant<std::ptrdiff_t, c * ratio>>{p, {}};
+          return Array<U, std::integral_constant<std::ptrdiff_t, c * ratio>>{
+            p, {}};
         else return Array<U, std::ptrdiff_t>{p, c * ratio};
       } else if constexpr (DenseLayout<S>) {
         return Array<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
@@ -602,8 +604,8 @@ TRIVIAL constexpr auto view(Array<T, S> x) -> Array<T, S> {
   return x;
 }
 
-static_assert(
-  std::same_as<utils::eltype_t<Array<std::int64_t, SquareDims<>>>, std::int64_t>);
+static_assert(std::same_as<utils::eltype_t<Array<std::int64_t, SquareDims<>>>,
+                           std::int64_t>);
 static_assert(AbstractMatrix<Array<std::int64_t, SquareDims<>>>);
 
 static_assert(
@@ -639,7 +641,8 @@ struct MutArray : Array<T, S, Compress>,
         std::is_trivially_destructible_v<T>,
         "Truncating matrices holding non-is_trivially_destructible_v "
         "objects is not yet supported.");
-      auto new_x = std::ptrdiff_t{RowStride(nz)}, old_x = std::ptrdiff_t{RowStride(oz)},
+      auto new_x = std::ptrdiff_t{RowStride(nz)},
+           old_x = std::ptrdiff_t{RowStride(oz)},
            new_n = std::ptrdiff_t{Col(nz)}, old_n = std::ptrdiff_t{Col(oz)},
            new_m = std::ptrdiff_t{Row(nz)}, old_m = std::ptrdiff_t{Row(oz)};
       invariant(new_m <= old_m);
@@ -774,16 +777,16 @@ struct MutArray : Array<T, S, Compress>,
     else std::fill_n(this->data(), this->size(), T{});
   }
   [[nodiscard]] constexpr auto diag() noexcept {
-    Length l =
-      length(std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(Col(this->sz_))));
+    Length l = length(
+      std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(Col(this->sz_))));
     RowStride rs = RowStride(this->sz_);
     StridedRange<> r{l, ++rs};
     return MutArray<T, StridedRange<>>{data(), r};
   }
   [[nodiscard]] constexpr auto antiDiag() noexcept {
     Col<> c = Col(this->sz_);
-    Length l =
-      length(std::ptrdiff_t(std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(c))));
+    Length l = length(std::ptrdiff_t(
+      std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(c))));
     RowStride rs = RowStride(this->sz_);
     StridedRange<> r{l, --rs};
     return MutArray<T, StridedRange<>>{data() + std::ptrdiff_t(c) - 1, r};
@@ -899,8 +902,9 @@ struct MutArray : Array<T, S, Compress>,
       auto c = unwrapCol(this->numCol());
       constexpr std::size_t ratio = sizeof(storage_type) / sizeof(U);
 #ifdef __cpp_lib_start_lifetime_as
-      U *p = std::start_lifetime_as_array(reinterpret_cast<const U *>(data()),
-                                          ratio * std::ptrdiff_t(rowStride()) * r);
+      U *p =
+        std::start_lifetime_as_array(reinterpret_cast<const U *>(data()),
+                                     ratio * std::ptrdiff_t(rowStride()) * r);
 #else
       U *p = std::launder(reinterpret_cast<U *>(data()));
 #endif
@@ -961,9 +965,11 @@ static_assert(AbstractVector<Array<std::int64_t, Length<>>>);
 static_assert(!AbstractVector<Array<std::int64_t, StridedDims<>>>);
 static_assert(AbstractMatrix<Array<std::int64_t, StridedDims<>>>);
 static_assert(RowVector<Array<std::int64_t, Length<>>>);
-static_assert(ColVector<Transpose<std::int64_t, Array<std::int64_t, Length<>>>>);
+static_assert(
+  ColVector<Transpose<std::int64_t, Array<std::int64_t, Length<>>>>);
 static_assert(ColVector<Array<std::int64_t, StridedRange<>>>);
-static_assert(RowVector<Transpose<std::int64_t, Array<std::int64_t, StridedRange<>>>>);
+static_assert(
+  RowVector<Transpose<std::int64_t, Array<std::int64_t, StridedRange<>>>>);
 
 // template <typename T, bool Column>
 // inline constexpr auto SliceIterator<T, Column>::operator*()
@@ -986,13 +992,16 @@ constexpr auto SliceIterator<T, Column, L, X>::operator*() const
 //   else return {it.data + it.rowStride * it.idx, it.len};
 // }
 
-static_assert(std::weakly_incrementable<SliceIterator<std::int64_t, false, -1, -1>>);
-static_assert(std::forward_iterator<SliceIterator<std::int64_t, false, -1, -1>>);
+static_assert(
+  std::weakly_incrementable<SliceIterator<std::int64_t, false, -1, -1>>);
+static_assert(
+  std::forward_iterator<SliceIterator<std::int64_t, false, -1, -1>>);
 static_assert(std::ranges::forward_range<SliceRange<std::int64_t, false>>);
 static_assert(std::ranges::range<SliceRange<std::int64_t, false>>);
 using ITEST =
   std::iter_rvalue_reference_t<SliceIterator<std::int64_t, true, -1, -1>>;
-static_assert(std::is_same_v<ITEST, MutArray<std::int64_t, StridedRange<>, false>>);
+static_assert(
+  std::is_same_v<ITEST, MutArray<std::int64_t, StridedRange<>, false>>);
 
 /// Non-owning view of a managed array, capable of resizing,
 /// but not of re-allocating in case the capacity is exceeded.
@@ -1005,13 +1014,14 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr ResizeableView(storage_type *p, S s, U c) noexcept
     : BaseT(p, s), capacity_(c) {}
   constexpr ResizeableView(alloc::Arena<> *a, U c) noexcept
-    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), S{}, c} {
-  }
+    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), S{},
+                     c} {}
   constexpr ResizeableView(alloc::Arena<> *a, std::integral auto c) noexcept
     : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), S{},
                      capacity(c)} {}
   constexpr ResizeableView(alloc::Arena<> *a, S s, U c) noexcept
-    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), s, c} {}
+    : ResizeableView{a->template allocate<storage_type>(std::ptrdiff_t(c)), s,
+                     c} {}
 
   [[nodiscard]] constexpr auto isFull() const -> bool {
     return std::ptrdiff_t(this->sz_) == capacity_;
@@ -1096,7 +1106,8 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
                     "Resizing matrices holding non-is_trivially_destructible_v "
                     "objects is not yet supported.");
       static_assert(MatrixDimension<S>, "Can only resize 1 or 2d containers.");
-      auto new_x = std::ptrdiff_t{RowStride(nz)}, old_x = std::ptrdiff_t{RowStride(oz)},
+      auto new_x = std::ptrdiff_t{RowStride(nz)},
+           old_x = std::ptrdiff_t{RowStride(oz)},
            new_n = std::ptrdiff_t{Col(nz)}, old_n = std::ptrdiff_t{Col(oz)},
            new_m = std::ptrdiff_t{Row(nz)}, old_m = std::ptrdiff_t{Row(oz)};
       invariant(U(nz) <= capacity_);
@@ -1167,7 +1178,8 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
       std::ptrdiff_t nz = std::ptrdiff_t(M), oz = std::ptrdiff_t(this->sz_);
       if (nz < oz) std::destroy_n(this->data() + nz, oz - nz);
       else if (nz > oz) // FIXME: user should initialize?
-        for (std::ptrdiff_t i = oz; i < nz; ++i) std::construct_at(this->data() + i);
+        for (std::ptrdiff_t i = oz; i < nz; ++i)
+          std::construct_at(this->data() + i);
     }
     this->sz_ = M;
   }
@@ -1287,14 +1299,17 @@ static_assert(!AbstractMatrix<StridedVector<std::int64_t>>);
 static_assert(std::is_trivially_copyable_v<MutStridedVector<std::int64_t>>);
 // static_assert(std::is_trivially_copyable_v<
 //               Elementwise<std::negate<>, StridedVector<std::int64_t>>>);
-// static_assert(Trivial<Elementwise<std::negate<>, StridedVector<std::int64_t>>>);
+// static_assert(Trivial<Elementwise<std::negate<>,
+// StridedVector<std::int64_t>>>);
 static_assert(AbstractVector<StridedVector<std::int64_t>>);
 static_assert(AbstractVector<MutStridedVector<std::int64_t>>);
 static_assert(std::is_trivially_copyable_v<StridedVector<std::int64_t>>);
 
-template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1, std::ptrdiff_t X = -1>
+template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1,
+          std::ptrdiff_t X = -1>
 using PtrMatrix = Array<T, StridedDims<R, C, X>>;
-template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1, std::ptrdiff_t X = -1>
+template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1,
+          std::ptrdiff_t X = -1>
 using MutPtrMatrix = MutArray<T, StridedDims<R, C, X>>;
 template <class T, std::ptrdiff_t R = -1, std::ptrdiff_t C = -1>
 using DensePtrMatrix = Array<T, DenseDims<R, C>>;
@@ -1339,14 +1354,15 @@ static_assert(!AbstractVector<const PtrMatrix<std::int64_t>>,
 
 static_assert(AbstractMatrix<PtrMatrix<std::int64_t>>,
               "PtrMatrix<std::int64_t> isa AbstractMatrix failed");
+static_assert(std::same_as<decltype(PtrMatrix<std::int64_t>(
+                             nullptr, row(0),
+                             col(0))[std::ptrdiff_t(0), std::ptrdiff_t(0)]),
+                           const std::int64_t &>);
 static_assert(
-  std::same_as<decltype(PtrMatrix<std::int64_t>(nullptr, row(0),
-                                           col(0))[std::ptrdiff_t(0), std::ptrdiff_t(0)]),
-               const std::int64_t &>);
-static_assert(
-  std::same_as<std::remove_reference_t<decltype(MutPtrMatrix<std::int64_t>(
-                 nullptr, row(0), col(0))[std::ptrdiff_t(0), std::ptrdiff_t(0)])>,
-               std::int64_t>);
+  std::same_as<
+    std::remove_reference_t<decltype(MutPtrMatrix<std::int64_t>(
+      nullptr, row(0), col(0))[std::ptrdiff_t(0), std::ptrdiff_t(0)])>,
+    std::int64_t>);
 
 static_assert(AbstractMatrix<MutPtrMatrix<std::int64_t>>,
               "PtrMatrix<std::int64_t> isa AbstractMatrix failed");
@@ -1378,8 +1394,9 @@ template <class S> using IntArray = Array<std::int64_t, S>;
 static_assert(std::convertible_to<Array<std::int64_t, SquareDims<>>,
                                   Array<std::int64_t, StridedDims<>>>);
 
-static_assert(std::same_as<const std::int64_t &,
-                           decltype(std::declval<PtrMatrix<std::int64_t>>()[0, 0])>);
+static_assert(
+  std::same_as<const std::int64_t &,
+               decltype(std::declval<PtrMatrix<std::int64_t>>()[0, 0])>);
 static_assert(std::is_trivially_copyable_v<MutArray<std::int64_t, Length<>>>);
 
 constexpr void swap(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j) {
@@ -1397,22 +1414,26 @@ constexpr void swap(MutPtrMatrix<std::int64_t> A, Col<> i, Col<> j) {
     std::swap(A[m, std::ptrdiff_t(i)], A[m, std::ptrdiff_t(j)]);
 }
 // static_assert(
-//   AbstractMatrix<MatMatMul<PtrMatrix<std::int64_t>, PtrMatrix<std::int64_t>>>);
+//   AbstractMatrix<MatMatMul<PtrMatrix<std::int64_t>,
+//   PtrMatrix<std::int64_t>>>);
 
 static_assert(std::copy_constructible<PtrMatrix<std::int64_t>>);
 // static_assert(std::is_trivially_copyable_v<MutPtrMatrix<std::int64_t>>);
 static_assert(std::is_trivially_copyable_v<PtrMatrix<std::int64_t>>);
 static_assert(utils::TriviallyCopyable<PtrMatrix<std::int64_t>>);
 // static_assert(
-//   Trivial<ElementwiseBinaryOp<PtrMatrix<std::int64_t>, int, std::multiplies<>>>);
-// static_assert(Trivial<MatMatMul<PtrMatrix<std::int64_t>, PtrMatrix<std::int64_t>>>);
-// static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<std::int64_t>, int,
+//   Trivial<ElementwiseBinaryOp<PtrMatrix<std::int64_t>, int,
+//   std::multiplies<>>>);
+// static_assert(Trivial<MatMatMul<PtrMatrix<std::int64_t>,
+// PtrMatrix<std::int64_t>>>);
+// static_assert(AbstractMatrix<ElementwiseBinaryOp<PtrMatrix<std::int64_t>,
+// int,
 //                                                  std::multiplies<>>>,
 //               "ElementwiseBinaryOp isa AbstractMatrix failed");
 
 // static_assert(
-//   !AbstractVector<MatMatMul<PtrMatrix<std::int64_t>, PtrMatrix<std::int64_t>>>,
-//   "MatMul should not be an AbstractVector!");
+//   !AbstractVector<MatMatMul<PtrMatrix<std::int64_t>,
+//   PtrMatrix<std::int64_t>>>, "MatMul should not be an AbstractVector!");
 // static_assert(AbstractMatrix<MatMatMul<PtrMatrix<std::int64_t>,
 // PtrMatrix<std::int64_t>>>,
 //               "MatMul is not an AbstractMatrix!");
@@ -1420,7 +1441,8 @@ static_assert(AbstractMatrix<Transpose<std::int64_t, PtrMatrix<std::int64_t>>>);
 static_assert(ColVector<StridedVector<std::int64_t>>);
 static_assert(
   AbstractVector<decltype(-std::declval<StridedVector<std::int64_t>>())>);
-static_assert(ColVector<decltype(-std::declval<StridedVector<std::int64_t>>() * 0)>);
+static_assert(
+  ColVector<decltype(-std::declval<StridedVector<std::int64_t>>() * 0)>);
 
 static_assert(RowVector<math::Array<double, math::Length<-1, long>, false>>);
 static_assert(
@@ -1431,8 +1453,8 @@ static_assert(
 // template <typename T> constexpr auto countNonZero(PtrMatrix<T> x) ->
 // std::ptrdiff_t {
 //   std::ptrdiff_t count = 0;
-//   for (std::ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x[r, _]);
-//   return count;
+//   for (std::ptrdiff_t r = 0; r < x.numRow(); ++r) count += countNonZero(x[r,
+//   _]); return count;
 // }
 
 template <typename T, typename S> struct ScalarizeViaCast<Array<T, S, true>> {

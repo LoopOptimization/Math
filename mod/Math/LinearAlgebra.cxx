@@ -87,11 +87,13 @@ constexpr void ldiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
   // permute rhs
   for (std::ptrdiff_t i = 0; i < M; ++i)
     if (unsigned ip = ipiv[i]; i != ip)
-      for (std::ptrdiff_t j = 0; j < M; ++j) std::ranges::swap(R[ip, j], R[i, j]);
+      for (std::ptrdiff_t j = 0; j < M; ++j)
+        std::ranges::swap(R[ip, j], R[i, j]);
 
   // LU x = rhs
   // L y = rhs // L is UnitLowerTriangular
-  for (std::ptrdiff_t m = 1; m < M; ++m) R[m, _] -= F[m, _(0, m)] * R[_(0, m), _];
+  for (std::ptrdiff_t m = 1; m < M; ++m)
+    R[m, _] -= F[m, _(0, m)] * R[_(0, m), _];
   // U x = y
   R[last, _] /= F[last, last];
   for (std::ptrdiff_t m = M - 1; m--;)
@@ -171,8 +173,8 @@ public:
     invariant(std::ptrdiff_t(F.numRow()), std::ptrdiff_t(ipiv.size()));
   }
 
-  [[nodiscard]] constexpr auto
-  inv() const -> std::optional<SquareMatrix<Rational, L>> {
+  [[nodiscard]] constexpr auto inv() const
+    -> std::optional<SquareMatrix<Rational, L>> {
     SquareMatrix<Rational, L> A{
       SquareMatrix<Rational, L>::identity(std::ptrdiff_t(F.numCol()))};
     if (!ldivrat(A)) return A;
@@ -197,8 +199,8 @@ public:
   }
 };
 template <std::ptrdiff_t L>
-[[nodiscard]] constexpr auto
-fact(const SquareMatrix<std::int64_t, L> &B) -> std::optional<Fact<Rational, L>> {
+[[nodiscard]] constexpr auto fact(const SquareMatrix<std::int64_t, L> &B)
+  -> std::optional<Fact<Rational, L>> {
   Row M = B.numRow();
   SquareMatrix<Rational, L> A{B};
   // auto ipiv = Vector<unsigned>{.s = unsigned(M)};
@@ -307,7 +309,8 @@ public:
     invariant(std::ptrdiff_t(F.numRow()), M);
     // LD^-1L' x = rhs
     // L y = rhs // L is UnitLowerTriangular
-    for (std::ptrdiff_t m = 1; m < M; ++m) R[m, _] -= F[m, _(0, m)] * R[_(0, m), _];
+    for (std::ptrdiff_t m = 1; m < M; ++m)
+      R[m, _] -= F[m, _(0, m)] * R[_(0, m), _];
     // D^-1 L' x = y
     // L' x = D y
     R[last, _] *= F[last, last];
@@ -319,7 +322,8 @@ public:
     invariant(std::ptrdiff_t(F.numRow()), M);
     // LD^-1L' x = rhs
     // L y = rhs // L is UnitLowerTriangular
-    for (std::ptrdiff_t m = 1; m < M; ++m) R[m] -= R[_(0, m)] * F[m, _(0, m)].t();
+    for (std::ptrdiff_t m = 1; m < M; ++m)
+      R[m] -= R[_(0, m)] * F[m, _(0, m)].t();
     // D^-1 L' x = y
     // L' x = D y
     R[last] *= F[last, last];

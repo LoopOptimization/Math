@@ -82,13 +82,15 @@ struct Length {
   constexpr Length(auto) {};
   /// args are old nz, new nz
   /// returns `0` if not growing
-  constexpr auto oldnewcap(auto osz, auto nsz) -> std::array<std::ptrdiff_t, 2> {
+  constexpr auto oldnewcap(auto osz, auto nsz)
+    -> std::array<std::ptrdiff_t, 2> {
     return {(*this)(osz), (*this)(nsz)};
   }
   constexpr auto operator=(std::ptrdiff_t) -> Length & { return *this; }
 };
 constexpr auto nextpow2(std::ptrdiff_t x) -> std::ptrdiff_t {
-  return static_cast<std::ptrdiff_t>(std::bit_ceil(static_cast<std::size_t>(x)));
+  return static_cast<std::ptrdiff_t>(
+    std::bit_ceil(static_cast<std::size_t>(x)));
 }
 struct NextPow2 {
   static constexpr auto operator()(auto sz) -> std::ptrdiff_t {
@@ -99,7 +101,8 @@ struct NextPow2 {
   constexpr NextPow2(auto) {};
   /// args are old nz, new nz
   /// returns `0` if not growing
-  constexpr auto oldnewcap(auto osz, auto nsz) -> std::array<std::ptrdiff_t, 2> {
+  constexpr auto oldnewcap(auto osz, auto nsz)
+    -> std::array<std::ptrdiff_t, 2> {
     return {(*this)(osz), (*this)(nsz)};
   }
   constexpr auto operator=(std::ptrdiff_t) -> NextPow2 & { return *this; }
@@ -179,7 +182,8 @@ template <ConstructibleFromMembers T, std::size_t... II> struct SOAReference {
       ptr_ + (CumSizeOf_v<I, T> * stride_) +
       (sizeof(std::tuple_element_t<I, T>) * i_));
   }
-  template <std::size_t I> auto get() const -> const std::tuple_element_t<I, T> & {
+  template <std::size_t I>
+  auto get() const -> const std::tuple_element_t<I, T> & {
     invariant(i_ >= 0);
     return *reinterpret_cast<const std::tuple_element_t<I, T> *>(
       ptr_ + (CumSizeOf_v<I, T> * stride_) +
@@ -196,7 +200,8 @@ template <typename T, Dimension S = Length<>,
 struct SOA {
   static_assert(false, "Requires `T` to be constructible from members.");
 };
-template <typename T, typename S, typename C, typename... Elts, std::size_t... II>
+template <typename T, typename S, typename C, typename... Elts,
+          std::size_t... II>
 requires(CanConstructFromMembers<T>::value)
 struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   char *data_;
@@ -221,7 +226,8 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
     return std::ptrdiff_t(sz_);
   }
-  template <std::size_t I> auto get(std::ptrdiff_t i) -> std::tuple_element_t<I, T> & {
+  template <std::size_t I>
+  auto get(std::ptrdiff_t i) -> std::tuple_element_t<I, T> & {
     invariant(i >= 0);
     invariant(i < size());
     return *reinterpret_cast<std::tuple_element_t<I, T> *>(
@@ -290,13 +296,15 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
     friend constexpr auto operator==(Iterator x, Iterator y) -> bool {
       return x.i_ == y.i_;
     }
-    friend constexpr auto operator<=>(Iterator x,
-                                      Iterator y) -> std::strong_ordering {
+    friend constexpr auto operator<=>(Iterator x, Iterator y)
+      -> std::strong_ordering {
       return x.i_ <=> y.i_;
     }
   };
   constexpr auto begin() -> Iterator<false> { return {*this, 0z}; }
-  constexpr auto end() -> Iterator<false> { return {*this, std::ptrdiff_t(sz_)}; }
+  constexpr auto end() -> Iterator<false> {
+    return {*this, std::ptrdiff_t(sz_)};
+  }
   constexpr auto begin() const -> Iterator<true> { return {*this, 0z}; }
   constexpr auto end() const -> Iterator<true> {
     return {*this, std::ptrdiff_t(sz_)};
@@ -367,7 +375,8 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     return *this;
   }
   void resizeForOverwrite(S nsz) {
-    auto [ocap, ncap] = this->capacity_.oldnewcap(this->sz_, std::ptrdiff_t(nsz));
+    auto [ocap, ncap] =
+      this->capacity_.oldnewcap(this->sz_, std::ptrdiff_t(nsz));
     this->sz_ = nsz;
     if (ocap >= ncap) return;
     free(ocap);
@@ -387,8 +396,8 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     std::swap(self.sz_, other.sz_);
     std::swap(self.capacity_, other.capacity_);
     // FIXME: only accepts non-copyable
-    for (std::ptrdiff_t i = 0,
-                   L = std::min(std::ptrdiff_t(self.sz_), std::ptrdiff_t(other.sz_));
+    for (std::ptrdiff_t i = 0, L = std::min(std::ptrdiff_t(self.sz_),
+                                            std::ptrdiff_t(other.sz_));
          i < L; ++i)
       self[i] = other[i];
   }

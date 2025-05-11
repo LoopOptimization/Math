@@ -52,8 +52,8 @@ public:
     return row(rows.size());
   }
   [[nodiscard]] constexpr auto numCol() const -> Col<> { return ncol; }
-  [[nodiscard]] constexpr auto
-  size() const -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
+  [[nodiscard]] constexpr auto size() const
+    -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
     return {numRow(), numCol()};
   }
   [[nodiscard]] constexpr auto dim() const -> DenseDims<> {
@@ -153,10 +153,12 @@ private:
     return os;
   }
   template <std::convertible_to<T> Y, MatrixDimension S>
-  [[gnu::flatten]] friend constexpr auto
-  operator<<(MutArray<Y, S> A, const SmallSparseMatrix &B) -> MutArray<Y, S> {
-    std::ptrdiff_t M = std::ptrdiff_t(A.numRow()), N = std::ptrdiff_t(A.numCol()),
-              X = std::ptrdiff_t(A.rowStride()), k = 0;
+  [[gnu::flatten]] friend constexpr auto operator<<(MutArray<Y, S> A,
+                                                    const SmallSparseMatrix &B)
+    -> MutArray<Y, S> {
+    std::ptrdiff_t M = std::ptrdiff_t(A.numRow()),
+                   N = std::ptrdiff_t(A.numCol()),
+                   X = std::ptrdiff_t(A.rowStride()), k = 0;
     invariant(M, std::ptrdiff_t(B.numRow()));
     invariant(N, std::ptrdiff_t(B.numCol()));
     T *mem = A.data();

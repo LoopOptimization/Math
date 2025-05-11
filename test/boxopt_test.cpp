@@ -95,7 +95,9 @@ constexpr std::int32_t m_r = 24;
 constexpr std::int32_t n_r = 9;
 
 namespace {
-auto cld(std::int32_t n, std::int32_t d) -> std::int32_t { return (n + d - 1) / d; }
+auto cld(std::int32_t n, std::int32_t d) -> std::int32_t {
+  return (n + d - 1) / d;
+}
 
 auto l1_use(auto k_c) { return ((m_r + n_r) * k_c) + (m_r * n_r); }
 auto l2_use(auto m_c, auto k_c) { return ((m_c + n_r) * k_c) + (m_c * n_r); }
@@ -182,10 +184,12 @@ struct MatOpt {
 };
 
 namespace {
-auto optimizeFloat(std::int32_t M, std::int32_t K, std::int32_t N) -> std::array<double, 4> {
+auto optimizeFloat(std::int32_t M, std::int32_t K, std::int32_t N)
+  -> std::array<double, 4> {
 
-  math::BoxTransform box(std::array<std::int32_t, 3>{1, 1, 1},
-                         std::array<std::int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
+  math::BoxTransform box(
+    std::array<std::int32_t, 3>{1, 1, 1},
+    std::array<std::int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
   { // init, we set `m_c = 3*m_r` and then use l2 and l3 sizes for rest
     box.transformed()[0] = 8;
     double m_c = 8 * m_r,
@@ -201,10 +205,12 @@ auto optimizeFloat(std::int32_t M, std::int32_t K, std::int32_t N) -> std::array
   return {opt, m_r * box.transformed()[0], box.transformed()[1],
           n_r * box.transformed()[2]};
 }
-auto optimize(std::int32_t M, std::int32_t K, std::int32_t N) -> std::array<std::int32_t, 3> {
+auto optimize(std::int32_t M, std::int32_t K, std::int32_t N)
+  -> std::array<std::int32_t, 3> {
 
-  math::BoxTransform box(std::array<std::int32_t, 3>{1, 1, 1},
-                         std::array<std::int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
+  math::BoxTransform box(
+    std::array<std::int32_t, 3>{1, 1, 1},
+    std::array<std::int32_t, 3>{cld(M, m_r), K, cld(N, n_r)});
   { // init, we set `m_c = 3*m_r` and then use l2 and l3 sizes for rest
     box.transformed()[0] = 4;
     double m_c = 4 * m_r,

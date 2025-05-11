@@ -353,7 +353,8 @@ static inline constexpr double magic_round_const = 6.755399441055744e15;
 template <> inline constexpr float magic_round_const<float> = 1.048576e7F;
 
 constexpr auto trunclo(double x) -> double {
-  return std::bit_cast<double>(std::bit_cast<std::uint64_t>(x) & 0xfffffffff8000000);
+  return std::bit_cast<double>(std::bit_cast<std::uint64_t>(x) &
+                               0xfffffffff8000000);
 }
 
 constexpr auto fmadd(double x, double y, double z) -> double {
@@ -472,7 +473,8 @@ constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   V small = jU * expm1b_kernel<W>(base, r) + jU;
   simd::Vec<W, std::int64_t> twopk = std::bit_cast<simd::Vec<W, std::int64_t>>(
     (std::bit_cast<simd::Vec<W, std::int64_t>>(N) >> 8) << 52);
-  V z = std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, std::int64_t>>(small));
+  V z =
+    std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, std::int64_t>>(small));
   return simd::select<double>(altmask, alt, z);
 }
 template <int B, std::ptrdiff_t R, std::ptrdiff_t U, std::ptrdiff_t W>
@@ -500,7 +502,8 @@ constexpr auto exp10(double x) -> double { return exp_impl<10>(x); }
 constexpr auto exp2(std::int64_t x) -> double {
   // if (x > 1023) return std::numeric_limits<double>::infinity();
   if (x > 1023) return std::numeric_limits<double>::max();
-  if (x <= -1023) return std::bit_cast<double>(std::uint64_t(1) << ((x + 1074)));
+  if (x <= -1023)
+    return std::bit_cast<double>(std::uint64_t(1) << ((x + 1074)));
   return std::bit_cast<double>((x + 1023) << 52);
 }
 constexpr auto exp2(unsigned x) -> double {

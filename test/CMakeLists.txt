@@ -73,7 +73,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 # using `FIND_PACKAGE_ARGS` causes it to try `find_package`
-if (USE_MODULES)
+string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
+if (has_libcpp GREATER_EQUAL 0)
   FetchContent_Declare(
     googletest NAMES GTest
     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz

@@ -44,8 +44,10 @@ TEST(LinearDiophantineTest, BasicAssertions) {
   {
     std::vector perm{2, 3, 4, 5, 6};
     do {
-      std::int64_t w = perm[0], x = perm[1], y = perm[2], z = perm[3], u = perm[4];
-      auto opts = linearDiophantine(1, std::array<std::int64_t, 5>{w, x, y, z, u});
+      std::int64_t w = perm[0], x = perm[1], y = perm[2], z = perm[3],
+                   u = perm[4];
+      auto opts =
+        linearDiophantine(1, std::array<std::int64_t, 5>{w, x, y, z, u});
       EXPECT_TRUE(opts.has_value());
       if (opts.has_value()) {
         auto [a, b, c, d, e] = *opts;

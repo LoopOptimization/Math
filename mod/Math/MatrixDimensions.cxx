@@ -41,14 +41,17 @@ template <class R, class C> struct CartesianIndex {
   TRIVIAL explicit constexpr operator Col<>() const { return col(col_idx_); }
   TRIVIAL constexpr auto operator==(const CartesianIndex &) const
     -> bool = default;
-  TRIVIAL constexpr operator CartesianIndex<std::ptrdiff_t, std::ptrdiff_t>() const
+  TRIVIAL constexpr
+  operator CartesianIndex<std::ptrdiff_t, std::ptrdiff_t>() const
   requires(std::convertible_to<R, std::ptrdiff_t> &&
            std::convertible_to<C, std::ptrdiff_t> &&
-           (!(std::same_as<R, std::ptrdiff_t> && std::same_as<C, std::ptrdiff_t>)))
+           (!(std::same_as<R, std::ptrdiff_t> &&
+              std::same_as<C, std::ptrdiff_t>)))
   {
     invariant(row_idx_ >= 0);
     invariant(col_idx_ >= 0);
-    return {.row_idx_ = std::ptrdiff_t(row_idx_), .col_idx_ = std::ptrdiff_t(col_idx_)};
+    return {.row_idx_ = std::ptrdiff_t(row_idx_),
+            .col_idx_ = std::ptrdiff_t(col_idx_)};
   }
   // FIXME: Do we need this??
   // Either document why, or delete this method.
@@ -76,7 +79,8 @@ template <class R, class C> struct CartesianIndex {
 };
 template <class R, class C> CartesianIndex(R, C) -> CartesianIndex<R, C>;
 
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X> struct StridedDims {
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
+struct StridedDims {
   static constexpr std::ptrdiff_t nrow = R;
   static constexpr std::ptrdiff_t ncol = C;
   static constexpr std::ptrdiff_t nstride = X;
@@ -94,7 +98,8 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X> struct StridedDi
   TRIVIAL constexpr StridedDims(Length<N>)
     : m_{Row<R>(row(std::integral_constant<std::ptrdiff_t, 1>{}))},
       n_{Col<C>(col(std::integral_constant<std::ptrdiff_t, N>{}))},
-      stride_m_{RowStride<X>(stride(std::integral_constant<std::ptrdiff_t, N>{}))} {}
+      stride_m_{
+        RowStride<X>(stride(std::integral_constant<std::ptrdiff_t, N>{}))} {}
 
   template <std::ptrdiff_t A, std::ptrdiff_t B, std::ptrdiff_t S>
   TRIVIAL constexpr StridedDims(StridedDims<A, B, S> other)
@@ -436,7 +441,8 @@ template <std::ptrdiff_t R> Col(SquareDims<R>) -> Col<R>;
 template <std::ptrdiff_t R> RowStride(SquareDims<R>) -> RowStride<R>;
 template <std::ptrdiff_t R, std::ptrdiff_t C> Row(DenseDims<R, C>) -> Row<R>;
 template <std::ptrdiff_t R, std::ptrdiff_t C> Col(DenseDims<R, C>) -> Col<C>;
-template <std::ptrdiff_t R, std::ptrdiff_t C> RowStride(DenseDims<R, C>) -> RowStride<R>;
+template <std::ptrdiff_t R, std::ptrdiff_t C>
+RowStride(DenseDims<R, C>) -> RowStride<R>;
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
 Row(StridedDims<R, C, X>) -> Row<R>;
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
@@ -487,20 +493,23 @@ requires(R == C)
 
 template <class R, class C>
 TRIVIAL constexpr CartesianIndex<R, C>::operator SquareDims<>() const
-requires(std::convertible_to<R, std::ptrdiff_t> && std::convertible_to<C, std::ptrdiff_t>)
+requires(std::convertible_to<R, std::ptrdiff_t> &&
+         std::convertible_to<C, std::ptrdiff_t>)
 {
   invariant(row_idx_, col_idx_);
   return SquareDims{row(row_idx_)};
 }
 template <class R, class C>
 TRIVIAL constexpr CartesianIndex<R, C>::operator DenseDims<>() const
-requires(std::convertible_to<R, std::ptrdiff_t> && std::convertible_to<C, std::ptrdiff_t>)
+requires(std::convertible_to<R, std::ptrdiff_t> &&
+         std::convertible_to<C, std::ptrdiff_t>)
 {
   return DenseDims{row(row_idx_), col(col_idx_)};
 }
 template <class R, class C>
 TRIVIAL constexpr CartesianIndex<R, C>::operator StridedDims<>() const
-requires(std::convertible_to<R, std::ptrdiff_t> && std::convertible_to<C, std::ptrdiff_t>)
+requires(std::convertible_to<R, std::ptrdiff_t> &&
+         std::convertible_to<C, std::ptrdiff_t>)
 {
   return StridedDims{row(row_idx_), col(col_idx_), stride(col_idx_)};
 }

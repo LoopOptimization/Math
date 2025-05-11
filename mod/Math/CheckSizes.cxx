@@ -30,7 +30,8 @@ export namespace math {
 namespace math {
 #endif
 using utils::invariant;
-// inputs must be `std::ptrdiff_t` or `std::integral_constant<std::ptrdiff_t,value>`
+// inputs must be `std::ptrdiff_t` or
+// `std::integral_constant<std::ptrdiff_t,value>`
 template <typename X, typename Y> TRIVIAL constexpr auto check_sizes(X x, Y y) {
   if constexpr (std::same_as<std::ptrdiff_t, X>) {
     if constexpr (std::same_as<std::ptrdiff_t, Y>) {

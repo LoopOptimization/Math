@@ -134,4 +134,3 @@ auto expwork(const auto &A) {
   return B;
 }
 void expbench(const auto &A) { benchmark::DoNotOptimize(expwork(A)); }
-

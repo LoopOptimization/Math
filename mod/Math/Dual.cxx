@@ -176,7 +176,9 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
   // constexpr auto operator=(const Dual &) -> Dual & = default;
   TRIVIAL constexpr auto value() -> T & { return val; }
   TRIVIAL constexpr auto gradient() -> data_type & { return partials; }
-  TRIVIAL constexpr auto gradient(std::ptrdiff_t i) -> T & { return partials[i]; }
+  TRIVIAL constexpr auto gradient(std::ptrdiff_t i) -> T & {
+    return partials[i];
+  }
   TRIVIAL [[nodiscard]] constexpr auto value() const -> const T & {
     return val;
   }
@@ -481,8 +483,9 @@ struct Dual<T, N, false> {
   TRIVIAL [[nodiscard]] constexpr auto vvalue() const -> V {
     // return data[value_idx];
     if constexpr (data_type::L == 1)
-      return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{}) ? data.data_
-                                                                    : V{};
+      return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{})
+               ? data.data_
+               : V{};
     else
       return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{})
                ? data.memory_[0]
@@ -510,12 +513,14 @@ struct Dual<T, N, false> {
   //   if constexpr (data_type::L == 1) {
   //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
   //     return {
-  //       {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, std::int64_t>())}};
+  //       {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W,
+  //       std::int64_t>())}};
   //   } else {
   //     Dual ret;
   //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
   //     ret.data.memory_[0] =
-  //       simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, std::int64_t>());
+  //       simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W,
+  //       std::int64_t>());
   //     POLYMATHFULLUNROLL
   //     for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
   //       ret.data.memory_[i] = vt * other.data.memory_[i] + vo *
@@ -538,7 +543,8 @@ struct Dual<T, N, false> {
   //     V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
   //       x = vo * data.memory_[0];
   //     ret.data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
-  //                                           simd::firstoff<W, std::int64_t>()) /
+  //                                           simd::firstoff<W,
+  //                                           std::int64_t>()) /
   //                           vo2;
   //     POLYMATHFULLUNROLL
   //     for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
@@ -572,8 +578,8 @@ struct Dual<T, N, false> {
         simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, std::int64_t>());
     } else {
       V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
-      data.memory_[0] =
-        simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W, std::int64_t>());
+      data.memory_[0] = simd::fmadd<T>(vo, data.memory_[0], x,
+                                       simd::firstoff<W, std::int64_t>());
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         data.memory_[i] = vt * other.data.memory_[i] + vo * data.memory_[i];
@@ -587,9 +593,9 @@ struct Dual<T, N, false> {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
         x = vo * data.data_;
-      data.data_ =
-        simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W, std::int64_t>()) /
-        vo2;
+      data.data_ = simd::fnmadd<T>(vt, other.data.data_, x,
+                                   simd::firstoff<W, std::int64_t>()) /
+                   vo2;
     } else {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
         x = vo * data.memory_[0];
@@ -708,9 +714,9 @@ private:
     if constexpr (data_type::L == 1) {
       V vt = simd::vbroadcast<W, double>(a), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * simd::Vec<W, double>{a};
-      ret.data.data_ =
-        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, std::int64_t>()) /
-        vo2;
+      ret.data.data_ = simd::fnmadd<T>(vt, b.data.data_, x,
+                                       simd::firstoff<W, std::int64_t>()) /
+                       vo2;
     } else {
       V vt = simd::vbroadcast<W, double>(a), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * simd::Vec<W, double>{a};
@@ -765,13 +771,13 @@ private:
     using D = Dual<T, N, false>;
     if constexpr (data_type::L == 1) {
       V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.data_;
-      return {
-        {simd::fmadd<T>(vo, a.data.data_, x, simd::firstoff<D::W, std::int64_t>())}};
+      return {{simd::fmadd<T>(vo, a.data.data_, x,
+                              simd::firstoff<D::W, std::int64_t>())}};
     } else {
       Dual<T, N, false> ret;
       V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.memory_[0];
-      ret.data.memory_[0] = simd::fmadd<T>(vo, a.data.memory_[0], x,
-                                           simd::firstoff<D::W, std::int64_t>());
+      ret.data.memory_[0] = simd::fmadd<T>(
+        vo, a.data.memory_[0], x, simd::firstoff<D::W, std::int64_t>());
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
         ret.data.memory_[i] = vt * b.data.memory_[i] + vo * a.data.memory_[i];
@@ -783,9 +789,9 @@ private:
     if constexpr (data_type::L == 1) {
       V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * a.data.data_;
-      ret.data.data_ =
-        simd::fnmadd<T>(vt, b.data.data_, x, simd::firstoff<W, std::int64_t>()) /
-        vo2;
+      ret.data.data_ = simd::fnmadd<T>(vt, b.data.data_, x,
+                                       simd::firstoff<W, std::int64_t>()) /
+                       vo2;
     } else {
       V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * a.data.memory_[0];
@@ -1017,7 +1023,8 @@ static_assert(AbstractVector<DualVector<8, PtrVector<double>>>);
 static_assert(AbstractVector<DualVector<2, DualVector<8, PtrVector<double>>>>);
 
 template <std::ptrdiff_t N>
-TRIVIAL constexpr auto dual(const AbstractVector auto &x, std::ptrdiff_t offset) {
+TRIVIAL constexpr auto dual(const AbstractVector auto &x,
+                            std::ptrdiff_t offset) {
   return DualVector<N, decltype(x.view())>{.x = x.view(), .offset = offset};
 }
 

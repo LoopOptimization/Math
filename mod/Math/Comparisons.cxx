@@ -41,7 +41,8 @@ namespace math {
 // }
 
 // constexpr auto anyNEZero(const auto &x) -> bool {
-//   return std::any_of(x.begin(), x.end(), [](std::int64_t y) { return y != 0; });
+//   return std::any_of(x.begin(), x.end(), [](std::int64_t y) { return y != 0;
+//   });
 // }
 NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A,
                                             const auto &f) -> bool {
@@ -108,8 +109,9 @@ NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A,
 }
 NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
-  constexpr std::ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
-                                         decltype(numCols(A))::comptime()>();
+  constexpr std::ptrdiff_t W =
+    simd::VecWidth<T, decltype(numRows(A))::comptime(),
+                   decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
       return bool(v != simd::Vec<W, T>{});
@@ -118,8 +120,9 @@ NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
 }
 NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
-  constexpr std::ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
-                                         decltype(numCols(A))::comptime()>();
+  constexpr std::ptrdiff_t W =
+    simd::VecWidth<T, decltype(numRows(A))::comptime(),
+                   decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
       return bool(v < simd::Vec<W, T>{});
@@ -128,8 +131,9 @@ NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
 }
 NODEBUG constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
   using T = utils::eltype_t<decltype(A)>;
-  constexpr std::ptrdiff_t W = simd::VecWidth<T, decltype(numRows(A))::comptime(),
-                                         decltype(numCols(A))::comptime()>();
+  constexpr std::ptrdiff_t W =
+    simd::VecWidth<T, decltype(numRows(A))::comptime(),
+                   decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
       return bool(v > simd::Vec<W, T>{});

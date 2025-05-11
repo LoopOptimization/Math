@@ -80,7 +80,9 @@ concept BinaryFuncOfElts =
 
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op> struct Elementwise;
 
-TRIVIAL constexpr auto size(const std::integral auto) -> std::ptrdiff_t { return 1; }
+TRIVIAL constexpr auto size(const std::integral auto) -> std::ptrdiff_t {
+  return 1;
+}
 TRIVIAL constexpr auto size(const std::floating_point auto) -> std::ptrdiff_t {
   return 1;
 }
@@ -315,7 +317,7 @@ public:
       }
     } else {
       constexpr std::ptrdiff_t W = RowVector<A> ? getWidth<CT, decltype(N)>()
-                                           : getWidth<CT, decltype(M)>();
+                                                : getWidth<CT, decltype(M)>();
       std::ptrdiff_t L = RowVector<A> ? N : M;
       for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};

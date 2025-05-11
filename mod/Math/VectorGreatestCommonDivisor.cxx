@@ -52,8 +52,8 @@ constexpr auto lcm(AbstractVector auto x) -> std::int64_t {
   for (std::int64_t xi : x[_(1, end)]) l = lcm(l, xi);
   return l;
 }
-constexpr auto
-lcmNonUnity(AbstractVector auto x) -> containers::Pair<std::int64_t, bool> {
+constexpr auto lcmNonUnity(AbstractVector auto x)
+  -> containers::Pair<std::int64_t, bool> {
   std::int64_t l = x[0];
   bool nonUnity = (l != 1);
   for (std::int64_t xi : x[_(1, end)]) {

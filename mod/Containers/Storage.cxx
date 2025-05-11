@@ -104,7 +104,8 @@ template <class T, class S> consteval auto PreAllocStorage() -> std::ptrdiff_t {
     constexpr std::uint64_t R = detail::log2Floor(UN) / 2;
     static_assert(R < 63);
     constexpr std::uint64_t L = std::uint64_t(1) << R;
-    constexpr std::uint64_t H = std::uint64_t(1) << ((detail::log2Ceil(N) + 1) / 2);
+    constexpr std::uint64_t H = std::uint64_t(1)
+                                << ((detail::log2Ceil(N) + 1) / 2);
     return std::ptrdiff_t(detail::bisectFindSquare(L, H, UN));
   } else if (nrow > 0) {
     return (N / nrow) * nrow;

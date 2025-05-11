@@ -57,7 +57,8 @@ import TypeCompression;
 template <typename T, std::ptrdiff_t L>
 consteval auto paddedSize() -> std::array<std::ptrdiff_t, 2> {
   constexpr std::ptrdiff_t WF = simd::Width<T>;
-  constexpr std::ptrdiff_t W = L < WF ? std::ptrdiff_t(std::bit_ceil(std::uint64_t(L))) : WF;
+  constexpr std::ptrdiff_t W =
+    L < WF ? std::ptrdiff_t(std::bit_ceil(std::uint64_t(L))) : WF;
   constexpr std::ptrdiff_t N = ((L + W - 1) / W);
   return {N, W};
 }
@@ -67,7 +68,8 @@ consteval auto calcPaddedCols() -> std::ptrdiff_t {
   if constexpr (a <= 1) return L;
   else return ((L + a - 1) / a) * a;
 }
-template <typename T, std::ptrdiff_t L> consteval auto alignSIMD() -> std::size_t {
+template <typename T, std::ptrdiff_t L>
+consteval auto alignSIMD() -> std::size_t {
   if constexpr (!simd::SIMDSupported<T>) return alignof(T);
   else return alignof(simd::Vec<simd::VecLen<L, T>, T>);
 }
@@ -319,14 +321,14 @@ struct MATH_GSL_OWNER StaticArray
   }
   template <typename SHAPE>
   TRIVIAL constexpr
-  operator Array<T, SHAPE, Compress && utils::Compressible<T>>() const
+  operator Array<T, SHAPE, Compress &&utils::Compressible<T>>() const
   requires(std::convertible_to<S, SHAPE>)
   {
     return {const_cast<T *>(data()), SHAPE(dim())};
   }
   template <typename SHAPE>
   TRIVIAL constexpr
-  operator MutArray<T, SHAPE, Compress && utils::Compressible<T>>()
+  operator MutArray<T, SHAPE, Compress &&utils::Compressible<T>>()
   requires(std::convertible_to<S, SHAPE>)
   {
     return {data(), SHAPE(dim())};
@@ -340,7 +342,9 @@ struct MATH_GSL_OWNER StaticArray
   // (requires((M==1)||(N==1))){
   //   if ((rhs.numRow() != M)||(rhs.numCol() != N)) return false;
   // }
-  template <std::size_t I> TRIVIAL constexpr auto get() -> T & { return memory_[I]; }
+  template <std::size_t I> TRIVIAL constexpr auto get() -> T & {
+    return memory_[I];
+  }
   template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const T & {
     return memory_[I];
@@ -495,7 +499,8 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     return {data(), SHAPE(dim())};
   }
   template <std::ptrdiff_t U, typename Mask>
-  TRIVIAL auto operator[](std::ptrdiff_t i, simd::index::Unroll<U, W, Mask> j) const
+  TRIVIAL auto operator[](std::ptrdiff_t i,
+                          simd::index::Unroll<U, W, Mask> j) const
     -> simd::Unroll<1, U, W, T> {
     return (*this)[simd::index::Unroll<1>{i}, j];
   }
@@ -623,7 +628,8 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       if (simd::cmp::ne<W, T>(memory_[i], other.memory_[i])) return false;
     return true;
   }
-  template <std::size_t I> TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
+  template <std::size_t I>
+  TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
     return memory_[I / W][I % W];
   }
 
@@ -702,7 +708,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
       return;
     }
     invariant(list.size() <= W);
-    for (std::size_t i = 0; i < list.size(); ++i) data_[i] = *(list.begin() + i);
+    for (std::size_t i = 0; i < list.size(); ++i)
+      data_[i] = *(list.begin() + i);
   }
   TRIVIAL constexpr auto data() -> T * { return reinterpret_cast<T *>(&data_); }
   TRIVIAL [[nodiscard]] constexpr auto data() const -> const T * {
@@ -720,8 +727,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     -> MutPtrVector<T> {
     return {data() + r.b_, length(r.size())};
   }
-  TRIVIAL constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const
-    -> PtrVector<T> {
+  TRIVIAL constexpr auto
+  operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const -> PtrVector<T> {
     return {data() + r.b_, length(r.size())};
   }
   template <AbstractSimilar<S> V>
@@ -750,7 +757,9 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     -> std::integral_constant<std::ptrdiff_t, N> {
     return {};
   }
-  TRIVIAL auto operator[](std::ptrdiff_t, std::ptrdiff_t j) -> T & { return data()[j]; }
+  TRIVIAL auto operator[](std::ptrdiff_t, std::ptrdiff_t j) -> T & {
+    return data()[j];
+  }
   TRIVIAL auto operator[](std::ptrdiff_t, std::ptrdiff_t j) const -> T {
     return data_[j];
   }
@@ -808,7 +817,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     }
   };
   template <std::ptrdiff_t U, typename Mask>
-  TRIVIAL auto operator[](std::ptrdiff_t, simd::index::Unroll<1, W, Mask>) -> Ref {
+  TRIVIAL auto operator[](std::ptrdiff_t, simd::index::Unroll<1, W, Mask>)
+    -> Ref {
     return Ref{this};
   }
   template <std::ptrdiff_t R, typename Mask>
@@ -829,7 +839,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   TRIVIAL constexpr auto operator==(const StaticArray &other) const -> bool {
     return bool(simd::cmp::eq<W, T>(data_, other.data_));
   }
-  template <std::size_t I> TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
+  template <std::size_t I>
+  TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
     return data_[I];
   }
   TRIVIAL constexpr void set(T x, std::ptrdiff_t r, std::ptrdiff_t c) {
@@ -872,9 +883,11 @@ template <class T, std::ptrdiff_t N, std::ptrdiff_t Compress = false>
 using SVector = StaticArray<T, 1z, N, Compress>;
 static_assert(
   std::same_as<Row<1>, decltype(SVector<std::int64_t, 3, true>::numRow())>);
-static_assert(std::same_as<Row<1>, decltype(SVector<std::int64_t, 3>::numRow())>);
 static_assert(
-  std::same_as<Row<1>, decltype(numRows(std::declval<SVector<std::int64_t, 3>>()))>);
+  std::same_as<Row<1>, decltype(SVector<std::int64_t, 3>::numRow())>);
+static_assert(
+  std::same_as<Row<1>,
+               decltype(numRows(std::declval<SVector<std::int64_t, 3>>()))>);
 
 static_assert(RowVector<SVector<std::int64_t, 3>>);
 static_assert(!ColVector<SVector<std::int64_t, 3>>);
@@ -902,7 +915,8 @@ template <class T, std::ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_size<::math::SVector<T, N>>
   : std::integral_constant<std::ptrdiff_t, N> {};
 
-template <std::size_t I, class T, std::ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
+template <std::size_t I, class T,
+          std::ptrdiff_t N> // NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::tuple_element<I, math::SVector<T, N>> {
   using type = T;
 };

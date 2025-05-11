@@ -17,7 +17,8 @@ TEST(Int8Test, BasicAssertions) {
     if (x) EXPECT_TRUE(bool(fx));
     else EXPECT_FALSE(bool(fx));
     auto ux = static_cast<u8>(x);
-    for (std::uint8_t y = 0; y < std::numeric_limits<std::uint8_t>::max(); ++y) {
+    for (std::uint8_t y = 0; y < std::numeric_limits<std::uint8_t>::max();
+         ++y) {
       auto uy = static_cast<u8>(y);
       EXPECT_EQ(ux <=> uy, x <=> y);
       {

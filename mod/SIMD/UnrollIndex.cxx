@@ -63,7 +63,8 @@ struct Unroll {
 #endif
 
 private:
-  TRIVIAL friend constexpr auto operator+(Unroll a, std::ptrdiff_t b) -> Unroll {
+  TRIVIAL friend constexpr auto operator+(Unroll a, std::ptrdiff_t b)
+    -> Unroll {
     return {b + a.index_, a.mask_};
   }
   TRIVIAL friend constexpr auto operator==(Unroll x, std::ptrdiff_t y) {
@@ -71,7 +72,8 @@ private:
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, std::int64_t> ret;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index_ + u) == y;
+        for (std::ptrdiff_t u = 0; u < U; ++u)
+          ret.data[u] = (x.index_ + u) == y;
         return ret;
       } else return ::simd::Unroll<1, 1, W, std::int64_t>{x.index_ == y};
     } else if constexpr (U > 1) {
@@ -90,7 +92,8 @@ private:
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, std::int64_t> ret;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index_ + u) != y;
+        for (std::ptrdiff_t u = 0; u < U; ++u)
+          ret.data[u] = (x.index_ + u) != y;
         return ret;
       } else return ::simd::Unroll<1, 1, W, std::int64_t>{x.index_ != y};
     } else if constexpr (U > 1) {
@@ -150,7 +153,8 @@ private:
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, std::int64_t> ret;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index_ + u) <= y;
+        for (std::ptrdiff_t u = 0; u < U; ++u)
+          ret.data[u] = (x.index_ + u) <= y;
         return ret;
       } else return ::simd::Unroll<1, 1, W, std::int64_t>{x.index_ <= y};
     } else if constexpr (U > 1) {
@@ -170,7 +174,8 @@ private:
       if constexpr (U > 1) {
         ::simd::Unroll<U, 1, 1, std::int64_t> ret;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t u = 0; u < U; ++u) ret.data[u] = (x.index_ + u) >= y;
+        for (std::ptrdiff_t u = 0; u < U; ++u)
+          ret.data[u] = (x.index_ + u) >= y;
         return ret;
       } else return ::simd::Unroll<1, 1, W, std::int64_t>{x.index_ >= y};
     } else if constexpr (U > 1) {

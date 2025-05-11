@@ -49,7 +49,8 @@ namespace math {
 
 using utils::invariant;
 
-template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t> struct Length {
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Length {
   static constexpr std::ptrdiff_t nrow = 1;
   static constexpr std::ptrdiff_t ncol = M;
   static constexpr std::ptrdiff_t nstride = M;
@@ -60,7 +61,9 @@ template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t> struct
   {
     return M;
   }
-  TRIVIAL explicit inline constexpr operator std::ptrdiff_t() const { return M; }
+  TRIVIAL explicit inline constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
   TRIVIAL explicit inline constexpr operator bool() const { return M; }
   TRIVIAL static inline constexpr auto staticint() {
     return std::integral_constant<I, M>{};
@@ -72,10 +75,12 @@ template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t> struct
   TRIVIAL inline constexpr auto flat() const -> Length { return *this; }
 
 private:
-  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length)
+    -> bool {
     return x == M;
   }
-  TRIVIAL friend inline constexpr auto operator==(Length, std::ptrdiff_t x) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(Length, std::ptrdiff_t x)
+    -> bool {
     return M == x;
   }
   TRIVIAL friend inline constexpr auto operator==(Length, Length) -> bool {
@@ -185,7 +190,8 @@ private:
     return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
   }
   TRIVIAL friend inline constexpr auto operator+(Length a, Length b) -> Length {
-    return {static_cast<Length<-1>::len>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
+    return {
+      static_cast<Length<-1>::len>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
   }
   TRIVIAL friend inline constexpr auto operator-(Length a, Length b) -> Length {
     auto x = std::ptrdiff_t(a), y = std::ptrdiff_t(b);
@@ -315,16 +321,20 @@ TRIVIAL inline constexpr Capacity<M, I>::operator Capacity<-1, I>() const {
 }
 template <std::ptrdiff_t M = -1> struct Row {
   static_assert(M >= 0);
-  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const { return M; }
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
   TRIVIAL inline explicit constexpr operator bool() const { return M; }
   TRIVIAL inline constexpr operator Row<-1>() const;
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
 
 private:
-  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Row) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Row)
+    -> bool {
     return x == M;
   }
-  TRIVIAL friend inline constexpr auto operator==(Row, std::ptrdiff_t x) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(Row, std::ptrdiff_t x)
+    -> bool {
     return M == x;
   }
   TRIVIAL friend inline constexpr auto operator==(Row, Row) -> bool {
@@ -391,10 +401,12 @@ template <> struct Row<-1> {
   static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
 
 private:
-  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Row y) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Row y)
+    -> bool {
     return x == std::ptrdiff_t(y);
   }
-  TRIVIAL friend inline constexpr auto operator==(Row y, std::ptrdiff_t x) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(Row y, std::ptrdiff_t x)
+    -> bool {
     return x == std::ptrdiff_t(y);
   }
   TRIVIAL friend inline constexpr auto operator==(Row x, Row y) -> bool {
@@ -431,16 +443,20 @@ TRIVIAL inline constexpr Row<M>::operator Row<-1>() const {
 }
 template <std::ptrdiff_t M = -1> struct Col {
   static_assert(M >= 0);
-  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const { return M; }
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
   TRIVIAL inline explicit constexpr operator bool() const { return M; }
   TRIVIAL inline constexpr operator Col<-1>() const;
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
 
 private:
-  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Col) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Col)
+    -> bool {
     return x == M;
   }
-  TRIVIAL friend inline constexpr auto operator==(Col, std::ptrdiff_t x) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(Col, std::ptrdiff_t x)
+    -> bool {
     return M == x;
   }
   TRIVIAL friend inline constexpr auto operator==(Col, Col) -> bool {
@@ -458,7 +474,8 @@ private:
     -> std::strong_ordering {
     return std::strong_ordering::equal;
   }
-  TRIVIAL friend inline constexpr auto operator*(Row<> r, Col) -> std::ptrdiff_t {
+  TRIVIAL friend inline constexpr auto operator*(Row<> r, Col)
+    -> std::ptrdiff_t {
     return std::ptrdiff_t(r) * M;
   }
   friend inline auto operator<<(std::ostream &os, Col) -> std::ostream & {
@@ -510,10 +527,12 @@ template <> struct Col<-1> {
   static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
 
 private:
-  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Col y) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Col y)
+    -> bool {
     return x == std::ptrdiff_t(y);
   }
-  TRIVIAL friend inline constexpr auto operator==(Col y, std::ptrdiff_t x) -> bool {
+  TRIVIAL friend inline constexpr auto operator==(Col y, std::ptrdiff_t x)
+    -> bool {
     return x == std::ptrdiff_t(y);
   }
   TRIVIAL friend inline constexpr auto operator==(Col x, Col y) -> bool {
@@ -531,7 +550,8 @@ private:
     -> std::strong_ordering {
     return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
   }
-  TRIVIAL friend inline constexpr auto operator*(Row<> r, Col c) -> std::ptrdiff_t {
+  TRIVIAL friend inline constexpr auto operator*(Row<> r, Col c)
+    -> std::ptrdiff_t {
     return std::ptrdiff_t(r) * std::ptrdiff_t(c);
   }
   friend inline auto operator<<(std::ostream &os, Col x) -> std::ostream & {
@@ -553,7 +573,9 @@ TRIVIAL inline constexpr Col<M>::operator Col<-1>() const {
 }
 template <std::ptrdiff_t M = -1> struct RowStride {
   static_assert(M >= 0);
-  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const { return M; }
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
+    return M;
+  }
   TRIVIAL inline explicit constexpr operator bool() const { return M; }
   TRIVIAL inline constexpr operator RowStride<-1>() const;
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
@@ -638,11 +660,13 @@ private:
     -> bool {
     return std::ptrdiff_t(x) == std::ptrdiff_t(y);
   }
-  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x, RowStride y)
+  TRIVIAL friend inline constexpr auto operator<=>(std::ptrdiff_t x,
+                                                   RowStride y)
     -> std::strong_ordering {
     return x <=> std::ptrdiff_t(y);
   }
-  TRIVIAL friend inline constexpr auto operator<=>(RowStride x, std::ptrdiff_t y)
+  TRIVIAL friend inline constexpr auto operator<=>(RowStride x,
+                                                   std::ptrdiff_t y)
     -> std::strong_ordering {
     return std::ptrdiff_t(x) <=> y;
   }

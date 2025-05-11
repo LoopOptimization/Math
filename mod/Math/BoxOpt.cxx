@@ -65,7 +65,8 @@ public:
   constexpr BoxTransformView(char *d, unsigned ntotal, unsigned nraw)
     : data_{d}, ntotal_{ntotal}, nraw_{nraw} {}
   [[nodiscard]] constexpr auto size() const -> unsigned { return ntotal_; }
-  constexpr auto operator()(const AbstractVector auto &x, std::ptrdiff_t i) const
+  constexpr auto operator()(const AbstractVector auto &x,
+                            std::ptrdiff_t i) const
     -> utils::eltype_t<decltype(x)> {
     invariant(std::cmp_less(i, std::ptrdiff_t(ntotal_)));
     int j = getInds()[i];
@@ -87,7 +88,7 @@ public:
       auto m = simd::cmp::ge<W, int>(j.vec_, simd::Vec<W, int>{});
 #else
       auto m = simd::cmp::ge<W, std::int64_t>(simd::zextelts<W>(j.vec_),
-                                         simd::Vec<W, std::int64_t>{});
+                                              simd::Vec<W, std::int64_t>{});
 #endif
       V xload = simd::gather(x.data(), i.mask_ & m, j.vec_);
       y.vec_ = simd::select<double>(
@@ -168,16 +169,20 @@ protected:
   [[nodiscard]] auto f64() const -> const double * {
     return reinterpret_cast<const double *>(data_);
   }
-  [[nodiscard]] static constexpr auto f64Bytes(std::size_t Ntotal) -> std::size_t {
+  [[nodiscard]] static constexpr auto f64Bytes(std::size_t Ntotal)
+    -> std::size_t {
     return (NDV * sizeof(double)) * Ntotal;
   }
-  [[nodiscard]] static constexpr auto i32Bytes(std::size_t Ntotal) -> std::size_t {
+  [[nodiscard]] static constexpr auto i32Bytes(std::size_t Ntotal)
+    -> std::size_t {
     return (NIV * sizeof(std::int32_t)) * Ntotal;
   }
-  [[nodiscard]] static constexpr auto dataBytes(std::size_t Ntotal) -> std::size_t {
+  [[nodiscard]] static constexpr auto dataBytes(std::size_t Ntotal)
+    -> std::size_t {
     // dataBytes must be a multiple of the alignment to make aligned alloc happy
     // so, if Ntotal is odd, we padd with an extra 4 bytes
-    return f64Bytes(Ntotal) + i32Bytes(Ntotal) + (Ntotal & 1) * sizeof(std::int32_t);
+    return f64Bytes(Ntotal) + i32Bytes(Ntotal) +
+           (Ntotal & 1) * sizeof(std::int32_t);
   }
   [[nodiscard]] constexpr auto f64Bytes() const -> std::size_t {
     return f64Bytes(ntotal_);
@@ -197,10 +202,12 @@ protected:
   [[nodiscard]] constexpr auto getInds() const -> PtrVector<std::int32_t> {
     return {i32(), length(ntotal_)};
   }
-  [[nodiscard]] constexpr auto getLowerBounds() const -> PtrVector<std::int32_t> {
+  [[nodiscard]] constexpr auto getLowerBounds() const
+    -> PtrVector<std::int32_t> {
     return {i32() + ntotal_, length(ntotal_)};
   }
-  [[nodiscard]] constexpr auto getUpperBounds() const -> PtrVector<std::int32_t> {
+  [[nodiscard]] constexpr auto getUpperBounds() const
+    -> PtrVector<std::int32_t> {
     return {i32() + std::ptrdiff_t(2) * ntotal_, length(ntotal_)};
   }
   [[nodiscard]] constexpr auto offs() const -> PtrVector<double> {
@@ -247,7 +254,9 @@ template <AbstractVector V> struct BoxTransformVector {
   V v_;
   BoxTransformView btv_;
 
-  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t { return btv_.size(); }
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return btv_.size();
+  }
   constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
     return btv_(v_, i);
   }
@@ -290,7 +299,8 @@ class BoxTransform : public BoxTransformView {
 
 public:
   template <std::size_t N>
-  constexpr BoxTransform(std::array<std::int32_t, N> lb, std::array<std::int32_t, N> ub)
+  constexpr BoxTransform(std::array<std::int32_t, N> lb,
+                         std::array<std::int32_t, N> ub)
     : BoxTransformView{allocate(N), N} {
     for (std::int32_t i = 0; i < std::int32_t(N); ++i) {
       std::int32_t l = lb[i], u = ub[i];

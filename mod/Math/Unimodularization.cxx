@@ -31,8 +31,8 @@ export namespace math {
 namespace math {
 #endif
 // if `A` can be unimodularized, returns the inverse of the unimodularized `A`
-[[nodiscard]] inline auto
-unimodularize(IntMatrix<> A) -> std::optional<SquareMatrix<std::int64_t>> {
+[[nodiscard]] inline auto unimodularize(IntMatrix<> A)
+  -> std::optional<SquareMatrix<std::int64_t>> {
   SquareMatrix<std::int64_t> U{SquareDims{A.numRow()}};
   NormalForm::hermite(A, U);
   for (std::ptrdiff_t m = 0; m < A.numCol(); ++m)

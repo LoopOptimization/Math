@@ -30,7 +30,8 @@ template <std::size_t N> struct String {
 };
 
 // returns an array {nrows, ncols}
-template <String S> consteval auto dims_eltype() -> std::array<std::ptrdiff_t, 2> {
+template <String S>
+consteval auto dims_eltype() -> std::array<std::ptrdiff_t, 2> {
   std::ptrdiff_t num_rows = 1, num_cols = 0;
   // count numCols
   const char *s = S.data_ + 1; // skip `[`
@@ -63,7 +64,8 @@ template <String S> consteval auto matrix_from_string() {
   //   // If so, we set `Compess = false`.
   //   constexpr bool compress =
   //     (dims[0] > 1) && (dims[1] % simd::VecLen<dims[1], std::int64_t>) != 0;
-  //   math::StaticArray<std::int64_t, dims[0], dims[1], compress> A(std::int64_t(0));
+  //   math::StaticArray<std::int64_t, dims[0], dims[1], compress>
+  //   A(std::int64_t(0));
   // #else
   constexpr std::ptrdiff_t num_rows = dims[0];
   constexpr std::ptrdiff_t num_cols = dims[1];

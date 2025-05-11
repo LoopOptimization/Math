@@ -210,7 +210,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       if constexpr (trivialelt)
         std::copy_n(b.data(), std::ptrdiff_t(b.dim()), this->data());
       else
-        std::uninitialized_copy_n(b.data(), std::ptrdiff_t(b.dim()), this->data());
+        std::uninitialized_copy_n(b.data(), std::ptrdiff_t(b.dim()),
+                                  this->data());
     }
     b.resetNoFree();
   }
@@ -225,7 +226,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
         if constexpr (trivialelt)
           std::copy_n(b.data(), std::ptrdiff_t(b.dim()), this->data());
         else
-          std::uninitialized_copy_n(b.data(), std::ptrdiff_t(b.dim()), this->data());
+          std::uninitialized_copy_n(b.data(), std::ptrdiff_t(b.dim()),
+                                    this->data());
       }
     } else {
       this->ptr_ = b.ptr_;
@@ -244,7 +246,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       if constexpr (trivialelt)
         std::copy_n(b.data(), std::ptrdiff_t(b.dim()), this->data());
       else
-        std::uninitialized_copy_n(b.data(), std::ptrdiff_t(b.dim()), this->data());
+        std::uninitialized_copy_n(b.data(), std::ptrdiff_t(b.dim()),
+                                  this->data());
     }
     b.resetNoFree();
   }
@@ -394,7 +397,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   requires(std::same_as<S, Length<>> || MatrixDimension<S>)
   {
     if constexpr (std::same_as<S, Length<>>) return resize(S(c));
-    else if constexpr (MatrixDimension<S>) return resize(auto{this->sz_}.set(c));
+    else if constexpr (MatrixDimension<S>)
+      return resize(auto{this->sz_}.set(c));
   }
   constexpr void resizeForOverwrite(S M) {
     auto nz = std::ptrdiff_t(M);
@@ -442,7 +446,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     // 7 -> 6 -> 61 -> 3
     // 8 -> 7 -> 61 -> 3
     // 9 -> 8 -> 60 -> 4
-    std::size_t l2m = 1 << ((8 * sizeof(M)) - std::countl_zero(std::size_t(M) - 1));
+    std::size_t l2m =
+      1 << ((8 * sizeof(M)) - std::countl_zero(std::size_t(M) - 1));
     reserve(length(std::ptrdiff_t(l2m)));
   }
   constexpr void resizeForOverwrite(Row<> r) {
@@ -461,8 +466,9 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       return resizeForOverwrite(nz.set(c));
     }
   }
-  static constexpr auto reserveCore(S nz, storage_type *op, std::ptrdiff_t old_len,
-                                    U oc, bool was_allocated)
+  static constexpr auto reserveCore(S nz, storage_type *op,
+                                    std::ptrdiff_t old_len, U oc,
+                                    bool was_allocated)
     -> containers::Pair<storage_type *, U> {
     auto new_capacity = std::ptrdiff_t(nz);
     invariant(new_capacity >= 0z);
@@ -557,18 +563,19 @@ private:
                       std::ptrdiff_t(this->capacity_), wasAllocated());
     else
       maybeDeallocate(const_cast<storage_type *>(this->ptr_),
-                      std::ptrdiff_t(this->sz_), std::ptrdiff_t(this->capacity_),
-                      wasAllocated());
+                      std::ptrdiff_t(this->sz_),
+                      std::ptrdiff_t(this->capacity_), wasAllocated());
   }
-  static void maybeDeallocate(storage_type *p, std::ptrdiff_t sz, std::ptrdiff_t cap,
-                              bool was_allocated) noexcept {
+  static void maybeDeallocate(storage_type *p, std::ptrdiff_t sz,
+                              std::ptrdiff_t cap, bool was_allocated) noexcept {
     if constexpr (!std::is_trivially_destructible_v<storage_type>)
       std::destroy_n(p, sz);
     if (was_allocated) A{}.deallocate(p, cap);
   }
   // this method should be called whenever the buffer lives
   // NOTE: it is invalid to reassign `sz` before calling `maybeDeallocate`!
-  void maybeDeallocate(storage_type *newPtr, std::ptrdiff_t newCapacity) noexcept {
+  void maybeDeallocate(storage_type *newPtr,
+                       std::ptrdiff_t newCapacity) noexcept {
     maybeDeallocate(this->data(), std::ptrdiff_t(this->sz_),
                     std::ptrdiff_t(this->capacity_), wasAllocated());
     this->ptr_ = newPtr;
@@ -628,7 +635,8 @@ private:
       static_assert(MatrixDimension<S>, "Can only resize 1 or 2d containers.");
       auto len = std::ptrdiff_t(nz);
       if (len == 0) return;
-      auto new_x = std::ptrdiff_t{RowStride(nz)}, old_x = std::ptrdiff_t{RowStride(oz)},
+      auto new_x = std::ptrdiff_t{RowStride(nz)},
+           old_x = std::ptrdiff_t{RowStride(oz)},
            new_n = std::ptrdiff_t{Col(nz)}, old_n = std::ptrdiff_t{Col(oz)},
            new_m = std::ptrdiff_t{Row(nz)}, old_m = std::ptrdiff_t{Row(oz)};
       bool new_alloc = len > this->capacity_;
@@ -734,25 +742,26 @@ static_assert(sizeof(ManagedArray<std::int64_t, StridedDims<>, 64,
 // sizes should be:
 // [ptr, dims, capacity, array]
 // 8 + 2*4 + 8 + 0 + 64*8 = 24 + 512 = 536
-static_assert(
-  sizeof(ManagedArray<std::int64_t, DenseDims<>, 64, alloc::Mallocator<std::int64_t>>) ==
-  544);
+static_assert(sizeof(ManagedArray<std::int64_t, DenseDims<>, 64,
+                                  alloc::Mallocator<std::int64_t>>) == 544);
 // sizes should be:
 // [ptr, dims, capacity, array]
 // 8 + 1*4 + 4 + 0 + 64*8 = 16 + 512 = 528
-static_assert(
-  sizeof(ManagedArray<std::int64_t, SquareDims<>, 64, alloc::Mallocator<std::int64_t>>) ==
-  536);
+static_assert(sizeof(ManagedArray<std::int64_t, SquareDims<>, 64,
+                                  alloc::Mallocator<std::int64_t>>) == 536);
 
-template <class T, std::ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
+template <class T,
+          std::ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
 using Vector = ManagedArray<T, Length<>, N>;
 
 template <class T,
           std::ptrdiff_t L = containers::PreAllocStorage<T, StridedDims<>>()>
 using Matrix = ManagedArray<T, StridedDims<>, L>;
-template <class T, std::ptrdiff_t L = containers::PreAllocStorage<T, DenseDims<>>()>
+template <class T,
+          std::ptrdiff_t L = containers::PreAllocStorage<T, DenseDims<>>()>
 using DenseMatrix = ManagedArray<T, DenseDims<>, L>;
-template <class T, std::ptrdiff_t L = containers::PreAllocStorage<T, SquareDims<>>()>
+template <class T,
+          std::ptrdiff_t L = containers::PreAllocStorage<T, SquareDims<>>()>
 using SquareMatrix = ManagedArray<T, SquareDims<>, L>;
 
 // type def defined by allocator
@@ -778,15 +787,19 @@ using IntMatrix = ManagedArray<std::int64_t, S>;
 static_assert(sizeof(ManagedArray<std::int32_t, DenseDims<3, 5>, 15>) ==
               sizeof(std::int32_t *) + 16 * sizeof(std::int32_t));
 static_assert(sizeof(ManagedArray<std::int32_t, DenseDims<>, 15>) ==
-              sizeof(std::int32_t *) + 3 * sizeof(std::ptrdiff_t) + 16 * sizeof(std::int32_t));
+              sizeof(std::int32_t *) + 3 * sizeof(std::ptrdiff_t) +
+                16 * sizeof(std::int32_t));
 static_assert(AbstractMatrix<ManagedArray<std::int64_t, SquareDims<>>>);
-static_assert(std::is_convertible_v<DenseMatrix<std::int64_t>, Matrix<std::int64_t>>);
 static_assert(
-  std::is_convertible_v<DenseMatrix<std::int64_t>, DensePtrMatrix<std::int64_t>>);
-static_assert(std::is_convertible_v<DenseMatrix<std::int64_t>, PtrMatrix<std::int64_t>>);
-static_assert(std::is_convertible_v<SquareMatrix<std::int64_t>, Matrix<std::int64_t>>);
+  std::is_convertible_v<DenseMatrix<std::int64_t>, Matrix<std::int64_t>>);
+static_assert(std::is_convertible_v<DenseMatrix<std::int64_t>,
+                                    DensePtrMatrix<std::int64_t>>);
 static_assert(
-  std::is_convertible_v<SquareMatrix<std::int64_t>, MutPtrMatrix<std::int64_t>>);
+  std::is_convertible_v<DenseMatrix<std::int64_t>, PtrMatrix<std::int64_t>>);
+static_assert(
+  std::is_convertible_v<SquareMatrix<std::int64_t>, Matrix<std::int64_t>>);
+static_assert(std::is_convertible_v<SquareMatrix<std::int64_t>,
+                                    MutPtrMatrix<std::int64_t>>);
 static_assert(std::same_as<IntMatrix<>::value_type, std::int64_t>);
 static_assert(AbstractMatrix<IntMatrix<>>);
 static_assert(std::copyable<IntMatrix<>>);
@@ -797,13 +810,15 @@ static_assert(!std::is_trivially_copyable_v<Vector<std::int64_t>>);
 static_assert(!std::is_trivially_destructible_v<Vector<std::int64_t>>);
 static_assert(AbstractVector<Vector<std::int64_t>>,
               "PtrVector<std::int64_t> isa AbstractVector failed");
-static_assert(std::same_as<utils::eltype_t<Matrix<std::int64_t>>, std::int64_t>);
+static_assert(
+  std::same_as<utils::eltype_t<Matrix<std::int64_t>>, std::int64_t>);
 
 template <AbstractMatrix T>
 inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
   Matrix<std::remove_const_t<typename T::value_type>> B{A};
   return utils::printMatrix(os, B.data(), std::ptrdiff_t(B.numRow()),
-                            std::ptrdiff_t(B.numCol()), std::ptrdiff_t(B.rowStride()));
+                            std::ptrdiff_t(B.numCol()),
+                            std::ptrdiff_t(B.rowStride()));
 }
 
 } // namespace math

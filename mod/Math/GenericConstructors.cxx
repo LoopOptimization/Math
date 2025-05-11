@@ -79,18 +79,20 @@ constexpr auto matrix(A, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, A{}};
 }
 template <alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
-constexpr auto matrix(A, Row<R> M, Col<C> N,
-                      eltype_t<A> x) -> DenseMatrixAlloc<A, R, C> {
+constexpr auto matrix(A, Row<R> M, Col<C> N, eltype_t<A> x)
+  -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, A{}};
 }
 
-template <NonEmpty T, alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
+template <NonEmpty T, alloc::FreeAllocator A, std::ptrdiff_t R,
+          std::ptrdiff_t C>
 constexpr auto matrix(A, Row<R> M, Col<C> N) -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, rebound_alloc_t<A, T>{}};
 }
-template <NonEmpty T, alloc::FreeAllocator A, std::ptrdiff_t R, std::ptrdiff_t C>
-constexpr auto matrix(A, Row<R> M, Col<C> N,
-                      std::type_identity_t<T> x) -> DenseMatrixAlloc<A, R, C> {
+template <NonEmpty T, alloc::FreeAllocator A, std::ptrdiff_t R,
+          std::ptrdiff_t C>
+constexpr auto matrix(A, Row<R> M, Col<C> N, std::type_identity_t<T> x)
+  -> DenseMatrixAlloc<A, R, C> {
   return {DenseDims{M, N}, x, rebound_alloc_t<A, T>{}};
 }
 
@@ -99,13 +101,13 @@ constexpr auto square_matrix(A, std::ptrdiff_t M) -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, A{}};
 }
 template <alloc::FreeAllocator A>
-constexpr auto square_matrix(A, std::ptrdiff_t M,
-                             utils::eltype_t<A> x) -> SquareMatrixAlloc<A> {
+constexpr auto square_matrix(A, std::ptrdiff_t M, utils::eltype_t<A> x)
+  -> SquareMatrixAlloc<A> {
   return {SquareDims<>{row(M)}, x, A{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto
-square_matrix(A, std::ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
+constexpr auto square_matrix(A, std::ptrdiff_t M)
+  -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return {SquareDims<>{row(M)}, rebound_alloc_t<A, T>{}};
 }
 template <NonEmpty T, alloc::FreeAllocator A>
@@ -121,8 +123,8 @@ constexpr auto identity(A, std::ptrdiff_t M) -> SquareMatrixAlloc<A> {
   return B;
 }
 template <NonEmpty T, alloc::FreeAllocator A>
-constexpr auto
-identity(A, std::ptrdiff_t M) -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
+constexpr auto identity(A, std::ptrdiff_t M)
+  -> SquareMatrixAlloc<rebound_alloc_t<A, T>> {
   return identity<rebound_alloc_t<A, T>>(rebound_alloc_t<A, T>{}, M);
 }
 template <typename T, typename I>

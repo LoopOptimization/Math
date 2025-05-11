@@ -136,7 +136,8 @@ consteval auto ScalarizeViaCastTo() -> bool {
 }
 
 // returns Unroll, Iters, Remainder
-template <std::ptrdiff_t R> consteval auto unrollf() -> std::array<std::ptrdiff_t, 2> {
+template <std::ptrdiff_t R>
+consteval auto unrollf() -> std::array<std::ptrdiff_t, 2> {
   if (R <= 5) return {0, R};
   if (R == 7) return {0, 7};
   if ((R % 4) == 0) return {4, 0};
@@ -376,7 +377,8 @@ protected:
             else self[i, j] = auto{B[i, j]};
         } else {
           POLYMATHIVDEP
-          for (std::ptrdiff_t j = 0; j < C; ++j) detail::assign(self, B, i, j, op);
+          for (std::ptrdiff_t j = 0; j < C; ++j)
+            detail::assign(self, B, i, j, op);
         }
       }
     }

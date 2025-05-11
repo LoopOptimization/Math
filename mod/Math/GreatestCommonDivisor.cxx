@@ -46,7 +46,7 @@ constexpr auto gcd(std::int64_t x, std::int64_t y) -> std::int64_t {
   std::int64_t a = constexpr_abs(x), b = constexpr_abs(y);
   if ((a == 1) | (b == 1)) return 1;
   std::int64_t az = std::countr_zero(std::uint64_t(x)),
-          bz = std::countr_zero(std::uint64_t(y));
+               bz = std::countr_zero(std::uint64_t(y));
   b >>= bz;
   std::int64_t k = std::min(az, bz);
   for (;;) {
@@ -71,9 +71,9 @@ constexpr auto gcd(simd::Vec<W, std::int64_t> x, simd::Vec<W, std::int64_t> y)
   invariant(!bool(simd::cmp::eq<W, std::int64_t>(x, invalid)));
   invariant(!bool(simd::cmp::eq<W, std::int64_t>(y, invalid)));
   simd::Vec<W, std::int64_t> b = constexpr_abs<W, std::int64_t>(y),
-                        a = constexpr_abs<W, std::int64_t>(x),
-                        bz = simd::crz<W, std::int64_t>(y),
-                        az = simd::crz<W, std::int64_t>(x);
+                             a = constexpr_abs<W, std::int64_t>(x),
+                             bz = simd::crz<W, std::int64_t>(y),
+                             az = simd::crz<W, std::int64_t>(x);
   auto on = ((a > 1) & (b > 1));
   simd::Vec<W, std::int64_t> offb = (x == 0 ? b : (y == 0 ? a : one));
   if (!bool(simd::cmp::ne<W, std::int64_t>(on, zero))) return offb;
@@ -90,7 +90,8 @@ constexpr auto gcd(simd::Vec<W, std::int64_t> x, simd::Vec<W, std::int64_t> y)
   }
   return b << k;
 }
-template <> constexpr auto gcd<1>(std::int64_t x, std::int64_t y) -> std::int64_t {
+template <>
+constexpr auto gcd<1>(std::int64_t x, std::int64_t y) -> std::int64_t {
   return gcd(x, y);
 }
 
@@ -105,7 +106,9 @@ constexpr auto gcdreduce(simd::Vec<W, std::int64_t> v) -> std::int64_t {
     return gcdreduce<W / 2>(gcd<W / 2>(a, b));
   } else return gcd(v[0], v[1]);
 }
-template <> constexpr auto gcdreduce<1>(std::int64_t v) -> std::int64_t { return v; }
+template <> constexpr auto gcdreduce<1>(std::int64_t v) -> std::int64_t {
+  return v;
+}
 
 constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {
   std::int64_t ax = constexpr_abs(x);
@@ -153,7 +156,8 @@ constexpr auto gcdx(T a, T b) -> std::array<T, 3> {
 }
 
 /// divgcd(x, y) = (x / gcd(x, y), y / gcd(x, y))
-constexpr auto divgcd(std::int64_t a, std::int64_t b) -> std::array<std::int64_t, 2> {
+constexpr auto divgcd(std::int64_t a, std::int64_t b)
+  -> std::array<std::int64_t, 2> {
   auto [g, x, y, t, s] = dgcdx(a, b);
   return {t, s};
 }

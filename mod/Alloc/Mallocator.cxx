@@ -212,7 +212,8 @@ inline auto alloc_at_least(std::size_t n) -> AllocResult<void> {
   return {malloc(newn), newn};
 }
 
-inline auto alloc_at_least(std::size_t n, std::align_val_t al) -> AllocResult<void> {
+inline auto alloc_at_least(std::size_t n, std::align_val_t al)
+  -> AllocResult<void> {
   std::size_t newn = good_malloc_size(n);
   utils::invariant(newn >= n);
   return {malloc(newn, al), newn};

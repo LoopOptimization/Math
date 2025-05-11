@@ -103,19 +103,25 @@ concept ScalarIndex =
   }
 } _;
 
-TRIVIAL constexpr auto canonicalize(std::ptrdiff_t e, std::ptrdiff_t) -> std::ptrdiff_t {
+TRIVIAL constexpr auto canonicalize(std::ptrdiff_t e, std::ptrdiff_t)
+  -> std::ptrdiff_t {
   return e;
 }
-TRIVIAL constexpr auto canonicalize(Begin, std::ptrdiff_t) -> std::ptrdiff_t { return 0; }
-TRIVIAL constexpr auto canonicalize(End, std::ptrdiff_t M) -> std::ptrdiff_t { return M; }
-TRIVIAL constexpr auto canonicalize(OffsetEnd e, std::ptrdiff_t M) -> std::ptrdiff_t {
+TRIVIAL constexpr auto canonicalize(Begin, std::ptrdiff_t) -> std::ptrdiff_t {
+  return 0;
+}
+TRIVIAL constexpr auto canonicalize(End, std::ptrdiff_t M) -> std::ptrdiff_t {
+  return M;
+}
+TRIVIAL constexpr auto canonicalize(OffsetEnd e, std::ptrdiff_t M)
+  -> std::ptrdiff_t {
   return M - e.offset_;
 }
 template <typename B, typename E>
 TRIVIAL constexpr auto canonicalizeRange(Range<B, E> r, std::ptrdiff_t M)
   -> Range<std::ptrdiff_t, std::ptrdiff_t> {
   return Range<std::ptrdiff_t, std::ptrdiff_t>{canonicalize(r.b_, M),
-                                     canonicalize(r.e_, M)};
+                                               canonicalize(r.e_, M)};
 }
 TRIVIAL constexpr auto canonicalizeRange(Colon, std::ptrdiff_t M)
   -> Range<std::ptrdiff_t, std::ptrdiff_t> {
@@ -126,7 +132,9 @@ static_assert(ScalarIndex<OffsetEnd>);
 
 template <typename T>
 concept AbstractSlice = requires(T t, std::ptrdiff_t M) {
-  { canonicalizeRange(t, M) } -> std::same_as<Range<std::ptrdiff_t, std::ptrdiff_t>>;
+  {
+    canonicalizeRange(t, M)
+  } -> std::same_as<Range<std::ptrdiff_t, std::ptrdiff_t>>;
 };
 static_assert(AbstractSlice<Range<std::ptrdiff_t, std::ptrdiff_t>>);
 static_assert(AbstractSlice<Colon>);
@@ -144,11 +152,13 @@ TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<1>, std::ptrdiff_t i)
 }
 // FIXME: probably not needed
 TRIVIAL [[nodiscard]] constexpr auto
-calcOffset(std::integral_constant<std::ptrdiff_t, 1>, std::ptrdiff_t i) -> std::ptrdiff_t {
+calcOffset(std::integral_constant<std::ptrdiff_t, 1>, std::ptrdiff_t i)
+  -> std::ptrdiff_t {
   invariant(i == 0z);
   return 0z;
 }
-TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<>, Begin) -> std::ptrdiff_t {
+TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<>, Begin)
+  -> std::ptrdiff_t {
   return 0z;
 }
 TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetEnd i)
@@ -161,7 +171,8 @@ TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetEnd i)
   invariant(i <= len);
   return i;
 }
-[[nodiscard]] constexpr auto calcRangeOffset(Length<>, Begin) -> std::ptrdiff_t {
+[[nodiscard]] constexpr auto calcRangeOffset(Length<>, Begin)
+  -> std::ptrdiff_t {
   return 0z;
 }
 TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<> len, OffsetEnd i)
@@ -172,7 +183,8 @@ TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<> len, OffsetEnd i)
 // note that we don't check i.b < len because we want to allow
 // empty ranges, and r.b <= r.e <= len is checked in calcNewDim.
 template <class B, class E>
-TRIVIAL constexpr auto calcOffset(Length<> len, Range<B, E> i) -> std::ptrdiff_t {
+TRIVIAL constexpr auto calcOffset(Length<> len, Range<B, E> i)
+  -> std::ptrdiff_t {
   return calcRangeOffset(len, i.b_);
 }
 TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(Length<>, Colon)
@@ -185,7 +197,8 @@ TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(SquareDims<>,
   -> std::ptrdiff_t {
   return i;
 }
-TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(DenseDims<>, std::ptrdiff_t i)
+TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(DenseDims<>,
+                                                       std::ptrdiff_t i)
   -> std::ptrdiff_t {
   return i;
 }
@@ -227,7 +240,8 @@ private:
   }
 };
 template <std::ptrdiff_t L, std::ptrdiff_t X> Row(StridedRange<L, X>) -> Row<L>;
-template <std::ptrdiff_t L, std::ptrdiff_t X> Col(StridedRange<L, X>) -> Col<1z>;
+template <std::ptrdiff_t L, std::ptrdiff_t X>
+Col(StridedRange<L, X>) -> Col<1z>;
 template <std::ptrdiff_t L, std::ptrdiff_t X>
 RowStride(StridedRange<L, X>) -> RowStride<X>;
 
@@ -263,14 +277,16 @@ TRIVIAL inline constexpr auto calcOffset(DenseDims<> len,
 }
 
 template <class I>
-TRIVIAL inline constexpr auto calcOffset(StridedRange<> d, I i) -> std::ptrdiff_t {
+TRIVIAL inline constexpr auto calcOffset(StridedRange<> d, I i)
+  -> std::ptrdiff_t {
   return std::ptrdiff_t(d.stride_) * calcOffset(d.len_, i);
 }
 
 template <class R, class C>
 TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(StridedDims<> d, R r,
                                                        C c) -> std::ptrdiff_t {
-  return std::ptrdiff_t(stride(d)) * calcOffset(length(std::ptrdiff_t(Row<>(d))), r) +
+  return std::ptrdiff_t(stride(d)) *
+           calcOffset(length(std::ptrdiff_t(Row<>(d))), r) +
          calcOffset(length(std::ptrdiff_t(Col<>(d))), c);
 }
 
@@ -290,8 +306,8 @@ template <typename D> consteval auto IsStridedColVectorDim() -> bool {
 }
 
 template <typename T>
-concept IsOne =
-  std::same_as<std::remove_cvref_t<T>, std::integral_constant<std::ptrdiff_t, 1>>;
+concept IsOne = std::same_as<std::remove_cvref_t<T>,
+                             std::integral_constant<std::ptrdiff_t, 1>>;
 
 template <typename T>
 concept DenseLayout =
@@ -305,7 +321,8 @@ concept StaticLength = RowVectorDimension<T> && !std::same_as<T, Length<>>;
 // constexpr auto col(ColVectorDimension auto) -> Col<1> { return {}; }
 // constexpr auto stride(ColVectorDimension auto) -> RowStride<1> { return {}; }
 template <class I>
-TRIVIAL constexpr auto calcOffset(ColVectorDimension auto d, I i) -> std::ptrdiff_t {
+TRIVIAL constexpr auto calcOffset(ColVectorDimension auto d, I i)
+  -> std::ptrdiff_t {
   return unwrapStride(stride(d)) * calcOffset(length(unwrapRow(Row(d))), i);
 }
 
@@ -319,14 +336,16 @@ concept Index =
     { i.row_idx_ };
     { i.col_idx_ };
   });
-static_assert(Index<CartesianIndex<std::ptrdiff_t, std::ptrdiff_t>, DenseDims<>>);
+static_assert(
+  Index<CartesianIndex<std::ptrdiff_t, std::ptrdiff_t>, DenseDims<>>);
 struct Empty {};
 
 TRIVIAL inline constexpr auto calcNewDim(VectorDimension auto, ScalarIndex auto)
   -> Empty {
   return {};
 }
-TRIVIAL inline constexpr auto calcNewDim(SquareDims<>, std::ptrdiff_t) -> Empty {
+TRIVIAL inline constexpr auto calcNewDim(SquareDims<>, std::ptrdiff_t)
+  -> Empty {
   return {};
 }
 TRIVIAL inline constexpr auto calcNewDim(DenseDims<>, std::ptrdiff_t) -> Empty {
@@ -334,7 +353,8 @@ TRIVIAL inline constexpr auto calcNewDim(DenseDims<>, std::ptrdiff_t) -> Empty {
 }
 // constexpr auto calcNewDim(auto, std::ptrdiff_t) -> Empty { return {}; }
 
-TRIVIAL constexpr auto calcNewDim(Length<> len, Range<std::ptrdiff_t, std::ptrdiff_t> r)
+TRIVIAL constexpr auto calcNewDim(Length<> len,
+                                  Range<std::ptrdiff_t, std::ptrdiff_t> r)
   -> Length<> {
   invariant(r.e_ <= len);
   invariant(r.b_ <= r.e_);
@@ -383,7 +403,8 @@ TRIVIAL constexpr auto calcNewDim(StridedDims<> d, B r, C c) {
   auto colDims = calcNewDim(length(std::ptrdiff_t(Col(d))), c);
   return StridedDims(asrow(rowDims), ascol(colDims), stride(d));
 }
-template <std::ptrdiff_t NR, std::ptrdiff_t NC, AbstractSlice B, AbstractSlice C>
+template <std::ptrdiff_t NR, std::ptrdiff_t NC, AbstractSlice B,
+          AbstractSlice C>
 TRIVIAL constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
   if constexpr (std::same_as<B, Colon>) {
     if constexpr (std::same_as<C, Colon>) {
@@ -401,8 +422,8 @@ TRIVIAL constexpr auto calcNewDim(DenseDims<NR, NC> d, B r, C c) {
     return StridedDims(asrow(row_dims), ascol(col_dims), stride(d));
   }
 }
-template <std::ptrdiff_t NR, std::ptrdiff_t NC, std::ptrdiff_t X, AbstractSlice B,
-          AbstractSlice C>
+template <std::ptrdiff_t NR, std::ptrdiff_t NC, std::ptrdiff_t X,
+          AbstractSlice B, AbstractSlice C>
 TRIVIAL constexpr auto calcNewDim(StridedDims<NR, NC, X> d, B r, C c) {
   if constexpr ((NR >= 0) && std::same_as<B, Colon>) {
     if constexpr ((NC >= 0) && std::same_as<C, Colon>) {
@@ -448,8 +469,8 @@ TRIVIAL constexpr auto calcNewDim(StridedDims<> d, std::ptrdiff_t,
   return simd::index::UnrollDims<1, C, W, M>{c.mask_, stride(d)};
 }
 template <std::ptrdiff_t R, std::ptrdiff_t W, typename M>
-TRIVIAL constexpr auto calcNewDim(StridedDims<> d,
-                                  simd::index::Unroll<R, W, M> r, std::ptrdiff_t) {
+TRIVIAL constexpr auto
+calcNewDim(StridedDims<> d, simd::index::Unroll<R, W, M> r, std::ptrdiff_t) {
   if constexpr (W == 1)
     return simd::index::UnrollDims<R, 1, 1, M>{r.mask_, stride(d)};
   else return simd::index::UnrollDims<1, R, W, M, true>{r.mask_, stride(d)};

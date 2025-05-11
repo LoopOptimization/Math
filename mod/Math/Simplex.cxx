@@ -146,23 +146,26 @@ class Simplex {
   [[nodiscard]] static constexpr auto reservedTableau(std::ptrdiff_t cons,
                                                       std::ptrdiff_t vars)
     -> std::ptrdiff_t {
-    return static_cast<std::ptrdiff_t>(sizeof(value_type)) * ((cons + 1) * vars);
+    return static_cast<std::ptrdiff_t>(sizeof(value_type)) *
+           ((cons + 1) * vars);
   }
   static constexpr auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
     -> std::size_t {
     std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
-              indices = tableauOffset(cons, vars),
-              tableau = reservedTableau(cons, vars);
+                   indices = tableauOffset(cons, vars),
+                   tableau = reservedTableau(cons, vars);
     return static_cast<std::size_t>(base + indices + tableau);
   }
 
 public:
   // tableau is constraint * var matrix w/ extra col for LHS
   // and extra row for objective function
-  [[nodiscard]] constexpr auto reservedBasicConstraints() const -> std::ptrdiff_t {
+  [[nodiscard]] constexpr auto reservedBasicConstraints() const
+    -> std::ptrdiff_t {
     return std::ptrdiff_t(var_capacity_p1_) - 1;
   }
-  [[nodiscard]] constexpr auto reservedBasicVariables() const -> std::ptrdiff_t {
+  [[nodiscard]] constexpr auto reservedBasicVariables() const
+    -> std::ptrdiff_t {
     return std::ptrdiff_t(constraint_capacity_);
   }
 
@@ -197,19 +200,21 @@ public:
                               }};
   }
   [[nodiscard]] constexpr auto getConstraints() const -> PtrMatrix<value_type> {
-    return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_), StridedDims<>{
-                                                              num_constraints_,
-                                                              ++auto(num_vars_),
-                                                              var_capacity_p1_,
-                                                            }};
+    return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
+            StridedDims<>{
+              num_constraints_,
+              ++auto(num_vars_),
+              var_capacity_p1_,
+            }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
   [[nodiscard]] constexpr auto getConstraints() -> MutPtrMatrix<value_type> {
-    return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_), StridedDims<>{
-                                                              num_constraints_,
-                                                              ++auto(num_vars_),
-                                                              var_capacity_p1_,
-                                                            }};
+    return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
+            StridedDims<>{
+              num_constraints_,
+              ++auto(num_vars_),
+              var_capacity_p1_,
+            }};
   }
   [[nodiscard]] constexpr auto getBasicConstraints() const
     -> PtrVector<index_t> {
@@ -293,14 +298,17 @@ public:
     }
   }
 #endif
-  [[nodiscard]] constexpr auto getConstants() -> MutStridedVector<std::int64_t> {
+  [[nodiscard]] constexpr auto getConstants()
+    -> MutStridedVector<std::int64_t> {
     return getTableau()[_(1, end), 0];
   }
-  [[nodiscard]] constexpr auto getConstants() const -> StridedVector<std::int64_t> {
+  [[nodiscard]] constexpr auto getConstants() const
+    -> StridedVector<std::int64_t> {
     return getTableau()[_(1, end), 0];
   }
   constexpr void truncateConstraints(std::ptrdiff_t i) {
-    invariant(std::ptrdiff_t(num_constraints_) <= std::ptrdiff_t(constraint_capacity_));
+    invariant(std::ptrdiff_t(num_constraints_) <=
+              std::ptrdiff_t(constraint_capacity_));
     invariant(i >= 0z);
     invariant(i <= num_constraints_);
     num_constraints_ = row(i);
@@ -360,7 +368,8 @@ public:
 
     public:
       using value_type = Rational;
-      constexpr iterator(const Solution *s, std::ptrdiff_t j) : sol_(s), i_(j) {}
+      constexpr iterator(const Solution *s, std::ptrdiff_t j)
+        : sol_(s), i_(j) {}
       constexpr iterator() = default;
       constexpr iterator(const iterator &) = default;
       constexpr auto operator=(const iterator &) -> iterator & = default;
@@ -401,12 +410,14 @@ public:
       return {this, std::ptrdiff_t(num_vars_ - skipped_vars_)};
     }
 
-    [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const -> Rational {
+    [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const
+      -> Rational {
       invariant(i >= 0);
       return simplex_->getVarValue(i + std::ptrdiff_t(skipped_vars_));
     }
     [[nodiscard]] constexpr auto operator[](OffsetEnd k) const -> Rational {
-      return simplex_->getVarValue(std::ptrdiff_t(simplex_->num_vars_) - k.offset_);
+      return simplex_->getVarValue(std::ptrdiff_t(simplex_->num_vars_) -
+                                   k.offset_);
     }
     [[nodiscard]] constexpr auto operator[](ScalarRelativeIndex auto i) const
       -> Rational {
@@ -416,7 +427,8 @@ public:
     constexpr auto operator[](Range<B, E> r) const -> Solution {
       return (*this)[canonicalizeRange(r, size())];
     }
-    constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const -> Solution {
+    constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const
+      -> Solution {
       return {.simplex_ = simplex_,
               .skipped_vars_ = length(std::ptrdiff_t(skipped_vars_) + r.b_),
               .num_vars_ = length(std::ptrdiff_t(skipped_vars_) + r.e_)};
@@ -509,7 +521,7 @@ public:
   constexpr auto removeAugmentVars(PtrVector<unsigned> augmentVars) -> bool {
     // TODO: try to avoid reallocating, via reserving enough ahead of time
     std::ptrdiff_t num_augment = augmentVars.size(),
-              old_num_var = std::ptrdiff_t(num_vars_);
+                   old_num_var = std::ptrdiff_t(num_vars_);
     invariant(num_augment + std::ptrdiff_t(num_vars_) < var_capacity_p1_);
     num_vars_ = col(std::ptrdiff_t(num_vars_) + num_augment);
     MutPtrMatrix<value_type> C{getConstraints()};
@@ -526,7 +538,8 @@ public:
       // we now zero out the implicit cost of `1`
       costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
     }
-    assert(std::ranges::all_of(basic_vars, [](std::int64_t i) { return i >= 0; }));
+    assert(
+      std::ranges::all_of(basic_vars, [](std::int64_t i) { return i >= 0; }));
     // false/0 means feasible
     // true/non-zero infeasible
     if (runCore()) return true;
@@ -583,8 +596,9 @@ public:
   // ratio, and returns that row. If any numerator == 0, it'll
   // stop early and return that row.
   [[nodiscard]] static constexpr auto
-  getLeavingVariable(PtrMatrix<std::int64_t> C, std::ptrdiff_t entering_variable,
-                     const auto &filter) -> std::optional<index_t> {
+  getLeavingVariable(PtrMatrix<std::int64_t> C,
+                     std::ptrdiff_t entering_variable, const auto &filter)
+    -> std::optional<index_t> {
     // inits guarantee first valid is selected
     std::int64_t dj = -1, nj = 0;
     index_t j = 0;
@@ -615,7 +629,8 @@ public:
     return j ? --j : std::optional<index_t>{};
   }
   [[nodiscard]] static constexpr auto
-  getLeavingVariable(PtrMatrix<std::int64_t> C, std::ptrdiff_t entering_variable)
+  getLeavingVariable(PtrMatrix<std::int64_t> C,
+                     std::ptrdiff_t entering_variable)
     -> std::optional<index_t> {
     return getLeavingVariable(C, entering_variable, NoFilter{});
   }
@@ -628,7 +643,7 @@ public:
     for (std::ptrdiff_t i = 0; i < C.numRow(); ++i) {
       if (i == leaving_var + 1) continue;
       std::int64_t m = NormalForm::zeroWithRowOp(C, row(i), ++row(leaving_var),
-                                            ++col(enteringVar), i ? 0 : f);
+                                                 ++col(enteringVar), i ? 0 : f);
       if (!i) f = m;
     }
     // update basic vars and constraints
@@ -646,7 +661,8 @@ public:
     if (leave_opt) makeBasic(C, ev, *leave_opt);
     return !leave_opt;
   }
-  constexpr void makeBasic(MutPtrMatrix<std::int64_t> C, index_t ev, index_t l_var) {
+  constexpr void makeBasic(MutPtrMatrix<std::int64_t> C, index_t ev,
+                           index_t l_var) {
     index_t leaving_variable = l_var++;
     for (std::ptrdiff_t i = 0; i < C.numRow(); ++i)
       if (i != l_var)
@@ -706,8 +722,8 @@ public:
   }
 
   // don't touch variables lex > v
-  constexpr void rLexCore(PtrMatrix<std::int64_t> C, PtrVector<std::int64_t> costs,
-                          std::ptrdiff_t v) {
+  constexpr void rLexCore(PtrMatrix<std::int64_t> C,
+                          PtrVector<std::int64_t> costs, std::ptrdiff_t v) {
     invariant(v > 0);
     while (true) {
       // get new entering variable
@@ -748,7 +764,8 @@ public:
     return makeZeroNonBasic(v);
   }
   // get the value of `var`
-  [[nodiscard]] constexpr auto getVarValue(std::ptrdiff_t var) const -> Rational {
+  [[nodiscard]] constexpr auto getVarValue(std::ptrdiff_t var) const
+    -> Rational {
     std::int64_t j = getBasicConstraint(var);
     if (j < 0) return 0;
     PtrMatrix<std::int64_t> constraints = getConstraints();
@@ -836,9 +853,10 @@ public:
     -> Optional<Simplex *> {
     invariant(A.numCol() == B.numCol());
     std::ptrdiff_t num_var = std::ptrdiff_t(A.numCol()) - 1,
-              num_slack = std::ptrdiff_t(A.numRow()),
-              num_strict = std::ptrdiff_t(B.numRow()),
-              num_con = num_slack + num_strict, var_cap = num_var + num_slack;
+                   num_slack = std::ptrdiff_t(A.numRow()),
+                   num_strict = std::ptrdiff_t(B.numRow()),
+                   num_con = num_slack + num_strict,
+                   var_cap = num_var + num_slack;
     // see how many slack vars are infeasible as solution
     // each of these will require an augment variable
     for (std::ptrdiff_t i = 0; i < num_slack; ++i) var_cap += A[i, 0] < 0;
@@ -857,7 +875,8 @@ public:
     consts[_(0, num_slack)] << A[_, 0];
     if (num_strict) consts[_(num_slack, num_slack + num_strict)] << B[_, 0];
     // for (std::ptrdiff_t i = 0; i < numSlack; ++i) consts[i] = A(i, 0);
-    // for (std::ptrdiff_t i = 0; i < numStrict; ++i) consts[i + numSlack] = B(i, 0);
+    // for (std::ptrdiff_t i = 0; i < numStrict; ++i) consts[i + numSlack] =
+    // B(i, 0);
     if (!simplex->initiateFeasible()) return simplex;
     alloc->rollback(checkpoint);
     return nullptr;
@@ -866,8 +885,8 @@ public:
                                           PtrMatrix<std::int64_t> A)
     -> Optional<Simplex *> {
     std::ptrdiff_t num_var = std::ptrdiff_t(A.numCol()) - 1,
-              num_slack = std::ptrdiff_t(A.numRow()), num_con = num_slack,
-              var_cap = num_var + num_slack;
+                   num_slack = std::ptrdiff_t(A.numRow()), num_con = num_slack,
+                   var_cap = num_var + num_slack;
     // see how many slack vars are infeasible as solution
     // each of these will require an augment variable
     for (std::ptrdiff_t i = 0; i < num_slack; ++i) var_cap += A[i, 0] < 0;
@@ -889,7 +908,8 @@ public:
     return nullptr;
   }
 
-  constexpr void pruneBounds(alloc::Arena<> *alloc, std::ptrdiff_t numSlack = 0) {
+  constexpr void pruneBounds(alloc::Arena<> *alloc,
+                             std::ptrdiff_t numSlack = 0) {
     auto p = alloc->scope();
     Simplex *simplex{Simplex::create(alloc, num_constraints_, num_vars_,
                                      constraint_capacity_,
@@ -951,7 +971,7 @@ public:
     // equality constraints, and then check if the remaining sub-problem
     // is satisfiable.
     const std::ptrdiff_t num_con = getNumCons(), num_var = getNumVars(),
-                    num_fix = x.size();
+                         num_fix = x.size();
     Simplex *sub_simp{
       Simplex::create(&alloc, row(num_con), col(num_var - num_fix))};
     // subSimp.tableau(0, 0) = 0;
@@ -976,7 +996,8 @@ public:
   // zeros remaining rows
   [[nodiscard]] constexpr auto
   unSatisfiableZeroRem(alloc::Arena<> alloc, PtrVector<std::int64_t> x,
-                       std::ptrdiff_t off, std::ptrdiff_t numRow) const -> bool {
+                       std::ptrdiff_t off, std::ptrdiff_t numRow) const
+    -> bool {
     // is it a valid solution to set the first `x.size()` variables to
     // `x`? first, check that >= 0 constraint is satisfied
     if (!allGEZero(x)) return true;
@@ -985,20 +1006,21 @@ public:
     // is satisfiable.
     invariant(numRow <= getNumCons());
     const std::ptrdiff_t num_fix = x.size();
-    Simplex *subSimp{Simplex::create(&alloc, row(numRow), col(off++))};
+    Simplex *sub_simp{Simplex::create(&alloc, row(numRow), col(off++))};
     auto fC{getConstraints()};
-    auto sC{subSimp->getConstraints()};
+    auto sC{sub_simp->getConstraints()};
     sC[_, 0] << fC[_(begin, numRow), 0] -
                   fC[_(begin, numRow), _(off, off + num_fix)] * x.t();
     sC[_, _(1, off)] << fC[_(begin, numRow), _(1, off)];
-    return subSimp->initiateFeasible();
+    return sub_simp->initiateFeasible();
   }
   /// indsFree gives how many variables are free to take  any >= 0 value
   /// indOne is var ind greater than indsFree that's pinned to 1
   /// (i.e., indsFree + indOne == index of var pinned to 1)
   /// numRow is number of rows used, extras are dropped
   // [[nodiscard]] constexpr auto
-  [[nodiscard]] auto unSatisfiableZeroRem(alloc::Arena<> alloc, std::ptrdiff_t iFree,
+  [[nodiscard]] auto unSatisfiableZeroRem(alloc::Arena<> alloc,
+                                          std::ptrdiff_t iFree,
                                           std::array<std::ptrdiff_t, 2> inds,
                                           std::ptrdiff_t numRow) const -> bool {
     invariant(numRow <= getNumCons());
@@ -1011,8 +1033,8 @@ public:
     return sub_simp->initiateFeasible();
   }
   [[nodiscard]] constexpr auto
-  satisfiableZeroRem(alloc::Arena<> alloc, PtrVector<std::int64_t> x, std::ptrdiff_t off,
-                     std::ptrdiff_t numRow) const -> bool {
+  satisfiableZeroRem(alloc::Arena<> alloc, PtrVector<std::int64_t> x,
+                     std::ptrdiff_t off, std::ptrdiff_t numRow) const -> bool {
     return !unSatisfiableZeroRem(alloc, x, off, numRow);
   }
   void printResult(std::ptrdiff_t numSlack = 0) {
@@ -1051,8 +1073,8 @@ public:
     return mem;
   }
 
-  static auto operator new(std::size_t count, Capacity<> conCap, RowStride<> varCap)
-    -> void * {
+  static auto operator new(std::size_t count, Capacity<> conCap,
+                           RowStride<> varCap) -> void * {
     auto cC = std::ptrdiff_t(conCap), vC = std::ptrdiff_t(varCap);
     std::size_t mem_needed = requiredMemory(cC, vC);
     // void *p = ::operator new(count * memNeeded);
@@ -1068,7 +1090,8 @@ public:
 
   static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex> {
     auto nc = std::ptrdiff_t(numCon);
-    return create(numCon, numVar, capacity(nc), stride(std::ptrdiff_t(numVar) + nc));
+    return create(numCon, numVar, capacity(nc),
+                  stride(std::ptrdiff_t(numVar) + nc));
   }
   static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
                      RowStride<> varCap) -> std::unique_ptr<Simplex> {
@@ -1086,7 +1109,7 @@ public:
          Col<> numVar, // NOLINT(bugprone-easily-swappable-parameters)
          std::ptrdiff_t numSlack) -> Valid<Simplex> {
     std::ptrdiff_t con_cap = std::ptrdiff_t(numCon),
-              var_cap = std::ptrdiff_t(numVar) + numSlack + con_cap;
+                   var_cap = std::ptrdiff_t(numVar) + numSlack + con_cap;
     return create(alloc, numCon, numVar, capacity(con_cap), stride(var_cap));
   }
   constexpr auto copy(alloc::Arena<> *alloc) const -> Valid<Simplex> {

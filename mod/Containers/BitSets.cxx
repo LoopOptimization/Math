@@ -67,7 +67,9 @@ public:
     : it_{_it}, end_{_end}, istate_{_istate} {}
   using value_type = std::ptrdiff_t;
   using difference_type = std::ptrdiff_t;
-  constexpr auto operator*() const -> std::ptrdiff_t { return cstate0_ + cstate1_; }
+  constexpr auto operator*() const -> std::ptrdiff_t {
+    return cstate0_ + cstate1_;
+  }
   constexpr auto operator++() -> BitSetIterator & {
     while (istate_ == 0) {
       if (++it_ == end_) return *this;
@@ -186,7 +188,8 @@ template <Collection T = math::Vector<std::uint64_t, 1>> struct BitSet {
       if (data_[i]) return (usize * i) + std::countr_zero(data_[i]);
     return std::numeric_limits<std::ptrdiff_t>::max();
   }
-  static constexpr auto contains(math::PtrVector<U> data, std::ptrdiff_t x) -> U {
+  static constexpr auto contains(math::PtrVector<U> data, std::ptrdiff_t x)
+    -> U {
     if (data.empty()) return 0;
     std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
     U r = U(x) & umask;
@@ -238,7 +241,8 @@ template <Collection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     if (b) d |= mask;
     else d &= (~mask);
   }
-  static constexpr void set(math::MutPtrVector<U> data, std::ptrdiff_t x, bool b) {
+  static constexpr void set(math::MutPtrVector<U> data, std::ptrdiff_t x,
+                            bool b) {
     std::ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;
     set(data[d], r, b);
@@ -291,7 +295,8 @@ template <Collection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   constexpr auto operator&=(const BitSet &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
-    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i) data_[i] &= bs.data_[i];
+    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+      data_[i] &= bs.data_[i];
     return *this;
   }
   // &!
@@ -375,7 +380,8 @@ template <Collection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
 };
 
-template <unsigned N> using FixedSizeBitSet = BitSet<std::array<std::uint64_t, N>>;
+template <unsigned N>
+using FixedSizeBitSet = BitSet<std::array<std::uint64_t, N>>;
 // BitSet with length 64
 using BitSet64 = FixedSizeBitSet<1>;
 static_assert(std::is_trivially_destructible_v<BitSet64>);
@@ -433,7 +439,9 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
     return {a_, i_.begin()};
   }
   [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
-  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t { return i_.size(); }
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return i_.size();
+  }
   [[nodiscard]] friend constexpr auto operator-(EndSentinel, Iterator v)
     -> std::ptrdiff_t {
     return EndSentinel{} - v.it_;

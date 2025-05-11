@@ -41,8 +41,8 @@ struct Rational {
   constexpr Rational(int coef) : numerator_(coef) {};
   constexpr Rational(std::int64_t n, std::int64_t d)
     : numerator_(d > 0 ? n : -n), denominator_(n ? (d > 0 ? d : -d) : 1) {}
-  static constexpr auto createPositiveDenominator(std::int64_t n, std::int64_t d)
-    -> Rational {
+  static constexpr auto createPositiveDenominator(std::int64_t n,
+                                                  std::int64_t d) -> Rational {
     utils::assume(d > 0);
     if (!n) Rational{0, 1};
     std::int64_t g = gcd(n, d);
@@ -181,7 +181,9 @@ struct Rational {
   constexpr auto operator==(int y) const -> bool { return isEqual(y); }
   constexpr auto operator==(std::int64_t y) const -> bool { return isEqual(y); }
   constexpr auto operator!=(int y) const -> bool { return !isEqual(y); }
-  constexpr auto operator!=(std::int64_t y) const -> bool { return !isEqual(y); }
+  constexpr auto operator!=(std::int64_t y) const -> bool {
+    return !isEqual(y);
+  }
   constexpr auto operator<(Rational y) const -> bool {
     return (utils::widen(numerator_) * utils::widen(y.denominator_)) <
            (utils::widen(y.numerator_) * utils::widen(denominator_));

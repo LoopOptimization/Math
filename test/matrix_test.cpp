@@ -63,7 +63,8 @@ TEST(SparseIndexingTest, BasicAssertions) {
     EXPECT_EQ(A, A2);
   }
   for (std::ptrdiff_t i = 0; i < 3; ++i)
-    for (std::ptrdiff_t j = 0; j < 4; ++j) EXPECT_EQ((A[i, j]), (sparseA[i, j]));
+    for (std::ptrdiff_t j = 0; j < 4; ++j)
+      EXPECT_EQ((A[i, j]), (sparseA[i, j]));
   DenseMatrix<std::int64_t> B(DenseDims<>{row(4), col(5)});
   EXPECT_FALSE(B.isSquare());
   B[0, 0] = 3;
@@ -112,7 +113,8 @@ TEST(SparseIndexingTest, BasicAssertions) {
       At[_(0, end), _(0, end)] << A.t();
       // At << A.t();
       // Bt << B.t();
-      std::ptrdiff_t k = std::min(std::ptrdiff_t(A.numCol()), std::ptrdiff_t(B.numRow()));
+      std::ptrdiff_t k =
+        std::min(std::ptrdiff_t(A.numCol()), std::ptrdiff_t(B.numRow()));
       C2 += At.t() * Bt.t()[_(k), _];
       EXPECT_EQ(C * 2, C2);
       EXPECT_EQ(C, At.t() * B);
@@ -216,7 +218,8 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
     F << 0;
     F.antiDiag() << 1;
     for (std::ptrdiff_t j = 0; j < i; ++j)
-      for (std::ptrdiff_t k = 0; k < i; ++k) EXPECT_EQ((F[j, k]), k + j == i - 1);
+      for (std::ptrdiff_t k = 0; k < i; ++k)
+        EXPECT_EQ((F[j, k]), k + j == i - 1);
   }
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -304,7 +307,8 @@ TEST(SquareMatrixTest, BasicAssertions) {
   DenseMatrix<std::int64_t> B{DenseDims<>{row(4), col(2)}};
   B << A[_(end - 2, end), _].t();
   for (std::ptrdiff_t j = 0; j < 4; ++j)
-    for (std::ptrdiff_t i = 0; i < 2; ++i) EXPECT_EQ((B[j, i]), 4 * (i + 2) + j);
+    for (std::ptrdiff_t i = 0; i < 2; ++i)
+      EXPECT_EQ((B[j, i]), 4 * (i + 2) + j);
 }
 TEST(VectorTest, BasicAssertions) {
   alloc::OwningArena<> alloc;
@@ -322,7 +326,8 @@ TEST(SVectorTest, BasicAssertions) {
   // static_assert(simd::VecLen<3, std::int64_t> == 2);
   static_assert(utils::Compressible<SVector<std::int64_t, 3>>);
   static_assert(std::tuple_size_v<decltype(x)> == 3);
-  static_assert(std::same_as<std::tuple_element_t<2, decltype(x)>, std::int64_t>);
+  static_assert(
+    std::same_as<std::tuple_element_t<2, decltype(x)>, std::int64_t>);
   SVector<std::int64_t, 3> y{10, 20, 30};
   SVector<std::int64_t, 3, true> ycompress{10, 20, 30};
   y = ycompress;
@@ -450,7 +455,8 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
   for (std::ptrdiff_t i = 0; i < 10; i += 2)
     x[i / 2] = std::array<std::int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i};
   for (std::ptrdiff_t i = 10; i < 102; i += 2)
-    x.emplace_back(std::array<std::int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
+    x.emplace_back(
+      std::array<std::int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
   for (std::ptrdiff_t i = 1; i < 102; i += 2)
     x.insert(x.begin() + i,
              std::array<std::int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
@@ -488,7 +494,8 @@ TEST(StringVector, BasicAssertions) {
   auto along = "[-5 3 7 -15 17 -5 -4 -3 -2 1 0 0 1 2 0 3 4 5 6 7]"_mat;
   static_assert(
     std::convertible_to<math::StaticDims<std::int64_t, 1, 3, false>, Length<>>);
-  math::Array<std::int64_t, math::StaticDims<std::int64_t, 1, 3, false>> aps = a;
+  math::Array<std::int64_t, math::StaticDims<std::int64_t, 1, 3, false>> aps =
+    a;
   PtrVector<std::int64_t> ap = a;
   Vector<std::int64_t> b = a;
   EXPECT_EQ("[-5 3]"_mat, a[_(0, 2)]);

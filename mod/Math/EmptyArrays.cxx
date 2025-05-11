@@ -34,8 +34,11 @@ template <typename T> struct EmptyMatrix {
   static constexpr auto getConstCol() -> std::ptrdiff_t { return 0; }
 
   static constexpr auto data() -> T * { return nullptr; }
-  static constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) -> T { return 0; }
-  static constexpr auto shape() -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
+  static constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) -> T {
+    return 0;
+  }
+  static constexpr auto shape()
+    -> CartesianIndex<std::ptrdiff_t, std::ptrdiff_t> {
     return {0, 0};
   }
   static constexpr auto view() -> EmptyMatrix<T> { return EmptyMatrix<T>{}; }

@@ -43,7 +43,8 @@ template <class T> struct UniformScaling {
   using value_type = T;
   T value_;
   TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
-  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const -> T {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const
+    -> T {
     return r == c ? value_ : T{};
   }
   template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M>
@@ -86,7 +87,8 @@ template <class T> struct UniformScaling {
 
   TRIVIAL static constexpr auto numRow() -> Row<0> { return {}; }
   TRIVIAL static constexpr auto numCol() -> Col<0> { return {}; }
-  TRIVIAL static constexpr auto size() -> std::integral_constant<std::ptrdiff_t, 0> {
+  TRIVIAL static constexpr auto size()
+    -> std::integral_constant<std::ptrdiff_t, 0> {
     return {};
   }
   TRIVIAL static constexpr auto shape()

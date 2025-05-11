@@ -300,7 +300,7 @@ TEST(NullSpaceTests, BasicAssertions) {
   MutDensePtrMatrix<std::int64_t> ns_init{mem, DenseDims<>{row(8), col(8)}};
   for (std::ptrdiff_t num_col = 2; num_col <= max_col; num_col += 2) {
     MutDensePtrMatrix<std::int64_t> B{mem + (8z * 8),
-                                 DenseDims<>{row(8), col(num_col)}},
+                                      DenseDims<>{row(8), col(num_col)}},
       Bc{mem + (8z * (8 + max_col)), DenseDims<>{row(8), col(num_col)}},
       Y{mem + (8z * (8 + 2 * max_col)), DenseDims<>{row(8), col(num_col)}};
     std::ptrdiff_t null_dim = 0;
@@ -309,7 +309,8 @@ TEST(NullSpaceTests, BasicAssertions) {
         b = distrib(gen);
         b = b > 10 ? 0 : b;
       }
-      MutDensePtrMatrix<std::int64_t> NS = NormalForm::nullSpace(ns_init, Bc << B);
+      MutDensePtrMatrix<std::int64_t> NS =
+        NormalForm::nullSpace(ns_init, Bc << B);
       null_dim += std::ptrdiff_t(NS.numRow());
       MutDensePtrMatrix<std::int64_t> Z{Y[_(NS.numRow()), _]};
       Z << NS * B;
@@ -389,19 +390,23 @@ TEST(InvTest, BasicAssertions) {
   const std::ptrdiff_t num_iters = 1000;
   for (std::ptrdiff_t dim = 1; dim < 5; ++dim) {
     auto s0 = alloc.scope();
-    MutSquarePtrMatrix<std::int64_t> B{square_matrix<std::int64_t>(&alloc, dim)};
+    MutSquarePtrMatrix<std::int64_t> B{
+      square_matrix<std::int64_t>(&alloc, dim)};
     for (std::ptrdiff_t i = 0; i < num_iters; ++i) {
       while (true) {
-        for (std::ptrdiff_t n = 0; n < dim * dim; ++n) B.data()[n] = distrib(gen);
+        for (std::ptrdiff_t n = 0; n < dim * dim; ++n)
+          B.data()[n] = distrib(gen);
         if (NormalForm::rank(alloc, B) == dim) break;
       }
       auto s1 = alloc.scope();
       // Da * B^{-1} = Binv0
       // Da = Binv0 * B
-      MutSquarePtrMatrix<std::int64_t> Da{square_matrix<std::int64_t>(&alloc, dim)};
+      MutSquarePtrMatrix<std::int64_t> Da{
+        square_matrix<std::int64_t>(&alloc, dim)};
       Da << B;
       auto Binv0 = NormalForm::inv(&alloc, Da);
-      MutSquarePtrMatrix<std::int64_t> Bc{square_matrix<std::int64_t>(&alloc, dim)};
+      MutSquarePtrMatrix<std::int64_t> Bc{
+        square_matrix<std::int64_t>(&alloc, dim)};
       Bc << B;
       auto [Binv1, s] = NormalForm::scaledInv(&alloc, Bc);
       EXPECT_TRUE(Da.isDiagonal());

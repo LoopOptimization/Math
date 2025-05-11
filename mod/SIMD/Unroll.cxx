@@ -43,19 +43,25 @@ namespace simd {
 //   else return __builtin_convertvector(v, Vec<W, T>);
 // }
 // Vector goes across cols
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T> struct Unroll {
-  static constexpr std::ptrdiff_t W = std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T>
+struct Unroll {
+  static constexpr std::ptrdiff_t W =
+    std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
   using VT = Vec<W, T>;
   static_assert(R * C > 0);
   VT data_[R * C];
-  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) -> VT & { return data_[i]; }
-  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) -> VT & {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) -> VT & {
+    return data_[i];
+  }
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c)
+    -> VT & {
     return data_[r * C + c];
   }
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> VT {
     return data_[i];
   }
-  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const -> VT {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const
+    -> VT {
     return data_[r * C + c];
   }
   template <typename U>
@@ -136,23 +142,27 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T> stru
   }
 
 private:
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::minus<>{});
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::multiplies<>{});
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::divides<>{});
@@ -256,7 +266,8 @@ private:
     return vbroadcast<W, T>(b) / a;
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1, typename Op>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1, typename Op>
   TRIVIAL friend constexpr auto applyop(Unroll a, Unroll<R1, C1, W1, T1> b,
                                         Op op) {
     // Possibilities:
@@ -284,7 +295,8 @@ private:
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R1; ++r) {
           POLYMATHFULLUNROLL
-          for (std::ptrdiff_t c = 0; c < C; ++c) z[r, c] = op(a.data_[c], b[r, c]);
+          for (std::ptrdiff_t c = 0; c < C; ++c)
+            z[r, c] = op(a.data_[c], b[r, c]);
         }
         return z;
       } else {
@@ -293,12 +305,14 @@ private:
         Unroll<R, C, W, T> z;
         if constexpr (C == 1) {
           POLYMATHFULLUNROLL
-          for (std::ptrdiff_t r = 0; r < R; ++r) z.data_[r] = op(a.data_[r], b.vec_);
+          for (std::ptrdiff_t r = 0; r < R; ++r)
+            z.data_[r] = op(a.data_[r], b.vec_);
         } else {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t r = 0; r < R; ++r) {
             POLYMATHFULLUNROLL
-            for (std::ptrdiff_t c = 0; c < C; ++c) z[r, c] = op(a[r, c], b.data_[c]);
+            for (std::ptrdiff_t c = 0; c < C; ++c)
+              z[r, c] = op(a[r, c], b.data_[c]);
           }
         }
         return z;
@@ -334,7 +348,8 @@ private:
       static_assert(R == R2 || R == 1);
       if constexpr (R2 == 1) {
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t c = 0; c < C; ++c) z.data_[c] = op(a.data_[c], b.vec_);
+        for (std::ptrdiff_t c = 0; c < C; ++c)
+          z.data_[c] = op(a.data_[c], b.vec_);
       } else if constexpr (C == 1) {
         static_assert(R != 1 && R == R2);
         POLYMATHFULLUNROLL
@@ -354,7 +369,8 @@ private:
   }
 };
 template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
-  static constexpr std::ptrdiff_t W = std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
+  static constexpr std::ptrdiff_t W =
+    std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
   using VT = Vec<W, T>;
   VT vec_;
   TRIVIAL constexpr auto operator[](std::ptrdiff_t) -> VT & { return vec_; }
@@ -362,7 +378,8 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     return vec_;
   }
   TRIVIAL constexpr auto operator[](std::ptrdiff_t) const -> VT { return vec_; }
-  TRIVIAL constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) const -> VT {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) const
+    -> VT {
     return vec_;
   }
   TRIVIAL constexpr operator VT() const { return vec_; }
@@ -432,23 +449,27 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   }
 
 private:
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::plus<>{});
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop(a, b, std::minus<>{});
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::multiplies<>{});
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
     return applyop(a, b, std::divides<>{});
@@ -583,7 +604,8 @@ private:
     return vbroadcast<W, T>(b) / a;
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1, typename T1, typename Op>
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1, typename Op>
   TRIVIAL friend constexpr auto applyop(Unroll a, Unroll<R1, C1, W1, T1> b,
                                         Op op) {
     // Possibilities:
@@ -602,7 +624,8 @@ private:
         // `a` was indexed across cols only
         Unroll<R1, 1, W, T> z;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t r = 0; r < R1; ++r) z.data_[r] = op(a.vec_, b.data_[r]);
+        for (std::ptrdiff_t r = 0; r < R1; ++r)
+          z.data_[r] = op(a.vec_, b.data_[r]);
         return z;
       } else return Unroll<1, 1, W, T>{op(a.vec_, b.vec_)};
     } else if constexpr (W == 1) {
@@ -611,7 +634,8 @@ private:
       if constexpr (C1 != 1) {
         Unroll<1, C1, W1, T> z;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t c = 0; c < C1; ++c) z.data_[c] = op(a.vec_, b.data_[c]);
+        for (std::ptrdiff_t c = 0; c < C1; ++c)
+          z.data_[c] = op(a.vec_, b.data_[c]);
         return z;
       } else return Unroll<1, 1, W1, T>{op(a.vec_, b.vec_)};
     } else {
@@ -622,15 +646,16 @@ private:
       if constexpr (R != 1) {
         Unroll<R, 1, W, T> z;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t r = 0; r < R; ++r) z.data_[r] = op(a.vec_, b.data_[r]);
+        for (std::ptrdiff_t r = 0; r < R; ++r)
+          z.data_[r] = op(a.vec_, b.data_[r]);
         return z;
       } else return Unroll{op(a.vec_, b.vec_)};
     }
   }
 };
 
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T, std::ptrdiff_t X,
-          std::size_t NM, typename MT = mask::None<N>>
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
+          std::ptrdiff_t X, std::size_t NM, typename MT = mask::None<N>>
 TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
                                   std::array<MT, NM> masks)
   -> Unroll<R, C, N, T> {
@@ -663,8 +688,8 @@ TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
     return ret;
   }
 }
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T, std::ptrdiff_t X,
-          std::size_t NM, typename MT = mask::None<N>>
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
+          std::ptrdiff_t X, std::size_t NM, typename MT = mask::None<N>>
 TRIVIAL constexpr auto loadstrideunroll(const T *ptr,
                                         math::RowStride<X> rowStride,
                                         std::array<MT, NM> masks)
@@ -697,10 +722,12 @@ TRIVIAL constexpr auto loadstrideunroll(const T *ptr,
 
 // Represents a reference for a SIMD load, in particular so that we can store.
 // Needs to support masking
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T, std::ptrdiff_t X,
-          std::ptrdiff_t NM, typename MT = mask::None<N>, bool Transposed = false>
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
+          std::ptrdiff_t X, std::ptrdiff_t NM, typename MT = mask::None<N>,
+          bool Transposed = false>
 struct UnrollRef {
-  static constexpr std::ptrdiff_t W = std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
+  static constexpr std::ptrdiff_t W =
+    std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
   static_assert(N == W || C == 1,
                 "If N != the next power of `2`, then `C` should be `1`");
   static_assert(
@@ -807,7 +834,8 @@ struct UnrollRef {
           store<T>(p + c * W, mask::None<W>{}, v);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t c = 0; c < C; ++c) store<T>(p + c * W, masks_[c], v);
+        for (std::ptrdiff_t c = 0; c < C; ++c)
+          store<T>(p + c * W, masks_[c], v);
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
@@ -881,8 +909,8 @@ struct UnrollRef {
     return (*this) = Unroll<R, C, N, T>(*this) / x;
   }
 };
-template <typename T, std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M,
-          bool Transposed, std::ptrdiff_t X>
+template <typename T, std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W,
+          typename M, bool Transposed, std::ptrdiff_t X>
 TRIVIAL constexpr auto ref(const T *p,
                            index::UnrollDims<R, C, W, M, Transposed, X> i)
   -> Unroll<R, C, W, T> {
@@ -890,8 +918,8 @@ TRIVIAL constexpr auto ref(const T *p,
     return loadstrideunroll<R, C, W>(p, i.rs_, std::array<M, 1>{i.mask_});
   else return loadunroll<R, C, W>(p, i.rs_, std::array<M, 1>{i.mask_});
 }
-template <typename T, std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M,
-          bool Transposed, std::ptrdiff_t X>
+template <typename T, std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W,
+          typename M, bool Transposed, std::ptrdiff_t X>
 TRIVIAL constexpr auto ref(T *p, index::UnrollDims<R, C, W, M, Transposed, X> i)
   -> UnrollRef<R, C, W, T, X, 1, M, Transposed> {
   return {p, i.rs_, std::array<M, 1>{i.mask_}};
