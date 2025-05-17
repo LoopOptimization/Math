@@ -32,6 +32,7 @@ import ManagedArray;
 import Param;
 import Rational;
 import std;
+import Tuple;
 import TypeCompression;
 #endif
 
@@ -53,7 +54,7 @@ namespace LU {
   invariant(std::ptrdiff_t(F.numRow()), std::ptrdiff_t(M));
   // permute rhs
   for (std::ptrdiff_t i = 0; i < M; ++i)
-    if (unsigned ip = ipiv[i]; i != ip)
+    if (std::ptrdiff_t ip = ipiv[i]; i != ip)
       for (std::ptrdiff_t j = 0; j < M; ++j)
         std::ranges::swap(rhs[ip, j], rhs[i, j]);
 
@@ -87,7 +88,7 @@ constexpr void ldiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
   invariant(M > 0);
   // permute rhs
   for (std::ptrdiff_t i = 0; i < M; ++i)
-    if (unsigned ip = ipiv[i]; i != ip)
+    if (std::ptrdiff_t ip = ipiv[i]; i != ip)
       for (std::ptrdiff_t j = 0; j < M; ++j)
         std::ranges::swap(R[ip, j], R[i, j]);
 
@@ -128,8 +129,8 @@ constexpr void ldiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
     }
   }
   // permute rhs
-  for (auto j = std::ptrdiff_t(N); j--;)
-    if (unsigned jp = ipiv[j]; j != jp)
+  for (std::ptrdiff_t j = N; j--;)
+    if (std::ptrdiff_t jp = ipiv[j]; j != jp)
       for (std::ptrdiff_t i = 0; i < M; ++i) std::swap(rhs[i, jp], rhs[i, j]);
 
   return false;
@@ -150,8 +151,8 @@ constexpr void rdiv(SquarePtrMatrix<S> F, PtrVector<unsigned> ipiv,
   for (std::ptrdiff_t n = N - 1; n--;)
     rhs[_, n] -= rhs[_, _(n + 1, end)] * F[_(n + 1, end), n];
   // permute rhs
-  for (auto j = std::ptrdiff_t(N); j--;)
-    if (unsigned jp = ipiv[j]; j != jp)
+  for (std::ptrdiff_t j = N; j--;)
+    if (std::ptrdiff_t jp = ipiv[j]; j != jp)
       for (std::ptrdiff_t i = 0; i < M; ++i)
         std::ranges::swap(rhs[i, jp], rhs[i, j]);
 }
@@ -171,7 +172,7 @@ public:
   }
   constexpr Fact(SquareMatrix<T, L> f, Vector<unsigned> ip)
     : F(std::move(f)), ipiv(std::move(ip)) {
-    invariant(std::ptrdiff_t(F.numRow()), std::ptrdiff_t(ipiv.size()));
+    invariant(std::ptrdiff_t(F.numRow()), ipiv.size());
   }
 
   [[nodiscard]] constexpr auto inv() const
@@ -207,7 +208,7 @@ template <std::ptrdiff_t L>
   // auto ipiv = Vector<unsigned>{.s = unsigned(M)};
   auto ipiv{vector(math::DefaultAlloc<unsigned>{}, std::ptrdiff_t(M))};
   // Vector<unsigned> ipiv{.s = unsigned(M)};
-  invariant(std::ptrdiff_t(ipiv.size()), std::ptrdiff_t(M));
+  invariant(ipiv.size(), std::ptrdiff_t(M));
   for (std::ptrdiff_t k = 0;; ++k) {
     std::ptrdiff_t kp = k;
     for (;; ++kp) {

@@ -4,6 +4,7 @@ module;
 #pragma once
 #endif
 
+#include "Macros.hxx"
 #ifndef USE_MODULE
 #include "Math/GreatestCommonDivisor.cxx"
 #include "Utilities/Invariant.cxx"
@@ -36,13 +37,14 @@ struct Rational {
   [[no_unique_address]] std::int64_t numerator_{0};
   [[no_unique_address]] std::int64_t denominator_{1};
   // should be invariant that denominator >= 0
-  constexpr Rational() = default;
-  constexpr Rational(std::int64_t coef) : numerator_(coef) {};
-  constexpr Rational(int coef) : numerator_(coef) {};
-  constexpr Rational(std::int64_t n, std::int64_t d)
+  TRIVIAL constexpr Rational() = default;
+  TRIVIAL constexpr Rational(std::int64_t coef) : numerator_(coef){};
+  TRIVIAL constexpr Rational(int coef) : numerator_(coef){};
+  TRIVIAL constexpr Rational(std::int64_t n, std::int64_t d)
     : numerator_(d > 0 ? n : -n), denominator_(n ? (d > 0 ? d : -d) : 1) {}
-  static constexpr auto createPositiveDenominator(std::int64_t n,
-                                                  std::int64_t d) -> Rational {
+  TRIVIAL static constexpr auto createPositiveDenominator(std::int64_t n,
+                                                          std::int64_t d)
+    -> Rational {
     utils::assume(d > 0);
     if (!n) Rational{0, 1};
     std::int64_t g = gcd(n, d);
@@ -52,13 +54,14 @@ struct Rational {
     }
     return Rational{n, d};
   }
-  static constexpr auto create(std::int64_t n, std::int64_t d) -> Rational {
+  TRIVIAL static constexpr auto create(std::int64_t n, std::int64_t d)
+    -> Rational {
     if (!n) return Rational{0, 1};
     std::int64_t sign = 2 * (d > 0) - 1;
     return createPositiveDenominator(n * sign, d * sign);
   }
 
-  [[nodiscard]] constexpr auto safeAdd(Rational y) const
+  TRIVIAL [[nodiscard]] constexpr auto safeAdd(Rational y) const
     -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator_, y.denominator_);
     std::int64_t a, b, n, d;
@@ -71,16 +74,16 @@ struct Rational {
     auto [nn, nd] = divgcd(n, d);
     return Rational{nn, nd};
   }
-  constexpr auto operator+(Rational y) const -> Rational {
+  TRIVIAL constexpr auto operator+(Rational y) const -> Rational {
     return *safeAdd(y); // NOLINT(bugprone-unchecked-optional-access)
   }
-  constexpr auto operator+=(Rational y) -> Rational & {
+  TRIVIAL constexpr auto operator+=(Rational y) -> Rational & {
     std::optional<Rational> a = *this + y;
     invariant(a.has_value());
     *this = *a;
     return *this;
   }
-  [[nodiscard]] constexpr auto safeSub(Rational y) const
+  TRIVIAL [[nodiscard]] constexpr auto safeSub(Rational y) const
     -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator_, y.denominator_);
     std::int64_t a, b, n, d;
@@ -93,23 +96,23 @@ struct Rational {
     auto [nn, nd] = divgcd(n, d);
     return Rational{nn, nd};
   }
-  constexpr auto operator-(Rational y) const -> Rational {
+  TRIVIAL constexpr auto operator-(Rational y) const -> Rational {
     return *safeSub(y); // NOLINT(bugprone-unchecked-optional-access)
   }
-  constexpr auto operator-=(Rational y) -> Rational & {
+  TRIVIAL constexpr auto operator-=(Rational y) -> Rational & {
     std::optional<Rational> a = *this - y;
     invariant(a.has_value());
     *this = *a;
     return *this;
   }
-  [[nodiscard]] constexpr auto safeMul(std::int64_t y) const
+  TRIVIAL [[nodiscard]] constexpr auto safeMul(std::int64_t y) const
     -> std::optional<Rational> {
     auto [xd, yn] = divgcd(denominator_, y);
     std::int64_t n;
     if (__builtin_mul_overflow(numerator_, yn, &n)) return {};
     return Rational{n, xd};
   }
-  [[nodiscard]] constexpr auto safeMul(Rational y) const
+  TRIVIAL [[nodiscard]] constexpr auto safeMul(Rational y) const
     -> std::optional<Rational> {
     if ((numerator_ == 0) | (y.numerator_ == 0)) return Rational{0, 1};
     auto [xn, yd] = divgcd(numerator_, y.denominator_);
@@ -120,10 +123,10 @@ struct Rational {
     if (o1 | o2) return {};
     return Rational{n, d};
   }
-  constexpr auto operator*(Rational y) const -> Rational {
+  TRIVIAL constexpr auto operator*(Rational y) const -> Rational {
     return *safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
   }
-  constexpr auto operator*=(Rational y) -> Rational & {
+  TRIVIAL constexpr auto operator*=(Rational y) -> Rational & {
     if ((numerator_ != 0) & (y.numerator_ != 0)) {
       auto [xn, yd] = divgcd(numerator_, y.denominator_);
       auto [xd, yn] = divgcd(denominator_, y.numerator_);
@@ -135,21 +138,21 @@ struct Rational {
     }
     return *this;
   }
-  [[nodiscard]] constexpr auto inv() const -> Rational {
+  TRIVIAL [[nodiscard]] constexpr auto inv() const -> Rational {
     if (numerator_ > 0) return Rational{denominator_, numerator_};
     invariant(denominator_ != std::numeric_limits<std::int64_t>::min());
     invariant(numerator_ != 0);
     return Rational{-denominator_, -numerator_};
   }
-  [[nodiscard]] constexpr auto safeDiv(Rational y) const
+  TRIVIAL [[nodiscard]] constexpr auto safeDiv(Rational y) const
     -> std::optional<Rational> {
     return (*this) * y.inv();
   }
-  constexpr auto operator/(Rational y) const -> Rational {
+  TRIVIAL constexpr auto operator/(Rational y) const -> Rational {
     return *safeDiv(y); // NOLINT(bugprone-unchecked-optional-access)
   }
   // *this -= a*b
-  constexpr auto fnmadd(Rational a, Rational b) -> bool {
+  TRIVIAL constexpr auto fnmadd(Rational a, Rational b) -> bool {
     if (std::optional<Rational> ab = a.safeMul(b)) {
       if (std::optional<Rational> c = safeSub(*ab)) {
         *this = *c;
@@ -158,7 +161,7 @@ struct Rational {
     }
     return true;
   }
-  constexpr auto div(Rational a) -> bool {
+  TRIVIAL constexpr auto div(Rational a) -> bool {
     if (std::optional<Rational> d = safeDiv(a)) {
       *this = *d;
       return false;
@@ -167,48 +170,50 @@ struct Rational {
   }
   // Rational operator/=(Rational y) { return (*this) *= y.inv(); }
 
-  constexpr auto operator==(Rational y) const -> bool {
+  TRIVIAL constexpr auto operator==(Rational y) const -> bool {
     return (numerator_ == y.numerator_) & (denominator_ == y.denominator_);
   }
-  constexpr auto operator!=(Rational y) const -> bool {
+  TRIVIAL constexpr auto operator!=(Rational y) const -> bool {
     return (numerator_ != y.numerator_) | (denominator_ != y.denominator_);
   }
-  [[nodiscard]] constexpr auto isEqual(std::int64_t y) const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto isEqual(std::int64_t y) const -> bool {
     utils::invariant(denominator_ > 0);
     if (denominator_ == 1) return (numerator_ == y);
     return false;
   }
-  constexpr auto operator==(int y) const -> bool { return isEqual(y); }
-  constexpr auto operator==(std::int64_t y) const -> bool { return isEqual(y); }
-  constexpr auto operator!=(int y) const -> bool { return !isEqual(y); }
-  constexpr auto operator!=(std::int64_t y) const -> bool {
+  TRIVIAL constexpr auto operator==(int y) const -> bool { return isEqual(y); }
+  TRIVIAL constexpr auto operator==(std::int64_t y) const -> bool {
+    return isEqual(y);
+  }
+  TRIVIAL constexpr auto operator!=(int y) const -> bool { return !isEqual(y); }
+  TRIVIAL constexpr auto operator!=(std::int64_t y) const -> bool {
     return !isEqual(y);
   }
-  constexpr auto operator<(Rational y) const -> bool {
+  TRIVIAL constexpr auto operator<(Rational y) const -> bool {
     return (utils::widen(numerator_) * utils::widen(y.denominator_)) <
            (utils::widen(y.numerator_) * utils::widen(denominator_));
   }
-  constexpr auto operator<=(Rational y) const -> bool {
+  TRIVIAL constexpr auto operator<=(Rational y) const -> bool {
     return (utils::widen(numerator_) * utils::widen(y.denominator_)) <=
            (utils::widen(y.numerator_) * utils::widen(denominator_));
   }
-  constexpr auto operator>(Rational y) const -> bool {
+  TRIVIAL constexpr auto operator>(Rational y) const -> bool {
     return (utils::widen(numerator_) * utils::widen(y.denominator_)) >
            (utils::widen(y.numerator_) * utils::widen(denominator_));
   }
-  constexpr auto operator>=(Rational y) const -> bool {
+  TRIVIAL constexpr auto operator>=(Rational y) const -> bool {
     return (utils::widen(numerator_) * utils::widen(y.denominator_)) >=
            (utils::widen(y.numerator_) * utils::widen(denominator_));
   }
-  constexpr auto operator>=(int y) const -> bool {
+  TRIVIAL constexpr auto operator>=(int y) const -> bool {
     return *this >= Rational(y);
   }
-  [[nodiscard]] constexpr auto isInteger() const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto isInteger() const -> bool {
     return denominator_ == 1;
   }
-  constexpr void negate() { numerator_ = -numerator_; }
-  constexpr explicit operator bool() const { return numerator_ != 0; }
-  constexpr explicit operator double() const {
+  TRIVIAL constexpr void negate() { numerator_ = -numerator_; }
+  TRIVIAL constexpr explicit operator bool() const { return numerator_ != 0; }
+  TRIVIAL constexpr explicit operator double() const {
     return double(numerator_) / double(denominator_);
   }
 
@@ -217,25 +222,31 @@ struct Rational {
 #endif
 
 private:
-  friend constexpr auto operator+(Rational x, std::int64_t y) -> Rational {
+  TRIVIAL friend constexpr auto operator+(Rational x, std::int64_t y)
+    -> Rational {
     return Rational{x.numerator_ + y * x.denominator_, x.denominator_};
   }
-  friend constexpr auto operator+(std::int64_t y, Rational x) -> Rational {
+  TRIVIAL friend constexpr auto operator+(std::int64_t y, Rational x)
+    -> Rational {
     return x + y;
   }
-  friend constexpr auto operator-(Rational x, std::int64_t y) -> Rational {
+  TRIVIAL friend constexpr auto operator-(Rational x, std::int64_t y)
+    -> Rational {
     return Rational{x.numerator_ - y * x.denominator_, x.denominator_};
   }
-  friend constexpr auto operator-(std::int64_t y, Rational x) -> Rational {
+  TRIVIAL friend constexpr auto operator-(std::int64_t y, Rational x)
+    -> Rational {
     return Rational{y * x.denominator_ - x.numerator_, x.denominator_};
   }
-  friend constexpr auto operator*(Rational x, std::int64_t y) -> Rational {
+  TRIVIAL friend constexpr auto operator*(Rational x, std::int64_t y)
+    -> Rational {
     return *x.safeMul(y); // NOLINT(bugprone-unchecked-optional-access)
   }
-  friend constexpr auto operator*(std::int64_t y, Rational x) -> Rational {
+  TRIVIAL friend constexpr auto operator*(std::int64_t y, Rational x)
+    -> Rational {
     return x * y;
   }
-  friend constexpr auto operator==(std::int64_t x, Rational y) -> bool {
+  TRIVIAL friend constexpr auto operator==(std::int64_t x, Rational y) -> bool {
     return y.isEqual(x);
   }
   friend auto operator<<(std::ostream &os, const Rational &x)
@@ -244,7 +255,8 @@ private:
     if (x.denominator_ != 1) os << " // " << x.denominator_;
     return os;
   }
-  friend constexpr auto gcd(Rational x, Rational y) -> std::optional<Rational> {
+  TRIVIAL friend constexpr auto gcd(Rational x, Rational y)
+    -> std::optional<Rational> {
     return Rational{gcd(x.numerator_, y.numerator_),
                     lcm(x.denominator_, y.denominator_)};
   }

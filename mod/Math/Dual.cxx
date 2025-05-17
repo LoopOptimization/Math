@@ -7,6 +7,7 @@ module;
 #include "Macros.hxx"
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
+#include "Containers/Tuple.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
@@ -62,45 +63,45 @@ namespace math {
 template <class T, std::ptrdiff_t N, bool Compress = false> struct Dual {
   static_assert(Compress);
   using CT = utils::compressed_t<T>;
-  CT val{};
-  SVector<T, N, true> partials{CT{}};
+  CT val_{};
+  SVector<T, N, true> partials_{CT{}};
 
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
   TRIVIAL constexpr operator decompressed_type() const {
     return decompressed_type::decompress(this);
   }
-  TRIVIAL [[nodiscard]] constexpr auto value() -> T { return val; }
+  TRIVIAL [[nodiscard]] constexpr auto value() -> T { return val_; }
   TRIVIAL [[nodiscard]] constexpr auto value() const -> const T & {
-    return val;
+    return val_;
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() -> SVector<T, N, true> & {
-    return partials;
+    return partials_;
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() const
     -> const SVector<T, N, true> & {
-    return partials;
+    return partials_;
   }
 
   // TRIVIAL constexpr auto operator-() const & -> Dual {
-  //   return {-val, -partials};
+  //   return {-val_, -partials};
   // }
   // TRIVIAL constexpr auto
   // operator+(const Dual &other) const & -> Dual {
-  //   return {val + other.val, partials + other.partials};
+  //   return {val_ + other.val_, partials + other.partials};
   // }
   // TRIVIAL constexpr auto operator-(const Dual &other) const
   //   -> Dual {
-  //   return {val - other.val, partials - other.partials};
+  //   return {val_ - other.val_, partials - other.partials};
   // }
   // TRIVIAL constexpr auto operator+=(const Dual &other)
   //   -> Dual & {
-  //   val += other.val;
+  //   val_ += other.val_;
   //   partials += other.partials;
   //   return *this;
   // }
   // TRIVIAL constexpr auto operator-=(const Dual &other)
   //   -> Dual & {
-  //   val -= other.val;
+  //   val_ -= other.val_;
   //   partials -= other.partials;
   //   return *this;
   // }
@@ -109,42 +110,42 @@ template <class T, std::ptrdiff_t N, bool Compress = false> struct Dual {
 template <simd::SIMDSupported T, std::ptrdiff_t N>
 requires(std::popcount(std::size_t(N)) > 1)
 struct Dual<T, N, true> {
-  SVector<T, N + 1, true> data{T{}};
+  SVector<T, N + 1, true> data_{T{}};
 
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
   TRIVIAL constexpr operator decompressed_type() const {
     return decompressed_type::decompress(this);
   }
-  TRIVIAL [[nodiscard]] constexpr auto value() -> T { return data[0]; }
+  TRIVIAL [[nodiscard]] constexpr auto value() -> T { return data_[0]; }
   TRIVIAL [[nodiscard]] constexpr auto value() const -> const T & {
-    return data[0];
+    return data_[0];
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() -> MutArray<T, Length<N>> {
-    return {data.data() + 1, {}};
+    return {data_.data() + 1, {}};
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() const -> Array<T, Length<N>> {
-    return {data.data() + 1, {}};
+    return {data_.data() + 1, {}};
   }
 
   // TRIVIAL constexpr auto operator-() const & -> Dual {
-  //   return {-data};
+  //   return {-data_};
   // }
   // TRIVIAL constexpr auto
   // operator+(const Dual &other) const & -> Dual {
-  //   return {data + other.data};
+  //   return {data_ + other.data_};
   // }
   // TRIVIAL constexpr auto operator-(const Dual &other) const
   //   -> Dual {
-  //   return {data - other.data};
+  //   return {data_ - other.data_};
   // }
   // TRIVIAL constexpr auto operator+=(const Dual &other)
   //   -> Dual & {
-  //   data += other.data;
+  //   data_ += other.data_;
   //   return *this;
   // }
   // TRIVIAL constexpr auto operator-=(const Dual &other)
   //   -> Dual & {
-  //   data -= other.data;
+  //   data_ -= other.data_;
   //   return *this;
   // }
 };
@@ -152,8 +153,8 @@ struct Dual<T, N, true> {
 template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
   // default decompressed separates the value and partials
   using data_type = SVector<T, N, false>;
-  T val{};
-  data_type partials{T{}};
+  T val_{};
+  data_type partials_{T{}};
 
   // using compressed_type = Dual<utils::compressed_t<T>, N, true>;
   using compressed_type = Dual<T, N, true>;
@@ -161,208 +162,214 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
   static_assert(std::same_as<Dual, decompressed_type>);
 
   TRIVIAL constexpr Dual() = default;
-  TRIVIAL constexpr Dual(T v) : val(v) {}
-  TRIVIAL constexpr Dual(T v, std::ptrdiff_t n) : val(v) { partials[n] = T{1}; }
-  TRIVIAL constexpr Dual(T v, data_type g) : val(v), partials(g) {}
+  TRIVIAL constexpr Dual(T v) : val_(v) {}
+  TRIVIAL constexpr Dual(T v, std::ptrdiff_t n) : val_(v) {
+    partials_[n] = T{1};
+  }
+  TRIVIAL constexpr Dual(T v, data_type g) : val_(v), partials_(g) {}
   TRIVIAL constexpr Dual(T v, AbstractVector auto g) {
     value() = v;
     gradient() << g;
   }
-  TRIVIAL constexpr Dual(std::integral auto v) : val(v) {}
-  TRIVIAL constexpr Dual(std::floating_point auto v) : val(v) {}
+  TRIVIAL constexpr Dual(std::integral auto v) : val_(v) {}
+  TRIVIAL constexpr Dual(std::floating_point auto v) : val_(v) {}
   // constexpr Dual(const Dual &) = default;
   // constexpr auto operator=(const Dual &) -> Dual & = default;
-  TRIVIAL constexpr auto value() -> T & { return val; }
-  TRIVIAL constexpr auto gradient() -> data_type & { return partials; }
+  TRIVIAL constexpr auto value() -> T & { return val_; }
+  TRIVIAL constexpr auto gradient() -> data_type & { return partials_; }
   TRIVIAL constexpr auto gradient(std::ptrdiff_t i) -> T & {
-    return partials[i];
+    return partials_[i];
   }
   TRIVIAL [[nodiscard]] constexpr auto value() const -> const T & {
-    return val;
+    return val_;
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() const -> const data_type & {
-    return partials;
+    return partials_;
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient(std::ptrdiff_t i) const
     -> const T & {
-    return partials[i];
+    return partials_[i];
   }
-  TRIVIAL constexpr auto operator-() const -> Dual { return {-val, -partials}; }
+  TRIVIAL constexpr auto operator-() const -> Dual {
+    return {-val_, -partials_};
+  }
   TRIVIAL constexpr auto operator+(const Dual &other) const -> Dual {
-    return {val + other.val, partials + other.partials};
+    return {val_ + other.val_, partials_ + other.partials_};
   }
   TRIVIAL constexpr auto operator-(const Dual &other) const -> Dual {
-    return {val - other.val, partials - other.partials};
+    return {val_ - other.val_, partials_ - other.partials_};
   }
   TRIVIAL constexpr auto operator*(const Dual &other) const -> Dual {
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
     if constexpr (std::same_as<T, double> && (N > 1)) {
-      Dual ret(val * other.val);
+      Dual ret(val_ * other.val_);
       using V = typename data_type::V;
       constexpr std::ptrdiff_t W = data_type::W;
-      V va = simd::vbroadcast<W, double>(val),
-        vb = simd::vbroadcast<W, double>(other.val);
+      V va = simd::vbroadcast<W, double>(val_),
+        vb = simd::vbroadcast<W, double>(other.val_);
       if constexpr (data_type::L == 1) {
-        ret.partials.data_ = va * other.partials.data_ + vb * partials.data_;
+        ret.partials_.data_ = va * other.partials_.data_ + vb * partials_.data_;
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t i = 0; i < data_type::L; ++i)
-          ret.partials.memory_[i] =
-            va * other.partials.memory_[i] + vb * partials.memory_[i];
+          ret.partials_.memory_[i] =
+            va * other.partials_.memory_[i] + vb * partials_.memory_[i];
       }
       return ret;
     } else
 #endif
-      return {val * other.val, (val * other.partials) + (other.val * partials)};
+      return {val_ * other.val_,
+              (val_ * other.partials_) + (other.val_ * partials_)};
   }
   TRIVIAL constexpr auto operator/(const Dual &other) const -> Dual {
-    return {val / other.val, (other.val * partials - val * other.partials) /
-                               (other.val * other.val)};
+    return {val_ / other.val_,
+            (other.val_ * partials_ - val_ * other.partials_) /
+              (other.val_ * other.val_)};
   }
   TRIVIAL constexpr auto operator+(const T &other) const & -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {val + other, partials};
+    return {val_ + other, partials_};
   }
   TRIVIAL constexpr auto operator-(const T &other) const -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {val - other, partials};
+    return {val_ - other, partials_};
   }
   TRIVIAL constexpr auto operator*(const T &other) const -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {val * other, partials * other};
+    return {val_ * other, partials_ * other};
   }
   TRIVIAL constexpr auto operator/(const T &other) const -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {val / other, partials / other};
+    return {val_ / other, partials_ / other};
   }
   TRIVIAL constexpr auto operator+=(const Dual &other) -> Dual & {
-    val += other.val;
-    partials += other.partials;
+    val_ += other.val_;
+    partials_ += other.partials_;
     return *this;
   }
   TRIVIAL constexpr auto operator-=(const Dual &other) -> Dual & {
-    val -= other.val;
-    partials -= other.partials;
+    val_ -= other.val_;
+    partials_ -= other.partials_;
     return *this;
   }
   TRIVIAL constexpr auto operator*=(const Dual &other) -> Dual & {
-    partials << (val * other.partials) + (other.val * partials);
-    val *= other.val;
+    partials_ << (val_ * other.partials_) + (other.val_ * partials_);
+    val_ *= other.val_;
     return *this;
   }
   TRIVIAL constexpr auto operator/=(const Dual &other) -> Dual & {
-    partials << (other.val * partials - val * other.partials) /
-                  (other.val * other.val);
-    val /= other.val;
+    partials_ << (other.val_ * partials_ - val_ * other.partials_) /
+                   (other.val_ * other.val_);
+    val_ /= other.val_;
     return *this;
   }
   TRIVIAL constexpr auto operator+(double other) const & -> Dual {
-    return {val + other, partials};
+    return {val_ + other, partials_};
   }
   TRIVIAL constexpr auto operator-(double other) const -> Dual {
-    return {val - other, partials};
+    return {val_ - other, partials_};
   }
   TRIVIAL constexpr auto operator*(double other) const -> Dual {
-    return {val * other, partials * other};
+    return {val_ * other, partials_ * other};
   }
   TRIVIAL constexpr auto operator/(double other) const -> Dual {
-    return {val / other, partials / other};
+    return {val_ / other, partials_ / other};
   }
   TRIVIAL constexpr auto operator+=(double other) -> Dual & {
-    val += other;
+    val_ += other;
     return *this;
   }
   TRIVIAL constexpr auto operator-=(double other) -> Dual & {
-    val -= other;
+    val_ -= other;
     return *this;
   }
   TRIVIAL constexpr auto operator*=(double other) -> Dual & {
-    val *= other;
-    partials *= other;
+    val_ *= other;
+    partials_ *= other;
     return *this;
   }
   TRIVIAL constexpr auto operator/=(double other) -> Dual & {
-    val /= other;
-    partials /= other;
+    val_ /= other;
+    partials_ /= other;
     return *this;
   }
   TRIVIAL constexpr auto operator==(const Dual &other) const -> bool {
-    return val == other.val; // && grad == other.grad;
+    return val_ == other.val_; // && grad == other.grad;
   }
   TRIVIAL constexpr auto operator!=(const Dual &other) const -> bool {
-    return val != other.val; // || grad != other.grad;
+    return val_ != other.val_; // || grad != other.grad;
   }
   TRIVIAL constexpr auto operator<(const Dual &other) const -> bool {
-    return val < other.val;
+    return val_ < other.val_;
   }
   TRIVIAL constexpr auto operator>(const Dual &other) const -> bool {
-    return val > other.val;
+    return val_ > other.val_;
   }
   TRIVIAL constexpr auto operator<=(const Dual &other) const -> bool {
-    return val <= other.val;
+    return val_ <= other.val_;
   }
   TRIVIAL constexpr auto operator>=(const Dual &other) const -> bool {
-    return val >= other.val;
+    return val_ >= other.val_;
   }
   TRIVIAL constexpr auto operator==(double other) const -> bool {
-    return val == other;
+    return val_ == other;
   }
   TRIVIAL constexpr auto operator!=(double other) const -> bool {
-    return val != other;
+    return val_ != other;
   }
   TRIVIAL constexpr auto operator<(double other) const -> bool {
-    return val < other;
+    return val_ < other;
   }
   TRIVIAL constexpr auto operator>(double other) const -> bool {
-    return val > other;
+    return val_ > other;
   }
   TRIVIAL constexpr auto operator<=(double other) const -> bool {
-    return val <= other;
+    return val_ <= other;
   }
   TRIVIAL constexpr auto operator>=(double other) const -> bool {
-    return val >= other;
+    return val_ >= other;
   }
   TRIVIAL constexpr auto operator==(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
-    return val == other;
+    return val_ == other;
   }
   TRIVIAL constexpr auto operator!=(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
-    return val != other;
+    return val_ != other;
   }
   TRIVIAL constexpr auto operator<(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
-    return val < other;
+    return val_ < other;
   }
   TRIVIAL constexpr auto operator>(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
-    return val > other;
+    return val_ > other;
   }
   TRIVIAL constexpr auto operator<=(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
-    return val <= other;
+    return val_ <= other;
   }
   TRIVIAL constexpr auto operator>=(T other) const -> bool
   requires(!std::same_as<T, double>)
   {
-    return val >= other;
+    return val_ >= other;
   }
   TRIVIAL constexpr void compress(compressed_type *p) const {
-    utils::compress(val, &(p->val));
-    partials.compress(&(p->partials));
+    utils::compress(val_, &(p->val_));
+    partials_.compress(&(p->partials_));
   }
   TRIVIAL static constexpr auto decompress(const compressed_type *p) -> Dual {
-    return {utils::decompress<T>(&(p->val)),
-            SVector<T, N>::decompress(&(p->partials))};
+    return {utils::decompress<T>(&(p->val_)),
+            SVector<T, N>::decompress(&(p->partials_))};
   }
   TRIVIAL constexpr operator compressed_type() const {
     compressed_type ret;
@@ -402,26 +409,26 @@ private:
   TRIVIAL friend constexpr auto operator+(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {a + b.val, b.partials};
+    return {a + b.val_, b.partials_};
   }
   TRIVIAL friend constexpr auto operator-(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {a - b.val, -b.partials};
+    return {a - b.val_, -b.partials_};
   }
   TRIVIAL friend constexpr auto operator*(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
     // Dual res;
-    // res.val = val * other.val;
-    // res.partials << val * other.partials + other.val * partials;
+    // res.val_ = val_ * other.val_;
+    // res.partials << val_ * other.partials + other.val_ * partials;
     // return res;
-    return {a * b.val, a * b.partials};
+    return {a * b.val_, a * b.partials_};
   }
   TRIVIAL friend constexpr auto operator/(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
   {
-    return {a / b.val, (-a * b.partials) / (b.val * b.val)};
+    return {a / b.val_, (-a * b.partials_) / (b.val_ * b.val_)};
   }
   TRIVIAL friend constexpr auto operator+(double other, Dual x) -> Dual {
     return {x.value() + other, x.gradient()};
@@ -443,7 +450,7 @@ struct Dual<T, N, false> {
   static constexpr std::ptrdiff_t value_idx = 0; // N;
   static constexpr std::ptrdiff_t partial_offset = value_idx != N;
   using data_type = SVector<T, N + 1, false>;
-  data_type data{T{}};
+  data_type data_{T{}};
   using compressed_type = Dual<T, N, true>;
   using decompressed_type = Dual<T, N, false>;
 
@@ -451,106 +458,106 @@ struct Dual<T, N, false> {
   static constexpr std::ptrdiff_t W = data_type::W;
   // constexpr Dual() = default;
   TRIVIAL constexpr Dual() = default;
-  TRIVIAL constexpr Dual(T v) { data[value_idx] = v; }
+  TRIVIAL constexpr Dual(T v) { data_[value_idx] = v; }
   TRIVIAL constexpr Dual(T v, std::ptrdiff_t n) {
-    data[value_idx] = v;
-    data[partial_offset + n] = T{1};
+    data_[value_idx] = v;
+    data_[partial_offset + n] = T{1};
   }
   // constexpr Dual(T v, std::ptrdiff_t n, T p) {
-  //   data[value_idx] = v;
-  //   data[partial_offset + n] = p;
+  //   data_[value_idx] = v;
+  //   data_[partial_offset + n] = p;
   // }
   TRIVIAL constexpr Dual(T v, AbstractVector auto g) {
     value() = v;
     gradient() << g;
   }
-  TRIVIAL constexpr Dual(data_type d) : data{d} {}
+  TRIVIAL constexpr Dual(data_type d) : data_{d} {}
   TRIVIAL constexpr Dual(const AbstractVector auto &d)
   requires(std::convertible_to<utils::eltype_t<decltype(d)>, T>)
-    : data{d} {}
+    : data_{d} {}
   TRIVIAL constexpr Dual(std::integral auto v) { value() = v; }
   TRIVIAL constexpr Dual(std::floating_point auto v) { value() = v; }
-  TRIVIAL constexpr auto value() -> T & { return data[value_idx]; }
+  TRIVIAL constexpr auto value() -> T & { return data_[value_idx]; }
   TRIVIAL constexpr auto gradient() -> MutArray<T, Length<N>> {
-    return {data.data() + partial_offset, {}};
+    return {data_.data() + partial_offset, {}};
   }
   TRIVIAL [[nodiscard]] constexpr auto value() const -> T {
-    return data[value_idx];
+    return data_[value_idx];
   }
   // zeros out partial part of the vector
   TRIVIAL [[nodiscard]] constexpr auto vvalue() const -> V {
-    // return data[value_idx];
+    // return data_[value_idx];
     if constexpr (data_type::L == 1)
       return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{})
-               ? data.data_
+               ? data_.data_
                : V{};
     else
       return (simd::range<W, std::int64_t>() == simd::Vec<W, std::int64_t>{})
-               ? data.memory_[0]
+               ? data_.memory_[0]
                : V{};
   }
   // broadcasts value across register
   TRIVIAL [[nodiscard]] constexpr auto vbvalue() const -> V {
-    if constexpr (data_type::L == 1) return simd::vbroadcast<W, T>(data.data_);
-    else return simd::vbroadcast<W, T>(data.memory_[0]);
+    if constexpr (data_type::L == 1) return simd::vbroadcast<W, T>(data_.data_);
+    else return simd::vbroadcast<W, T>(data_.memory_[0]);
   }
   TRIVIAL [[nodiscard]] constexpr auto gradient() const -> Array<T, Length<N>> {
-    return {data.data() + partial_offset, {}};
+    return {data_.data() + partial_offset, {}};
   }
 
-  TRIVIAL constexpr auto operator-() const -> Dual { return {-data}; }
+  TRIVIAL constexpr auto operator-() const -> Dual { return {-data_}; }
   // constexpr auto operator+(const Dual &other) const -> Dual {
-  //   return {data + other.data};
+  //   return {data_ + other.data_};
   // }
   // constexpr auto operator-(const Dual &other) const -> Dual {
-  //   return {data - other.data};
+  //   return {data_ - other.data_};
   // }
   // constexpr auto operator*(const Dual &other) const -> Dual {
   //   // TODO: either update remaining methods to match this style,
   //   // or figure out how to get `conditional`'s codegen quality to match
   //   if constexpr (data_type::L == 1) {
-  //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
+  //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data_.data_;
   //     return {
-  //       {simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W,
+  //       {simd::fmadd<T>(vo, data_.data_, x, simd::firstoff<W,
   //       std::int64_t>())}};
   //   } else {
   //     Dual ret;
-  //     V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
-  //     ret.data.memory_[0] =
-  //       simd::fmadd<T>(vo, data.memory_[0], x, simd::firstoff<W,
+  //     V vt = vbvalue(), vo = other.vbvalue(), x = vt *
+  //     other.data_.memory_[0]; ret.data_.memory_[0] =
+  //       simd::fmadd<T>(vo, data_.memory_[0], x, simd::firstoff<W,
   //       std::int64_t>());
   //     POLYMATHFULLUNROLL
   //     for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-  //       ret.data.memory_[i] = vt * other.data.memory_[i] + vo *
-  //       data.memory_[i];
+  //       ret.data_.memory_[i] = vt * other.data_.memory_[i] + vo *
+  //       data_.memory_[i];
   //     return ret;
   //   }
   //   // return {conditional(std::plus<>{},
   //   //                     elementwise_not_equal(_(0, N + 1), value_idx),
-  //   //                     value() * other.data, data * other.value())};
+  //   //                     value() * other.data_, data_ * other.value())};
   // }
   // constexpr auto operator/(const Dual &other) const -> Dual {
   //   Dual ret;
   //   if constexpr (data_type::L == 1) {
   //     V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
-  //       x = vo * data.data_;
-  //     ret.data.data_ =
-  //       simd::fnmadd<T>(vt, other.data.data_, x, simd::firstoff<W,
+  //       x = vo * data_.data_;
+  //     ret.data_.data_ =
+  //       simd::fnmadd<T>(vt, other.data_.data_, x, simd::firstoff<W,
   //       std::int64_t>()) / vo2;
   //   } else {
   //     V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
-  //       x = vo * data.memory_[0];
-  //     ret.data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
+  //       x = vo * data_.memory_[0];
+  //     ret.data_.memory_[0] = simd::fnmadd<T>(vt, other.data_.memory_[0], x,
   //                                           simd::firstoff<W,
   //                                           std::int64_t>()) /
   //                           vo2;
   //     POLYMATHFULLUNROLL
   //     for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-  //       ret.data.memory_[i] =
-  //         (vo * data.memory_[i] - vt * other.data.memory_[i]) / vo2;
+  //       ret.data_.memory_[i] =
+  //         (vo * data_.memory_[i] - vt * other.data_.memory_[i]) / vo2;
   //   }
   //   return ret;
-  //   // val = value() / other.value()
+  //   // val_ = value() / other.value()
   //   // partials = (other.value() * gradient() - value() * other.gradient()) /
   //   // (other.value() * other.value())
   //   // partials = (gradient()) / (other.value())
@@ -558,97 +565,97 @@ struct Dual<T, N, false> {
   //   // T v{other.value()};
   //   // return {conditional(std::minus<>{},
   //   //                     elementwise_not_equal(_(0, N + 1), value_idx),
-  //   data /
-  //   //                     v, value() * other.data / (v * v))};
+  //   data_ /
+  //   //                     v, value() * other.data_ / (v * v))};
   // }
   TRIVIAL constexpr auto operator+=(Dual other) -> Dual & {
-    data += other.data;
+    data_ += other.data_;
     return *this;
   }
   TRIVIAL constexpr auto operator-=(Dual other) -> Dual & {
-    data -= other.data;
+    data_ -= other.data_;
     return *this;
   }
   TRIVIAL constexpr auto operator*=(Dual other) -> Dual & {
     if constexpr (data_type::L == 1) {
-      V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.data_;
-      data.data_ =
-        simd::fmadd<T>(vo, data.data_, x, simd::firstoff<W, std::int64_t>());
+      V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data_.data_;
+      data_.data_ =
+        simd::fmadd<T>(vo, data_.data_, x, simd::firstoff<W, std::int64_t>());
     } else {
-      V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data.memory_[0];
-      data.memory_[0] = simd::fmadd<T>(vo, data.memory_[0], x,
-                                       simd::firstoff<W, std::int64_t>());
+      V vt = vbvalue(), vo = other.vbvalue(), x = vt * other.data_.memory_[0];
+      data_.memory_[0] = simd::fmadd<T>(vo, data_.memory_[0], x,
+                                        simd::firstoff<W, std::int64_t>());
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-        data.memory_[i] = vt * other.data.memory_[i] + vo * data.memory_[i];
+        data_.memory_[i] = vt * other.data_.memory_[i] + vo * data_.memory_[i];
     }
-    // data << conditional(std::plus<>{},
+    // data_ << conditional(std::plus<>{},
     //                     elementwise_not_equal(_(0, N + 1), value_idx),
-    //                     value() * other.data, data * other.value());
+    //                     value() * other.data_, data_ * other.value());
     return *this;
   }
   TRIVIAL constexpr auto operator/=(Dual other) -> Dual & {
     if constexpr (data_type::L == 1) {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
-        x = vo * data.data_;
-      data.data_ = simd::fnmadd<T>(vt, other.data.data_, x,
-                                   simd::firstoff<W, std::int64_t>()) /
-                   vo2;
+        x = vo * data_.data_;
+      data_.data_ = simd::fnmadd<T>(vt, other.data_.data_, x,
+                                    simd::firstoff<W, std::int64_t>()) /
+                    vo2;
     } else {
       V vt = vbvalue(), vo = other.vbvalue(), vo2 = vo * vo,
-        x = vo * data.memory_[0];
-      data.memory_[0] = simd::fnmadd<T>(vt, other.data.memory_[0], x,
-                                        simd::firstoff<W, std::int64_t>()) /
-                        vo2;
+        x = vo * data_.memory_[0];
+      data_.memory_[0] = simd::fnmadd<T>(vt, other.data_.memory_[0], x,
+                                         simd::firstoff<W, std::int64_t>()) /
+                         vo2;
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-        data.memory_[i] =
-          (vo * data.memory_[i] - vt * other.data.memory_[i]) / vo2;
+        data_.memory_[i] =
+          (vo * data_.memory_[i] - vt * other.data_.memory_[i]) / vo2;
     }
     // T v{other.value()};
-    // data << conditional(std::minus<>{},
-    //                     elementwise_not_equal(_(0, N + 1), value_idx), data /
-    //                     v, value() * other.data / (v * v));
+    // data_ << conditional(std::minus<>{},
+    //                     elementwise_not_equal(_(0, N + 1), value_idx), data_
+    //                     / v, value() * other.data_ / (v * v));
     return *this;
   }
   // constexpr auto operator+(double other) const -> Dual {
   //   Dual ret = *this;
   //   if constexpr (data_type::L == 1)
-  //     ret.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
-  //   else ret.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //     ret.data_.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //   else ret.data_.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
   //   return ret;
   // }
   // constexpr auto operator-(double other) const -> Dual {
   //   Dual ret = *this;
   //   if constexpr (data_type::L == 1)
-  //     ret.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
-  //   else ret.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //     ret.data_.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
+  //   else ret.data_.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
   //   return ret;
   // }
   // constexpr auto operator*(double other) const -> Dual {
-  //   return {data * other};
+  //   return {data_ * other};
   // }
   // constexpr auto operator/(double other) const -> Dual {
-  //   return {data / other};
+  //   return {data_ / other};
   // }
   TRIVIAL constexpr auto operator+=(double other) -> Dual & {
     if constexpr (data_type::L == 1)
-      data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
-    else data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
+      data_.data_ += simd::Vec<SVector<T, N + 1>::W, T>{other};
+    else data_.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{other};
     return *this;
   }
   TRIVIAL constexpr auto operator-=(double other) -> Dual & {
     if constexpr (data_type::L == 1)
-      data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
-    else data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
+      data_.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{other};
+    else data_.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{other};
     return *this;
   }
   TRIVIAL constexpr auto operator*=(double other) -> Dual & {
-    data *= other;
+    data_ *= other;
     return *this;
   }
   TRIVIAL constexpr auto operator/=(double other) -> Dual & {
-    data /= other;
+    data_ /= other;
     return *this;
   }
   TRIVIAL constexpr auto operator==(const Dual &other) const -> bool {
@@ -688,14 +695,16 @@ struct Dual<T, N, false> {
     return value() >= other.value();
   }
   TRIVIAL static constexpr auto decompress(const compressed_type *p) -> Dual {
-    return {SVector<T, N + 1, false>{p->data}};
+    return {SVector<T, N + 1, false>{p->data_}};
   }
   TRIVIAL constexpr operator compressed_type() const {
     compressed_type ret;
     compress(&ret);
     return ret;
   }
-  TRIVIAL constexpr void compress(compressed_type *p) const { p->data << data; }
+  TRIVIAL constexpr void compress(compressed_type *p) const {
+    p->data_ << data_;
+  }
 
 private:
   TRIVIAL friend constexpr auto value(const Dual &x) -> T { return x.value(); }
@@ -705,31 +714,32 @@ private:
   TRIVIAL friend constexpr auto exp(Dual x) -> Dual {
     return {conditional(std::multiplies<>{},
                         elementwise_not_equal(_(0, N + 1), value_idx),
-                        exp(x.value()), x.data)};
+                        exp(x.value()), x.data_)};
   }
   TRIVIAL friend constexpr auto operator/(double a, Dual b) -> Dual {
     Dual ret;
     if constexpr (data_type::L == 1) {
       V vt = simd::vbroadcast<W, double>(a), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * simd::Vec<W, double>{a};
-      ret.data.data_ = simd::fnmadd<T>(vt, b.data.data_, x,
-                                       simd::firstoff<W, std::int64_t>()) /
-                       vo2;
+      ret.data_.data_ = simd::fnmadd<T>(vt, b.data_.data_, x,
+                                        simd::firstoff<W, std::int64_t>()) /
+                        vo2;
     } else {
       V vt = simd::vbroadcast<W, double>(a), vo = b.vbvalue(), vo2 = vo * vo,
         x = vo * simd::Vec<W, double>{a};
-      ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
-                                            simd::firstoff<W, std::int64_t>()) /
-                            vo2;
+      ret.data_.memory_[0] =
+        simd::fnmadd<T>(vt, b.data_.memory_[0], x,
+                        simd::firstoff<W, std::int64_t>()) /
+        vo2;
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-        ret.data.memory_[i] = (-vt * b.data.memory_[i]) / vo2;
+        ret.data_.memory_[i] = (-vt * b.data_.memory_[i]) / vo2;
     }
     return ret;
     // T v = other / x.value();
     // return {conditional(std::multiplies<>{},
     //                     elementwise_not_equal(_(0, N + 1), value_idx), v,
-    //                     -x.data / x.value())};
+    //                     -x.data_ / x.value())};
     // return {v, -v * x.gradient() / (x.value())};
   }
   TRIVIAL friend constexpr auto operator>(double other, Dual x) -> bool {
@@ -758,27 +768,28 @@ private:
   };
 
   TRIVIAL friend constexpr auto operator+(Dual x, Dual y) -> Dual {
-    return {x.data + y.data};
+    return {x.data_ + y.data_};
   }
 
   TRIVIAL friend constexpr auto operator-(Dual x, Dual y) -> Dual {
-    return {x.data - y.data};
+    return {x.data_ - y.data_};
   }
 
   TRIVIAL friend constexpr auto operator*(Dual a, Dual b) -> Dual {
     using D = Dual<T, N, false>;
     if constexpr (data_type::L == 1) {
-      V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.data_;
-      return {{simd::fmadd<T>(vo, a.data.data_, x,
+      V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data_.data_;
+      return {{simd::fmadd<T>(vo, a.data_.data_, x,
                               simd::firstoff<D::W, std::int64_t>())}};
     } else {
       Dual<T, N, false> ret;
-      V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data.memory_[0];
-      ret.data.memory_[0] = simd::fmadd<T>(
-        vo, a.data.memory_[0], x, simd::firstoff<D::W, std::int64_t>());
+      V vt = a.vbvalue(), vo = b.vbvalue(), x = vt * b.data_.memory_[0];
+      ret.data_.memory_[0] = simd::fmadd<T>(
+        vo, a.data_.memory_[0], x, simd::firstoff<D::W, std::int64_t>());
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-        ret.data.memory_[i] = vt * b.data.memory_[i] + vo * a.data.memory_[i];
+        ret.data_.memory_[i] =
+          vt * b.data_.memory_[i] + vo * a.data_.memory_[i];
       return ret;
     }
   }
@@ -786,64 +797,65 @@ private:
     Dual ret;
     if constexpr (data_type::L == 1) {
       V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
-        x = vo * a.data.data_;
-      ret.data.data_ = simd::fnmadd<T>(vt, b.data.data_, x,
-                                       simd::firstoff<W, std::int64_t>()) /
-                       vo2;
+        x = vo * a.data_.data_;
+      ret.data_.data_ = simd::fnmadd<T>(vt, b.data_.data_, x,
+                                        simd::firstoff<W, std::int64_t>()) /
+                        vo2;
     } else {
       V vt = a.vbvalue(), vo = b.vbvalue(), vo2 = vo * vo,
-        x = vo * a.data.memory_[0];
-      ret.data.memory_[0] = simd::fnmadd<T>(vt, b.data.memory_[0], x,
-                                            simd::firstoff<W, std::int64_t>()) /
-                            vo2;
+        x = vo * a.data_.memory_[0];
+      ret.data_.memory_[0] =
+        simd::fnmadd<T>(vt, b.data_.memory_[0], x,
+                        simd::firstoff<W, std::int64_t>()) /
+        vo2;
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 1; i < data_type::L; ++i)
-        ret.data.memory_[i] =
-          (vo * a.data.memory_[i] - vt * b.data.memory_[i]) / vo2;
+        ret.data_.memory_[i] =
+          (vo * a.data_.memory_[i] - vt * b.data_.memory_[i]) / vo2;
     }
     return ret;
   }
   TRIVIAL friend constexpr auto operator+(Dual a, double b) -> Dual {
     if constexpr (data_type::L == 1)
-      a.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{b};
-    else a.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{b};
+      a.data_.data_ += simd::Vec<SVector<T, N + 1>::W, T>{b};
+    else a.data_.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{b};
     return a;
   }
 
   TRIVIAL friend constexpr auto operator+(double a, Dual b) -> Dual {
     if constexpr (data_type::L == 1)
-      b.data.data_ += simd::Vec<SVector<T, N + 1>::W, T>{a};
-    else b.data.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{a};
+      b.data_.data_ += simd::Vec<SVector<T, N + 1>::W, T>{a};
+    else b.data_.memory_[0] += simd::Vec<SVector<T, N + 1>::W, T>{a};
     return b;
   }
 
   TRIVIAL friend constexpr auto operator-(Dual a, double b) -> Dual {
     if constexpr (data_type::L == 1)
-      a.data.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{b};
-    else a.data.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{b};
+      a.data_.data_ -= simd::Vec<SVector<T, N + 1>::W, T>{b};
+    else a.data_.memory_[0] -= simd::Vec<SVector<T, N + 1>::W, T>{b};
     return a;
   }
   TRIVIAL friend constexpr auto operator-(double a, Dual b) -> Dual {
     if constexpr (data_type::L == 1)
-      b.data.data_ = simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data.data_;
+      b.data_.data_ = simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data_.data_;
     else {
-      b.data.memory_[0] =
-        simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data.memory_[0];
+      b.data_.memory_[0] =
+        simd::Vec<SVector<T, N + 1>::W, T>{a} - b.data_.memory_[0];
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t l = 1; l < data_type::L; ++l)
-        b.data.memory_[l] = -b.data.memory_[l];
+        b.data_.memory_[l] = -b.data_.memory_[l];
     }
     return b;
   }
   TRIVIAL friend constexpr auto operator*(Dual a, double b) -> Dual {
-    return {a.data * b};
+    return {a.data_ * b};
   }
   TRIVIAL friend constexpr auto operator*(double a, Dual b) -> Dual {
-    return {a * b.data};
+    return {a * b.data_};
   }
 
   TRIVIAL friend constexpr auto operator/(Dual a, double b) -> Dual {
-    return {a.data / b};
+    return {a.data_ / b};
   }
 };
 
@@ -987,7 +999,7 @@ public:
   constexpr HessianResult(alloc::Arena<> *alloc, unsigned d)
     : HessianResultCore{alloc, d} {}
 
-  template <std::size_t I> constexpr auto get() const {
+  template <std::size_t I> TRIVIAL constexpr auto get() const {
     if constexpr (I == 0) return x;
     else if constexpr (I == 1) return gradient();
     else return hessian();
@@ -998,20 +1010,21 @@ template <std::ptrdiff_t N, AbstractVector T>
 struct DualVector : Expr<Dual<utils::eltype_t<T>, N>, DualVector<N, T>> {
   using value_type = Dual<utils::eltype_t<T>, N>;
   static_assert(utils::TriviallyCopyable<T>);
-  T x;
-  std::ptrdiff_t offset;
+  T x_;
+  std::ptrdiff_t offset_;
   TRIVIAL [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const
     -> value_type {
-    value_type v{x[i]};
-    if ((i >= offset) && (i < offset + N)) dval(v.gradient()[i - offset]) = 1.0;
+    value_type v{x_[i]};
+    if ((i >= offset_) && (i < offset_ + N))
+      dval(v.gradient()[i - offset_]) = 1.0;
     return v;
   }
   TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
-    return x.size();
+    return x_.size();
   }
   TRIVIAL [[nodiscard]] constexpr auto numRow() const -> Row<1> { return {}; }
   TRIVIAL [[nodiscard]] constexpr auto numCol() const -> Col<> {
-    return col(x.size());
+    return col(x_.size());
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const -> DualVector {
     return *this;
@@ -1023,7 +1036,7 @@ static_assert(AbstractVector<DualVector<2, DualVector<8, PtrVector<double>>>>);
 template <std::ptrdiff_t N>
 TRIVIAL constexpr auto dual(const AbstractVector auto &x,
                             std::ptrdiff_t offset) {
-  return DualVector<N, decltype(x.view())>{.x = x.view(), .offset = offset};
+  return DualVector<N, decltype(x.view())>{.x_ = x.view(), .offset_ = offset};
 }
 
 struct Assign {
@@ -1033,9 +1046,9 @@ struct Increment {
   TRIVIAL constexpr void operator()(double &x, double y) const { x += y; }
 };
 struct ScaledIncrement {
-  double scale;
+  double scale_;
   TRIVIAL constexpr void operator()(double &x, double y) const {
-    x += scale * y;
+    x += scale_ * y;
   }
 };
 
