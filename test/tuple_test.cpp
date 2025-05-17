@@ -4,7 +4,6 @@
 #include <concepts>
 #include <cstdint>
 #else
-import Pair;
 import std;
 import Tuple;
 #endif
@@ -17,7 +16,7 @@ TEST(TupleTest, BasicAssertions) {
   double y = 4.5;
   long z = -5;
   unsigned long w = 15;
-  Tuple t{w, x, y, z};
+  Tuple t{._0 = w, ._1 = x, ._2 = y, ._3 = z};
   {
     auto [a, b, c, d] = t;
     static_assert(std::same_as<decltype(a), unsigned long>);
@@ -67,4 +66,21 @@ TEST(TupleTest, BasicAssertions) {
   tie(Add(x), y) = Pair(4.7, 8.0);
   EXPECT_EQ(x, xtest + 4.7);
   EXPECT_EQ(y, 8.0);
+  auto t16 = Tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+  EXPECT_EQ(t16.template get<0>(), 0);
+  EXPECT_EQ(t16.template get<1>(), 1);
+  EXPECT_EQ(t16.template get<2>(), 2);
+  EXPECT_EQ(t16.template get<3>(), 3);
+  EXPECT_EQ(t16.template get<4>(), 4);
+  EXPECT_EQ(t16.template get<5>(), 5);
+  EXPECT_EQ(t16.template get<6>(), 6);
+  EXPECT_EQ(t16.template get<7>(), 7);
+  EXPECT_EQ(t16.template get<8>(), 8);
+  EXPECT_EQ(t16.template get<9>(), 9);
+  EXPECT_EQ(t16.template get<10>(), 10);
+  EXPECT_EQ(t16.template get<11>(), 11);
+  EXPECT_EQ(t16.template get<12>(), 12);
+  EXPECT_EQ(t16.template get<13>(), 13);
+  EXPECT_EQ(t16.template get<14>(), 14);
+  EXPECT_EQ(t16.template get<15>(), 15);
 }

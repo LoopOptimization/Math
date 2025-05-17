@@ -4,20 +4,22 @@ module;
 #pragma once
 #endif
 #ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <ranges>
-
-#include "Containers/Pair.cxx"
+#include "Containers/Tuple.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
-#include "Math/Constructors.cxx"
 #include "Math/GenericConstructors.cxx"
+#include "Math/Indexing.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/Rational.cxx"
 #include "Utilities/Parameters.cxx"
 #include "Utilities/TypeCompression.cxx"
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <ostream>
+#include <utility>
 #else
 export module LinearAlgebra;
 
@@ -27,7 +29,6 @@ import ArrayConstructors;
 import AxisTypes;
 import GenericArrayConstructors;
 import ManagedArray;
-import Pair;
 import Param;
 import Rational;
 import std;
@@ -244,12 +245,12 @@ template <typename S> constexpr auto factImpl(MutSquarePtrMatrix<S> A) {
   for (std::ptrdiff_t k = 0;; ++k) {
     containers::Pair<std::ptrdiff_t, V> mi{-1, {}};
     for (std::ptrdiff_t i = k; i < M; ++i)
-      if (V v = std::abs(extractvalue(A[i, k])); v > mi.second) mi = {i, v};
-    invariant(mi.first >= 0); // TODO: return info?
-    ipiv[k] = mi.first;
-    if (mi.first != k)
+      if (V v = std::abs(extractvalue(A[i, k])); v > mi._1) mi = {i, v};
+    invariant(mi._0 >= 0); // TODO: return info?
+    ipiv[k] = mi._0;
+    if (mi._0 != k)
       for (std::ptrdiff_t j = 0; j < M; ++j)
-        std::ranges::swap(A[mi.first, j], A[k, j]);
+        std::ranges::swap(A[mi._0, j], A[k, j]);
     if (k + 1 == M) break;
     S invAkk = 1.0 / A[k, k];
     for (std::ptrdiff_t i = k + 1; i < M; ++i)

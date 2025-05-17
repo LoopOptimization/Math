@@ -504,21 +504,21 @@ TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
 // template <typename A, typename B>
 // TRIVIAL constexpr auto promote_shape(const Tuple<A> &a,
 //                                                     const Tuple<B> &b) {
-//   return math::promote_shape(a.head, b.head);
+//   return math::promote_shape(a._0, b._0);
 // }
 template <typename A, typename... As, typename B, typename... Bs>
 TRIVIAL constexpr auto promote_shape(const Tuple<A, As...> &a,
                                      const Tuple<B, Bs...> &b)
 requires(sizeof...(As) == sizeof...(Bs))
 {
-  auto h = math::promote_shape(a.head_, b.head_);
-  if constexpr (sizeof...(As) == 0) return h;
-  else {
-    auto [Mh, Nh] = h;
-    auto [Mt, Nt] = promote_shape(a.tail_, b.tail_);
-    return math::CartesianIndex(math::check_sizes(Mh, Mt),
-                                math::check_sizes(Nh, Nt));
-  }
+  return a.map_reduce(
+    b, [](const auto &x, const auto &y) { return ::math::promote_shape(x, y); },
+    [](const auto &x, const auto &y) {
+      auto [Mx, Nx] = x;
+      auto [My, Ny] = y;
+      return math::CartesianIndex(math::check_sizes(Mx, My),
+                                  math::check_sizes(Nx, Ny));
+    });
 }
 template <typename A, typename... As, typename B, typename... Bs>
 TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
@@ -546,12 +546,15 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
     } else {
       std::ptrdiff_t r = 0;
       for (; r < (M - 3); r += 4)
-        vcopyToSIMD(dst, src, N, simd::index::Unroll<4>{r});
+        vcopyToSIMD(dst, src, N, simd::index::Unroll<4>{.index_ = r});
       switch (M & 3) {
       case 0: return;
-      case 1: return vcopyToSIMD(dst, src, N, simd::index::Unroll<1>{r});
-      case 2: return vcopyToSIMD(dst, src, N, simd::index::Unroll<2>{r});
-      default: return vcopyToSIMD(dst, src, N, simd::index::Unroll<3>{r});
+      case 1:
+        return vcopyToSIMD(dst, src, N, simd::index::Unroll<1>{.index_ = r});
+      case 2:
+        return vcopyToSIMD(dst, src, N, simd::index::Unroll<2>{.index_ = r});
+      default:
+        return vcopyToSIMD(dst, src, N, simd::index::Unroll<3>{.index_ = r});
       }
     }
   } else if constexpr (math::AbstractVector<A>) {

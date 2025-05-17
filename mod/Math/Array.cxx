@@ -8,7 +8,6 @@ module;
 #include "Owner.hxx"
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
-#include "Containers/Pair.cxx"
 #include "Containers/Storage.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/ArrayOps.cxx"
@@ -56,7 +55,6 @@ import CompressReference;
 import ExprTemplates;
 import Invariant;
 import Optional;
-import Pair;
 import Param;
 import Rational;
 import ScalarizeViaCast;

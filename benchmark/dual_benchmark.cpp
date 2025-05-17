@@ -52,13 +52,13 @@ struct ManualDual<ManualDual<T, N, SIMDArray>, 2, false> {
     containers::Tuple<V, V> &partials;
     auto operator[](std::ptrdiff_t i) -> V & {
       utils::invariant(i == 0 || i == 1);
-      if (i == 0) return partials.head_;
-      return partials.tail_.head_;
+      if (i == 0) return partials._0;
+      return partials._1;
     }
   };
   constexpr auto grad() -> Gradient { return {partials}; }
   [[nodiscard]] constexpr auto grad() const -> std::array<V, 2> {
-    return {partials.head, partials.tail.head};
+    return {partials._0, partials._1};
   }
 };
 

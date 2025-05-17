@@ -5,18 +5,14 @@ module;
 #endif
 
 #ifndef USE_MODULE
-#include <cstddef>
-#include <cstdint>
-
-#include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/GreatestCommonDivisor.cxx"
+#include <cstddef>
+#include <cstdint>
 #else
 export module VGCD;
-
 export import GCD;
-import Pair;
 import Array;
 import ArrayConcepts;
 import std;

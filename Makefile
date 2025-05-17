@@ -24,7 +24,7 @@ build-gcc/no-san/:
 	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/no-san/ -DCMAKE_BUILD_TYPE=Debug
 
 build-gcc/san/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined' -DPOLYMATHNOEXPLICITSIMDARRAY=OFF
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined' -DPOLYMATHNOEXPLICITSIMDARRAY=ON
 
 build-clang/no-san/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san/ -DCMAKE_BUILD_TYPE=Debug

@@ -39,7 +39,6 @@ module;
 #include <utility>
 #else
 export module StaticArray;
-
 import Array;
 import ArrayConcepts;
 import ArrayPrint;
@@ -47,7 +46,6 @@ import AxisTypes;
 import CompressReference;
 import ExprTemplates;
 import MatDim;
-import Pair;
 import Range;
 import SIMD;
 import std;

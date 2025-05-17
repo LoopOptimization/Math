@@ -4,24 +4,20 @@ module;
 #pragma once
 #endif
 #ifndef USE_MODULE
-#include <cstddef>
-#include <cstdint>
-#include <optional>
-#include <utility>
-
-#include "Containers/Pair.cxx"
 #include "Math/Array.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/NormalForm.cxx"
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <utility>
 #else
 export module Unimodularization;
-
 import Array;
 import ManagedArray;
 import MatDim;
 import NormalForm;
-import Pair;
 import std;
 #endif
 

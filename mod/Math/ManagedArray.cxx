@@ -7,7 +7,6 @@ module;
 #include "Owner.hxx"
 #ifndef USE_MODULE
 #include "Alloc/Mallocator.cxx"
-#include "Containers/Pair.cxx"
 #include "Containers/Storage.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -34,7 +33,6 @@ import ArrayConcepts;
 import ArrayPrint;
 import AxisTypes;
 import MatDim;
-import Pair;
 import Storage;
 import std;
 import TypeCompression;

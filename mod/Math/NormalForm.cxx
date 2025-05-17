@@ -6,7 +6,6 @@ module;
 
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
-#include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -35,7 +34,6 @@ module;
 #include <utility>
 #else
 export module NormalForm;
-
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -46,7 +44,6 @@ import EmptyMatrix;
 import GenericArrayConstructors;
 import Invariant;
 import ManagedArray;
-import Pair;
 import Range;
 import Rational;
 import SIMD;

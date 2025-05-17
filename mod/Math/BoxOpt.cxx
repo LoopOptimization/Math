@@ -7,7 +7,6 @@ module;
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
-#include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -32,7 +31,6 @@ module;
 #include <utility>
 #else
 export module BoxOpt;
-
 import Allocator;
 import Arena;
 import Array;
@@ -42,7 +40,6 @@ import Dual;
 import Elementary;
 import LinearAlgebra;
 import MatDim;
-import Pair;
 import Param;
 import Reductions;
 import SIMD;

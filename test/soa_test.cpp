@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
-#include "Containers/Pair.cxx"
 #include "Containers/Tuple.cxx"
 #include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
@@ -14,7 +13,6 @@
 import Array;
 import AxisTypes;
 import ManagedArray;
-import Pair;
 import Range;
 import SOA;
 import std;

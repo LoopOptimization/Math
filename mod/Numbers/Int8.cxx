@@ -4,7 +4,6 @@ module;
 #pragma once
 #endif
 #include "Macros.hxx"
-
 #ifndef USE_MODULE
 #include "Utilities/Invariant.cxx"
 #include <compare>
@@ -15,7 +14,6 @@ module;
 #include <type_traits>
 #else
 export module Int8;
-
 import Invariant;
 import std;
 #endif

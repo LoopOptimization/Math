@@ -5,6 +5,11 @@ module;
 #endif
 
 #ifndef USE_MODULE
+#include "Alloc/Mallocator.cxx"
+#include "Containers/Tuple.cxx"
+#include "Math/Array.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/MatrixDimensions.cxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -15,21 +20,12 @@ module;
 #include <tuple>
 #include <type_traits>
 #include <utility>
-
-#include "Alloc/Mallocator.cxx"
-#include "Containers/Pair.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/MatrixDimensions.cxx"
 #else
 export module SOA;
-
 import Allocator;
 import Array;
 import AxisTypes;
 import MatDim;
-import Pair;
 import std;
 import Tuple;
 #endif

@@ -336,25 +336,25 @@ TEST(SVectorTest, BasicAssertions) {
   EXPECT_EQ(w, z);
   EXPECT_TRUE(w == z);
   constexpr auto const_cmp = [](auto const &a, auto const &b) {
-    return std::make_pair(a == b, std::is_constant_evaluated());
+    return containers::tuple(a == b, std::is_constant_evaluated());
   };
   Vector<std::int64_t> v{math::length(3)};
   v << _(1, 4);
-  EXPECT_TRUE(const_cmp(v.size(), 3).first);
-  EXPECT_FALSE(const_cmp(v.size(), 3).second);
-  EXPECT_TRUE(const_cmp(x.size(), 3).first);
+  EXPECT_TRUE(const_cmp(v.size(), 3)._0);
+  EXPECT_FALSE(const_cmp(v.size(), 3)._1);
+  EXPECT_TRUE(const_cmp(x.size(), 3)._0);
   EXPECT_EQ(std::distance(v.begin(), std::ranges::find_if(
                                        v[_(1, end)],
                                        std::bind_front(std::equal_to<>{}, 3))),
             2);
-  // EXPECT_TRUE(constCmp(v.size()).first);
-  // EXPECT_FALSE(constCmp(v.size()).second);
-  // EXPECT_TRUE(constCmp(x.size()).first);
-  static_assert(const_cmp(decltype(x)::size(), unsigned(3)).second);
-  static_assert(const_cmp(decltype(x)::size(), decltype(y)::size()).second);
-  // EXPECT_TRUE(constCmp(x.size()).second);
-  // EXPECT_TRUE(constCmp(x.size(), unsigned(3)).second);
-  // EXPECT_TRUE(constCmp(x.size(), y.size()).second);
+  // EXPECT_TRUE(constCmp(v.size())._0);
+  // EXPECT_FALSE(constCmp(v.size())._1);
+  // EXPECT_TRUE(constCmp(x.size())._0);
+  static_assert(const_cmp(decltype(x)::size(), unsigned(3))._1);
+  static_assert(const_cmp(decltype(x)::size(), decltype(y)::size())._1);
+  // EXPECT_TRUE(constCmp(x.size())._1);
+  // EXPECT_TRUE(constCmp(x.size(), unsigned(3))._1);
+  // EXPECT_TRUE(constCmp(x.size(), y.size())._1);
   auto [a, b, c] = w;
   EXPECT_EQ(a, 11);
   EXPECT_EQ(b, 22);

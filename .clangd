@@ -8,11 +8,12 @@ Diagnostics:
       bugprone-unused-local-non-trivial-variable.ExcludeTypes: '::alloc::Arena<>::ScopeLifetime.*'
       readability-avoid-return-with-void-value.StrictMode: false
       readability-identifier-naming.LocalVariableCase: lower_case
-      readability-identifier-naming.LocalVariableIgnoredRegexp: "^[A-Za-z0-9]{1,5}$"
+      readability-identifier-naming.LocalVariableIgnoredRegexp: "^[a-zA-Z0-9]{1,5}$"
       readability-identifier-naming.ClassCase: CamelCase
       readability-identifier-naming.ClassMethodCase: camelBack
       readability-identifier-naming.MemberCase: lower_case
       readability-identifier-naming.MemberSuffix: _
+      readability-identifier-naming.MemberIgnoredRegexp: "^[a-zA-Z0-9_]{1,2}$"
   UnusedIncludes: Strict
   MissingIncludes: Strict
 Hover:

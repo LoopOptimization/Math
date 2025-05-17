@@ -10,11 +10,8 @@ module;
 #include <type_traits>
 #include <utility>
 
-#include "Containers/Pair.cxx"
 #else
 export module Tuple;
-
-import Pair;
 import std;
 #endif
 
@@ -24,7 +21,7 @@ export namespace containers {
 namespace containers {
 #endif
 
-template <typename T, typename... Ts> struct Tuple;
+template <typename... Ts> struct Tuple;
 template <typename T, typename... Ts>
 TRIVIAL constexpr auto cattuple(T, Tuple<Ts...>) -> Tuple<T, Ts...>;
 
@@ -36,144 +33,49 @@ requires(sizeof...(Ts) == sizeof...(Us) && std::assignable_from<T, U> &&
 {
   dst = src;
 }
-
-template <typename T, typename... Ts> struct Tuple {
-  [[no_unique_address]] T head_;
-  [[no_unique_address]] Tuple<Ts...> tail_;
-  TRIVIAL constexpr Tuple() = default;
-  // template <std::convertible_to<T> U, std::convertible_to<Ts>... Us>
-  // TRIVIAL constexpr Tuple(U head, Us... tail)
-  //   : head_(std::forward<U>(head)), tail_(std::forward<Us>(tail)...){};
-  TRIVIAL constexpr Tuple(T head, Ts... tail) : head_(head), tail_(tail...){};
-  TRIVIAL constexpr Tuple(T head, Tuple<Ts...> tail)
-    : head_(head), tail_(tail){};
-
-  TRIVIAL constexpr Tuple(const Tuple &) = default;
-  template <std::size_t I> TRIVIAL constexpr auto get() -> auto & {
-    if constexpr (I == 0) return head_;
-    else if constexpr (I == 1) return tail_.head_;
-    else if constexpr (I == 2) return tail_.tail_.head_;
-    else return tail_.tail_.tail_.template get<I - 3>();
-  }
-  template <std::size_t I>
-  TRIVIAL [[nodiscard]] constexpr auto get() const -> const auto & {
-    if constexpr (I == 0) return head_;
-    else if constexpr (I == 1) return tail_.head_;
-    else if constexpr (I == 2) return tail_.tail_.head_;
-    else return tail_.tail_.tail_.template get<I - 3>();
-  }
-  TRIVIAL constexpr void apply(const auto &f) {
-    f(head_);
-    tail_.apply(f);
-  }
-  template <typename U, typename... Us>
-  TRIVIAL constexpr void apply(const Tuple<U, Us...> &x, const auto &f)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    f(head_, x.head_);
-    tail_.apply(x.tail_, f);
-  }
-  TRIVIAL constexpr auto mutmap(const auto &f) {
-    return cattuple(f(head_), tail_.mutmap(f));
-  }
-  TRIVIAL constexpr auto map(const auto &f) const {
-    return cattuple(f(head_), tail_.map(f));
-  }
-  template <typename U, typename... Us>
-  TRIVIAL constexpr auto map(const Tuple<U, Us...> &x, const auto &f) const
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    return cattuple(f(head_, x.head_), tail_.map(x.tail_, f));
-  }
-  template <typename U, typename... Us>
-  TRIVIAL [[gnu::flatten]] constexpr void operator+=(const Tuple<U, Us...> &src)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    (*this) << map(src, [](const auto &d, const auto &s) { return d + s; });
-  }
-  template <typename U, typename... Us>
-  TRIVIAL [[gnu::flatten]] constexpr void operator-=(const Tuple<U, Us...> &src)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    (*this) << map(src, [](const auto &d, const auto &s) { return d - s; });
-  }
-  template <typename U, typename... Us>
-  TRIVIAL [[gnu::flatten]] constexpr void operator*=(const Tuple<U, Us...> &src)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    (*this) << map(src, [](const auto &d, const auto &s) { return d * s; });
-  }
-  template <typename U, typename... Us>
-  TRIVIAL [[gnu::flatten]] constexpr void operator/=(const Tuple<U, Us...> &src)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    (*this) << map(src, [](const auto &d, const auto &s) { return d / s; });
-  }
-  TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
-  TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
-  template <typename U, typename... Us>
-  TRIVIAL constexpr auto operator=(Tuple<U, Us...> x) -> Tuple &
-  requires(std::is_assignable_v<T, U> && ... && std::is_assignable_v<Ts, Us>)
-  {
-    head_ = std::move(x.head_);
-    tail_ = std::move(x.tail_);
-    return *this;
-  }
-
-  template <typename U, typename V>
-  TRIVIAL constexpr auto operator=(Pair<U, V> x) -> Tuple &
-  requires((sizeof...(Ts) == 1) &&
-           (std::is_assignable_v<T, U> && ... && std::is_assignable_v<Ts, V>))
-  {
-    head_ = std::move(x.first);
-    tail_.head_ = std::move(x.second);
-    return *this;
-  }
-
-  template <typename U, typename... Us>
-  TRIVIAL constexpr void operator<<(const Tuple<U, Us...> &src)
-  requires(sizeof...(Ts) == sizeof...(Us))
-  {
-    copyFrom(*this, src);
-  }
+template <typename... Ts> struct Tuple {
+  static_assert(false, "should be able to instantiate the primary template.");
 };
-template <typename T, typename... Ts>
-TRIVIAL constexpr auto cattuple(T x, Tuple<Ts...> y) -> Tuple<T, Ts...> {
-  return {x, y};
+template <typename... Ts>
+TRIVIAL constexpr auto tuple(Ts... x) -> Tuple<std::remove_cvref_t<Ts>...> {
+  return {x...};
 }
 template <typename T> struct Tuple<T> {
-  [[no_unique_address]] T head_;
-  TRIVIAL constexpr Tuple() = default;
-  TRIVIAL constexpr Tuple(T head) : head_(head){};
-  // template <std::convertible_to<T> U>
-  // TRIVIAL constexpr Tuple(U &&head) : head_(std::forward<U>(head)){};
-  TRIVIAL constexpr Tuple(const Tuple &) = default;
+  [[no_unique_address]] T _0;
+  // TRIVIAL constexpr Tuple() = default;
+  // TRIVIAL constexpr Tuple(T _0_) : _0(_0_){};
+  // TRIVIAL constexpr Tuple(const Tuple &) = default;
   template <std::size_t I> TRIVIAL constexpr auto get() -> T & {
     static_assert(I == 0);
-    return head_;
+    return _0;
   }
   template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> const T & {
     static_assert(I == 0);
-    return head_;
+    return _0;
   }
-  TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
-  TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
-  TRIVIAL constexpr void apply(const auto &f) { f(head_); }
+  // TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  // TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
+  TRIVIAL constexpr void apply(const auto &f) { f(_0); }
   template <typename U>
   TRIVIAL constexpr void apply(const Tuple<U> &x, const auto &f) {
-    f(head_, x.head_);
+    f(_0, x._0);
   }
-  TRIVIAL constexpr auto mutmap(const auto &f) -> Tuple<decltype(f(head_))> {
-    return {f(head_)};
+  TRIVIAL constexpr auto mutmap(const auto &f) -> Tuple<decltype(f(_0))> {
+    return {f(_0)};
   }
-  TRIVIAL constexpr auto map(const auto &f) const -> Tuple<decltype(f(head_))> {
-    return {f(head_)};
+  TRIVIAL constexpr auto map(const auto &f) const -> Tuple<decltype(f(_0))> {
+    return {f(_0)};
   }
   template <typename U>
   TRIVIAL constexpr auto map(const Tuple<U> &x, const auto &f) const
-    -> Tuple<decltype(f(head_, x.head_))> {
-    return {f(head_, x.head_)};
+    -> Tuple<decltype(f(_0, x._0))> {
+    return {f(_0, x._0)};
+  }
+  template <typename U0, typename U1>
+  TRIVIAL constexpr auto map_reduce(const Tuple<U0, U1> &x, const auto &f,
+                                    const auto &) const {
+    return f(_0, x._0);
   }
   template <typename U> TRIVIAL constexpr void operator+=(const Tuple<U> &);
   template <typename U> TRIVIAL constexpr void operator-=(const Tuple<U> &);
@@ -184,7 +86,7 @@ template <typename T> struct Tuple<T> {
   TRIVIAL constexpr auto operator=(Tuple<U> x) -> Tuple &
   requires((!std::same_as<T, U>) && std::is_assignable_v<T, U>)
   {
-    head_ = std::move(x.head_);
+    _0 = std::move(x._0);
     return *this;
   }
 
@@ -199,6 +101,414 @@ private:
     dst << src;
   }
 };
+template <typename T0, typename T1> struct Tuple<T0, T1> {
+  [[no_unique_address]] T0 _0;
+  [[no_unique_address]] T1 _1;
+  // TRIVIAL constexpr Tuple() = default;
+  // TRIVIAL constexpr Tuple(const Tuple &) = default;
+  // TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  // TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
+  // TRIVIAL constexpr Tuple(T0 _0_, T1 _1_) : _0(_0_), _1(_1_){};
+
+  template <std::size_t I> TRIVIAL constexpr auto get() -> auto & {
+    static_assert(I < 2);
+    if constexpr (I == 0) return _0;
+    else return _1;
+  }
+  template <std::size_t I>
+  TRIVIAL [[nodiscard]] constexpr auto get() const -> const auto & {
+    static_assert(I < 2);
+    if constexpr (I == 0) return _0;
+    else return _1;
+  }
+  TRIVIAL constexpr void apply(const auto &f) {
+    f(_0);
+    f(_1);
+  }
+  template <typename U0, typename U1>
+  TRIVIAL constexpr void apply(const Tuple<U0, U1> &x, const auto &f) {
+    f(_0, x._0);
+    f(_1, x._1);
+  }
+  TRIVIAL constexpr auto mutmap(const auto &f) { return tuple(f(_0), f(_1)); }
+  TRIVIAL constexpr auto map(const auto &f) const {
+    return tuple(f(_0), f(_1));
+  }
+  template <typename U0, typename U1>
+  TRIVIAL constexpr void map(const Tuple<U0, U1> &x, const auto &f) const {
+    return tuple(f(_0, x._0), f(_1, x._1));
+  }
+  template <typename U0, typename U1>
+  TRIVIAL constexpr auto map_reduce(const Tuple<U0, U1> &x, const auto &f,
+                                    const auto &op) const {
+    return op(f(_0, x._0), f(_1, x._1));
+  }
+  template <typename U0, typename U1>
+  TRIVIAL [[gnu::flatten]] constexpr void operator+=(const Tuple<U0, U1> &src) {
+    copyFrom(*this, tuple(_0 + src._0, _1 + src._1));
+  }
+  template <typename U0, typename U1>
+  TRIVIAL [[gnu::flatten]] constexpr void operator-=(const Tuple<U0, U1> &src) {
+    copyFrom(*this, tuple(_0 - src._0, _1 - src._1));
+  }
+  template <typename U0, typename U1>
+  TRIVIAL [[gnu::flatten]] constexpr void operator*=(const Tuple<U0, U1> &src) {
+    copyFrom(*this, tuple(_0 * src._0, _1 * src._1));
+  }
+  template <typename U0, typename U1>
+  TRIVIAL [[gnu::flatten]] constexpr void operator/=(const Tuple<U0, U1> &src) {
+    copyFrom(*this, tuple(_0 / src._0, _1 / src._1));
+  }
+
+  template <typename U0, typename U1>
+  TRIVIAL constexpr auto operator=(Tuple<U0, U1> x) -> Tuple &
+  requires(std::is_assignable_v<T0, U0> && std::is_assignable_v<T1, U1>)
+  {
+    _0 = std::move(x._0);
+    _1 = std::move(x._1);
+    return *this;
+  }
+
+  template <typename U0, typename U1>
+  TRIVIAL constexpr void operator<<(const Tuple<U0, U1> &src) {
+    copyFrom(*this, src);
+  }
+};
+
+template <typename T0, typename T1> using Pair = Tuple<T0, T1>;
+
+template <typename T0, typename T1, typename T2> struct Tuple<T0, T1, T2> {
+  [[no_unique_address]] T0 _0;
+  [[no_unique_address]] T1 _1;
+  [[no_unique_address]] T2 _2;
+  // TRIVIAL constexpr Tuple() = default;
+  // TRIVIAL constexpr Tuple(const Tuple &) = default;
+  // TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  // TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
+  // TRIVIAL constexpr Tuple(T0 _0_, T1 _1_, T2 _2_) : _0(_0_), _1(_1_),
+  // _2(_2_){};
+
+  template <std::size_t I> TRIVIAL constexpr auto get() -> auto & {
+    static_assert(I < 3);
+    if constexpr (I == 0) return _0;
+    else if constexpr (I == 1) return _1;
+    else return _2;
+  }
+  template <std::size_t I> TRIVIAL constexpr auto get() const -> const auto & {
+    static_assert(I < 3);
+    if constexpr (I == 0) return _0;
+    else if constexpr (I == 1) return _1;
+    else return _2;
+  }
+  TRIVIAL constexpr void apply(const auto &f) {
+    f(_0);
+    f(_1);
+    f(_2);
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL constexpr void apply(const Tuple<U0, U1, U2> &x, const auto &f) {
+    f(_0, x._0);
+    f(_1, x._1);
+    f(_2, x._2);
+  }
+  TRIVIAL constexpr auto mutmap(const auto &f) {
+    return tuple(f(_0), f(_1), f(_2));
+  }
+  TRIVIAL constexpr auto map(const auto &f) const {
+    return tuple(f(_0), f(_1), f(_2));
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL constexpr void map(const Tuple<U0, U1, U2> &x, const auto &f) const {
+    return tuple(f(_0, x._0), f(_1, x._1), f(_2, x._2));
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL constexpr auto map_reduce(const Tuple<U0, U1, U2> &x, const auto &f,
+                                    const auto &op) const {
+    return op(op(f(_0, x._0), f(_1, x._1)), f(_2, x._2));
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator+=(const Tuple<U0, U1, U2> &src) {
+    copyFrom(*this, tuple(_0 + src._0, _1 + src._1, _2 + src._2));
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator-=(const Tuple<U0, U1, U2> &src) {
+    copyFrom(*this, tuple(_0 - src._0, _1 - src._1, _2 - src._2));
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator*=(const Tuple<U0, U1, U2> &src) {
+    copyFrom(*this, tuple(_0 * src._0, _1 * src._1, _2 * src._2));
+  }
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator/=(const Tuple<U0, U1, U2> &src) {
+    copyFrom(*this, tuple(_0 / src._0, _1 / src._1, _2 / src._2));
+  }
+
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL constexpr auto operator=(Tuple<U0, U1, U2> x) -> Tuple &
+  requires(std::is_assignable_v<T0, U0> && std::is_assignable_v<T1, U1> &&
+           std::is_assignable_v<T2, U2>)
+  {
+    _0 = std::move(x._0);
+    _1 = std::move(x._1);
+    _2 = std::move(x._2);
+    return *this;
+  }
+
+  template <typename U0, typename U1, typename U2>
+  TRIVIAL constexpr void operator<<(const Tuple<U0, U1, U2> &src) {
+    copyFrom(*this, src);
+  }
+};
+
+template <typename T0, typename T1, typename T2, typename T3>
+struct Tuple<T0, T1, T2, T3> {
+  [[no_unique_address]] T0 _0;
+  [[no_unique_address]] T1 _1;
+  [[no_unique_address]] T2 _2;
+  [[no_unique_address]] T3 _3;
+  // TRIVIAL constexpr Tuple() = default;
+  // TRIVIAL constexpr Tuple(const Tuple &) = default;
+  // TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  // TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
+  // TRIVIAL constexpr Tuple(T0 _0_, T1 _1_, T2 _2_, T3 _3_)
+  //   : _0(_0_), _1(_1_), _2(_2_), _3(_3_){};
+
+  template <std::size_t I> TRIVIAL constexpr auto get() -> auto & {
+    static_assert(I < 4);
+    if constexpr (I == 0) return _0;
+    else if constexpr (I == 1) return _1;
+    else if constexpr (I == 2) return _2;
+    else return _3;
+  }
+  template <std::size_t I> TRIVIAL constexpr auto get() const -> const auto & {
+    static_assert(I < 4);
+    if constexpr (I == 0) return _0;
+    else if constexpr (I == 1) return _1;
+    else if constexpr (I == 2) return _2;
+    else return _3;
+  }
+  TRIVIAL constexpr void apply(const auto &f) {
+    f(_0);
+    f(_1);
+    f(_2);
+    f(_3);
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL constexpr void apply(const Tuple<U0, U1, U2, U3> &x, const auto &f) {
+    f(_0, x._0);
+    f(_1, x._1);
+    f(_2, x._2);
+    f(_3, x._3);
+  }
+  TRIVIAL constexpr auto mutmap(const auto &f) {
+    return tuple(f(_0), f(_1), f(_2), f(_3));
+  }
+  TRIVIAL constexpr auto map(const auto &f) const {
+    return tuple(f(_0), f(_1), f(_2), f(_3));
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL constexpr void map(const Tuple<U0, U1, U2, U3> &x,
+                             const auto &f) const {
+    return tuple(f(_0, x._0), f(_1, x._1), f(_2, x._2), f(_3, x._3));
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL constexpr auto map_reduce(const Tuple<U0, U1, U2, U3> &x,
+                                    const auto &f, const auto &op) const {
+    return op(op(f(_0, x._0), f(_1, x._1)), op(f(_2, x._2), f(_3, x._3)));
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator+=(const Tuple<U0, U1, U2, U3> &src) {
+    copyFrom(*this, tuple(_0 + src._0, _1 + src._1, _2 + src._2, _3 + src._3));
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator-=(const Tuple<U0, U1, U2, U3> &src) {
+    copyFrom(*this, tuple(_0 - src._0, _1 - src._1, _2 - src._2, _3 - src._3));
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator*=(const Tuple<U0, U1, U2, U3> &src) {
+    copyFrom(*this, tuple(_0 * src._0, _1 * src._1, _2 * src._2, _3 * src._3));
+  }
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator/=(const Tuple<U0, U1, U2, U3> &src) {
+    copyFrom(*this, tuple(_0 / src._0, _1 / src._1, _2 / src._2, _3 / src._3));
+  }
+
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL constexpr auto operator=(Tuple<U0, U1, U2, U3> x) -> Tuple &
+  requires(std::is_assignable_v<T0, U0> && std::is_assignable_v<T1, U1> &&
+           std::is_assignable_v<T2, U2> && std::is_assignable_v<T3, U3>)
+  {
+    _0 = std::move(x._0);
+    _1 = std::move(x._1);
+    _2 = std::move(x._2);
+    _3 = std::move(x._3);
+    return *this;
+  }
+
+  template <typename U0, typename U1, typename U2, typename U3>
+  TRIVIAL constexpr void operator<<(const Tuple<U0, U1, U2, U3> &src) {
+    copyFrom(*this, src);
+  }
+};
+
+template <typename T0, typename T1, typename T2, typename T3, typename T4,
+          typename... Ts>
+struct Tuple<T0, T1, T2, T3, T4, Ts...> {
+  [[no_unique_address]] T0 _0;
+  [[no_unique_address]] T1 _1;
+  [[no_unique_address]] T2 _2;
+  [[no_unique_address]] T3 _3;
+  [[no_unique_address]] Tuple<T4, Ts...> tail_;
+  TRIVIAL constexpr Tuple() = default;
+  // template <std::convertible_to<T> U, std::convertible_to<Ts>... Us>
+  // TRIVIAL constexpr Tuple(U head, Us... tail)
+  //   : head_(std::forward<U>(head)), tail_(std::forward<Us>(tail)...){};
+  TRIVIAL constexpr Tuple(T0 _0_, T1 _1_, T2 _2_, T3 _3_, T4 _4_, Ts... tail)
+    : _0(_0_), _1(_1_), _2(_2_), _3(_3_), tail_(_4_, tail...){};
+
+  TRIVIAL constexpr Tuple(const Tuple &) = default;
+  template <std::size_t I> TRIVIAL constexpr auto get() -> auto & {
+    if constexpr (I == 0) return _0;
+    else if constexpr (I == 1) return _1;
+    else if constexpr (I == 2) return _2;
+    else if constexpr (I == 3) return _3;
+    else if constexpr (I == 4) return tail_._0;
+    else if constexpr (I == 5) return tail_._1;
+    else if constexpr (I == 6) return tail_._2;
+    else if constexpr (I == 7) return tail_._3;
+    else return tail_.tail_.template get<I - 8>();
+  }
+  template <std::size_t I>
+  TRIVIAL [[nodiscard]] constexpr auto get() const -> const auto & {
+    if constexpr (I == 0) return _0;
+    else if constexpr (I == 1) return _1;
+    else if constexpr (I == 2) return _2;
+    else if constexpr (I == 3) return _3;
+    else if constexpr (I == 4) return tail_._0;
+    else if constexpr (I == 5) return tail_._1;
+    else if constexpr (I == 6) return tail_._2;
+    else if constexpr (I == 7) return tail_._3;
+    else return tail_.tail_.template get<I - 8>();
+  }
+  TRIVIAL constexpr void apply(const auto &f) {
+    f(_0);
+    f(_1);
+    f(_2);
+    f(_3);
+    tail_.apply(f);
+  }
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL constexpr void apply(const Tuple<U0, U1, U2, U3, U4, Us...> &x,
+                               const auto &f)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    f(_0, x._0);
+    f(_1, x._1);
+    f(_2, x._2);
+    f(_3, x._3);
+    tail_.apply(x.tail_, f);
+  }
+  TRIVIAL constexpr auto mutmap(const auto &f) {
+    return cattuple(f(_0), f(_1), f(_2), f(_3), tail_.mutmap(f));
+  }
+  TRIVIAL constexpr auto map(const auto &f) const {
+    return cattuple(f(_0), f(_1), f(_2), f(_3), tail_.map(f));
+  }
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL constexpr auto map(const Tuple<U0, U1, U2, U3, U4, Us...> &x,
+                             const auto &f) const
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    return cattuple(f(_0, x._0), f(_1, x._1), f(_2, x._2), f(_3, x._3),
+                    tail_.map(x.tail_, f));
+  }
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL constexpr auto map_reduce(const Tuple<U0, U1, U2, U3, U4, Us...> &x,
+                                    const auto &f, const auto &op) const
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    return op(op(op(f(_0, x._0), f(_1, x._1)), op(f(_2, x._2), f(_3, x._3))),
+              tail_.map_reduce(x.tail_, f, op));
+  }
+
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator+=(const Tuple<U0, U1, U2, U3, U4, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d + s; });
+  }
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator-=(const Tuple<U0, U1, U2, U3, U4, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d - s; });
+  }
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator*=(const Tuple<U0, U1, U2, U3, U4, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d * s; });
+  }
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL [[gnu::flatten]] constexpr void
+  operator/=(const Tuple<U0, U1, U2, U3, U4, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    (*this) << map(src, [](const auto &d, const auto &s) { return d / s; });
+  }
+  TRIVIAL constexpr auto operator=(const Tuple &) -> Tuple & = default;
+  TRIVIAL constexpr auto operator=(Tuple &&) -> Tuple & = default;
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL constexpr auto operator=(Tuple<U0, U1, U2, U3, U4, Us...> x)
+    -> Tuple &
+  requires((std::is_assignable_v<T0, U0> && std::is_assignable_v<T1, U1> &&
+            std::is_assignable_v<T2, U2> && std::is_assignable_v<T3, U3> &&
+            std::is_assignable_v<T4, U4>) &&
+           ... && std::is_assignable_v<Ts, Us>)
+  {
+    _0 = std::move(x._0);
+    _1 = std::move(x._1);
+    _2 = std::move(x._2);
+    _3 = std::move(x._3);
+    tail_ = std::move(x.tail_);
+    return *this;
+  }
+
+  template <typename U0, typename U1, typename U2, typename U3, typename U4,
+            typename... Us>
+  TRIVIAL constexpr void operator<<(const Tuple<U0, U1, U2, U3, U4, Us...> &src)
+  requires(sizeof...(Ts) == sizeof...(Us))
+  {
+    copyFrom(*this, src);
+  }
+
+private:
+  TRIVIAL constexpr Tuple(T0 _0_, T1 _1_, T2 _2_, T3 _3_, Tuple<T4, Ts...> tail)
+    : _0(_0_), _1(_1_), _2(_2_), _3(_3_), tail_(tail){};
+};
+template <typename T, typename... Ts>
+TRIVIAL constexpr auto cattuple(T x, Tuple<Ts...> y) -> Tuple<T, Ts...> {
+  return {x, y};
+}
 
 template <typename... Ts> Tuple(Ts...) -> Tuple<Ts...>;
 

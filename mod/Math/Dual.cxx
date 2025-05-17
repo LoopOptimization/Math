@@ -6,9 +6,22 @@ module;
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
 #ifndef USE_MODULE
+#include "Alloc/Arena.cxx"
+#include "Math/Array.cxx"
+#include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Math/Constructors.cxx"
+#include "Math/ElementarySIMD.cxx"
+#include "Math/ExpressionTemplates.cxx"
 #include "Math/Indexing.cxx"
+#include "Math/MatrixDimensions.cxx"
+#include "Math/ScalarizeViaCastArrayOps.cxx"
+#include "Math/StaticArrays.cxx"
 #include "SIMD/Intrin.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/Parameters.cxx"
+#include "Utilities/Reference.cxx"
+#include "Utilities/TypeCompression.cxx"
 #include <bit>
 #include <concepts>
 #include <cstddef>
@@ -18,21 +31,6 @@ module;
 #include <ostream>
 #include <type_traits>
 #include <utility>
-
-#include "Alloc/Arena.cxx"
-#include "Containers/Pair.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Constructors.cxx"
-#include "Math/ElementarySIMD.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Utilities/Reference.cxx"
-#include "Utilities/TypeCompression.cxx"
 #else
 export module Dual;
 
@@ -46,7 +44,6 @@ import CompressReference;
 import ExprTemplates;
 import Invariant;
 import MatDim;
-import Pair;
 import Param;
 import ScalarizeViaCast;
 import SIMD;
