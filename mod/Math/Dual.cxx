@@ -49,6 +49,7 @@ import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
 import std;
+import Tuple;
 import TypeCompression;
 #endif
 

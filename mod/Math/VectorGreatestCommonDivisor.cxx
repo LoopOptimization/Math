@@ -16,6 +16,7 @@ export import GCD;
 import Array;
 import ArrayConcepts;
 import std;
+import Tuple;
 #endif
 
 #ifdef USE_MODULE

@@ -9,6 +9,7 @@ module;
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Containers/Storage.cxx"
+#include "Containers/Tuple.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/ArrayOps.cxx"
 #include "Math/AxisTypes.cxx"
@@ -61,6 +62,7 @@ import ScalarizeViaCast;
 import SIMD;
 import std;
 import Storage;
+import Tuple;
 import TypeCompression;
 import Valid;
 #endif

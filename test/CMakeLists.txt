@@ -73,30 +73,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(FetchContent)
 
-include(CheckCXXSymbolExists)
+# include(CheckCXXSymbolExists)
 
-# Check for _LIBCPP_VERSION
-check_cxx_symbol_exists(_LIBCPP_VERSION "<version>" LIBCXX_FOUND)
-if(LIBCXX_FOUND)
-  message(STATUS "libc++ is being used.")
-  FetchContent_Declare(
-    googletest NAMES GTest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-    # GIT_REPOSITORY https://github.com/google/googletest.git
-    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
-  )
-else()
-  message(STATUS "libstdc++ (or another standard library) is being used.")
-  FetchContent_Declare(
-    googletest FIND_PACKAGE_ARGS NAMES GTest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-    # GIT_REPOSITORY https://github.com/google/googletest.git
-    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
-  )
-endif()
-# using `FIND_PACKAGE_ARGS` causes it to try `find_package`
-# string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
-# if (has_libcpp GREATER_EQUAL 0)
+# # Check for _LIBCPP_VERSION
+# check_cxx_symbol_exists(_LIBCPP_VERSION "<version>" LIBCXX_FOUND)
+# if(LIBCXX_FOUND)
+#   message(STATUS "libc++ is being used.")
 #   FetchContent_Declare(
 #     googletest NAMES GTest
 #     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
@@ -104,6 +86,7 @@ endif()
 #     # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
 #   )
 # else()
+#   message(STATUS "libstdc++ (or another standard library) is being used.")
 #   FetchContent_Declare(
 #     googletest FIND_PACKAGE_ARGS NAMES GTest
 #     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
@@ -111,6 +94,27 @@ endif()
 #     # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
 #   )
 # endif()
+# using `FIND_PACKAGE_ARGS` causes it to try `find_package`
+if (${CMAKE_CXX_FLAGS} STREQUAL "")
+  set(has_libcpp -1)
+else()
+  string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
+endif()
+if (has_libcpp GREATER_EQUAL 0)
+  FetchContent_Declare(
+    googletest NAMES GTest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+    # GIT_REPOSITORY https://github.com/google/googletest.git
+    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+  )
+else()
+  FetchContent_Declare(
+    googletest FIND_PACKAGE_ARGS NAMES GTest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
+    # GIT_REPOSITORY https://github.com/google/googletest.git
+    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+  )
+endif()
 FetchContent_MakeAvailable(googletest)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")

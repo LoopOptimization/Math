@@ -33,8 +33,9 @@ import ArrayConcepts;
 import ArrayPrint;
 import AxisTypes;
 import MatDim;
-import Storage;
 import std;
+import Storage;
+import Tuple;
 import TypeCompression;
 #endif
 
