@@ -7,23 +7,26 @@ option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(ENABLE_LLD "Use lld as the linker" ON)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer>")
+add_compile_options(
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer>")
+# add_compile_options("-save-temps") # for preprocessed source
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
   set(USE_MI_MALLOC
-    OFF
-    CACHE BOOL "No mimalloc with sanitizers")
+      OFF
+      CACHE BOOL "No mimalloc with sanitizers")
   set(USE_JE_MALLOC
-    OFF
-    CACHE BOOL "No jemalloc with sanitizers")
+      OFF
+      CACHE BOOL "No jemalloc with sanitizers")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-      add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
   endif()
   set(ENABLE_RTTI
-    ON
-    CACHE BOOL "enable RTTI when using ubsan")
+      ON
+      CACHE BOOL "enable RTTI when using ubsan")
 else()
-    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti;-fstack-protector-strong>")
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti;-fstack-protector-strong>")
 endif()
 if(USE_TYPE_SANITIZER)
   set(USE_MI_MALLOC
@@ -33,16 +36,15 @@ if(USE_TYPE_SANITIZER)
       OFF
       CACHE BOOL "No jemalloc with sanitizers")
 endif()
-if (USE_MODULES)
-    # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-    #     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+if(USE_MODULES)
+  # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+  # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
       # This specific value changes as experimental support evolves. See
       # `Help/dev/experimental.rst` in the CMake source corresponding to
       # your CMake build for the exact value to use.
-        "a9e1cf81-9932-4810-974b-6eccaf14e457")
-      # cmake master uses:
-        # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+      "a9e1cf81-9932-4810-974b-6eccaf14e457")
+  # cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 endif()
 
 # # ---- Static Analyzers ---- find_program(CLANGTIDY clang-tidy) if(NOT
@@ -55,10 +57,9 @@ project(MathTests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-if (USE_MODULES)
-    set(CMAKE_CXX_MODULE_STD 1)
+if(USE_MODULES)
+  set(CMAKE_CXX_MODULE_STD 1)
 endif()
-
 
 # --- Import tools ----
 
@@ -75,54 +76,47 @@ include(FetchContent)
 
 # include(CheckCXXSymbolExists)
 
-# # Check for _LIBCPP_VERSION
-# check_cxx_symbol_exists(_LIBCPP_VERSION "<version>" LIBCXX_FOUND)
-# if(LIBCXX_FOUND)
-#   message(STATUS "libc++ is being used.")
-#   FetchContent_Declare(
-#     googletest NAMES GTest
-#     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-#     # GIT_REPOSITORY https://github.com/google/googletest.git
-#     # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
-#   )
-# else()
-#   message(STATUS "libstdc++ (or another standard library) is being used.")
-#   FetchContent_Declare(
-#     googletest FIND_PACKAGE_ARGS NAMES GTest
-#     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-#     # GIT_REPOSITORY https://github.com/google/googletest.git
-#     # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
-#   )
-# endif()
-# using `FIND_PACKAGE_ARGS` causes it to try `find_package`
-if (${CMAKE_CXX_FLAGS} STREQUAL "")
+# # Check for _LIBCPP_VERSION check_cxx_symbol_exists(_LIBCPP_VERSION
+# "<version>" LIBCXX_FOUND) if(LIBCXX_FOUND) message(STATUS "libc++ is being
+# used.") FetchContent_Declare( googletest NAMES GTest URL
+# https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz #
+# GIT_REPOSITORY https://github.com/google/googletest.git # GIT_TAG
+# 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17 ) else() message(STATUS
+# "libstdc++ (or another standard library) is being used.")
+# FetchContent_Declare( googletest FIND_PACKAGE_ARGS NAMES GTest URL
+# https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz #
+# GIT_REPOSITORY https://github.com/google/googletest.git # GIT_TAG
+# 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17 ) endif() using
+# `FIND_PACKAGE_ARGS` causes it to try `find_package`
+if(${CMAKE_CXX_FLAGS} STREQUAL "")
   set(has_libcpp -1)
 else()
   string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
 endif()
-if (has_libcpp GREATER_EQUAL 0)
+if(has_libcpp GREATER_EQUAL 0)
   FetchContent_Declare(
-    googletest NAMES GTest
+    googletest
+    NAMES GTest
     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-    # GIT_REPOSITORY https://github.com/google/googletest.git
-    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+    # GIT_REPOSITORY https://github.com/google/googletest.git GIT_TAG
+    # 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
   )
 else()
   FetchContent_Declare(
-    googletest FIND_PACKAGE_ARGS NAMES GTest
+    googletest
+    FIND_PACKAGE_ARGS NAMES GTest
     URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-    # GIT_REPOSITORY https://github.com/google/googletest.git
-    # GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
+    # GIT_REPOSITORY https://github.com/google/googletest.git GIT_TAG
+    # 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
   )
 endif()
 FetchContent_MakeAvailable(googletest)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
-
 set(FOR_TESTING
-  ON
-  CACHE BOOL "Build for testing")
+    ON
+    CACHE BOOL "Build for testing")
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----
@@ -144,7 +138,7 @@ if(POLYMATHNOEXPLICITSIMDARRAY)
   target_compile_definitions(${PROJECT_NAME}
                              PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
 endif()
-if (NOT USE_MODULES)
+if(NOT USE_MODULES)
   set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
 endif()
 

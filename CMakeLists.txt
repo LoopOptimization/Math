@@ -4,8 +4,8 @@ option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(ENABLE_RTTI "Use RTTI? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
-# option(ENABLE_RTTI "Use RTTI" OFF)
-# option(ENABLE_STACK_PROTECTOR "Use stack protection" OFF)
+# option(ENABLE_RTTI "Use RTTI" OFF) option(ENABLE_STACK_PROTECTOR "Use stack
+# protection" OFF)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
@@ -17,33 +17,30 @@ if(ENABLE_RTTI)
 else()
   add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
 endif()
-# if(ENABLE_STACK_PROTECTOR)
-#     if(ENABLE_RTTI)
-#         add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong>")
-#     else()
-#         add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
-#     endif()
+# if(ENABLE_STACK_PROTECTOR) if(ENABLE_RTTI)
+# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong>")
 # else()
-#     if(ENABLE_RTTI)
-#         add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
-#     else()
-#         add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
-#     endif()
-# endif()
-if (USE_MODULES)
-    # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-    #     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-    set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
+# endif() else() if(ENABLE_RTTI)
+# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
+# else()
+# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
+# endif() endif()
+if(USE_MODULES)
+  # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+  # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
       # This specific value changes as experimental support evolves. See
       # `Help/dev/experimental.rst` in the CMake source corresponding to
       # your CMake build for the exact value to use.
-        "a9e1cf81-9932-4810-974b-6eccaf14e457")
-      # cmake master uses:
-        # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+      "a9e1cf81-9932-4810-974b-6eccaf14e457")
+  # cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 endif()
 # ---- Project ----
 
-message(STATUS "CMAKE_EXPERIMENTAL_CXX_IMPORT_STD = ${CMAKE_EXPERIMENTAL_CXX_IMPORT_STD}")
+message(
+  STATUS
+    "CMAKE_EXPERIMENTAL_CXX_IMPORT_STD = ${CMAKE_EXPERIMENTAL_CXX_IMPORT_STD}")
 # Note: update this to your new project's name and version
 project(
   Math
@@ -52,7 +49,7 @@ project(
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-if (USE_MODULES)
+if(USE_MODULES)
   set(CMAKE_CXX_MODULE_STD ON)
 endif()
 
@@ -84,7 +81,7 @@ if(USE_MODULES)
   file(GLOB_RECURSE modules CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
 
-    # ---- Create library ----
+  # ---- Create library ----
   add_library(${PROJECT_NAME} OBJECT) # ${headers})
   target_sources(
     ${PROJECT_NAME}
@@ -113,20 +110,21 @@ if(USE_MODULES)
               -fno-semantic-interposition -fdiagnostics-color=always
               -Wno-comma-subscript -Wno-psabi)
   endif()
-  target_compile_features(${PROJECT_NAME}
-    PRIVATE   cxx_std_23
+  target_compile_features(
+    ${PROJECT_NAME}
+    PRIVATE cxx_std_23
     INTERFACE cxx_std_23)
   set_target_properties(
     ${PROJECT_NAME}
     PROPERTIES CXX_STANDARD 23
-             CXX_VISIBILITY_PRESET hidden
-             VISIBILITY_INLINES_HIDDEN ON)
+               CXX_VISIBILITY_PRESET hidden
+               VISIBILITY_INLINES_HIDDEN ON)
 else()
   file(GLOB_RECURSE headers CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx"
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
 
-    # ---- Create library ----
+  # ---- Create library ----
   add_library(${PROJECT_NAME} INTERFACE ${headers})
   set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES OFf)
   target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
@@ -142,8 +140,6 @@ else()
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
-
-
 
 # being a cross-platform target, we enforce standards conformance on MSVC
 # target_compile_options( ${PROJECT_NAME} INTERFACE

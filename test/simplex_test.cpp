@@ -3,7 +3,9 @@
 #include "Alloc/Arena.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
+#include "Math/AxisTypes.cxx"
 #include "Math/Comparisons.cxx"
+#include "Math/Indexing.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/Rational.cxx"
@@ -11,6 +13,9 @@
 #include "Utilities/ArrayPrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
 #include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <limits>
 #else
 import Arena;
 import Array;

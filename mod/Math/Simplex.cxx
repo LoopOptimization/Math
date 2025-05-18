@@ -8,6 +8,7 @@ module;
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
+#include "Containers/BitSets.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
@@ -44,6 +45,7 @@ import Arena;
 import Array;
 import ArrayConcepts;
 import AxisTypes;
+import BitSet;
 import Comparisons;
 import Constraints;
 import ExprTemplates;
@@ -481,9 +483,10 @@ public:
     // [ I;  X ; b ]
     //
     // original number of variables
-    const auto num_var = getNumVars();
+    const std::ptrdiff_t num_var = getNumVars();
     MutPtrMatrix<value_type> C{getConstraints()};
     MutPtrVector<index_t> basic_cons{getBasicConstraints()};
+    // initialize to `-2`
     basic_cons << -2;
     // first pass, we make sure the equalities are >= 0
     // and we eagerly try and find columns with
@@ -492,6 +495,9 @@ public:
       std::int64_t &Ceq = C[c, 0];
       std::int64_t sign = 2 * (Ceq >= 0) - 1;
       Ceq *= sign;
+      // was initialized to -2
+      // if unset here (i.e. == -2) and >1, try to make basic
+      // if set earlier and we're resetting (or < 0), set to -1
       for (std::ptrdiff_t v = 0; v < num_var; ++v)
         if (std::int64_t Ccv = C[c, v + 1] *= sign)
           basic_cons[v] =
@@ -512,13 +518,15 @@ public:
 #ifndef NDEBUG
     in_canonical_form_ = true;
 #endif
-    Vector<unsigned> aug_vars{};
+    containers::BitSet<> aug_vars{};
     // upper bound number of augmentVars is constraintCapacity
+    // we push augment vars
     for (std::ptrdiff_t i = 0; i < basic_vars.size(); ++i)
-      if (basic_vars[i] == -1) aug_vars.push_back(i);
+      if (basic_vars[i] == -1) aug_vars.uncheckedInsert(i);
     return (!aug_vars.empty() && removeAugmentVars(aug_vars));
   }
-  constexpr auto removeAugmentVars(PtrVector<unsigned> augmentVars) -> bool {
+  constexpr auto removeAugmentVars(const containers::BitSet<> &augmentVars)
+    -> bool {
     // TODO: try to avoid reallocating, via reserving enough ahead of time
     std::ptrdiff_t num_augment = augmentVars.size(),
                    old_num_var = std::ptrdiff_t(num_vars_);
@@ -530,13 +538,15 @@ public:
     MutPtrVector<value_type> costs{getCost()};
     costs << 0;
     C[_, _(old_num_var + 1, end)] << 0;
-    for (std::ptrdiff_t i = 0; i < augmentVars.size(); ++i) {
-      std::ptrdiff_t a = augmentVars[i];
-      basic_vars[a] = index_t(i) + index_t(old_num_var);
-      basic_cons[i + old_num_var] = index_t(a);
-      C[a, old_num_var + 1 + i] = 1;
-      // we now zero out the implicit cost of `1`
-      costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
+    {
+      std::ptrdiff_t i = 0;
+      for (std::ptrdiff_t a : augmentVars) {
+        basic_vars[a] = index_t(i) + index_t(old_num_var);
+        basic_cons[i + old_num_var] = index_t(a);
+        C[a, old_num_var + (++i)] = 1;
+        // we now zero out the implicit cost of `1`
+        costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
+      }
     }
     assert(
       std::ranges::all_of(basic_vars, [](std::int64_t i) { return i >= 0; }));
