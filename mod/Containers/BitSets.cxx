@@ -80,7 +80,7 @@ public:
     }
     std::ptrdiff_t tzp1 = std::countr_zero(istate_);
     cstate0_ += ++tzp1;
-    istate_ >>= tzp1;
+    istate_ = tzp1 >= 64 ? 0 : istate_ >> tzp1;
     return *this;
   }
   TRIVIAL constexpr auto operator++(int) -> BitSetIterator {

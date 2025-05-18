@@ -518,14 +518,15 @@ public:
 #ifndef NDEBUG
     in_canonical_form_ = true;
 #endif
-    containers::BitSet<> aug_vars{};
+    containers::BitSet<math::Vector<std::uint64_t, 8>> aug_vars{};
     // upper bound number of augmentVars is constraintCapacity
     // we push augment vars
     for (std::ptrdiff_t i = 0; i < basic_vars.size(); ++i)
       if (basic_vars[i] == -1) aug_vars.uncheckedInsert(i);
     return (!aug_vars.empty() && removeAugmentVars(aug_vars));
   }
-  constexpr auto removeAugmentVars(const containers::BitSet<> &augmentVars)
+  constexpr auto removeAugmentVars(
+    const containers::BitSet<math::Vector<std::uint64_t, 8>> &augmentVars)
     -> bool {
     // TODO: try to avoid reallocating, via reserving enough ahead of time
     std::ptrdiff_t num_augment = augmentVars.size(),

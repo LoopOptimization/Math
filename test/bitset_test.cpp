@@ -22,7 +22,7 @@ import std;
 using containers::BitSet, math::Vector;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(BitSetTest, BasicAssertions) {
+TEST(BitSet, BasicAssertions) {
   BitSet bs(1000);
   std::ptrdiff_t count = 0;
   for (std::ptrdiff_t _ : bs) ++count;
@@ -68,7 +68,7 @@ TEST(BitSetTest, BasicAssertions) {
   std::println("we made it to the end!");
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(BitSetInsert, BasicAssertions) {
+TEST(BitSet, Insert) {
   BitSet<std::array<std::uint64_t, 2>> bs;
   std::ptrdiff_t count = 0;
   for (std::ptrdiff_t _ : bs) ++count;
@@ -83,7 +83,7 @@ TEST(BitSetInsert, BasicAssertions) {
   EXPECT_EQ(bs.data_[0], 354);
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(DynSizeBitSetTest, BasicAssertions) {
+TEST(BitSet, DynSize) {
   BitSet bs, bsd{BitSet<>::dense(11)};
   std::ptrdiff_t count = 0;
   for (std::ptrdiff_t _ : bs) ++count;
@@ -112,7 +112,7 @@ TEST(DynSizeBitSetTest, BasicAssertions) {
   EXPECT_EQ(sv[1], 10);
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(FixedSizeBitSetTest, BasicAssertions) {
+TEST(BitSet, FixedSize) {
   std::println(STRINGIZE(__LINE__));
   BitSet<std::array<std::uint64_t, 2>> bs;
   std::println(STRINGIZE(__LINE__));
@@ -136,7 +136,7 @@ TEST(FixedSizeBitSetTest, BasicAssertions) {
   std::println(STRINGIZE(__LINE__));
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(FixedSizeSmallBitSetTest, BasicAssertions) {
+TEST(BitSet, FixedSizeSmall) {
   using SB = BitSet<std::array<std::uint16_t, 1>>;
   static_assert(sizeof(SB) == 2);
   SB bs;
@@ -156,4 +156,19 @@ TEST(FixedSizeSmallBitSetTest, BasicAssertions) {
   EXPECT_EQ(sv[2], 7);
   EXPECT_EQ(sv[3], 10);
   EXPECT_EQ(SB::fromMask(1200).data_[0], 1200);
+}
+// NOLINTNEXTLINE()
+TEST(BitSet, IterTest) {
+  math::Vector<std::uint64_t, 1> data{};
+  data.push_back(9223372036854775808U);
+  data.push_back(1732766553700568065U);
+  data.push_back(1891655728U);
+  BitSet<> bs{data};
+  ptrdiff_t sz = bs.size(), i = 0;
+  for (std::ptrdiff_t a : bs) {
+    std::cout << a << " ";
+    ++i;
+  }
+  std::cout << "\n";
+  ASSERT_EQ(i, sz);
 }
