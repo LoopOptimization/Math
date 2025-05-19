@@ -286,7 +286,7 @@ public:
   }
 
   TRIVIAL [[gnu::flatten]] constexpr auto
-  operator==(const AbstractTensor auto &B) const -> bool {
+  isEqual(const AbstractTensor auto &B) const -> bool {
     auto [Ma, Na] = shape(v());
     auto [Mb, Nb] = shape(B);
 
@@ -326,6 +326,10 @@ public:
       }
     }
     return true;
+  }
+  TRIVIAL [[gnu::flatten]] constexpr auto
+  operator==(const AbstractTensor auto &B) const -> bool {
+    return isEqual(B);
   }
 };
 template <typename T, typename A>

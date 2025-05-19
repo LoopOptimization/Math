@@ -60,11 +60,18 @@ import SIMD;
 import std;
 #endif
 
+#ifndef NDEBUG
+#define DEBUGUSED [[gnu::used]]
+#else
+#define DEBUGUSED
+#endif
+
 #ifdef USE_MODULE
 export namespace math {
 #else
 namespace math {
 #endif
+
 // #define VERBOSESIMPLEX
 
 /// Tableau for the Simplex algorithm.
@@ -209,6 +216,14 @@ public:
               var_capacity_p1_,
             }};
   }
+  constexpr void zeroConstraints() {
+    MutPtrVector<value_type>{
+      tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
+      length(std::ptrdiff_t(num_constraints_) *
+             std::ptrdiff_t(var_capacity_p1_)),
+    }
+      .zero();
+  }
   // NOLINTNEXTLINE(readability-make-member-function-const)
   [[nodiscard]] constexpr auto getConstraints() -> MutPtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
@@ -224,7 +239,7 @@ public:
   }
   // maps variables to constraints
   // if the constraint is < 0, then that means there is no associated basic
-  // constraint, and the variable's value is `0`
+  // constraint, and the variable's value is `0`, i.e. it is non-basic
   // Otherwise, it is the index of the only non-zero constraint for that
   // variable.
   [[nodiscard]] constexpr auto getBasicConstraints() -> MutPtrVector<index_t> {
@@ -418,8 +433,7 @@ public:
       return simplex_->getVarValue(i + std::ptrdiff_t(skipped_vars_));
     }
     [[nodiscard]] constexpr auto operator[](OffsetEnd k) const -> Rational {
-      return simplex_->getVarValue(std::ptrdiff_t(simplex_->num_vars_) -
-                                   k.offset_);
+      return simplex_->getVarValue(std::ptrdiff_t(num_vars_) - k.offset_);
     }
     [[nodiscard]] constexpr auto operator[](ScalarRelativeIndex auto i) const
       -> Rational {
@@ -461,7 +475,7 @@ public:
       return os;
     }
   };
-  [[nodiscard]] constexpr auto getSolution() const -> Solution {
+  DEBUGUSED [[nodiscard]] constexpr auto getSolution() const -> Solution {
     return {
       .simplex_ = this, .skipped_vars_ = {}, .num_vars_ = aslength(num_vars_)};
   }
@@ -837,18 +851,63 @@ public:
             .skipped_vars_ = length(getNumVars() - n),
             .num_vars_ = length(getNumVars())};
   }
-  constexpr auto rLexMinStop(std::ptrdiff_t skippedVars) -> Solution {
+  constexpr auto rLexMinStop(std::ptrdiff_t skip_first,
+                             std::ptrdiff_t skip_last = 0) -> Solution {
 #ifndef NDEBUG
     assert(in_canonical_form_);
     assertCanonical();
 #endif
-    for (std::ptrdiff_t v = getNumVars(); v != skippedVars;) rLexMin(--v);
+    std::ptrdiff_t num_v = getNumVars() - skip_last;
+    for (std::ptrdiff_t v = num_v; v != skip_first;) rLexMin(--v);
 #ifndef NDEBUG
     assertCanonical();
 #endif
     return {.simplex_ = this,
-            .skipped_vars_ = length(skippedVars),
-            .num_vars_ = length(getNumVars())};
+            .skipped_vars_ = length(skip_first),
+            .num_vars_ = length(num_v)};
+  }
+  auto maximizeLast(std::ptrdiff_t num_last) -> Rational {
+    utils::invariant(num_last > 0);
+    MutPtrMatrix<value_type> C{getTableau()};
+    std::ptrdiff_t num_v = std::ptrdiff_t(C.numCol());
+    C[0, _(0, num_v - num_last)] << 0;
+    C[0, _(num_v - num_last, num_v)] << -1;
+    return run();
+  }
+  auto maximizeLastDrop(std::ptrdiff_t num_last) -> Rational {
+    utils::invariant(num_last > 0);
+    MutPtrMatrix<value_type> C{getTableau()};
+    std::ptrdiff_t num_v = std::ptrdiff_t(C.numCol()) - 1;
+    Rational f = maximizeLast(num_last);
+    MutPtrVector<index_t> basic_cons{getBasicConstraints()},
+      basic_vars{getBasicVariables()};
+    std::ptrdiff_t last_row = std::ptrdiff_t(C.numRow());
+    // now we must drop `num_last`
+    // if they are basic, we subtract them from the constraints,
+    // and drop the associated constraint
+    std::ptrdiff_t v = num_v, num_r = num_v - num_last;
+    do {
+      --v;
+      index_t c = basic_cons[v];
+      if (c < 0) continue; // was 0
+                           // std::int64_t n = C[c + 1, 0], d = C[c + 1, v + 1];
+      // #ifndef NDEBUG
+      //       if (!((C[_(last_row), v + 1] * n / d) * d)
+      //              .isEqual(C[_(last_row), v + 1] * n))
+      //         __builtin_trap();
+      // #endif
+      //       if (n) C[_(last_row), 0] -= (C[_(last_row), v + 1] * n) / d;
+      C[c + 1, 0] = 0;
+      if (--last_row == c + 1) continue;
+      C[c + 1, _(v + 1)] << C[last_row, _(v + 1)];
+      index_t last_row_var = basic_vars[last_row - 1];
+      utils::invariant(basic_vars[c] == v);
+      basic_vars[c] = last_row_var;
+      basic_cons[last_row_var] = c;
+    } while (v != num_r);
+    truncateVars(num_r);
+    truncateConstraints(--last_row);
+    return f;
   }
 
   // reverse lexicographic ally minimize vars
@@ -937,24 +996,6 @@ public:
     }
   }
 
-  constexpr void dropVariable(std::ptrdiff_t i) {
-    // We remove a variable by isolating it, and then dropping the
-    // constraint. This allows us to preserve canonical form
-    MutPtrVector<index_t> basic_constraints{getBasicConstraints()};
-    MutPtrMatrix<value_type> C{getConstraints()};
-    // ensure sure `i` is basic
-    if (basic_constraints[i] < 0) makeBasic(C, index_t(i));
-    std::ptrdiff_t ind = basic_constraints[i];
-    std::ptrdiff_t last_row = std::ptrdiff_t(C.numRow()) - 1;
-    if (last_row != ind) swap(C, row(ind), row(last_row));
-    truncateConstraints(last_row);
-  }
-  constexpr void removeExtraVariables(std::ptrdiff_t i) {
-    for (std::ptrdiff_t j = getNumVars(); j > i;) {
-      dropVariable(--j);
-      truncateVars(j);
-    }
-  }
   // static constexpr auto toMask(PtrVector<std::int64_t> x) -> std::uint64_t {
   //   assert(x.size() <= 64);
   //   std::uint64_t m = 0;
