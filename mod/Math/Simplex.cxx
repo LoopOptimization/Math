@@ -798,7 +798,7 @@ public:
   }
   /// makeZeroBasic(std::ptrdiff_t v) -> bool
   /// Tries to make `v` non-basic if `v` is zero.
-  /// Returns `false` if `v` is zero, `true` otherwise
+  /// Returns `true` if zero but we couldn't eliminate.
   constexpr auto makeZeroNonBasic(std::ptrdiff_t v) -> bool {
     utils::assume(v > 0);
     MutPtrMatrix<value_type> C{getTableau()};
@@ -809,7 +809,7 @@ public:
     std::int64_t cc = c++;
     // was not basic
     // v is basic, but not zero
-    if (C[c, 0] != 0) return true;
+    if (C[c, 0] != 0) return false;
 #ifndef NDEBUG
     assertCanonical();
 #endif
@@ -818,7 +818,7 @@ public:
     // We scan for a variable, trying to find a non-basic one
     std::ptrdiff_t ev = 0;
     for (; (basic_constraints[ev] >= 0) || (C[c, ev + 1] == 0);)
-      if (v <= ++ev) return false;
+      if (v <= ++ev) return true;
     // we found `ev`
 
     // we have the invariant that C[c,0] >= 0, but multiplying
@@ -877,36 +877,28 @@ public:
   auto maximizeLastDrop(std::ptrdiff_t num_last) -> Rational {
     utils::invariant(num_last > 0);
     MutPtrMatrix<value_type> C{getTableau()};
-    std::ptrdiff_t num_v = std::ptrdiff_t(C.numCol()) - 1;
+    std::ptrdiff_t num_v = std::ptrdiff_t(C.numCol()) - 1,
+                   last_row = std::ptrdiff_t(C.numRow()) - 1;
     Rational f = maximizeLast(num_last);
     MutPtrVector<index_t> basic_cons{getBasicConstraints()},
       basic_vars{getBasicVariables()};
-    std::ptrdiff_t last_row = std::ptrdiff_t(C.numRow());
     // now we must drop `num_last`
     // if they are basic, we subtract them from the constraints,
     // and drop the associated constraint
     std::ptrdiff_t v = num_v, num_r = num_v - num_last;
     do {
-      --v;
-      index_t c = basic_cons[v];
+      index_t c = basic_cons[--v];
       if (c < 0) continue; // was 0
-                           // std::int64_t n = C[c + 1, 0], d = C[c + 1, v + 1];
-      // #ifndef NDEBUG
-      //       if (!((C[_(last_row), v + 1] * n / d) * d)
-      //              .isEqual(C[_(last_row), v + 1] * n))
-      //         __builtin_trap();
-      // #endif
-      //       if (n) C[_(last_row), 0] -= (C[_(last_row), v + 1] * n) / d;
       C[c + 1, 0] = 0;
-      if (--last_row == c + 1) continue;
-      C[c + 1, _(v + 1)] << C[last_row, _(v + 1)];
-      index_t last_row_var = basic_vars[last_row - 1];
+      if (!makeZeroNonBasic(v)) continue;
+      C[c + 1, _(v)] << C[last_row--, _(v)];
+      index_t last_row_var = basic_vars[last_row];
       utils::invariant(basic_vars[c] == v);
       basic_vars[c] = last_row_var;
       basic_cons[last_row_var] = c;
     } while (v != num_r);
     truncateVars(num_r);
-    truncateConstraints(--last_row);
+    truncateConstraints(last_row);
     return f;
   }
 
