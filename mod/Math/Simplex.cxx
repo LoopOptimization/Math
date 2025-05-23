@@ -3,8 +3,8 @@ module;
 #else
 #pragma once
 #endif
+#include "Macros.hxx"
 #include <cassert>
-
 #ifndef USE_MODULE
 #include "Alloc/Arena.cxx"
 #include "Alloc/Mallocator.cxx"
@@ -169,30 +169,31 @@ class Simplex {
 public:
   // tableau is constraint * var matrix w/ extra col for LHS
   // and extra row for objective function
-  [[nodiscard]] constexpr auto reservedBasicConstraints() const
+  TRIVIAL [[nodiscard]] constexpr auto reservedBasicConstraints() const
     -> std::ptrdiff_t {
     return std::ptrdiff_t(var_capacity_p1_) - 1;
   }
-  [[nodiscard]] constexpr auto reservedBasicVariables() const
+  TRIVIAL [[nodiscard]] constexpr auto reservedBasicVariables() const
     -> std::ptrdiff_t {
     return std::ptrdiff_t(constraint_capacity_);
   }
 
-  // [[nodiscard]] constexpr auto intsNeeded() const -> std::ptrdiff_t {
-  //   return reservedTableau() + reservedBasicConstraints() +
-  //          reservedBasicVariables();
-  // }
-  // We with to align every row of `getConstraints()` and `getTableau()`.
-  // To do this, we
-  // 0. (varCapacity+1) % simd::Width<std::int64_t> == 0
-  // 1. offset...
-  //
-  // tableau has a stride of `varCapacityP1`, which is the maximum var capacity
-  // +1. The `+1` is room for the LHS.
-  //
-  /// [ value | objective function ]
-  /// [ LHS   | tableau            ]
-  [[nodiscard]] constexpr auto getTableau() const -> PtrMatrix<value_type> {
+  TRIVIAL // [[nodiscard]] constexpr auto intsNeeded() const -> std::ptrdiff_t {
+          //   return reservedTableau() + reservedBasicConstraints() +
+          //          reservedBasicVariables();
+          // }
+          // We with to align every row of `getConstraints()` and
+          // `getTableau()`. To do this, we 0. (varCapacity+1) %
+          // simd::Width<std::int64_t> == 0
+          // 1. offset...
+          //
+          // tableau has a stride of `varCapacityP1`, which is the maximum var
+          // capacity +1. The `+1` is room for the LHS.
+          //
+          /// [ value | objective function ]
+          /// [ LHS   | tableau            ]
+            TRIVIAL [[nodiscard]] constexpr auto getTableau() const
+    -> PtrMatrix<value_type> {
     //
     return {tableauPointer(), StridedDims<>{
                                 ++auto(num_constraints_),
@@ -201,14 +202,16 @@ public:
                               }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
-  [[nodiscard]] constexpr auto getTableau() -> MutPtrMatrix<value_type> {
+  TRIVIAL [[nodiscard]] constexpr auto getTableau()
+    -> MutPtrMatrix<value_type> {
     return {tableauPointer(), StridedDims<>{
                                 ++auto(num_constraints_),
                                 ++auto(num_vars_),
                                 var_capacity_p1_,
                               }};
   }
-  [[nodiscard]] constexpr auto getConstraints() const -> PtrMatrix<value_type> {
+  TRIVIAL [[nodiscard]] constexpr auto getConstraints() const
+    -> PtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
               num_constraints_,
@@ -216,7 +219,7 @@ public:
               var_capacity_p1_,
             }};
   }
-  constexpr void zeroConstraints() {
+  TRIVIAL constexpr void zeroConstraints() {
     MutPtrVector<value_type>{
       tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
       length(std::ptrdiff_t(num_constraints_) *
@@ -225,7 +228,8 @@ public:
       .zero();
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
-  [[nodiscard]] constexpr auto getConstraints() -> MutPtrMatrix<value_type> {
+  TRIVIAL [[nodiscard]] constexpr auto getConstraints()
+    -> MutPtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
               num_constraints_,
@@ -233,7 +237,7 @@ public:
               var_capacity_p1_,
             }};
   }
-  [[nodiscard]] constexpr auto getBasicConstraints() const
+  TRIVIAL [[nodiscard]] constexpr auto getBasicConstraints() const
     -> PtrVector<index_t> {
     return {basicConsPointer(), aslength(num_vars_)};
   }
@@ -242,42 +246,46 @@ public:
   // constraint, and the variable's value is `0`, i.e. it is non-basic
   // Otherwise, it is the index of the only non-zero constraint for that
   // variable.
-  [[nodiscard]] constexpr auto getBasicConstraints() -> MutPtrVector<index_t> {
+  TRIVIAL [[nodiscard]] constexpr auto getBasicConstraints()
+    -> MutPtrVector<index_t> {
     return {basicConsPointer(), aslength(num_vars_)};
   }
   // maps constraints to variables
-  [[nodiscard]] constexpr auto getBasicVariables() const -> PtrVector<index_t> {
+  TRIVIAL [[nodiscard]] constexpr auto getBasicVariables() const
+    -> PtrVector<index_t> {
     return {basicVarsPointer(), length(std::ptrdiff_t(num_constraints_))};
   }
-  [[nodiscard]] constexpr auto getBasicVariables() -> MutPtrVector<index_t> {
+  TRIVIAL [[nodiscard]] constexpr auto getBasicVariables()
+    -> MutPtrVector<index_t> {
     return {basicVarsPointer(), length(std::ptrdiff_t(num_constraints_))};
   }
-  [[nodiscard]] constexpr auto getCost() const -> PtrVector<value_type> {
+  TRIVIAL [[nodiscard]] constexpr auto getCost() const
+    -> PtrVector<value_type> {
     return {tableauPointer(), length(std::ptrdiff_t(num_vars_) + 1z)};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
-  [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
+  TRIVIAL [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
     return {tableauPointer(), length(std::ptrdiff_t(num_vars_) + 1z)};
   }
   // maps variables to constraints; <0 if variable is not basic
-  [[nodiscard]] constexpr auto getBasicConstraint(std::ptrdiff_t var) const
-    -> index_t {
+  TRIVIAL [[nodiscard]] constexpr auto
+  getBasicConstraint(std::ptrdiff_t var) const -> index_t {
     return getBasicConstraints()[var];
   }
   // get the variable that is basic associated with this constraint;
   // must always be valid while the simplex is in canonical form.
-  [[nodiscard]] constexpr auto getBasicVariable(std::ptrdiff_t constraint) const
-    -> index_t {
+  TRIVIAL [[nodiscard]] constexpr auto
+  getBasicVariable(std::ptrdiff_t constraint) const -> index_t {
     return getBasicVariables()[constraint];
   }
-  [[nodiscard]] constexpr auto getObjectiveCoefficient(std::ptrdiff_t i) const
-    -> value_type {
+  TRIVIAL [[nodiscard]] constexpr auto
+  getObjectiveCoefficient(std::ptrdiff_t i) const -> value_type {
     return getCost()[++i];
   }
-  [[nodiscard]] constexpr auto getObjectiveValue() -> value_type & {
+  TRIVIAL [[nodiscard]] constexpr auto getObjectiveValue() -> value_type & {
     return getCost()[0];
   }
-  [[nodiscard]] constexpr auto getObjectiveValue() const -> value_type {
+  TRIVIAL [[nodiscard]] constexpr auto getObjectiveValue() const -> value_type {
     return getCost()[0];
   }
   constexpr void simplifySystem() {
@@ -315,46 +323,46 @@ public:
     }
   }
 #endif
-  [[nodiscard]] constexpr auto getConstants()
+  TRIVIAL [[nodiscard]] constexpr auto getConstants()
     -> MutStridedVector<std::int64_t> {
     return getTableau()[_(1, end), 0];
   }
-  [[nodiscard]] constexpr auto getConstants() const
+  TRIVIAL [[nodiscard]] constexpr auto getConstants() const
     -> StridedVector<std::int64_t> {
     return getTableau()[_(1, end), 0];
   }
-  constexpr void truncateConstraints(std::ptrdiff_t i) {
+  TRIVIAL constexpr void truncateConstraints(std::ptrdiff_t i) {
     invariant(std::ptrdiff_t(num_constraints_) <=
               std::ptrdiff_t(constraint_capacity_));
     invariant(i >= 0z);
     invariant(i <= num_constraints_);
     num_constraints_ = row(i);
   }
-  constexpr void setNumCons(std::ptrdiff_t i) {
+  TRIVIAL constexpr void setNumCons(std::ptrdiff_t i) {
     invariant(i <= constraint_capacity_);
     num_constraints_ = row(i);
   }
-  constexpr void setNumVars(std::ptrdiff_t i) {
+  TRIVIAL constexpr void setNumVars(std::ptrdiff_t i) {
     invariant(i < var_capacity_p1_);
     num_vars_ = col(i);
   }
-  constexpr void truncateVars(std::ptrdiff_t i) {
+  TRIVIAL constexpr void truncateVars(std::ptrdiff_t i) {
     invariant(i <= num_vars_);
     num_vars_ = col(i);
   }
-  [[nodiscard]] constexpr auto getNumCons() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto getNumCons() const -> std::ptrdiff_t {
     invariant(num_constraints_ >= 0);
     return std::ptrdiff_t(num_constraints_);
   }
-  [[nodiscard]] constexpr auto getNumVars() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto getNumVars() const -> std::ptrdiff_t {
     invariant(num_vars_ >= 0);
     return std::ptrdiff_t(num_vars_);
   }
-  [[nodiscard]] constexpr auto getConCap() const -> Capacity<> {
+  TRIVIAL [[nodiscard]] constexpr auto getConCap() const -> Capacity<> {
     invariant(constraint_capacity_ >= 0);
     return constraint_capacity_;
   }
-  [[nodiscard]] constexpr auto getVarCap() const -> RowStride<> {
+  TRIVIAL [[nodiscard]] constexpr auto getVarCap() const -> RowStride<> {
     invariant(var_capacity_p1_ > 0);
     return --auto{var_capacity_p1_};
   }
@@ -385,76 +393,82 @@ public:
 
     public:
       using value_type = Rational;
-      constexpr iterator(const Solution *s, std::ptrdiff_t j)
+      TRIVIAL constexpr iterator(const Solution *s, std::ptrdiff_t j)
         : sol_(s), i_(j) {}
-      constexpr iterator() = default;
-      constexpr iterator(const iterator &) = default;
-      constexpr auto operator=(const iterator &) -> iterator & = default;
+      TRIVIAL constexpr iterator() = default;
+      TRIVIAL constexpr iterator(const iterator &) = default;
+      TRIVIAL constexpr auto operator=(const iterator &)
+        -> iterator & = default;
       auto operator*() const -> Rational { return (*sol_)[i_]; }
-      constexpr auto operator++() -> iterator & {
+      TRIVIAL constexpr auto operator++() -> iterator & {
         ++i_;
         return *this;
       }
-      constexpr auto operator++(int) -> iterator {
+      TRIVIAL constexpr auto operator++(int) -> iterator {
         auto tmp = *this;
         ++i_;
         return tmp;
       }
-      constexpr auto operator--() -> iterator & {
+      TRIVIAL constexpr auto operator--() -> iterator & {
         --i_;
         return *this;
       }
-      constexpr auto operator--(int) -> iterator {
+      TRIVIAL constexpr auto operator--(int) -> iterator {
         auto tmp = *this;
         --i_;
         return tmp;
       }
-      friend constexpr auto operator==(iterator a, iterator b) -> bool {
+      TRIVIAL friend constexpr auto operator==(iterator a, iterator b) -> bool {
         return a.i_ == b.i_;
       }
-      friend constexpr auto operator!=(iterator a, iterator b) -> bool {
+      TRIVIAL friend constexpr auto operator!=(iterator a, iterator b) -> bool {
         return a.i_ != b.i_;
       }
-      constexpr auto operator-(iterator b) const -> std::ptrdiff_t {
+      TRIVIAL constexpr auto operator-(iterator b) const -> std::ptrdiff_t {
         return std::ptrdiff_t(i_) - b.i_;
       }
-      constexpr auto operator+(std::ptrdiff_t n) const -> iterator {
+      TRIVIAL constexpr auto operator+(std::ptrdiff_t n) const -> iterator {
         return {sol_, i_ + n};
       }
     };
-    [[nodiscard]] constexpr auto begin() const -> iterator { return {this, 0}; }
-    [[nodiscard]] constexpr auto end() const -> iterator {
+    TRIVIAL [[nodiscard]] constexpr auto begin() const -> iterator {
+      return {this, 0};
+    }
+    TRIVIAL [[nodiscard]] constexpr auto end() const -> iterator {
       return {this, std::ptrdiff_t(num_vars_ - skipped_vars_)};
     }
 
-    [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const
+    TRIVIAL [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const
       -> Rational {
       invariant(i >= 0);
       return simplex_->getVarValue(i + std::ptrdiff_t(skipped_vars_));
     }
-    [[nodiscard]] constexpr auto operator[](OffsetEnd k) const -> Rational {
+    TRIVIAL [[nodiscard]] constexpr auto operator[](OffsetEnd k) const
+      -> Rational {
       return simplex_->getVarValue(std::ptrdiff_t(num_vars_) - k.offset_);
     }
-    [[nodiscard]] constexpr auto operator[](ScalarRelativeIndex auto i) const
-      -> Rational {
+    TRIVIAL [[nodiscard]] constexpr auto
+    operator[](ScalarRelativeIndex auto i) const -> Rational {
       return (*this)[calcOffset(size(), i)];
     }
     template <typename B, typename E>
-    constexpr auto operator[](Range<B, E> r) const -> Solution {
+    TRIVIAL constexpr auto operator[](Range<B, E> r) const -> Solution {
       return (*this)[canonicalizeRange(r, size())];
     }
-    constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const
-      -> Solution {
+    TRIVIAL constexpr auto
+    operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r) const -> Solution {
       return {.simplex_ = simplex_,
               .skipped_vars_ = length(std::ptrdiff_t(skipped_vars_) + r.b_),
               .num_vars_ = length(std::ptrdiff_t(skipped_vars_) + r.e_)};
     }
-    [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
       return std::ptrdiff_t(num_vars_ - skipped_vars_);
     }
-    [[nodiscard]] constexpr auto view() const -> Solution { return *this; };
+    TRIVIAL [[nodiscard]] constexpr auto view() const -> Solution {
+      return *this;
+    };
 
-    [[nodiscard]] constexpr auto denomLCM() const -> std::int64_t {
+    TRIVIAL [[nodiscard]] constexpr auto denomLCM() const -> std::int64_t {
       std::int64_t l = 1;
       for (auto r : *this) l = lcm(l, r.denominator_);
       return l;
@@ -789,7 +803,7 @@ public:
     return makeZeroNonBasic(v);
   }
   // get the value of `var`
-  [[nodiscard]] constexpr auto getVarValue(std::ptrdiff_t var) const
+  TRIVIAL [[nodiscard]] constexpr auto getVarValue(std::ptrdiff_t var) const
     -> Rational {
     std::int64_t j = getBasicConstraint(var);
     if (j < 0) return 0;
