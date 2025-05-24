@@ -3,13 +3,13 @@ module;
 #else
 #pragma once
 #endif
+#include "Macros.hxx"
 #ifndef USE_MODULE
+#include "Utilities/Valid.cxx"
 #include <concepts>
 #include <limits>
 #include <optional>
 #include <utility>
-
-#include "Utilities/Valid.cxx"
 #else
 export module Optional;
 import Invariant;
@@ -32,76 +32,80 @@ namespace utils {
 /// std::unsigned_integral T: std::numeric_limits<T>::max();
 /// T&: wraps a pointer, `nullptr` indicates empty.
 template <typename T> struct Optional {
-  std::optional<T> opt;
-  [[nodiscard]] constexpr auto hasValue() const -> bool {
-    return opt.has_value();
+  std::optional<T> opt_;
+  TRIVIAL [[nodiscard]] constexpr auto hasValue() const -> bool {
+    return opt_.has_value();
   }
-  [[nodiscard]] constexpr auto getValue() -> T & {
+  TRIVIAL [[nodiscard]] constexpr auto getValue() -> T & {
     invariant(hasValue());
-    return *opt;
+    return *opt_;
   }
-  constexpr explicit operator bool() const { return hasValue(); }
-  constexpr auto operator->() -> T * { return &getValue(); }
-  constexpr auto operator->() const -> const T * { return &getValue(); }
-  constexpr Optional() = default;
-  constexpr Optional(T value) : opt(std::move(value)) {}
-  constexpr Optional(std::nullopt_t) {}
-  constexpr auto operator*() -> T & { return getValue(); }
+  TRIVIAL constexpr explicit operator bool() const { return hasValue(); }
+  TRIVIAL constexpr auto operator->() -> T * { return &getValue(); }
+  TRIVIAL constexpr auto operator->() const -> const T * { return &getValue(); }
+  TRIVIAL constexpr Optional() = default;
+  TRIVIAL constexpr Optional(T value) : opt_(std::move(value)) {}
+  TRIVIAL constexpr Optional(std::nullopt_t) {}
+  TRIVIAL constexpr auto operator*() -> T & { return getValue(); }
 };
 
 template <std::signed_integral T> struct Optional<T> {
   static constexpr T null = std::numeric_limits<T>::min();
-  [[no_unique_address]] T value{null};
-  [[nodiscard]] constexpr auto hasValue() const -> bool {
-    return value != null;
+  [[no_unique_address]] T value_{null};
+  TRIVIAL [[nodiscard]] constexpr auto hasValue() const -> bool {
+    return value_ != null;
   }
-  [[nodiscard]] constexpr auto getValue() const -> T {
+  TRIVIAL [[nodiscard]] constexpr auto getValue() const -> T {
     invariant(hasValue());
-    return value;
+    return value_;
   }
-  [[nodiscard]] constexpr auto operator*() const -> T { return getValue(); }
-  constexpr auto operator->() -> T * { return &value; }
-  constexpr auto operator->() const -> const T * { return &value; }
-  constexpr explicit operator bool() const { return hasValue(); }
-  constexpr Optional() = default;
-  constexpr Optional(T v) : value(v) {}
-  constexpr Optional(std::nullopt_t) {}
+  TRIVIAL [[nodiscard]] constexpr auto operator*() const -> T {
+    return getValue();
+  }
+  TRIVIAL constexpr auto operator->() -> T * { return &value_; }
+  TRIVIAL constexpr auto operator->() const -> const T * { return &value_; }
+  TRIVIAL constexpr explicit operator bool() const { return hasValue(); }
+  TRIVIAL constexpr Optional() = default;
+  TRIVIAL constexpr Optional(T v) : value_(v) {}
+  TRIVIAL constexpr Optional(std::nullopt_t) {}
 };
 template <std::unsigned_integral T> struct Optional<T> {
   static constexpr T null = std::numeric_limits<T>::max();
-  [[no_unique_address]] T value{null};
-  [[nodiscard]] constexpr auto hasValue() const -> bool {
-    return value != null;
+  [[no_unique_address]] T value_{null};
+  TRIVIAL [[nodiscard]] constexpr auto hasValue() const -> bool {
+    return value_ != null;
   }
-  [[nodiscard]] constexpr auto getValue() const -> T {
+  TRIVIAL [[nodiscard]] constexpr auto getValue() const -> T {
     invariant(hasValue());
-    return value;
+    return value_;
   }
-  [[nodiscard]] constexpr auto operator*() const -> T { return getValue(); }
-  constexpr auto operator->() -> T * { return &value; }
-  constexpr auto operator->() const -> const T * { return &value; }
-  constexpr explicit operator bool() const { return hasValue(); }
-  constexpr Optional() = default;
-  constexpr Optional(T v) : value(v) {}
-  constexpr Optional(std::nullopt_t) {}
+  TRIVIAL [[nodiscard]] constexpr auto operator*() const -> T {
+    return getValue();
+  }
+  TRIVIAL constexpr auto operator->() -> T * { return &value_; }
+  TRIVIAL constexpr auto operator->() const -> const T * { return &value_; }
+  TRIVIAL constexpr explicit operator bool() const { return hasValue(); }
+  TRIVIAL constexpr Optional() = default;
+  TRIVIAL constexpr Optional(T v) : value_(v) {}
+  TRIVIAL constexpr Optional(std::nullopt_t) {}
 };
 
 template <typename T> struct Optional<T &> {
-  T *value{nullptr};
-  [[nodiscard]] constexpr auto hasValue() const -> bool {
-    return value != nullptr;
+  T *value_{nullptr};
+  TRIVIAL [[nodiscard]] constexpr auto hasValue() const -> bool {
+    return value_ != nullptr;
   }
-  [[nodiscard]] constexpr auto getValue() -> T & {
+  TRIVIAL [[nodiscard]] constexpr auto getValue() -> T & {
     invariant(hasValue());
-    return *value;
+    return *value_;
   }
-  [[nodiscard]] constexpr auto operator*() -> T & { return getValue(); }
-  constexpr explicit operator bool() const { return hasValue(); }
-  constexpr auto operator->() -> T * { return value; }
-  constexpr auto operator->() const -> const T * { return value; }
-  constexpr Optional() = default;
-  constexpr Optional(T &v) : value(&v) {}
-  constexpr Optional(std::nullopt_t) {}
+  TRIVIAL [[nodiscard]] constexpr auto operator*() -> T & { return getValue(); }
+  TRIVIAL constexpr explicit operator bool() const { return hasValue(); }
+  TRIVIAL constexpr auto operator->() -> T * { return value_; }
+  TRIVIAL constexpr auto operator->() const -> const T * { return value_; }
+  TRIVIAL constexpr Optional() = default;
+  TRIVIAL constexpr Optional(T &v) : value_(&v) {}
+  TRIVIAL constexpr Optional(std::nullopt_t) {}
 };
 
 // template deduction guides
@@ -110,36 +114,39 @@ template <typename T> Optional(T *) -> Optional<T *>;
 template <typename T> Optional(T &) -> Optional<T &>;
 
 template <typename T> struct Optional<T *> {
-  T *value{nullptr};
-  [[nodiscard]] constexpr auto hasValue() const -> bool {
-    return value != nullptr;
+  T *value_{nullptr};
+  TRIVIAL [[nodiscard]] constexpr auto hasValue() const -> bool {
+    return value_ != nullptr;
   }
-  [[nodiscard]] constexpr auto getValue() -> T * {
-    invariant(value != nullptr);
-    return value;
+  TRIVIAL [[nodiscard]] constexpr auto getValue() -> T * {
+    invariant(value_ != nullptr);
+    return value_;
   }
-  [[nodiscard]] constexpr auto getValue() const -> const T * {
-    invariant(value != nullptr);
-    return value;
+  TRIVIAL [[nodiscard]] constexpr auto getValue() const -> const T * {
+    invariant(value_ != nullptr);
+    return value_;
   }
-  [[nodiscard]] constexpr auto operator*() -> T * { return value; }
-  [[nodiscard]] constexpr auto operator*() const -> const T * { return value; }
-  [[nodiscard]] constexpr explicit operator Valid<T>() {
-    invariant(value != nullptr);
-    return value;
+  TRIVIAL [[nodiscard]] constexpr auto operator*() -> T * { return value_; }
+  TRIVIAL [[nodiscard]] constexpr auto operator*() const -> const T * {
+    return value_;
   }
-  constexpr explicit operator bool() const { return value != nullptr; }
-  constexpr auto operator->() -> T * {
-    invariant(value != nullptr);
-    return value;
+  TRIVIAL [[nodiscard]] constexpr explicit operator Valid<T>() {
+    invariant(value_ != nullptr);
+    return value_;
   }
-  constexpr auto operator->() const -> const T * {
-    invariant(value != nullptr);
-    return value;
+  TRIVIAL constexpr explicit operator bool() const { return value_ != nullptr; }
+  TRIVIAL constexpr auto operator->() -> T * {
+    invariant(value_ != nullptr);
+    return value_;
   }
-  constexpr Optional() = default;
-  constexpr Optional(T *v) : value{v} {}
-  constexpr Optional(Valid<T> v) : value{v} {} // why would anyone want this?
-  constexpr Optional(std::nullopt_t) {};
+  TRIVIAL constexpr auto operator->() const -> const T * {
+    invariant(value_ != nullptr);
+    return value_;
+  }
+  TRIVIAL constexpr Optional() = default;
+  TRIVIAL constexpr Optional(T *v) : value_{v} {}
+  TRIVIAL constexpr Optional(Valid<T> v)
+    : value_{v} {} // why would anyone want this?
+  TRIVIAL constexpr Optional(std::nullopt_t){};
 };
 } // namespace utils
