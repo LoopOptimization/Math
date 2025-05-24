@@ -569,27 +569,27 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     if constexpr (utils::Printable<T>)
       std::cout << "Size: " << std::ptrdiff_t(sz_) << " " << *this << "\n";
   }
-  // [[gnu::used]] void dump(const char *filename) const {
-  //   if constexpr (std::integral<T>) {
-  //     std::FILE *f = std::fopen(filename, "w");
-  //     if (f == nullptr) return;
-  //     (void)std::fprintf(f, "C= [");
-  //     if constexpr (MatrixDimension<S>) {
-  //       for (std::ptrdiff_t i = 0; i < Row(sz); ++i) {
-  //         if (i) (void)std::fprintf(f, "\n");
-  //         (void)std::fprintf(f, "%ld", long((*this)[i, 0]));
-  //         for (std::ptrdiff_t j = 1; j < Col(sz); ++j)
-  //           (void)std::fprintf(f, " %ld", long((*this)[i, j]));
-  //       }
-  //     } else {
-  //       (void)std::fprintf(f, "%ld", long((*this)[0]));
-  //       for (std::ptrdiff_t i = 1; (i < std::ptrdiff_t(sz)); ++i)
-  //         (void)std::fprintf(f, ", %ld", long((*this)[i]));
-  //     }
-  //     (void)std::fprintf(f, "]");
-  //     (void)std::fclose(f);
-  //   }
-  // }
+  [[gnu::used]] void dump(const char *filename) const {
+    if constexpr (std::integral<T>) {
+      std::FILE *f = std::fopen(filename, "w");
+      if (f == nullptr) return;
+      (void)std::fprintf(f, "C= [");
+      if constexpr (MatrixDimension<S>) {
+        for (std::ptrdiff_t i = 0; i < row(sz_); ++i) {
+          if (i) (void)std::fprintf(f, "\n");
+          (void)std::fprintf(f, "%ld", long((*this)[i, 0]));
+          for (std::ptrdiff_t j = 1; j < col(sz_); ++j)
+            (void)std::fprintf(f, " %ld", long((*this)[i, j]));
+        }
+      } else {
+        (void)std::fprintf(f, "%ld", long((*this)[0]));
+        for (std::ptrdiff_t i = 1; (i < std::ptrdiff_t(sz_)); ++i)
+          (void)std::fprintf(f, ", %ld", long((*this)[i]));
+      }
+      (void)std::fprintf(f, "]");
+      (void)std::fclose(f);
+    }
+  }
 #endif
 protected:
   friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }

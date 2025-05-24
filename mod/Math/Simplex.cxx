@@ -211,7 +211,16 @@ public:
                                 var_capacity_p1_,
                               }};
   }
-  TRIVIAL DEBUGUSED [[nodiscard]] constexpr auto getConstraints() const
+  TRIVIAL [[nodiscard]] constexpr auto getConstraints() const
+    -> PtrMatrix<value_type> {
+    return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
+            StridedDims<>{
+              num_constraints_,
+              ++auto(num_vars_),
+              var_capacity_p1_,
+            }};
+  }
+  DEBUGUSED [[nodiscard]] constexpr auto getConstraintsDebug() const
     -> PtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
@@ -490,8 +499,11 @@ public:
       return os;
     }
   };
-  TRIVIAL DEBUGUSED [[nodiscard]] constexpr auto getSolution() const
-    -> Solution {
+  TRIVIAL [[nodiscard]] constexpr auto getSolution() const -> Solution {
+    return {
+      .simplex_ = this, .skipped_vars_ = {}, .num_vars_ = aslength(num_vars_)};
+  }
+  DEBUGUSED [[nodiscard]] constexpr auto getSolutionDebug() const -> Solution {
     return {
       .simplex_ = this, .skipped_vars_ = {}, .num_vars_ = aslength(num_vars_)};
   }
