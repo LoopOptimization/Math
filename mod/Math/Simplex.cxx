@@ -148,17 +148,18 @@ class Simplex {
 #endif
 
   // (varCapacity+1)%simd::Width<std::int64_t>==0
-  static constexpr auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
+  TRIVIAL static constexpr auto alignVarCapacity(RowStride<> rs)
+    -> RowStride<> {
     static constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
     return stride((std::ptrdiff_t(rs) + W) & -W);
   }
-  [[nodiscard]] static constexpr auto reservedTableau(std::ptrdiff_t cons,
-                                                      std::ptrdiff_t vars)
-    -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] static constexpr auto
+  reservedTableau(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
     return static_cast<std::ptrdiff_t>(sizeof(value_type)) *
            ((cons + 1) * vars);
   }
-  static constexpr auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
+  TRIVIAL static constexpr auto requiredMemory(std::ptrdiff_t cons,
+                                               std::ptrdiff_t vars)
     -> std::size_t {
     std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
                    indices = tableauOffset(cons, vars),
@@ -178,21 +179,21 @@ public:
     return std::ptrdiff_t(constraint_capacity_);
   }
 
-  TRIVIAL // [[nodiscard]] constexpr auto intsNeeded() const -> std::ptrdiff_t {
-          //   return reservedTableau() + reservedBasicConstraints() +
-          //          reservedBasicVariables();
-          // }
-          // We with to align every row of `getConstraints()` and
-          // `getTableau()`. To do this, we 0. (varCapacity+1) %
-          // simd::Width<std::int64_t> == 0
-          // 1. offset...
-          //
-          // tableau has a stride of `varCapacityP1`, which is the maximum var
-          // capacity +1. The `+1` is room for the LHS.
-          //
-          /// [ value | objective function ]
-          /// [ LHS   | tableau            ]
-            TRIVIAL [[nodiscard]] constexpr auto getTableau() const
+  // TRIVIAL [[nodiscard]] constexpr auto intsNeeded() const -> std::ptrdiff_t {
+  //   return reservedTableau() + reservedBasicConstraints() +
+  //          reservedBasicVariables();
+  // }
+  // We with to align every row of `getConstraints()` and
+  // `getTableau()`. To do this, we 0. (varCapacity+1) %
+  // simd::Width<std::int64_t> == 0
+  // 1. offset...
+  //
+  // tableau has a stride of `varCapacityP1`, which is the maximum var
+  // capacity +1. The `+1` is room for the LHS.
+  //
+  /// [ value | objective function ]
+  /// [ LHS   | tableau            ]
+  TRIVIAL [[nodiscard]] constexpr auto getTableau() const
     -> PtrMatrix<value_type> {
     //
     return {tableauPointer(), StridedDims<>{
@@ -210,7 +211,7 @@ public:
                                 var_capacity_p1_,
                               }};
   }
-  TRIVIAL [[nodiscard]] constexpr auto getConstraints() const
+  TRIVIAL DEBUGUSED [[nodiscard]] constexpr auto getConstraints() const
     -> PtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
@@ -489,7 +490,8 @@ public:
       return os;
     }
   };
-  DEBUGUSED [[nodiscard]] constexpr auto getSolution() const -> Solution {
+  TRIVIAL DEBUGUSED [[nodiscard]] constexpr auto getSolution() const
+    -> Solution {
     return {
       .simplex_ = this, .skipped_vars_ = {}, .num_vars_ = aslength(num_vars_)};
   }

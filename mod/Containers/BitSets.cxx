@@ -235,7 +235,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     if (contained) data_[d] &= (~mask);
     return contained;
   }
-  static constexpr void set(U &d, std::ptrdiff_t r, bool b) {
+  TRIVIAL static constexpr void set(U &d, std::ptrdiff_t r, bool b) {
     U mask = U(1) << r;
     if (b == ((d & mask) != 0)) return;
     if (b) d |= mask;
