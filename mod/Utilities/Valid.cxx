@@ -7,12 +7,9 @@ module;
 #include "Macros.hxx"
 #include "Owner.hxx"
 #ifndef USE_MODULE
+#include "Utilities/Invariant.cxx"
 #include <cstddef>
 #include <type_traits>
-#endif
-
-#ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
 #else
 export module Valid;
 
@@ -25,6 +22,15 @@ export namespace utils {
 #else
 namespace utils {
 #endif
+template <typename T> struct Mut : T {
+  using T::T;
+};
+
+template <typename T> TRIVIAL constexpr auto as_const(T &x) -> T & { return x; }
+
+template <typename T> TRIVIAL constexpr auto as_const(Mut<T> &x) -> T & {
+  return x;
+}
 // TODO: communicate not-null to the compiler somehow?
 template <typename T> class MATH_GSL_POINTER Valid {
   [[no_unique_address]] T *value_;
