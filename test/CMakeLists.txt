@@ -88,10 +88,14 @@ include(FetchContent)
 # GIT_REPOSITORY https://github.com/google/googletest.git # GIT_TAG
 # 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17 ) endif() using
 # `FIND_PACKAGE_ARGS` causes it to try `find_package`
-if(${CMAKE_CXX_FLAGS} STREQUAL "")
-  set(has_libcpp -1)
+if(DEFINED CMAKE_CXX_FLAGS)# OR 
+  if(${CMAKE_CXX_FLAGS} STREQUAL "")
+    set(has_libcpp -1)
+  else()
+    string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
+  endif()
 else()
-  string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
+  set(has_libcpp -1)
 endif()
 if(has_libcpp GREATER_EQUAL 0)
   FetchContent_Declare(

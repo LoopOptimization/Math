@@ -50,6 +50,9 @@ build-clang/no-simd/:
 build-clang/modules/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
 
+build-clang/modules-libstdcxx/:
+	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
+
 build-clang/bench/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
 
@@ -100,6 +103,10 @@ clang-nosimd: build-clang/no-simd/
 clang-modules: build-clang/modules/
 	cmake --build build-clang/modules/
 	cmake --build build-clang/modules/ --target test
+
+clang-modules: build-clang/modules-libstdcxx/
+	cmake --build build-clang/module-libstdcxxs/
+	cmake --build build-clang/modules-libstdcxx/ --target test
 
 gcc-modules: build-gcc/modules/
 	cmake --build build-gcc/modules/
