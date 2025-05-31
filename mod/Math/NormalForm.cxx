@@ -898,6 +898,20 @@ TRIVIAL [[nodiscard]] constexpr auto inv(Arena<> *alloc,
   solveSystem(A, B);
   return B;
 }
+// scaledInv(A, B) -> s
+// reads and writes A, writes B
+// B = s * inv(A) // A is diagonalized in the process
+TRIVIAL [[nodiscard]] constexpr auto
+scaledInv(MutSquarePtrMatrix<std::int64_t> A,
+          MutSquarePtrMatrix<std::int64_t> B) -> std::int64_t {
+  B.zero();
+  B.diag() << 1;
+  solveSystem(A, B);
+  auto [s, nonUnity] = lcmNonUnity(A.diag());
+  if (nonUnity)
+    for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
+  return s;
+}
 /// inv(A) -> (B, s)
 /// Given a matrix \f$\textbf{A}\f$, returns a matrix \f$\textbf{B}\f$ and a
 /// scalar \f$s\f$ such that \f$\frac{1}{s}\textbf{B} = \textbf{A}^{-1}\f$.
@@ -910,13 +924,8 @@ TRIVIAL [[nodiscard]] constexpr auto
 scaledInv(Arena<> *alloc, MutSquarePtrMatrix<std::int64_t> A)
   -> containers::Pair<MutSquarePtrMatrix<std::int64_t>, std::int64_t> {
   MutSquarePtrMatrix<std::int64_t> B =
-    identity<std::int64_t>(alloc, std::ptrdiff_t(A.numCol()));
-  solveSystem(A, B);
-  static_assert(AbstractVector<decltype(A.diag())>);
-  auto [s, nonUnity] = lcmNonUnity(A.diag());
-  if (nonUnity)
-    for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
-  return {B, s};
+    square_matrix<std::int64_t>(alloc, std::ptrdiff_t(A.numCol()));
+  return {B, scaledInv(A, B)};
 }
 
 TRIVIAL constexpr auto nullSpace(MutDensePtrMatrix<std::int64_t> B,

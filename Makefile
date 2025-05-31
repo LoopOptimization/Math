@@ -104,7 +104,7 @@ clang-modules: build-clang/modules/
 	cmake --build build-clang/modules/
 	cmake --build build-clang/modules/ --target test
 
-clang-modules: build-clang/modules-libstdcxx/
+clang-modules-libstdcxx: build-clang/modules-libstdcxx/
 	cmake --build build-clang/module-libstdcxxs/
 	cmake --build build-clang/modules-libstdcxx/ --target test
 

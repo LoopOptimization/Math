@@ -193,6 +193,10 @@ public:
   template <typename T> constexpr void deallocate(T *Ptr, std::size_t N = 1) {
     deallocate((void *)Ptr, N * sizeof(T));
   }
+  constexpr void freeLast(std::ptrdiff_t num_bytes) {
+    if constexpr (BumpUp) slab_ = static_cast<char *>(slab_) - num_bytes;
+    else slab_ = static_cast<char *>(slab_) + num_bytes;
+  }
 
   /// reallocate<ForOverwrite>(void *Ptr, std::ptrdiff_t OldSize, std::ptrdiff_t
   /// NewSize, std::size_t Align) Should be safe with OldSize == 0, as it checks
