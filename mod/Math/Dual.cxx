@@ -963,31 +963,33 @@ TRIVIAL constexpr auto dval(Dual<T, N> &x) -> double & {
 }
 
 class GradientResult {
-  double x;
-  MutPtrVector<double> grad;
+  double value_;
+  MutPtrVector<double> grad_;
 
 public:
-  TRIVIAL [[nodiscard]] constexpr auto value() const -> double { return x; }
+  TRIVIAL [[nodiscard]] constexpr auto value() const -> double {
+    return value_;
+  }
   TRIVIAL [[nodiscard]] constexpr auto gradient() const
     -> MutPtrVector<double> {
-    return grad;
+    return grad_;
   }
 };
 class HessianResultCore {
-  double *ptr;
-  std::ptrdiff_t dim;
+  double *ptr_;
+  std::ptrdiff_t dim_;
 
 public:
   TRIVIAL [[nodiscard]] constexpr auto gradient() const
     -> MutPtrVector<double> {
-    return {ptr, length(dim)};
+    return {ptr_, length(dim_)};
   }
   TRIVIAL [[nodiscard]] constexpr auto hessian() const
     -> MutSquarePtrMatrix<double> {
-    return {ptr + dim, SquareDims<>{row(dim)}};
+    return {ptr_ + dim_, SquareDims<>{row(dim_)}};
   }
   TRIVIAL constexpr HessianResultCore(alloc::Arena<> *alloc, std::ptrdiff_t d)
-    : ptr{alloc->allocate<double>(std::size_t(d) * (d + 1))}, dim{d} {}
+    : ptr_{alloc->allocate<double>(std::size_t(d) * (d + 1))}, dim_{d} {}
 };
 class HessianResult : public HessianResultCore {
   double x{};
