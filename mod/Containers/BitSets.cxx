@@ -209,6 +209,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL [[nodiscard]] constexpr auto contains() const -> Contains {
     return Contains{data_};
   }
+  /// returns `true` if `x` already in the collection.
+  /// Inserts it otherwise.
   TRIVIAL constexpr auto insert(std::ptrdiff_t x) -> bool {
     std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
     U r = U(x) & umask;

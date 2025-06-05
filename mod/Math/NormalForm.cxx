@@ -32,6 +32,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <utility>
 #else
 export module NormalForm;
@@ -487,7 +488,7 @@ TRIVIAL constexpr void zeroColumn(MutPtrMatrix<std::int64_t> A, Col<> c,
 
 TRIVIAL constexpr auto pivotRowsBareiss(MutPtrMatrix<std::int64_t> A,
                                         std::ptrdiff_t i, Row<> M, Row<> piv)
-  -> Optional<std::ptrdiff_t> {
+  -> std::optional<std::ptrdiff_t> {
   Row j = piv;
   while (A[piv, i] == 0)
     if (++piv == M) return {};
@@ -806,11 +807,13 @@ TRIVIAL constexpr void bareiss(MutPtrMatrix<std::int64_t> A,
   invariant(pivots.size(), std::min(M, N));
   std::int64_t prev = 1, piv_ind = 0;
   for (std::ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
-    if (auto piv = detail::pivotRowsBareiss(A, c, row(M), row(r))) {
+    if (std::optional<std::ptrdiff_t> piv =
+          detail::pivotRowsBareiss(A, c, row(M), row(r))) {
       pivots[piv_ind++] = *piv;
       auto j{_(c + 1, N)};
+      std::int64_t Arc = A[r, c];
       for (std::ptrdiff_t k = r + 1; k < M; ++k) {
-        A[k, j] << (A[r, c] * A[k, j] - A[k, c] * A[r, j]) / prev;
+        A[k, j] << (Arc * A[k, j] - A[k, c] * A[r, j]) / prev;
         A[k, r] = 0;
       }
       prev = A[r++, c];

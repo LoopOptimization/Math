@@ -16,7 +16,7 @@ import NormalForm;
 import std;
 #endif
 
-static void BM_normal_form(benchmark::State &state) {
+static void BM_solve_system(benchmark::State &state) {
   using math::_;
   std::mt19937_64 rng0;
   std::uniform_int_distribution<> distrib(-10, 10);
@@ -33,4 +33,4 @@ static void BM_normal_form(benchmark::State &state) {
                                     B[_(n * d, (n + 1) * d), _]);
   }
 }
-BENCHMARK(BM_normal_form)->DenseRange(2, 10, 1);
+BENCHMARK(BM_solve_system)->DenseRange(2, 10, 1);
