@@ -43,7 +43,7 @@ if(USE_MODULES)
       # This specific value changes as experimental support evolves. See
       # `Help/dev/experimental.rst` in the CMake source corresponding to
       # your CMake build for the exact value to use.
-      "a9e1cf81-9932-4810-974b-6eccaf14e457")
+      "d0edc3af-4c50-42ea-a356-e2862fe7a444")
   # cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 endif()
 
