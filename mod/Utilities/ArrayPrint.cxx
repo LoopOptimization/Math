@@ -154,7 +154,6 @@ inline void printVector(auto B, auto E) {
 template <typename T>
 inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
                         std::ptrdiff_t X) {
-  // std::ostream &printMatrix(std::ostream &os, T const &A) {
   if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
   auto max_digits{detail::getMaxDigits(A, M, N, X)};
@@ -183,7 +182,6 @@ inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
 // elements.
 inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
                         std::ptrdiff_t X) {
-  // std::ostream &printMatrix(std::ostream &os, T const &A) {
   if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
   // we can't have more than 255 digits

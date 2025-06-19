@@ -1,12 +1,10 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
+#include "Math/LinearDiophantine.cxx"
 #include <algorithm>
 #include <cstdint>
-#include <iostream>
 #include <random>
 #include <vector>
-
-#include "Math/LinearDiophantine.cxx"
 #else
 
 import CorePrint;

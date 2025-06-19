@@ -12,7 +12,6 @@ module;
 #include "Math/ArrayConcepts.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/MatrixDimensions.cxx"
-#include "Utilities/ArrayPrint.cxx"
 #include "Utilities/TypeCompression.cxx"
 #include <algorithm>
 #include <array>
@@ -23,7 +22,6 @@ module;
 #include <cstring>
 #include <limits>
 #include <memory>
-#include <ostream>
 #include <type_traits>
 #else
 export module ManagedArray;

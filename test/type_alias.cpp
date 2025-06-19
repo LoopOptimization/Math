@@ -4,7 +4,7 @@
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
-#include <iostream>
+#include "Utilities/CorePrint.cxx"
 #else
 import Array;
 import CorePrint;

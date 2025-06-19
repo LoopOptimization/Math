@@ -4,7 +4,6 @@
 #include "Math/Unimodularization.cxx"
 #include "Utilities/CorePrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
-#include <ostream>
 #else
 import ArrayParse;
 import CorePrint;

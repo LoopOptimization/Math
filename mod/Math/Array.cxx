@@ -34,9 +34,9 @@ module;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <iterator>
 #include <memory>
+#include <ostream>
 #include <ranges>
 #include <sstream>
 #include <type_traits>

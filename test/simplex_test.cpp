@@ -14,7 +14,6 @@
 #include "Utilities/MatrixStringParse.cxx"
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <limits>
 #else
 import Arena;
