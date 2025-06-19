@@ -2,10 +2,12 @@
 #ifndef USE_MODULE
 #include "Math/ManagedArray.cxx"
 #include "Math/Unimodularization.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
 #include <ostream>
 #else
 import ArrayParse;
+import CorePrint;
 import ManagedArray;
 import std;
 import Unimodularization;

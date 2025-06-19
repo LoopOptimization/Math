@@ -21,6 +21,7 @@ export module Indexing;
 
 import AxisTypes;
 import CompressReference;
+import CorePrint;
 import Range;
 import MatDim;
 import SIMD;

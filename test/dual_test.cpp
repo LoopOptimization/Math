@@ -20,10 +20,10 @@
 #include "Math/UniformScaling.cxx"
 #include "Utilities/TypeCompression.cxx"
 #else
-
 import Arena;
 import Array;
 import ArrayConcepts;
+import CorePrint;
 import Dual;
 import ExprTemplates;
 import LinearAlgebra;

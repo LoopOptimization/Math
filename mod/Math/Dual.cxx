@@ -42,6 +42,7 @@ import ArrayConcepts;
 import ArrayConstructors;
 import AxisTypes;
 import CompressReference;
+import CorePrint;
 import ExprTemplates;
 import Invariant;
 import MatDim;

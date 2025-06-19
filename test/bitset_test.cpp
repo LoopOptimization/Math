@@ -1,18 +1,15 @@
 #include <gtest/gtest.h>
 
 #ifndef USE_MODULE
+#include "Containers/BitSets.cxx"
+#include "Math/ManagedArray.cxx"
+#include "Utilities/CorePrint.cxx"
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
-#include <ostream>
-#include <print>
-
-#include "Containers/BitSets.cxx"
-#include "Math/ManagedArray.cxx"
 #else
-
 import BitSet;
+import CorePrint;
 import ManagedArray;
 import std;
 #endif
@@ -45,28 +42,28 @@ TEST(BitSet, BasicAssertions) {
   for (auto J = bs.begin(); J != decltype(bs)::end(); ++J) {
     EXPECT_EQ(*J, bsc[j++]);
     EXPECT_TRUE(bs[*J]);
-    std::println("We get: {}", *J);
+    utils::println("We get: ", *J);
   }
   j = 0;
   for (auto i : bs) {
     EXPECT_EQ(i, bsc[j++]);
     EXPECT_TRUE(bs[i]);
-    std::println("We get: {}", i);
+    utils::println("We get: ", i);
   }
   EXPECT_EQ(j, bsc.size());
   EXPECT_EQ(j, bs.size());
-  std::println("About to create empty!");
+  utils::println("About to create empty!");
   BitSet empty;
   std::ptrdiff_t c = 0, d = 0;
-  std::println("About to iterate empty!");
+  utils::println("About to iterate empty!");
   for (auto b : empty) {
     ++c;
     d += b;
   }
-  std::println("Iterated empty!");
+  utils::println("Iterated empty!");
   EXPECT_FALSE(c);
   EXPECT_FALSE(d);
-  std::println("we made it to the end!");
+  utils::println("we made it to the end!");
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSet, Insert) {
@@ -114,27 +111,16 @@ TEST(BitSet, DynSize) {
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSet, FixedSize) {
-  std::println(STRINGIZE(__LINE__));
   BitSet<std::array<std::uint64_t, 2>> bs;
-  std::println(STRINGIZE(__LINE__));
   bs[4] = true;
-  std::println(STRINGIZE(__LINE__));
   bs[10] = true;
-  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(bs.data_[0], 1040);
-  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(bs.data_[1], 0);
-  std::println(STRINGIZE(__LINE__));
   Vector<std::size_t> sv;
-  std::println(STRINGIZE(__LINE__));
   for (auto i : bs) sv.push_back(i);
-  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(sv.size(), 2);
-  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(sv[0], 4);
-  std::println(STRINGIZE(__LINE__));
   EXPECT_EQ(sv[1], 10);
-  std::println(STRINGIZE(__LINE__));
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(BitSet, FixedSizeSmall) {

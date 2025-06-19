@@ -19,6 +19,7 @@ module;
 export module Range;
 
 import AxisTypes;
+import CorePrint;
 import Invariant;
 import std;
 #endif

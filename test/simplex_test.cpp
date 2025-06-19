@@ -23,6 +23,7 @@ import ArrayConcepts;
 import ArrayParse;
 import ArrayPrint;
 import Comparisons;
+import CorePrint;
 import ManagedArray;
 import MatDim;
 import Rational;

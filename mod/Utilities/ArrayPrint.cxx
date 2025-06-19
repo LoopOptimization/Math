@@ -26,6 +26,7 @@ module;
 export module ArrayPrint;
 
 import Allocator;
+import CorePrint;
 import Flat;
 import Rational;
 import std;

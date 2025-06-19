@@ -22,6 +22,7 @@ module;
 export module TinyVector;
 import ArrayPrint;
 import AxisTypes;
+import CorePrint;
 import Invariant;
 import MatDim;
 import Storage;
@@ -163,7 +164,7 @@ public:
   }
 
   DEBUGUSED void dump(const TinyVector &x) {
-    utils::print("[");
+    utils::print('[');
     if constexpr (std::same_as<T, std::int8_t> ||
                   std::same_as<T, std::uint8_t>) {
       if (!x.empty()) utils::print(int(x[0]));

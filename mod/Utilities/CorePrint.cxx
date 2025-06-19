@@ -4,14 +4,14 @@ module;
 #pragma once
 #endif
 
+#include <cstdio>
 #ifndef USE_MODULE
 #include <array>
+#include <bit>
 #include <charconv>
 #include <concepts>
-#include <cstddef>
 #include <cstdint>
-#include <cstdio>
-#include <type_traits>
+#include <system_error>
 #else
 export module CorePrint;
 import std;
@@ -69,9 +69,14 @@ concept HasPrintMethod = requires(const T &x) {
 
 inline void print(char c) { std::putchar(c); }
 inline void print(const char *c) { std::fputs(c, stdout); }
-inline void print(const std::string &s) { std::fwrite(s.data(), 1, s.size(), stdout); }
+inline void print(const std::string &s) {
+  std::fwrite(s.data(), 1, s.size(), stdout);
+}
 inline void println(const char *c) { std::puts(c); }
-inline void println(const std::string &s) { print(s); std::putchar('\n'); }
+inline void println(const std::string &s) {
+  print(s);
+  std::putchar('\n');
+}
 
 // Print function for integral and floating point types
 template <typename T>

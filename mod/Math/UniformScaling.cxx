@@ -27,6 +27,7 @@ export module UniformScaling;
 
 import ArrayConcepts;
 import AxisTypes;
+import CorePrint;
 import ExprTemplates;
 import SIMD;
 import std;

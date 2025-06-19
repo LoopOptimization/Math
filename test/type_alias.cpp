@@ -7,6 +7,7 @@
 #include <iostream>
 #else
 import Array;
+import CorePrint;
 import ManagedArray;
 import std;
 #endif

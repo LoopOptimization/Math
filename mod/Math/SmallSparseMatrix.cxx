@@ -20,6 +20,7 @@ export module SmallSparseMatrix;
 
 import Array;
 import AxisTypes;
+import CorePrint;
 import ManagedArray;
 import MatDim;
 import std;

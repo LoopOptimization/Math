@@ -42,6 +42,7 @@ export module StaticArray;
 import Array;
 import ArrayConcepts;
 import ArrayPrint;
+import CorePrint;
 import AxisTypes;
 import CompressReference;
 import ExprTemplates;

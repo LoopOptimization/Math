@@ -13,6 +13,7 @@ module;
 #include "Math/ManagedArray.cxx"
 #include "Math/Rational.cxx"
 #include "Utilities/ArrayPrint.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Parameters.cxx"
 #include "Utilities/TypeCompression.cxx"
 #include <concepts>
@@ -26,7 +27,9 @@ export module LinearAlgebra;
 import Array;
 import ArrayConcepts;
 import ArrayConstructors;
+import ArrayPrint;
 import AxisTypes;
+import CorePrint;
 import GenericArrayConstructors;
 import ManagedArray;
 import Param;

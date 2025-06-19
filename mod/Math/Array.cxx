@@ -54,6 +54,7 @@ import Allocator;
 import Arena;
 import ArrayPrint;
 import CompressReference;
+import CorePrint;
 import ExprTemplates;
 import Invariant;
 import Optional;

@@ -16,6 +16,7 @@ module;
 #else
 export module AxisTypes;
 
+import CorePrint;
 import Invariant;
 import std;
 #endif

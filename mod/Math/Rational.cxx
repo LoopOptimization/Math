@@ -19,6 +19,7 @@ module;
 #else
 export module Rational;
 
+import CorePrint;
 import GCD;
 import Invariant;
 import std;
@@ -219,7 +220,7 @@ struct Rational {
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
     print();
-    utils::print("\n");
+    utils::print('\n');
   }
 #endif
 

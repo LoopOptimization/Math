@@ -9,6 +9,7 @@
 #include "Math/LinearDiophantine.cxx"
 #else
 
+import CorePrint;
 import LinearDiophantine;
 import std;
 #endif

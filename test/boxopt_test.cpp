@@ -1,11 +1,5 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstdlib>
-#include <iostream>
-
 #include "Alloc/Arena.cxx"
 #include "Math/Array.cxx"
 #include "Math/ArrayConcepts.cxx"
@@ -15,6 +9,10 @@
 #include "Math/Dual.cxx"
 #include "Math/ElementarySIMD.cxx"
 #include "Math/ManagedArray.cxx"
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdlib>
 #else
 
 import Arena;
@@ -22,6 +20,7 @@ import Array;
 import ArrayConcepts;
 import BoxOpt;
 import BoxOptInt;
+import CorePrint;
 import Dual;
 import Elementary;
 import ManagedArray;

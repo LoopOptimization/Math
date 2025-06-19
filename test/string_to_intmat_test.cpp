@@ -4,13 +4,15 @@
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/StaticArrays.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <ostream>
 #else
 import Array;
 import ArrayParse;
+import CorePrint;
 import ManagedArray;
 import MatDim;
 import StaticArray;

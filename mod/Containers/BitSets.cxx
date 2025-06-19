@@ -29,6 +29,7 @@ export module BitSet;
 
 import Array;
 import AxisTypes;
+import CorePrint;
 import Invariant;
 import ManagedArray;
 import MatDim;

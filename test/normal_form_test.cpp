@@ -27,6 +27,7 @@ import ArrayConcepts;
 import ArrayConstructors;
 import ArrayParse;
 import Comparisons;
+import CorePrint;
 import LinearAlgebra;
 import ManagedArray;
 import MatDim;

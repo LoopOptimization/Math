@@ -31,6 +31,7 @@ import Arena;
 import ArrayParse;
 import AxisTypes;
 import Comparisons;
+import CorePrint;
 import ManagedArray;
 import MatDim;
 import SmallSparseMatrix;

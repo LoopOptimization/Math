@@ -17,6 +17,7 @@ module;
 export module MatDim;
 
 import AxisTypes;
+import CorePrint;
 import Invariant;
 import std;
 #endif

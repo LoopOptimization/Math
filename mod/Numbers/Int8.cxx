@@ -14,6 +14,7 @@ module;
 #include <type_traits>
 #else
 export module Int8;
+import CorePrint;
 import Invariant;
 import std;
 #endif
