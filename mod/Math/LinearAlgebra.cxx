@@ -12,13 +12,13 @@ module;
 #include "Math/Indexing.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/Rational.cxx"
+#include "Utilities/ArrayPrint.cxx"
 #include "Utilities/Parameters.cxx"
 #include "Utilities/TypeCompression.cxx"
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <ostream>
 #include <utility>
 #else
 export module LinearAlgebra;
@@ -196,8 +196,12 @@ public:
     for (std::ptrdiff_t m = 0; m < M; ++m) std::swap(perm[m], perm[ipiv[m]]);
     return perm;
   }
-  friend auto operator<<(std::ostream &os, const Fact &lu) -> std::ostream & {
-    return os << "LU fact:\n" << lu.F << "\nperm = \n" << lu.ipiv << '\n';
+  void print() const {
+    utils::print("LU fact:\n");
+    F.print();
+    utils::print("\nperm = \n");
+    utils::printVector(ipiv.begin(), ipiv.end());
+    utils::print('\n');
   }
 };
 template <std::ptrdiff_t L>

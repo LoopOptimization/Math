@@ -8,6 +8,7 @@ module;
 #include "Alloc/Mallocator.cxx"
 #include "Containers/Flat.cxx"
 #include "Math/Rational.cxx"
+#include "Utilities/CorePrint.cxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -130,54 +131,6 @@ constexpr auto getMaxDigits(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
 
 } // namespace detail
 
-constexpr auto getChars(std::integral auto x, bool ptr = false)
-  -> std::array<char, 21> {
-  std::array<char, 21> ret{};
-  auto *b = ret.begin();
-  if (ptr) {
-    ret[0] = '0';
-    ret[2] = 'x';
-    b += 2;
-  }
-  if (std::to_chars(b, ret.end() - 1, x, 16).ec == std::errc::value_too_large)
-    __builtin_trap();
-  return ret;
-}
-constexpr auto getChars(double x) -> std::array<char, 21> {
-  std::array<char, 21> ret{};
-  if (std::to_chars(ret.begin(), ret.end() - 1, x).ec !=
-      std::errc::value_too_large)
-    return ret;
-  ret[0] = 'I';
-  ret[1] = 'N';
-  ret[2] = 'V';
-  ret[3] = 'A';
-  ret[4] = 'L';
-  ret[5] = 'I';
-  ret[6] = 'D';
-  ret[7] = ' ';
-  ret[8] = 'N';
-  ret[9] = 'A';
-  ret[10] = 'M';
-  ret[11] = 'E';
-  ret[12] = '\0';
-  return ret;
-}
-constexpr auto getPtrChars(const void *p) -> std::array<char, 21> {
-  return getChars(std::bit_cast<std::uint64_t>(p), true);
-}
-
-inline void print(char c) { std::putchar(c); }
-inline void print(const char *c) { std::fputs(c, stdout); }
-inline void println(const char *c) { std::puts(c); }
-inline void print(auto x) { print(getChars(x)); }
-inline void println(auto x) { println(getChars(x)); }
-inline void print(auto... x) { (print(x), ...); }
-inline void println(auto... x, auto y) {
-  (print(x), ...);
-  println(y);
-}
-
 template <typename T>
 concept Printable = std::same_as<T, double> || requires(T x) {
   { print(x) };
@@ -188,7 +141,7 @@ static_assert(Printable<math::Rational>);
 
 static_assert(Printable<std::int64_t>);
 
-inline auto printVector(auto B, auto E) -> std::ostream & {
+inline void printVector(auto B, auto E) {
   print("[ ");
   if (B != E) {
     print(*B);

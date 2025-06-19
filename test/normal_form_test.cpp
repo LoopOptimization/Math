@@ -12,11 +12,11 @@
 #include "Math/MatrixDimensions.cxx"
 #include "Math/NormalForm.cxx"
 #include "Math/UniformScaling.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <optional>
 #include <random>
 #include <utility>
@@ -41,7 +41,7 @@ using utils::operator""_mat;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(OrthogonalizationTest, BasicAssertions) {
   SquareMatrix<std::int64_t> A(SquareDims<>{math::row(4)});
-  std::cout << "\n\n\n========\n========\n========\n\n";
+  utils::print("\n\n\n========\n========\n========\n\n");
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-10, 10);
@@ -56,54 +56,61 @@ TEST(OrthogonalizationTest, BasicAssertions) {
   for (std::ptrdiff_t i = 0; i < num_iters; ++i) {
     for (std::ptrdiff_t n = 0; n < 4; ++n)
       for (std::ptrdiff_t m = 0; m < 8; ++m) B[n, m] = distrib(gen);
-    // std::cout << "\nB = " << B << "\n";
     auto [K, included] = NormalForm::orthogonalize(B);
     orth_count += included.size();
     orth_any_count += (!included.empty());
     orth_max_count += (included.size() == 4);
-    // std::cout << "included.size() = " << included.size() << "\n";
     if (included.size() == 4) {
       for (std::ptrdiff_t n = 0; n < 4; ++n) {
         std::ptrdiff_t m = 0;
         for (auto mb : included) A[n, m++] = B[n, mb];
       }
-      std::cout << "K=\n" << K << "\n";
-      std::cout << "A=\n" << A << "\n";
+      utils::print("K=\n");
+      K.print();
+      utils::print('\n');
+      utils::print("A=\n");
+      A.print();
+      utils::print('\n');
       EXPECT_EQ(K * A, I4);
       EXPECT_EQ(K * A, I);
-    } else {
-      // std::cout << "K= " << K << "\nB= " << B << "\n";
-      // printVector(std::cout << "included = ", included)
-      // << "\n";
-      if (auto optlu = LU::fact(K)) {
-        if (auto opt_a2 = (*optlu).inv()) {
-          auto &A2 = *opt_a2;
-          for (std::ptrdiff_t n = 0; n < 4; ++n) {
-            for (std::ptrdiff_t j = 0; j < included.size(); ++j) {
-              // std::cout << "A2(" << n << ", " << j << ") = " << A2(n, j)
-              //              << "; B(" << n << ", " << included[j]
-              //              << ") = " << B(n, included[j]) << "\n";
-              EXPECT_EQ((A2[n, j]), (B[n, included[j]]));
-            }
-          }
-        } else {
-          ++inv_failed_count;
-        }
+    } else if (auto optlu = LU::fact(K)) {
+      if (auto opt_a2 = (*optlu).inv()) {
+        auto &A2 = *opt_a2;
+        for (std::ptrdiff_t n = 0; n < 4; ++n)
+          for (std::ptrdiff_t j = 0; j < included.size(); ++j)
+            EXPECT_EQ((A2[n, j]), (B[n, included[j]]));
       } else {
-        ++lu_failed_count;
-        std::cout << "B = " << B << "\nK = " << K << "\n";
-        continue;
+        ++inv_failed_count;
       }
+    } else {
+      ++lu_failed_count;
+      utils::print("B = ");
+      B.print();
+      utils::print("\nK = ");
+      K.print();
+      utils::print('\n');
+      continue;
     }
   }
-  std::cout << "Mean orthogonalized: " << double(orth_count) / double(num_iters)
-            << "\nOrthogonalization succeeded on at least one: "
-            << orth_any_count << " / " << num_iters
-            << "\nOrthogonalization succeeded on 4: " << orth_max_count << " / "
-            << num_iters << "\nLU fact failed count: " << lu_failed_count
-            << " / " << num_iters
-            << "\nInv fact failed count: " << inv_failed_count << " / "
-            << num_iters << "\n";
+  utils::print("Mean orthogonalized: ");
+  utils::print(double(orth_count) / double(num_iters));
+  utils::print("\nOrthogonalization succeeded on at least one: ");
+  utils::print(orth_any_count);
+  utils::print(" / ");
+  utils::print(num_iters);
+  utils::print("\nOrthogonalization succeeded on 4: ");
+  utils::print(orth_max_count);
+  utils::print(" / ");
+  utils::print(num_iters);
+  utils::print("\nLU fact failed count: ");
+  utils::print(lu_failed_count);
+  utils::print(" / ");
+  utils::print(num_iters);
+  utils::print("\nInv fact failed count: ");
+  utils::print(inv_failed_count);
+  utils::print(" / ");
+  utils::print(num_iters);
+  utils::print('\n');
 
   B[0, 0] = 1;
   B[1, 0] = 0;
@@ -129,11 +136,10 @@ TEST(OrthogonalizationTest, BasicAssertions) {
   B[1, 5] = 0;
   B[2, 5] = 0;
   B[3, 5] = 1;
-  std::cout << "B_orth_motivating_example = " << B << "\n";
+  utils::print("B_orth_motivating_example = ");
+  B.print();
+  utils::print('\n');
   auto [K, included] = NormalForm::orthogonalize(B);
-  // printVector(std::cout << "K = " << K << "\nincluded = ",
-  //                            included)
-  //   << "\n";
   EXPECT_EQ(included.size(), 4);
   for (std::ptrdiff_t i = 0; i < 4; ++i) EXPECT_EQ(included[i], i);
   for (std::ptrdiff_t n = 0; n < 4; ++n) {
@@ -144,7 +150,11 @@ TEST(OrthogonalizationTest, BasicAssertions) {
     }
   }
   IntMatrix<> KA{K * A};
-  std::cout << "A = " << A << "\nA * K = " << KA << "\n";
+  utils::print("A = ");
+  A.print();
+  utils::print("\nA * K = ");
+  KA.print();
+  utils::print('\n');
   EXPECT_TRUE(KA == I4);
 }
 
@@ -187,22 +197,32 @@ TEST(Hermite, BasicAssertions) {
     A43[1, 2] = 3;
     A43[2, 2] = 1;
     A43[3, 2] = 1;
-    std::cout << "A=\n" << A43 << "\n";
-    // IntMatrix<> H{DenseDims<>{row(4), col(3)}};
-    // H << A43;
+    utils::print("A=\n");
+    A43.print();
+    utils::print('\n');
     IntMatrix<> H = A43;
     SquareMatrix<std::int64_t> U{SquareDims{H.numRow()}};
     NormalForm::hermite(H, U);
-    std::cout << "H=\n" << H << "\nU=\n" << U << "\n";
+    utils::print("H=\n");
+    H.print();
+    utils::print("\nU=\n");
+    U.print();
+    utils::print('\n');
 
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(H == U * A43);
 
     for (std::ptrdiff_t i = 0; i < 3; ++i) A43[2, i] = A43[0, i] + A43[1, i];
-    std::cout << "\n\n\n=======\n\nA=\n" << A43 << "\n";
+    utils::print("\n\n\n=======\n\nA=\n");
+    A43.print();
+    utils::print('\n');
     H << A43;
     NormalForm::hermite(H, U);
-    std::cout << "H=\n" << H << "\nU=\n" << U << "\n";
+    utils::print("H=\n");
+    H.print();
+    utils::print("\nU=\n");
+    U.print();
+    utils::print('\n');
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(H == U * A43);
   }
@@ -227,7 +247,11 @@ TEST(Hermite, BasicAssertions) {
     IntMatrix<> H = A;
     SquareMatrix<std::int64_t> U{SquareDims{H.numRow()}};
     NormalForm::hermite(H, U);
-    std::cout << "\n\n\n====\n\nH=\n" << H << "\nU=\n" << U << "\n";
+    utils::print("\n\n\n====\n\nH=\n");
+    H.print();
+    utils::print("\nU=\n");
+    U.print();
+    utils::print('\n');
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(H == U * A);
   }
@@ -260,7 +284,11 @@ TEST(Hermite, BasicAssertions) {
     IntMatrix<> H = A;
     SquareMatrix<std::int64_t> U{SquareDims{H.numRow()}};
     NormalForm::hermite(H, U);
-    std::cout << "\n\n\n====\n\nH=" << H << "\nU=" << U << "\n";
+    utils::print("\n\n\n====\n\nH=");
+    H.print();
+    utils::print("\nU=");
+    U.print();
+    utils::print('\n');
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(H == U * A);
   }
@@ -271,7 +299,13 @@ TEST(Hermite, BasicAssertions) {
     NormalForm::hermite(H, U);
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(U * A == H);
-    std::cout << "A = \n" << A << "\nH =\n" << H << "\nU =\n" << U << "\n";
+    utils::print("A = \n");
+    A.print();
+    utils::print("\nH =\n");
+    H.print();
+    utils::print("\nU =\n");
+    U.print();
+    utils::print('\n');
   }
   {
     IntMatrix<> A =
@@ -281,7 +315,13 @@ TEST(Hermite, BasicAssertions) {
     NormalForm::hermite(H, U);
     EXPECT_TRUE(isHNF(H));
     EXPECT_TRUE(U * A == H);
-    std::cout << "A = \n" << A << "\nH =\n" << H << "\nU =\n" << U << "\n";
+    utils::print("A = \n");
+    A.print();
+    utils::print("\nH =\n");
+    H.print();
+    utils::print("\nU =\n");
+    U.print();
+    utils::print('\n');
   }
 }
 
@@ -291,7 +331,6 @@ TEST(NullSpaceTests, BasicAssertions) {
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-10, 100);
 
-  // std::ptrdiff_t numIters = 1000;
   std::ptrdiff_t num_iters = 1;
   constexpr std::ptrdiff_t max_col = 10;
   std::int64_t mem[8 * (2 * 8z + 3 * max_col)];
@@ -313,10 +352,13 @@ TEST(NullSpaceTests, BasicAssertions) {
       MutDensePtrMatrix<std::int64_t> Z{Y[_(NS.numRow()), _]};
       Z << NS * B;
       if (!allZero(Z)) {
-        std::cout << "B = \n"
-                  << B << "\nNS = \n"
-                  << NS << "\nZ = \n"
-                  << Z << "\n";
+        utils::print("B = \n");
+        B.print();
+        utils::print("\nNS = \n");
+        NS.print();
+        utils::print("\nZ = \n");
+        Z.print();
+        utils::print('\n');
       }
       for (auto &z : Z) EXPECT_EQ(z, 0);
       MutDensePtrMatrix<std::int64_t> ZN{
@@ -324,8 +366,9 @@ TEST(NullSpaceTests, BasicAssertions) {
         DenseDims<>{math::row(null_dim), math::col(null_dim)}};
       EXPECT_EQ(NormalForm::nullSpace(ZN, NS).numRow(), 0);
     }
-    std::cout << "Average tested null dim = "
-              << double(null_dim) / double(num_iters) << "\n";
+    utils::print("Average tested null dim = ");
+    utils::print(double(null_dim) / double(num_iters));
+    utils::print('\n');
   }
 }
 
@@ -411,8 +454,17 @@ TEST(InvTest, BasicAssertions) {
       EXPECT_EQ((Binv0 * B), Da);
       Da.diag() << s;
       if (B * Binv1 != Da) {
-        std::cout << "\nB = " << B << "\nDa = " << Da << "\nBinv0 = " << Binv0
-                  << "\nBinv1 = " << Binv1 << "\ns = " << s << "\n";
+        utils::print("\nB = ");
+        B.print();
+        utils::print("\nDa = ");
+        Da.print();
+        utils::print("\nBinv0 = ");
+        Binv0.print();
+        utils::print("\nBinv1 = ");
+        Binv1.print();
+        utils::print("\ns = ");
+        utils::print(s);
+        utils::print('\n');
       }
       EXPECT_EQ(B * Binv1, Da);
     }

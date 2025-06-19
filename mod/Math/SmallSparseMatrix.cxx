@@ -8,13 +8,13 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <ostream>
 #include <utility>
 
 #include "Math/Array.cxx"
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
+#include "Utilities/ArrayPrint.cxx"
 #else
 export module SmallSparseMatrix;
 
@@ -126,32 +126,31 @@ public:
     return B;
   }
 
-private:
-  friend inline auto operator<<(std::ostream &os, const SmallSparseMatrix<T> &A)
-    -> std::ostream & {
+  void print() const {
     std::ptrdiff_t k = 0;
-    os << "[ ";
-    for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) {
-      if (i) os << "  ";
-      std::uint32_t m = A.rows[i] & 0x00ffffff;
+    utils::print("[ ");
+    for (std::ptrdiff_t i = 0; i < numRow(); ++i) {
+      if (i) utils::print("  ");
+      std::uint32_t m = rows[i] & 0x00ffffff;
       std::ptrdiff_t j = 0;
       while (m) {
-        if (j) os << " ";
+        if (j) utils::print(" ");
         std::uint32_t tz = std::countr_zero(m);
         m >>= (tz + 1);
         j += (tz + 1);
-        while (tz--) os << " 0 ";
-        const T &x = A.nonZeros[k++];
-        if (x >= 0) os << " ";
-        os << x;
+        while (tz--) utils::print(" 0 ");
+        const T &x = nonZeros[k++];
+        if (x >= 0) utils::print(" ");
+        utils::print(x);
       }
-      for (; j < A.numCol(); ++j) os << "  0";
-      os << "\n";
+      for (; j < numCol(); ++j) utils::print("  0");
+      utils::print('\n');
     }
-    os << " ]";
-    invariant(k == A.nonZeros.size());
-    return os;
+    utils::print(" ]");
+    invariant(k == nonZeros.size());
   }
+
+private:
   template <std::convertible_to<T> Y, MatrixDimension S>
   [[gnu::flatten]] friend constexpr auto operator<<(MutArray<Y, S> A,
                                                     const SmallSparseMatrix &B)

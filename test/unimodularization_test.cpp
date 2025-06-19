@@ -18,20 +18,22 @@ using utils::operator""_mat;
 TEST(UnimodularizationTest, BasicAssertions) {
   /*
   IntMatrix<> VE{"[0 1; 1 0; 0 1; 1 0]"_mat};
-  std::cout << "VE=" << VE << "\n";
+  utils::print("VE="); VE.print(); utils::print('\n');
   auto VB = unimodularize(VE);
   ASSERT_TRUE(VB.has_value());
-  std::cout << "VB=" << *VB << "\n";
+  utils::print("VB="); VB->print(); utils::print('\n');
 
   IntMatrix<> A23{"[9 5; -5 -2; 1 0]"_mat};
   auto B = unimodularize(A23);
   ASSERT_TRUE(B.has_value());
-  std::cout << "B=" << *B << "\n";
+  utils::print("B="); B->print(); utils::print('\n');
   // EXPECT_EQ(j, length(bsc));
   // EXPECT_EQ(j, length(bs));
 */
   IntMatrix<> A13{"[6; -5; 15]"_mat};
-  std::cout << "A13=" << A13 << "\n";
+  utils::print("A13=");
+  A13.print();
+  utils::print('\n');
   EXPECT_EQ((A13[0, 0]), 6);
   EXPECT_EQ((A13[1, 0]), -5);
   EXPECT_EQ((A13[2, 0]), 15);

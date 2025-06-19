@@ -8,10 +8,10 @@ module;
 #include <compare>
 #include <concepts>
 #include <cstddef>
-#include <iostream>
 #include <limits>
 #include <type_traits>
 
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #else
 export module AxisTypes;
@@ -352,9 +352,7 @@ private:
     -> std::strong_ordering {
     return std::strong_ordering::equal;
   }
-  friend inline auto operator<<(std::ostream &os, Row) -> std::ostream & {
-    return os << "Row<>{" << M << "}";
-  }
+  void print() const { utils::print("Row<>{", M, "}"); }
   template <std::ptrdiff_t N>
   TRIVIAL friend inline constexpr auto operator+(Row, Row<N>) -> Row<M + N>
   requires(N != -1)
@@ -424,9 +422,7 @@ private:
     -> std::strong_ordering {
     return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
   }
-  friend inline auto operator<<(std::ostream &os, Row<> x) -> std::ostream & {
-    return os << "Row<>{" << std::ptrdiff_t(x) << "}";
-  }
+  void print() const { utils::print("Row<>{", std::ptrdiff_t(*this), "}"); }
   TRIVIAL friend inline constexpr auto operator+(Row a, Row b) -> Row {
     return {static_cast<Row<-1>::row>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
   }
@@ -478,9 +474,7 @@ private:
     -> std::ptrdiff_t {
     return std::ptrdiff_t(r) * M;
   }
-  friend inline auto operator<<(std::ostream &os, Col) -> std::ostream & {
-    return os << "Col<>{" << M << "}";
-  }
+  void print() const { utils::print("Col<>{", M, "}"); }
   template <std::ptrdiff_t N>
   TRIVIAL friend inline constexpr auto operator+(Col, Col<N>) -> Col<M + N>
   requires(N != -1)
@@ -554,9 +548,7 @@ private:
     -> std::ptrdiff_t {
     return std::ptrdiff_t(r) * std::ptrdiff_t(c);
   }
-  friend inline auto operator<<(std::ostream &os, Col x) -> std::ostream & {
-    return os << "Col<>{" << std::ptrdiff_t(x) << "}";
-  }
+  void print() const { utils::print("Col<>{", std::ptrdiff_t(*this), "}"); }
   TRIVIAL friend inline constexpr auto operator+(Col a, Col b) -> Col {
     return {static_cast<Col<-1>::col>(std::ptrdiff_t(a) + std::ptrdiff_t(b))};
   }
@@ -605,9 +597,7 @@ private:
     -> std::strong_ordering {
     return std::strong_ordering::equal;
   }
-  friend inline auto operator<<(std::ostream &os, RowStride) -> std::ostream & {
-    return os << "RowStride<>{" << M << "}";
-  }
+  void print() const { utils::print("RowStride<>{", M, "}"); }
   TRIVIAL friend inline constexpr auto operator==(Col<> c, RowStride) -> bool {
     return std::ptrdiff_t(c) == M;
   }
@@ -674,9 +664,8 @@ private:
     -> std::strong_ordering {
     return std::ptrdiff_t(x) <=> std::ptrdiff_t(y);
   }
-  friend inline auto operator<<(std::ostream &os, RowStride x)
-    -> std::ostream & {
-    return os << "RowStride<>{" << std::ptrdiff_t(x) << "}";
+  void print() const {
+    utils::print("RowStride<>{", std::ptrdiff_t(*this), "}");
   }
   TRIVIAL friend inline constexpr auto operator==(Col<> c, RowStride x)
     -> bool {

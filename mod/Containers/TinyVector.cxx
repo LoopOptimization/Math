@@ -3,9 +3,13 @@ module;
 #else
 #pragma once
 #endif
-
+#include "Macros.hxx"
 #include "Owner.hxx"
 #ifndef USE_MODULE
+#include "Containers/Storage.cxx"
+#include "Math/AxisTypes.cxx"
+#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -13,15 +17,10 @@ module;
 #include <initializer_list>
 #include <limits>
 #include <memory>
-#include <ostream>
 #include <type_traits>
-
-#include "Containers/Storage.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Utilities/Invariant.cxx"
 #else
 export module TinyVector;
-
+import ArrayPrint;
 import AxisTypes;
 import Invariant;
 import MatDim;
@@ -163,19 +162,17 @@ public:
     std::destroy_n(data_.data(), size());
   }
 
-private:
-  friend auto operator<<(std::ostream &os, const TinyVector &x)
-    -> std::ostream & {
-    os << "[";
+  DEBUGUSED void dump(const TinyVector &x) {
+    utils::print("[");
     if constexpr (std::same_as<T, std::int8_t> ||
                   std::same_as<T, std::uint8_t>) {
-      if (!x.empty()) os << int(x[0]);
-      for (L i = 1; i < x.size(); ++i) os << ", " << int(x[i]);
+      if (!x.empty()) utils::print(int(x[0]));
+      for (L i = 1; i < x.size(); ++i) utils::print(", ", int(x[i]));
     } else {
-      if (!x.empty()) os << x[0];
-      for (L i = 1; i < x.size(); ++i) os << ", " << x[i];
+      if (!x.empty()) utils::print(x[0]);
+      for (L i = 1; i < x.size(); ++i) utils::print(", ", x[i]);
     }
-    return os << "]";
+    utils::print("]");
   }
 };
 } // namespace containers

@@ -7,15 +7,14 @@ module;
 #include "Macros.hxx"
 #ifndef USE_MODULE
 #include "Math/GreatestCommonDivisor.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include "Utilities/TypeCompression.cxx"
 #include "Utilities/Widen.cxx"
 #include <concepts>
 #include <cstdint>
-#include <iostream>
 #include <limits>
 #include <optional>
-#include <ostream>
 #include <type_traits>
 #else
 export module Rational;
@@ -218,8 +217,16 @@ struct Rational {
   }
 
 #ifndef NDEBUG
-  [[gnu::used]] void dump() const { std::cout << *this << "\n"; }
+  [[gnu::used]] void dump() const {
+    print();
+    utils::print("\n");
+  }
 #endif
+
+  void print() const {
+    utils::print(numerator_);
+    if (denominator_ != 1) utils::print(" // ", denominator_);
+  }
 
 private:
   TRIVIAL friend constexpr auto operator+(Rational x, std::int64_t y)
@@ -248,12 +255,6 @@ private:
   }
   TRIVIAL friend constexpr auto operator==(std::int64_t x, Rational y) -> bool {
     return y.isEqual(x);
-  }
-  friend auto operator<<(std::ostream &os, const Rational &x)
-    -> std::ostream & {
-    os << x.numerator_;
-    if (x.denominator_ != 1) os << " // " << x.denominator_;
-    return os;
   }
   TRIVIAL friend constexpr auto gcd(Rational x, Rational y)
     -> std::optional<Rational> {

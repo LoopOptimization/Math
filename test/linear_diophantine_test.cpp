@@ -107,5 +107,5 @@ TEST(LinearDiophantineTest, BasicAssertions) {
       EXPECT_FALSE(opt1.has_value());
     }
   }
-  std::cout << "solved: " << solvedOneCounter << " / " << numIters << "\n";
+  utils::print("solved: ", solvedOneCounter, " / ", numIters, '\n');
 }

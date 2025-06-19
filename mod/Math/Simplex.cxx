@@ -24,19 +24,18 @@ module;
 #include "Math/Rational.cxx"
 #include "SIMD/Intrin.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/ArrayPrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <new>
 #include <optional>
-#include <ostream>
 #else
 export module Simplex;
 
@@ -58,12 +57,6 @@ import Range;
 import Rational;
 import SIMD;
 import std;
-#endif
-
-#ifndef NDEBUG
-#define DEBUGUSED [[gnu::used]]
-#else
-#define DEBUGUSED
 #endif
 
 #ifdef USE_MODULE
@@ -484,20 +477,23 @@ public:
       return l;
     }
 #ifndef NDEBUG
-    [[gnu::used]] void dump() const { std::cout << *this << '\n'; }
-#endif
-  private:
-    friend auto operator<<(std::ostream &os, Solution sol) -> std::ostream & {
-      os << "Simplex::Solution[";
-      bool print_comma = false;
-      for (Rational b : sol) {
-        if (print_comma) os << ", ";
-        print_comma = true;
-        os << b;
-      }
-      os << "]";
-      return os;
+    [[gnu::used]] void dump() const {
+      print();
+      utils::print('\n');
     }
+#endif
+    void print() const {
+      utils::print("Simplex::Solution[");
+      bool print_comma = false;
+      for (Rational b : *this) {
+        if (print_comma) utils::print(", ");
+        print_comma = true;
+        utils::print(b);
+      }
+      utils::print("]");
+    }
+
+  private:
   };
   TRIVIAL [[nodiscard]] constexpr auto getSolution() const -> Solution {
     return {
@@ -1117,10 +1113,10 @@ public:
       if (v <= numSlack) continue;
       if (C[i, 0]) {
         if (++v < C.numCol()) {
-          std::cout << "v_" << v - numSlack << " = " << C[i, 0] << " / "
-                    << C[i, v] << "\n";
+          utils::print("v_", v - numSlack, " = ", C[i, 0], " / ", C[i, v],
+                       "\n");
         } else {
-          std::cout << "v_" << v << " = " << C[i, 0] << "\n";
+          utils::print("v_", v, " = ", C[i, 0], "\n");
           __builtin_trap();
         }
       }
@@ -1198,14 +1194,18 @@ public:
     getBasicConstraints() << other.getBasicConstraints();
     return *this;
   }
-  friend auto operator<<(std::ostream &os, const Simplex &s) -> std::ostream & {
-    os << "Basic Variables: " << s.getBasicVariables();
-    os << "Basic Constraints: " << s.getBasicConstraints();
-    os << "Constraints:\n" << s.getConstraints();
-    return os;
+  void print() const {
+    utils::print("Basic Variables: ");
+    utils::printVector(getBasicVariables().begin(), getBasicVariables().end());
+    utils::print("Basic Constraints: ");
+    utils::printVector(getBasicConstraints().begin(),
+                       getBasicConstraints().end());
+    utils::print("Constraints:\n");
+    utils::printMatrix(getConstraints().data(), std::ptrdiff_t(getConstraints().numRow()),
+                       std::ptrdiff_t(getConstraints().numCol()), std::ptrdiff_t(getConstraints().rowStride()));
   }
 #ifndef NDEBUG
-  [[gnu::used]] void dump() const { std::cout << *this; }
+  [[gnu::used]] void dump() const { print(); }
 #endif
 };
 

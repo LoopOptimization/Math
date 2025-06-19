@@ -15,12 +15,12 @@ module;
 #include "SIMD/Unroll.cxx"
 #include "SIMD/UnrollIndex.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Widen.cxx"
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <ostream>
 #include <type_traits>
 #else
 export module UniformScaling;
@@ -190,10 +190,7 @@ private:
         b * a.value_);
   }
 
-  friend inline auto operator<<(std::ostream &os, UniformScaling S)
-    -> std::ostream & {
-    return os << S.value_ << "*I";
-  }
+  void print() const { utils::print(value_, "*I"); }
   TRIVIAL [[nodiscard]] constexpr auto t() const -> UniformScaling {
     return *this;
   }

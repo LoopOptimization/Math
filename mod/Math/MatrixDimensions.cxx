@@ -7,11 +7,11 @@ module;
 
 #ifndef USE_MODULE
 #include "Math/AxisTypes.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
-#include <ostream>
 #include <type_traits>
 #else
 export module MatDim;
@@ -200,8 +200,8 @@ private:
     invariant(d.n_ <= d.stride_m_);
     return d.stride_m_;
   }
-  friend auto operator<<(std::ostream &os, StridedDims x) -> std::ostream & {
-    return os << x.m_ << " x " << x.n_ << " (stride " << x.stride_m_ << ")";
+  void print() const {
+    utils::print(m_, " x ", n_, " (stride ", stride_m_, ")");
   }
 }; // namespace math
 static_assert(sizeof(StridedDims<-1, 8, 8>) == sizeof(std::ptrdiff_t));
@@ -328,9 +328,7 @@ private:
     else return {};
   }
 
-  friend auto operator<<(std::ostream &os, DenseDims x) -> std::ostream & {
-    return os << x.m_ << " x " << x.n_;
-  }
+  void print() const { utils::print(m_, " x ", n_); }
 };
 static_assert(std::is_trivially_default_constructible_v<DenseDims<>>);
 
@@ -429,9 +427,7 @@ private:
     if constexpr (R == -1) return stride(std::ptrdiff_t(d.m_));
     else return {};
   }
-  friend auto operator<<(std::ostream &os, SquareDims x) -> std::ostream & {
-    return os << x.m_ << " x " << x.m_;
-  }
+  void print() const { utils::print(m_, " x ", m_); }
 };
 
 static_assert(std::is_convertible_v<StridedDims<>, StridedDims<2>>);

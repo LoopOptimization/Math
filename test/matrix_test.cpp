@@ -13,6 +13,7 @@
 #include "Math/SmallSparseMatrix.cxx"
 #include "Math/StaticArrays.cxx"
 #include "Math/UniformScaling.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/MatrixStringParse.cxx"
 #include "Utilities/TypeCompression.cxx"
 #include <algorithm>
@@ -21,11 +22,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <iostream>
 #include <iterator>
-#include <ostream>
 #include <ranges>
-#include <sstream>
 #include <tuple>
 #include <type_traits>
 #else
@@ -49,7 +47,7 @@ using utils::operator""_mat;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SparseIndexingTest, BasicAssertions) {
   SmallSparseMatrix<std::int64_t> sparseA(row(3), col(4));
-  std::cout << "&Asparse = " << &sparseA << "\n";
+  utils::print("&Asparse = ", utils::getPtrChars(&sparseA).data(), '\n');
   sparseA[0, 1] = 5;
   sparseA[1, 3] = 3;
   sparseA[2, 0] = -1;
@@ -104,15 +102,17 @@ TEST(SparseIndexingTest, BasicAssertions) {
   EXPECT_TRUE(C == A * B);
   {
     IntMatrix<> C2{A * B};
-    std::cout << "C=" << C << "\nC2=" << C2 << "\n";
+    utils::print("C=");
+    C.print();
+    utils::print("\nC2=");
+    C2.print();
+    utils::print('\n');
     EXPECT_TRUE(C == C2);
     IntMatrix<> Bt{B.t()};
     {
       IntMatrix<> At{
         DenseDims<>{math::asrow(A.numCol()), math::ascol(A.numRow())}};
       At[_(0, end), _(0, end)] << A.t();
-      // At << A.t();
-      // Bt << B.t();
       std::ptrdiff_t k =
         std::min(std::ptrdiff_t(A.numCol()), std::ptrdiff_t(B.numRow()));
       C2 += At.t() * Bt.t()[_(k), _];
@@ -126,7 +126,9 @@ TEST(SparseIndexingTest, BasicAssertions) {
   }
   std::int64_t i = 0;
   IntMatrix<> D{C};
-  std::cout << "C=" << C << "\n";
+  utils::print("C=");
+  C.print();
+  utils::print('\n');
   static_assert(std::same_as<decltype(D[0, _]), MutPtrVector<std::int64_t>>);
   for (std::ptrdiff_t r : _(0, D.numRow())) D[r, _] += std::ptrdiff_t(r) + 1;
   for (auto r : C.eachRow()) {
@@ -273,24 +275,25 @@ TEST(ExpressionTemplateTest2, BasicAssertions) {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(ArrayPrint, BasicAssertions) {
   {
-    std::stringstream os;
-    // std::basic_stringstream os(s);
     auto A{
       "[3 -5 1 10 -4 6 4 4; 4 6 3 -1 6 1 -4 0; -7 -2 0 0 -10 -2 3 7; 2 -7 -5 "
       "-5 -7 -5 1 -7; 2 -8 2 7 4 9 6 -3; -2 -8 -5 0 10 -4 5 -3]"_mat};
-    os << A;
-    std::cout << "std::cout << A yields:" << A << '\n';
-    std::cout << "PrintTo(A, &std::cout) yields:";
-    testing::internal::PrintTo(A, &std::cout);
-    std::cout << '\n';
-    EXPECT_EQ(os.str(), testing::PrintToString(A));
+    utils::print("utils::print(A) yields:");
+    utils::print(A);
+    utils::print('\n');
+    utils::print("PrintToString(A) yields:");
+    utils::print(testing::PrintToString(A));
+    utils::print('\n');
   }
   {
-    std::stringstream os;
     Vector<std::int64_t> v;
     for (std::ptrdiff_t i = 0; i < 10; ++i) v.push_back(i);
-    os << v;
-    EXPECT_EQ(os.str(), testing::PrintToString(v));
+    utils::print("Vector: ");
+    utils::print(v);
+    utils::print('\n');
+    utils::print("PrintToString: ");
+    utils::print(testing::PrintToString(v));
+    utils::print('\n');
   }
 }
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

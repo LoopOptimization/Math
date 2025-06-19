@@ -151,7 +151,6 @@ TEST(ListRangeTest, BasicAssertions) {
     static_assert(std::ranges::input_range<decltype(nlr)>);
     std::ranges::transform(nlr, std::back_inserter(destination),
                            [](auto *v) { return v->getData(); });
-    // std::ostream_iterator<int>{std::cout, ", "},
     EXPECT_EQ(destination.size(), 3 * 10);
     int s = 0;
     for (auto v : destination) s += v;

@@ -29,7 +29,9 @@ TEST(TypeAliasChecks, BasicAssertions) {
     A43[1, 2] = 3;
     A43[2, 2] = 1;
     A43[3, 2] = 1;
-    std::cout << "A=\n" << A43 << "\n";
+    utils::print("A=\n");
+    A43.print();
+    utils::print('\n');
     EXPECT_EQ((A43[0, 0]), 2);
     EXPECT_EQ((A43[1, 0]), 3);
     EXPECT_EQ((A43[2, 0]), 6);

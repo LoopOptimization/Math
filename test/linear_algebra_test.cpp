@@ -46,17 +46,27 @@ TEST(LinearAlgebraTest, BasicAssertions) {
   ASSERT_TRUE(opt_luf.has_value());
   auto &LUF = *opt_luf;
   Matrix<Rational> B0 = A;
-  std::cout << "A = \n" << A << "\nB = \n" << B0 << "\n";
-  std::cout << LUF;
+  utils::print("A = \n");
+  A.print();
+  utils::print("\nB = \n");
+  B0.print();
+  utils::print('\n');
+  LUF.print();
 
   auto B1 = B0;
   EXPECT_FALSE(LUF.ldivrat(B1));
-  std::cout << "LUF.ldiv(B) = \n" << B1 << "\n";
+  utils::print("LUF.ldiv(B) = \n");
+  B1.print();
+  utils::print('\n');
   EXPECT_EQ(B1, identity);
-  std::cout << "I = " << identity << "\n";
+  utils::print("I = ");
+  identity.print();
+  utils::print('\n');
 
   EXPECT_FALSE(LUF.rdivrat(B0));
-  std::cout << "LUF.rdiv(B) = \n" << B0 << "\n";
+  utils::print("LUF.rdiv(B) = \n");
+  B0.print();
+  utils::print('\n');
   EXPECT_EQ(B0, identity);
 }
 

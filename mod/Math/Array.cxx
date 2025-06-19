@@ -38,6 +38,7 @@ module;
 #include <iterator>
 #include <memory>
 #include <ranges>
+#include <sstream>
 #include <type_traits>
 #include <utility>
 #include <version>
@@ -302,7 +303,11 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return StridedIterator{p, sz_.stride_};
   }
   TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
-    -> const storage_type *requires(isdense) { return ptr_; }
+    -> const storage_type *
+  requires(isdense)
+  {
+    return ptr_;
+  }
 
   TRIVIAL [[nodiscard]] constexpr auto end() const noexcept
   requires(flatstride)
@@ -539,14 +544,13 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), aslength(row(this->sz_)), stride(this->sz_),
             std::ptrdiff_t(col(this->sz_))};
   }
-  friend auto operator<<(std::ostream &os, Array x) -> std::ostream &
+  void print() const
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
-      return utils::printMatrix(os, x.data(), std::ptrdiff_t(x.numRow()),
-                                std::ptrdiff_t(x.numCol()),
-                                std::ptrdiff_t(x.rowStride()));
-    else return utils::printVector(os, x.begin(), x.end());
+      utils::printMatrix(data(), std::ptrdiff_t(numRow()),
+                         std::ptrdiff_t(numCol()), std::ptrdiff_t(rowStride()));
+    else utils::printVector(begin(), end());
   }
   TRIVIAL [[nodiscard]] constexpr auto split(std::ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
@@ -566,8 +570,11 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   [[gnu::used]] void dump() const {
     // we can't combine `gnu::used` with `requires(utils::Printable<T>)`
     // requires(utils::Printable<T>)
-    if constexpr (utils::Printable<T>)
-      std::cout << "Size: " << std::ptrdiff_t(sz_) << " " << *this << "\n";
+    if constexpr (utils::Printable<T>) {
+      utils::print("Size: ", std::ptrdiff_t(sz_), " ");
+      print();
+      utils::print("\n");
+    }
   }
   [[gnu::used]] void dump(const char *filename) const {
     if constexpr (std::integral<T>) {
@@ -592,7 +599,38 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
 #endif
 protected:
-  friend void PrintTo(const Array &x, ::std::ostream *os) { *os << x; }
+  friend void PrintTo(const Array &x, ::std::ostream *os) {
+    if constexpr (utils::Printable<T>) {
+      std::ostringstream oss;
+      x.printToStream(oss);
+      *os << oss.str();
+    }
+  }
+  void printToStream(std::ostream &os) const
+  requires(utils::Printable<T>)
+  {
+    if constexpr (MatrixDimension<S>) {
+      // For matrices, we need to implement streaming manually since
+      // utils::printMatrix doesn't use streams
+      os << "\n[ ";
+      for (std::ptrdiff_t i = 0; i < numRow(); i++) {
+        if (i) os << "  ";
+        for (std::ptrdiff_t j = 0; j < numCol(); j++) {
+          os << (*this)[i, j];
+          if (j != numCol() - 1) os << " ";
+          else if (i != numRow() - 1) os << "\n";
+        }
+      }
+      os << " ]";
+    } else {
+      os << "[ ";
+      if (!empty()) {
+        os << (*this)[0];
+        for (std::ptrdiff_t i = 1; i < size(); ++i) os << ", " << (*this)[i];
+      }
+      os << " ]";
+    }
+  }
   TRIVIAL constexpr Array(S s) : sz_(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr_;
@@ -727,11 +765,11 @@ struct MutArray : Array<T, S, Compress>,
     return StridedIterator{const_cast<storage_type *>(this->ptr_),
                            this->sz_.stride_};
   }
-  TRIVIAL [[nodiscard]] constexpr auto begin() noexcept
-    -> storage_type *requires(
-      !std::is_same_v<S, StridedRange<S::nrow, S::nstride>>) {
-      return const_cast<storage_type *>(this->ptr_);
-    }
+  TRIVIAL [[nodiscard]] constexpr auto begin() noexcept -> storage_type *
+  requires(!std::is_same_v<S, StridedRange<S::nrow, S::nstride>>)
+  {
+    return const_cast<storage_type *>(this->ptr_);
+  }
 
   TRIVIAL [[nodiscard]] constexpr auto end() noexcept {
     return begin() + std::ptrdiff_t(this->sz_);
@@ -1233,23 +1271,24 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     } else resizeForOverwrite(S{M, N});
   }
 
-  constexpr auto insert_within_capacity(T *p, T x)
-    -> T *requires(std::same_as<S, Length<>>) {
-      invariant(p >= this->data());
-      T *e = this->data() + std::ptrdiff_t(this->sz_);
-      invariant(p <= e);
-      invariant(this->sz_ < capacity_);
-      if constexpr (BaseT::trivial) {
-        if (p < e) std::copy_backward(p, e, e + 1);
-        *p = std::move(x);
-      } else if (p < e) {
-        std::construct_at<T>(e, std::move(*(e - 1)));
-        for (; --e != p;) *e = std::move(*(e - 1));
-        *p = std::move(x);
-      } else std::construct_at<T>(e, std::move(x));
-      ++this->sz_;
-      return p;
-    }
+  constexpr auto insert_within_capacity(T *p, T x) -> T *
+  requires(std::same_as<S, Length<>>)
+  {
+    invariant(p >= this->data());
+    T *e = this->data() + std::ptrdiff_t(this->sz_);
+    invariant(p <= e);
+    invariant(this->sz_ < capacity_);
+    if constexpr (BaseT::trivial) {
+      if (p < e) std::copy_backward(p, e, e + 1);
+      *p = std::move(x);
+    } else if (p < e) {
+      std::construct_at<T>(e, std::move(*(e - 1)));
+      for (; --e != p;) *e = std::move(*(e - 1));
+      *p = std::move(x);
+    } else std::construct_at<T>(e, std::move(x));
+    ++this->sz_;
+    return p;
+  }
 
   template <std::size_t SlabSize, bool BumpUp>
   constexpr void reserve(alloc::Arena<SlabSize, BumpUp> *alloc,

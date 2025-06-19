@@ -33,4 +33,10 @@
 
 #endif
 
+#ifndef NDEBUG
+#define DEBUGUSED [[gnu::used]]
+#else
+#define DEBUGUSED
+#endif
+
 #endif // Macros_hxx_INCLUDED

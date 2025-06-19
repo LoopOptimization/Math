@@ -11,9 +11,9 @@ module;
 #include "SIMD/Indexing.cxx"
 #include "SIMD/Masks.cxx"
 #include "SIMD/UnrollIndex.cxx"
+#include "Utilities/CorePrint.cxx"
 #include <concepts>
 #include <cstddef>
-#include <ostream>
 #include <type_traits>
 #include <utility>
 #else
@@ -34,10 +34,9 @@ namespace math {
 #endif
 
 [[maybe_unused]] inline constexpr struct Begin {
+  void print() const { utils::print('0'); }
+
 private:
-  friend auto operator<<(std::ostream &os, Begin) -> std::ostream & {
-    return os << 0;
-  }
   TRIVIAL friend inline constexpr auto operator+(std::ptrdiff_t x, Begin)
     -> std::ptrdiff_t {
     return x;
@@ -59,10 +58,9 @@ private:
 [[maybe_unused]] constexpr inline struct OffsetEnd {
   [[no_unique_address]] std::ptrdiff_t offset_;
 
+  void print() const { utils::print("end - ", offset_); }
+
 private:
-  friend auto operator<<(std::ostream &os, OffsetEnd r) -> std::ostream & {
-    return os << "end - " << r.offset_;
-  }
   TRIVIAL friend inline constexpr auto operator-(OffsetEnd y, std::ptrdiff_t x)
     -> OffsetEnd {
     return OffsetEnd{y.offset_ + x};
@@ -74,10 +72,9 @@ private:
 
 } last{1};
 [[maybe_unused]] inline constexpr struct End {
+  void print() const { utils::print("end"); }
+
 private:
-  friend auto operator<<(std::ostream &os, End) -> std::ostream & {
-    return os << "end";
-  }
   TRIVIAL friend inline constexpr auto operator-(End, std::ptrdiff_t x)
     -> OffsetEnd {
     return OffsetEnd{x};
@@ -233,10 +230,9 @@ private:
     return r.stride_;
   }
 
-  friend inline auto operator<<(std::ostream &os, StridedRange x)
-    -> std::ostream & {
-    return os << "Length: " << std::ptrdiff_t(x.len_)
-              << " (stride: " << std::ptrdiff_t(x.stride_) << ")";
+  void print() const {
+    utils::print("Length: ", std::ptrdiff_t(len_),
+                 " (stride: ", std::ptrdiff_t(stride_), ")");
   }
 };
 template <std::ptrdiff_t L, std::ptrdiff_t X> Row(StridedRange<L, X>) -> Row<L>;

@@ -55,7 +55,9 @@ TEST(SimplexTest, BasicAssertions) {
     C[3] = -2;
     C[4] = -3;
     C[5] = -4;
-    std::cout << "S.tableau =" << S->getTableau() << "\n";
+    utils::print("S.tableau =");
+    S->getTableau().print();
+    utils::print('\n');
     EXPECT_EQ(S->getTableau(), D);
     EXPECT_EQ(S->run(), 20);
   }
@@ -72,7 +74,9 @@ TEST(LexMinSmallTest, BasicAssertions) {
   simp->getConstraints() << tableau;
   Vector<Rational> sol(length(5));
   EXPECT_FALSE(simp->initiateFeasible());
-  std::cout << "S.tableau =" << simp->getTableau() << "\n";
+  utils::print("S.tableau =");
+  simp->getTableau().print();
+  utils::print('\n');
   //       x  y  z s0  s1 a0 a1
   // [  0  0  0  0  0  0  1  1
   //   10  3  2  1 -1  0  1  0
@@ -118,7 +122,9 @@ TEST(LexMinSmallTest, BasicAssertions) {
   //   25  0  11  7  2  1 ]
 
   simp->rLexMin(sol);
-  std::cout << "S.tableau =" << simp->getTableau() << "\n";
+  utils::print("S.tableau =");
+  simp->getTableau().print();
+  utils::print('\n');
   //  0  1  2  3  4
   //  0  0 10  0 15
   // 70  0  0  0 25
@@ -127,7 +133,9 @@ TEST(LexMinSmallTest, BasicAssertions) {
   //
   // -10 == -3x - 2y - z  + s0
   // -15 == -2x - 5y - 3z + s1
-  std::cout << "sol = " << sol << "\n";
+  utils::print("sol = ");
+  sol.print();
+  utils::print('\n');
   EXPECT_EQ(Rational::create(5, 1), 5);
   EXPECT_EQ(sol[last - 0], 0);
   EXPECT_EQ(sol[last - 1], 0);
@@ -1020,7 +1028,6 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 "
     "1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]"_mat};
-  // std::cout << "tableau3 =" << tableau << "\n";
   tableau[0, _] << -5859553999884210514;
   alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
@@ -1052,7 +1059,6 @@ TEST(LexMinSimplexTest, BasicAssertions) {
       EXPECT_EQ(r.denominator_, 1);
     }
     EXPECT_EQ(sum, 3);
-    // std::cout << "sol2: " << sol2 << "\n";
     for (std::ptrdiff_t i = 0; i < 37; ++i)
       EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));
   }
@@ -1075,10 +1081,13 @@ TEST(LexMinSimplexTest, BasicAssertions) {
     }
     EXPECT_EQ(sum, 3);
     EXPECT_EQ(rsum, 3);
-    // std::cout << "sol2: " << sol2 << "\n";
-    utils::printVector(std::cout << "sol2: ", sol2.begin(), sol2.end()) << "\n";
+    utils::print("sol2: ");
+    utils::printVector(sol2.begin(), sol2.end());
+    utils::print('\n');
     for (std::ptrdiff_t i = 0; i < 37; ++i) {
-      std::cout << "sol2[last-" << i << "] = " << sol2[last - i] << "\n";
+      utils::print("sol2[last-", i, "] = ");
+      sol2[last - i].print();
+      utils::print('\n');
       EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));
     }
   }
@@ -1304,7 +1313,6 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 "
     "0 0 0 0 0 0 0 0 0 ]"_mat};
-  // std::cout << "tableau4 =" << tableau << "\n";
   alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
   Vector<Rational> sol(length(15));
@@ -1364,7 +1372,9 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     C[_(end - 10, end)] << 1;
     EXPECT_EQ(simp->run(), 0);
     Vector<Rational> sol2 = simp->getSolution();
-    std::cout << "sol2 = " << sol2 << "\n";
+    utils::print("sol2 = ");
+    sol2.print();
+    utils::print('\n');
     std::ptrdiff_t sum = 0;
     for (std::ptrdiff_t i = sol2.size() - 10; i < sol2.size(); ++i) {
       Rational r = sol2[i];

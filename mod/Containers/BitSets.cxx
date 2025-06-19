@@ -9,6 +9,7 @@ module;
 #include "Math/AxisTypes.cxx"
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
+#include "Utilities/ArrayPrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <array>
@@ -20,7 +21,6 @@ module;
 #include <cstdio>
 #include <iterator>
 #include <limits>
-#include <ostream>
 #include <ranges>
 #include <string>
 #include <type_traits>
@@ -354,16 +354,15 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return std::strong_ordering::equal;
   }
 
-  friend auto operator<<(std::ostream &os, BitSet const &x) -> std::ostream & {
-    os << "BitSet[";
-    auto it = x.begin();
+  void print() const {
+    utils::print("BitSet[");
+    auto it = begin();
     constexpr EndSentinel e = BitSet::end();
     if (it != e) {
-      os << *(it++);
-      for (; it != e; ++it) os << ", " << *it;
+      utils::print(*(it++));
+      for (; it != e; ++it) utils::print(", ", *it);
     }
-    os << "]";
-    return os;
+    utils::print("]");
   }
   TRIVIAL constexpr void clear() {
     std::fill_n(data_.begin(), std::ssize(data_), 0);

@@ -5,12 +5,12 @@ module;
 #endif
 #include "Macros.hxx"
 #ifndef USE_MODULE
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include <compare>
 #include <concepts>
 #include <cstddef>
 #include <limits>
-#include <ostream>
 #include <type_traits>
 #else
 export module Int8;
@@ -405,9 +405,7 @@ private:
   TRIVIAL friend inline constexpr auto operator!(strong x) -> bool {
     return !static_cast<bool>(x);
   }
-  friend auto operator<<(std::ostream &os, strong x) -> std::ostream & {
-    return os << static_cast<I>(x);
-  }
+  void print(strong x) { utils::print(static_cast<I>(x)); }
 };
 static_assert(++static_cast<IntWrapper<int, 0, true>::strong>(3) == 4);
 

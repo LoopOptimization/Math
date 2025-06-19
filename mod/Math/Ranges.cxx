@@ -10,10 +10,10 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
-#include <ostream>
 #include <type_traits>
 
 #include "Math/AxisTypes.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #else
 export module Range;
@@ -98,9 +98,7 @@ template <std::integral B, std::integral E> struct Range<B, E> {
     return std::reverse_iterator{begin()};
   }
   TRIVIAL [[nodiscard]] constexpr auto size() const { return e_ - b_; }
-  friend auto operator<<(std::ostream &os, Range<B, E> r) -> std::ostream & {
-    return os << "[" << r.b_ << ":" << r.e_ << ")";
-  }
+  void print() const { utils::print("[", b_, ":", e_, ")"); }
   template <std::integral BB, std::integral EE>
   TRIVIAL constexpr operator Range<BB, EE>() const {
     return Range<BB, EE>{static_cast<BB>(b_), static_cast<EE>(e_)};

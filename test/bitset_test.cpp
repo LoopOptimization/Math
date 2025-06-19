@@ -36,7 +36,8 @@ TEST(BitSet, BasicAssertions) {
   ASSERT_EQ(bs.findFirstZero(), 0);
   bs[0] = true;
   ASSERT_EQ(bs.findFirstZero(), 1);
-  std::cout << bs << "\n";
+  bs.print();
+  utils::print('\n');
   // EXPECT_EQ(std::ranges::begin(bs), bs.begin());
   // EXPECT_EQ(std::ranges::end(bs), bs.end());
   Vector<std::size_t> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
@@ -166,9 +167,9 @@ TEST(BitSet, IterTest) {
   BitSet<> bs{data};
   ptrdiff_t sz = bs.size(), i = 0;
   for (std::ptrdiff_t a : bs) {
-    std::cout << a << " ";
+    utils::print(a, " ");
     ++i;
   }
-  std::cout << "\n";
+  utils::print('\n');
   ASSERT_EQ(i, sz);
 }

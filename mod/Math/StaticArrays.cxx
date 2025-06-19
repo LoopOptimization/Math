@@ -351,18 +351,43 @@ struct MATH_GSL_OWNER StaticArray
     memory_[(r * N) + c] = x;
   }
 
-private:
-  friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
-    *os << x.view();
-  }
-
-  friend auto operator<<(std::ostream &os, const StaticArray &x)
-    -> std::ostream &
+  void print() const
   requires(utils::Printable<T>)
   {
     if constexpr (MatrixDimension<S>)
-      return utils::printMatrix(os, x.data(), M, N, N);
-    else return utils::printVector(os, x.begin(), x.end());
+      utils::printMatrix(data(), M, N, N);
+    else utils::printVector(begin(), end());
+  }
+
+private:
+  friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
+    if constexpr (utils::Printable<T>) {
+      // Use the view's print functionality by capturing stdout temporarily
+      // This is a workaround since printToStream is protected
+      std::ostringstream oss;
+      if constexpr (MatrixDimension<S>) {
+        oss << "\n[ ";
+        for (std::ptrdiff_t i = 0; i < M; i++) {
+          if (i) oss << "  ";
+          for (std::ptrdiff_t j = 0; j < N; j++) {
+            oss << x.view()[i, j];
+            if (j != N - 1) oss << " ";
+            else if (i != M - 1) oss << "\n";
+          }
+        }
+        oss << " ]";
+      } else {
+        oss << "[ ";
+        auto view = x.view();
+        if (view.begin() != view.end()) {
+          oss << *view.begin();
+          for (auto it = view.begin() + 1; it != view.end(); ++it)
+            oss << ", " << *it;
+        }
+        oss << " ]";
+      }
+      *os << oss.str();
+    }
   }
 };
 
@@ -444,17 +469,29 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   TRIVIAL [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(memory_);
   }
-  TRIVIAL [[nodiscard]] constexpr auto begin()
-    -> T *requires(((M == 1) || (N == 1))) { return data(); }
+  TRIVIAL [[nodiscard]] constexpr auto begin() -> T *
+  requires(((M == 1) || (N == 1)))
+  {
+    return data();
+  }
 
-  TRIVIAL [[nodiscard]] constexpr auto end()
-    -> T *requires(((M == 1) || (N == 1))) { return data() + (M * N); }
+  TRIVIAL [[nodiscard]] constexpr auto end() -> T *
+  requires(((M == 1) || (N == 1)))
+  {
+    return data() + (M * N);
+  }
 
-  TRIVIAL [[nodiscard]] constexpr auto begin() const
-    -> const T *requires(((M == 1) || (N == 1))) { return data(); }
+  TRIVIAL [[nodiscard]] constexpr auto begin() const -> const T *
+  requires(((M == 1) || (N == 1)))
+  {
+    return data();
+  }
 
-  TRIVIAL [[nodiscard]] constexpr auto end() const
-    -> const T *requires(((M == 1) || (N == 1))) { return data() + (M * N); }
+  TRIVIAL [[nodiscard]] constexpr auto end() const -> const T *
+  requires(((M == 1) || (N == 1)))
+  {
+    return data() + (M * N);
+  }
 
   TRIVIAL [[nodiscard]] constexpr auto t() const
     -> Transpose<T, Array<T, S, false>> {

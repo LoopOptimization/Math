@@ -30,7 +30,9 @@ auto autoConvert(math::PtrMatrix<std::int64_t> A) -> std::int64_t {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(StringParse, BasicAssertions) {
   IntMatrix<> A{"[0 3 -2 1; 3 -1 -2 -2; 2 0 -3 0]"_mat};
-  std::cout << "A = \n" << A << "\n";
+  utils::print("A = \n");
+  A.print();
+  utils::print('\n');
   EXPECT_EQ((A[0, 0]), 0);
   EXPECT_EQ((A[0, 1]), 3);
   EXPECT_EQ((A[0, 2]), -2);

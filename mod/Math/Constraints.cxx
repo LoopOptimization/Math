@@ -17,11 +17,11 @@ module;
 #include "Math/ManagedArray.cxx"
 #include "Math/MatrixDimensions.cxx"
 #include "Math/NormalForm.cxx"
+#include "Utilities/ArrayPrint.cxx"
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <ostream>
 #else
 export module Constraints;
 import ArrayConcepts;
@@ -41,8 +41,8 @@ export namespace math {
 #else
 namespace math {
 #endif
-inline auto printConstraint(std::ostream &os, PtrVector<std::int64_t> a,
-                            std::ptrdiff_t numSyms, bool inequality) {
+inline void printConstraint(PtrVector<std::int64_t> a, std::ptrdiff_t numSyms,
+                            bool inequality) {
   std::ptrdiff_t numVar = a.size();
   bool hasPrinted = false, allVarNonNegative = allGEZero(a[_(numSyms, numVar)]);
   std::int64_t sign = allVarNonNegative ? 1 : -1;
@@ -50,38 +50,37 @@ inline auto printConstraint(std::ostream &os, PtrVector<std::int64_t> a,
     if (std::int64_t Acv = sign * a[v]) {
       if (hasPrinted) {
         if (Acv > 0) {
-          os << " + ";
+          utils::print(" + ");
         } else {
-          os << " - ";
+          utils::print(" - ");
           Acv *= -1;
         }
       }
       if (Acv != 1) {
-        if (Acv == -1) os << "-";
-        else os << Acv;
+        if (Acv == -1) utils::print("-");
+        else utils::print(Acv);
       }
-      os << "v_" << v - numSyms;
+      utils::print("v_", v - numSyms);
       hasPrinted = true;
     }
   }
-  if (!hasPrinted) os << '0';
-  if (inequality) os << (allVarNonNegative ? " >= " : " <= ");
-  else os << " == ";
-  os << -sign * a[0];
+  if (!hasPrinted) utils::print('0');
+  if (inequality) utils::print(allVarNonNegative ? " >= " : " <= ");
+  else utils::print(" == ");
+  utils::print(-sign * a[0]);
 }
 /// prints in current permutation order.
 /// TODO: decide if we want to make AffineLoopNest a `SymbolicPolyhedra`
 /// in which case, we have to remove `currentToOriginalPerm`,
 /// which means either change printing, or move prints `<<` into
 /// the derived classes.
-inline auto printConstraints(std::ostream &os, DensePtrMatrix<std::int64_t> A,
-                             bool inequality = true) -> std::ostream & {
+inline void printConstraints(DensePtrMatrix<std::int64_t> A,
+                             bool inequality = true) {
   Row numConstraints = A.numRow();
   for (std::ptrdiff_t c = 0; c < numConstraints; ++c) {
-    printConstraint(os, A[c, _], 1, inequality);
-    os << "\n";
+    printConstraint(A[c, _], 1, inequality);
+    utils::print('\n');
   }
-  return os;
 }
 
 constexpr void eraseConstraintImpl(MutDensePtrMatrix<std::int64_t> A, Row<> i) {

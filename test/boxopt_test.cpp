@@ -61,7 +61,7 @@ TEST(BoxOptTest, Basic) {
   double opt0 = math::minimize(&arena, box, fsoft);
   double u0 = box.transformed()[0];
   double u1 = box.transformed()[1];
-  std::cout << "u0 = " << u0 << "; u1 = " << u1 << '\n';
+  utils::print("u0 = ", u0, "; u1 = ", u1, '\n');
   EXPECT_LT(std::abs(3.45128 - u0), 1e-3);
   EXPECT_LT(std::abs(7.78878 - u1), 1e-3);
   box.decreaseUpperBound(0, 3);
@@ -69,7 +69,7 @@ TEST(BoxOptTest, Basic) {
   EXPECT_LT(opt0, opt1);
   double u01 = box.transformed()[0];
   double u11 = box.transformed()[1];
-  std::cout << "u01 = " << u01 << "; u11 = " << u11 << '\n';
+  utils::print("u01 = ", u01, "; u11 = ", u11, '\n');
   EXPECT_EQ(u01, 3.0);
   EXPECT_LT(std::abs(9.09724 - u11), 1e-3);
 
@@ -172,11 +172,6 @@ struct MatOpt {
     auto l2_to_l1 = l2_to_l1_datavolume(m_c, k_c) * (sizeof(double) / L2b);
     auto res =
       math::smax<>(r_to_l3, l3_to_l2, l2_to_l1) + (1e3 * violation_penalty);
-    // std::cout << "m_c = " << math::value(1.0 * m_c)
-    //           << "\nk_c = " << math::value(1.0 * k_c)
-    //           << "\nn_c = " << math::value(1.0 * n_c) << "\nres = " <<
-    //           res
-    //           << "\n";
     return res;
     // return math::smax<>(r_to_l3, l3_to_l2, l2_to_l1) +
     //        1000.0 * violation_penalty;
@@ -232,8 +227,8 @@ auto optimize(std::int32_t M, std::int32_t K, std::int32_t N)
 TEST(BoxOptTest, Matmul) {
   std::int32_t M = 1000, K = 2000, N = 1000;
   auto [opt, m_cf, k_cf, n_cf] = optimizeFloat(M, K, N);
-  std::cout << "opt result = " << opt << "\nm_cf = " << m_cf
-            << "\nk_cf = " << k_cf << "\nn_cf = " << n_cf << "\n";
+  utils::print("opt result = ", opt, "\nm_cf = ", m_cf, "\nk_cf = ", k_cf,
+               "\nn_cf = ", n_cf, '\n');
   auto [m_c, k_c, n_c] = optimize(M, K, N);
   EXPECT_EQ(m_c, 144);
   EXPECT_EQ(k_c, 762);

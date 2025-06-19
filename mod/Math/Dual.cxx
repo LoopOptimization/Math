@@ -20,6 +20,7 @@ module;
 #include "Math/StaticArrays.cxx"
 #include "SIMD/Intrin.cxx"
 #include "SIMD/Vec.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Parameters.cxx"
 #include "Utilities/Reference.cxx"
 #include "Utilities/TypeCompression.cxx"
@@ -29,7 +30,6 @@ module;
 #include <cstdint>
 #include <functional>
 #include <limits>
-#include <ostream>
 #include <type_traits>
 #include <utility>
 #else
@@ -400,11 +400,10 @@ private:
   TRIVIAL friend constexpr auto operator!=(double other, Dual x) -> bool {
     return other != x.value();
   }
-  friend auto operator<<(std::ostream &os, const Dual &x) -> std::ostream & {
-    os << "Dual<" << N << ">{" << x.value();
-    for (std::ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
-    os << "}";
-    return os;
+  void print() const {
+    utils::print("Dual<", N, ">{", value());
+    for (std::ptrdiff_t n = 0; n < N; ++n) utils::print(", ", gradient()[n]);
+    utils::print("}");
   };
   TRIVIAL friend constexpr auto operator+(T a, Dual b) -> Dual
   requires(!std::same_as<T, double>)
@@ -760,11 +759,10 @@ private:
   TRIVIAL friend constexpr auto operator!=(double other, Dual x) -> bool {
     return other != x.value();
   }
-  friend auto operator<<(std::ostream &os, const Dual &x) -> std::ostream & {
-    os << "Dual<" << N << ">{" << x.value();
-    for (std::ptrdiff_t n = 0; n < N; ++n) os << ", " << x.gradient()[n];
-    os << "}";
-    return os;
+  void print() const {
+    utils::print("Dual<", N, ">{", value());
+    for (std::ptrdiff_t n = 0; n < N; ++n) utils::print(", ", gradient()[n]);
+    utils::print("}");
   };
 
   TRIVIAL friend constexpr auto operator+(Dual x, Dual y) -> Dual {

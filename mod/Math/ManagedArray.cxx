@@ -366,7 +366,9 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     reserveForGrow1();
     this->push_back_within_capacity(std::move(value));
   }
-  constexpr auto insert(T *p, T x) -> T *requires(std::same_as<S, Length<>>) {
+  constexpr auto insert(T *p, T x) -> T *
+  requires(std::same_as<S, Length<>>)
+  {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]] {
       std::ptrdiff_t d = p - this->data();
@@ -721,12 +723,6 @@ private:
     this->sz_ = d;
   }
 
-  friend void PrintTo(const ManagedArray &x, ::std::ostream *os)
-  requires(utils::Printable<T>)
-  {
-    *os << x;
-  }
-
   [[no_unique_address]] containers::Storage<storage_type, StackStorage> memory_;
 };
 
@@ -811,13 +807,5 @@ static_assert(AbstractVector<Vector<std::int64_t>>,
               "PtrVector<std::int64_t> isa AbstractVector failed");
 static_assert(
   std::same_as<utils::eltype_t<Matrix<std::int64_t>>, std::int64_t>);
-
-template <AbstractMatrix T>
-inline auto operator<<(std::ostream &os, const T &A) -> std::ostream & {
-  Matrix<std::remove_const_t<typename T::value_type>> B{A};
-  return utils::printMatrix(os, B.data(), std::ptrdiff_t(B.numRow()),
-                            std::ptrdiff_t(B.numCol()),
-                            std::ptrdiff_t(B.rowStride()));
-}
 
 } // namespace math
