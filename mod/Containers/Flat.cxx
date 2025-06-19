@@ -5,12 +5,12 @@ module;
 #endif
 #include "Owner.hxx"
 #ifndef USE_MODULE
+#include "Alloc/Mallocator.cxx"
+#include "Utilities/Invariant.cxx"
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
-
-#include "Alloc/Mallocator.cxx"
-#include "Utilities/Invariant.cxx"
 #else
 export module Flat;
 

@@ -5,6 +5,9 @@ module;
 #endif
 
 #ifndef USE_MODULE
+#include "Alloc/Mallocator.cxx"
+#include "Containers/Flat.cxx"
+#include "Math/Rational.cxx"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -12,16 +15,12 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
-#include <iostream>
 #include <iterator>
 #include <limits>
 #include <system_error>
 #include <type_traits>
-
-#include "Alloc/Mallocator.cxx"
-#include "Containers/Flat.cxx"
-#include "Math/Rational.cxx"
 #else
 export module ArrayPrint;
 
@@ -36,6 +35,7 @@ export namespace utils {
 #else
 namespace utils {
 #endif
+
 namespace detail {
 template <std::integral T> consteval auto maxPow10() -> std::size_t {
   if constexpr (sizeof(T) == 1) return 3;
@@ -130,47 +130,94 @@ constexpr auto getMaxDigits(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
 
 } // namespace detail
 
+constexpr auto getChars(std::integral auto x, bool ptr = false)
+  -> std::array<char, 21> {
+  std::array<char, 21> ret{};
+  auto *b = ret.begin();
+  if (ptr) {
+    ret[0] = '0';
+    ret[2] = 'x';
+    b += 2;
+  }
+  if (std::to_chars(b, ret.end() - 1, x, 16).ec == std::errc::value_too_large)
+    __builtin_trap();
+  return ret;
+}
+constexpr auto getChars(double x) -> std::array<char, 21> {
+  std::array<char, 21> ret{};
+  if (std::to_chars(ret.begin(), ret.end() - 1, x).ec !=
+      std::errc::value_too_large)
+    return ret;
+  ret[0] = 'I';
+  ret[1] = 'N';
+  ret[2] = 'V';
+  ret[3] = 'A';
+  ret[4] = 'L';
+  ret[5] = 'I';
+  ret[6] = 'D';
+  ret[7] = ' ';
+  ret[8] = 'N';
+  ret[9] = 'A';
+  ret[10] = 'M';
+  ret[11] = 'E';
+  ret[12] = '\0';
+  return ret;
+}
+constexpr auto getPtrChars(const void *p) -> std::array<char, 21> {
+  return getChars(std::bit_cast<std::uint64_t>(p), true);
+}
+
+inline void print(char c) { std::putchar(c); }
+inline void print(const char *c) { std::fputs(c, stdout); }
+inline void println(const char *c) { std::puts(c); }
+inline void print(auto x) { print(getChars(x)); }
+inline void println(auto x) { println(getChars(x)); }
+inline void print(auto... x) { (print(x), ...); }
+inline void println(auto... x, auto y) {
+  (print(x), ...);
+  println(y);
+}
+
 template <typename T>
-concept Printable = std::same_as<T, double> || requires(std::ostream &os, T x) {
-  { os << x } -> std::same_as<std::ostream &>;
+concept Printable = std::same_as<T, double> || requires(T x) {
+  { print(x) };
+  { println(x) };
   { detail::countDigits(x) } -> std::integral;
 };
 static_assert(Printable<math::Rational>);
 
 static_assert(Printable<std::int64_t>);
-inline void print_obj(std::ostream &os, Printable auto x) { os << x; };
 
-inline auto printVector(std::ostream &os, auto B, auto E) -> std::ostream & {
-  os << "[ ";
+inline auto printVector(auto B, auto E) -> std::ostream & {
+  print("[ ");
   if (B != E) {
-    print_obj(os, *B);
-    for (; ++B != E;) print_obj(os << ", ", *B);
+    print(*B);
+    for (; ++B != E;) print(", ", *B);
   }
-  os << " ]";
-  return os;
+  print(" ]");
 }
 
 template <typename T>
-inline auto printMatrix(std::ostream &os, const T *A, std::ptrdiff_t M,
-                        std::ptrdiff_t N, std::ptrdiff_t X) -> std::ostream & {
+inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
+                        std::ptrdiff_t X) {
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
-  if ((!M) || (!N)) return os << "[ ]";
+  if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
   auto max_digits{detail::getMaxDigits(A, M, N, X)};
   using U = decltype(detail::countDigits(std::declval<T>()));
   for (std::ptrdiff_t i = 0; i < M; i++) {
-    if (i) os << "  ";
-    else os << "\n[ ";
+    if (i) print("  ");
+    else print("\n[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
       auto Aij = A[(i * X) + j];
       for (U k = 0; k < U(max_digits[j]) - detail::countDigits(Aij); k++)
-        os << " ";
-      os << Aij;
-      if (j != N - 1) os << " ";
-      else if (i != M - 1) os << "\n";
+        print(" ");
+      print(Aij);
+      if (j != N - 1) print(" ");
+      else if (i != M - 1) print("\n");
     }
   }
-  return os << " ]";
+  print(" ]");
 }
 // We mirror `A` with a matrix of integers indicating sizes, and a vectors of
 // chars. We fill the matrix with the number of digits of each element, and
@@ -180,10 +227,10 @@ inline auto printMatrix(std::ostream &os, const T *A, std::ptrdiff_t M,
 // to avoid allocations. We can use a Vector with a lot of initial capacity,
 // and then resize based on a conservative estimate of the number of chars per
 // elements.
-inline auto printMatrix(std::ostream &os, const double *A, std::ptrdiff_t M,
-                        std::ptrdiff_t N, std::ptrdiff_t X) -> std::ostream & {
+inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
+                        std::ptrdiff_t X) {
   // std::ostream &printMatrix(std::ostream &os, T const &A) {
-  if ((!M) || (!N)) return os << "[ ]";
+  if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
   // we can't have more than 255 digits
   containers::Flat<std::uint8_t> num_digits{M * N};
@@ -224,19 +271,19 @@ inline auto printMatrix(std::ostream &os, const double *A, std::ptrdiff_t M,
   // we will allocate 512 bytes at a time
   ptr = p0;
   for (std::ptrdiff_t i = 0; i < M; i++) {
-    if (i) os << "  ";
-    else os << "\n[ ";
+    if (i) print("  ");
+    else print("\n[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
       std::ptrdiff_t nD = num_digits[i * N + j];
-      for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) os << " ";
-      for (std::ptrdiff_t n = 0; n < nD; ++n) os << ptr[n];
-      if (j != N - 1) os << " ";
-      else if (i != M - 1) os << "\n";
+      for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) print(' ');
+      for (std::ptrdiff_t n = 0; n < nD; ++n) print(ptr[n]);
+      if (j != N - 1) print(' ');
+      else if (i != M - 1) print("\n");
       ptr += nD;
     }
   }
   if (smem != p0)
     alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
-  return os << " ]";
+  print(" ]");
 }
 } // namespace utils
