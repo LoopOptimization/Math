@@ -8,6 +8,7 @@ module;
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <charconv>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -15,6 +16,7 @@ module;
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <system_error>
 #include <type_traits>
 
 #include "Alloc/Mallocator.cxx"
@@ -198,17 +200,16 @@ inline auto printMatrix(std::ostream &os, const double *A, std::ptrdiff_t M,
           break;
         }
         // we need more space
-        std::ptrdiff_t elem_so_far = m * std::ptrdiff_t(N) + n;
-        std::ptrdiff_t char_so_far = std::distance(p0, ptr);
-        // cld
-        std::ptrdiff_t char_per_elem =
-          (char_so_far + elem_so_far - 1) / elem_so_far;
-        std::ptrdiff_t new_capacity =
-          (1 + char_per_elem) * M * N; // +1 for good measure
-        char *pnew = alloc::Mallocator<char>{}.allocate(new_capacity);
+        std::ptrdiff_t elem_so_far = m * N + n,
+                       char_so_far = std::distance(p0, ptr),
+                       char_per_elem = // cld
+                       (char_so_far + elem_so_far - 1) / elem_so_far,
+                       new_capacity =
+                         (1 + char_per_elem) * M * N; // +1 for good measure
+        char *pnew = alloc::Mallocator<char>::allocate(new_capacity);
         std::memcpy(pnew, p0, char_so_far);
         if (smem != p0)
-          alloc::Mallocator<char>{}.deallocate(p0, std::distance(p0, p_end));
+          alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
         p0 = pnew;
         ptr = pnew + char_so_far;
         p_end = pnew + new_capacity;
@@ -229,13 +230,13 @@ inline auto printMatrix(std::ostream &os, const double *A, std::ptrdiff_t M,
       std::ptrdiff_t nD = num_digits[i * N + j];
       for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) os << " ";
       for (std::ptrdiff_t n = 0; n < nD; ++n) os << ptr[n];
-      if (j != std::ptrdiff_t(N) - 1) os << " ";
-      else if (i != std::ptrdiff_t(M) - 1) os << "\n";
+      if (j != N - 1) os << " ";
+      else if (i != M - 1) os << "\n";
       ptr += nD;
     }
   }
   if (smem != p0)
-    alloc::Mallocator<char>{}.deallocate(p0, std::distance(p0, p_end));
+    alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
   return os << " ]";
 }
 } // namespace utils
