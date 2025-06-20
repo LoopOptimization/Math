@@ -1,12 +1,15 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
 #include "Math/LinearDiophantine.cxx"
+#include "Utilities/CorePrint.cxx"
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <random>
 #include <vector>
 #else
-
 import CorePrint;
 import LinearDiophantine;
 import std;
@@ -26,7 +29,7 @@ TEST(LinearDiophantineTest, BasicAssertions) {
         auto [a, b, c] = *opts;
         EXPECT_EQ(1, a * x + b * y + c * z);
       }
-    } while (std::next_permutation(perm.begin(), perm.end()));
+    } while (std::ranges::next_permutation(perm).found);
   }
   {
     std::vector perm{2, 3, 4, 5};
@@ -38,7 +41,7 @@ TEST(LinearDiophantineTest, BasicAssertions) {
         auto [a, b, c, d] = *opts;
         EXPECT_EQ(1, a * w + b * x + c * y + d * z);
       }
-    } while (std::next_permutation(perm.begin(), perm.end()));
+    } while (std::ranges::next_permutation(perm).found);
   }
   {
     std::vector perm{2, 3, 4, 5, 6};
@@ -52,7 +55,7 @@ TEST(LinearDiophantineTest, BasicAssertions) {
         auto [a, b, c, d, e] = *opts;
         EXPECT_EQ(1, a * w + b * x + c * y + d * z + u * e);
       }
-    } while (std::next_permutation(perm.begin(), perm.end()));
+    } while (std::ranges::next_permutation(perm).found);
   }
   std::random_device rd;
   std::mt19937 gen(rd());
