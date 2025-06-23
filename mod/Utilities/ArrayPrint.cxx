@@ -149,6 +149,7 @@ inline void printVector(auto B, auto E) {
     for (; ++B != E;) print(", ", *B);
   }
   print(" ]");
+  flush();
 }
 
 template <typename T>
@@ -158,19 +159,20 @@ inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
   // first, we determine the number of digits needed per column
   auto max_digits{detail::getMaxDigits(A, M, N, X)};
   using U = decltype(detail::countDigits(std::declval<T>()));
-  for (std::ptrdiff_t i = 0; i < M; i++) {
+  for (std::ptrdiff_t i = 0; i < M; ++i) {
     if (i) print("  ");
     else print("\n[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
-      auto Aij = A[(i * X) + j];
-      for (U k = 0; k < U(max_digits[j]) - detail::countDigits(Aij); k++)
-        print(" ");
+      T Aij = A[(i * X) + j];
+      for (U k = 0; k < U(max_digits[j]) - detail::countDigits(Aij); ++k)
+        print(' ');
       print(Aij);
-      if (j != N - 1) print(" ");
-      else if (i != M - 1) print("\n");
+      if (j != N - 1) print(' ');
+      else if (i != M - 1) print('\n');
     }
   }
   print(" ]");
+  flush();
 }
 // We mirror `A` with a matrix of integers indicating sizes, and a vectors of
 // chars. We fill the matrix with the number of digits of each element, and
@@ -230,12 +232,13 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
       for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) print(' ');
       for (std::ptrdiff_t n = 0; n < nD; ++n) print(ptr[n]);
       if (j != N - 1) print(' ');
-      else if (i != M - 1) print("\n");
+      else if (i != M - 1) print('\n');
       ptr += nD;
     }
   }
   if (smem != p0)
     alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
   print(" ]");
+  flush();
 }
 } // namespace utils

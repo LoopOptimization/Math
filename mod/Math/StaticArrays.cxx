@@ -355,8 +355,7 @@ struct MATH_GSL_OWNER StaticArray
   void print() const
   requires(utils::Printable<T>)
   {
-    if constexpr (MatrixDimension<S>)
-      utils::printMatrix(data(), M, N, N);
+    if constexpr (MatrixDimension<S>) utils::printMatrix(data(), M, N, N);
     else utils::printVector(begin(), end());
   }
 
@@ -674,14 +673,6 @@ private:
     *os << x.view();
   }
 
-  friend auto operator<<(std::ostream &os, const StaticArray &x)
-    -> std::ostream &
-  requires(utils::Printable<T>)
-  {
-    if constexpr (MatrixDimension<S>)
-      return printMatrix(os, Array<T, StridedDims<>>{x});
-    else return utils::printVector(os, x.begin(), x.end());
-  }
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t N>
@@ -905,14 +896,6 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   }
 
 private:
-  friend auto operator<<(std::ostream &os, const StaticArray &x)
-    -> std::ostream &
-  requires(utils::Printable<T>)
-  {
-    if constexpr (MatrixDimension<S>)
-      return printMatrix(os, Array<T, StridedDims<>>{x});
-    else return utils::printVector(os, x.begin(), x.end());
-  }
 };
 
 template <class T, std::ptrdiff_t N, std::ptrdiff_t Compress = false>

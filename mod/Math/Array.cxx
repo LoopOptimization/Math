@@ -613,13 +613,14 @@ protected:
     if constexpr (MatrixDimension<S>) {
       // For matrices, we need to implement streaming manually since
       // utils::printMatrix doesn't use streams
+      std::ptrdiff_t R = std::ptrdiff_t(numRow()), C = std::ptrdiff_t(numCol());
       os << "\n[ ";
-      for (std::ptrdiff_t i = 0; i < numRow(); i++) {
+      for (std::ptrdiff_t i = 0; i < R; i++) {
         if (i) os << "  ";
-        for (std::ptrdiff_t j = 0; j < numCol(); j++) {
+        for (std::ptrdiff_t j = 0; j < C; j++) {
           os << (*this)[i, j];
-          if (j != numCol() - 1) os << " ";
-          else if (i != numRow() - 1) os << "\n";
+          if (j != C - 1) os << " ";
+          else if (i != R - 1) os << "\n";
         }
       }
       os << " ]";

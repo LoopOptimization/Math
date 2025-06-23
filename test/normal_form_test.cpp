@@ -424,6 +424,65 @@ TEST(BareissTests, BasicAssertions) {
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+TEST(BareissSolveSystemTests, BasicAssertions) {
+  // Test with the same matrices as SimplifySystemTests to ensure compatibility
+  IntMatrix<> A = "[2 4 5 5 -5; -4 3 -4 -3 -1; 1 0 -2 1 -4; -4 -2 3 -2 -1]"_mat,
+              B = "[-6 86 -27 46 0 -15; -90 -81 91 44 -2 78; 4 -54 -98 "
+                  "80 -10 82; -98 -15 -28 98 82 87]"_mat,
+              At = A.t(), Bt = B.t();
+  
+  // Store original matrices for comparison
+  IntMatrix<> A_orig = A, B_orig = B, At_orig = At, Bt_orig = Bt;
+  
+  // Test bareissSolveSystemRight
+  NormalForm::bareissSolveSystemRight(At, Bt);
+  // Test bareissSolveSystem
+  NormalForm::bareissSolveSystem(A, B);
+  
+  // Expected results (same as original solveSystem tests)
+  IntMatrix<> sA = "[-3975 0 0 0 -11370; 0 -1325 0 0 -1305; "
+                   "0 0 -265 0 -347; 0 0 0 265 -1124]"_mat;
+  IntMatrix<> true_b =
+    "[-154140 -128775 -205035 317580 83820 299760; -4910 -21400 -60890 "
+    "44820 14480 43390; -1334 -6865 -7666 8098 -538 9191; -6548 -9165 "
+    "-24307 26176 4014 23332]"_mat;
+
+  EXPECT_EQ(sA, A);
+  EXPECT_EQ(true_b, B);
+  EXPECT_EQ(sA, At.t());
+  EXPECT_EQ(true_b, Bt.t());
+
+  // Test smaller system
+  IntMatrix<> C = "[1 1 0; 0 1 1; 1 2 1]"_mat;
+  IntMatrix<> D = "[1 0 0; 0 1 0; 0 0 1]"_mat;
+  NormalForm::bareissSolveSystem(C, D);
+  IntMatrix<> true_c = "[1 0 -1; 0 1 1]"_mat;
+  IntMatrix<> true_d = "[1 -1 0; 0 1 0]"_mat;
+  EXPECT_EQ(true_c, C);
+  EXPECT_EQ(true_d, D);
+  
+  // Test that bareiss and HNF versions produce equivalent results on fresh matrices
+  IntMatrix<> A1 = A_orig, B1 = B_orig;
+  IntMatrix<> A2 = A_orig, B2 = B_orig;
+  
+  NormalForm::solveSystem(A1, B1);        // Original HNF version
+  NormalForm::bareissSolveSystem(A2, B2); // New Bareiss version
+  
+  EXPECT_EQ(A1, A2);  // Both should produce same A result
+  EXPECT_EQ(B1, B2);  // Both should produce same B result
+  
+  // Test right versions as well
+  IntMatrix<> At1 = At_orig, Bt1 = Bt_orig;
+  IntMatrix<> At2 = At_orig, Bt2 = Bt_orig;
+  
+  NormalForm::solveSystemRight(At1, Bt1);        // Original HNF version
+  NormalForm::bareissSolveSystemRight(At2, Bt2); // New Bareiss version
+  
+  EXPECT_EQ(At1, At2);  // Both should produce same A result
+  EXPECT_EQ(Bt1, Bt2);  // Both should produce same B result
+}
+
+// NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(InvTest, BasicAssertions) {
   std::random_device rd;
   std::mt19937 gen(rd());

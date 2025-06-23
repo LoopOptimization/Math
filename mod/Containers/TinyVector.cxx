@@ -8,7 +8,7 @@ module;
 #ifndef USE_MODULE
 #include "Containers/Storage.cxx"
 #include "Math/AxisTypes.cxx"
-#include "Utilities/ArrayPrint.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include <algorithm>
 #include <concepts>
@@ -46,15 +46,29 @@ class MATH_GSL_OWNER TinyVector {
 
 public:
   using value_type = T;
-  constexpr TinyVector() {}; // NOLINT (modernize-use-equals-default)
-  constexpr TinyVector(const std::initializer_list<T> &list)
+
+  void print() const {
+    using ::utils::print;
+    ::utils::print('[');
+    if constexpr (std::same_as<T, std::int8_t> ||
+                  std::same_as<T, std::uint8_t>) {
+      if (!empty()) print(int((*this)[0]));
+      for (L i = 1; i < size(); ++i) print(", ", int((*this)[i]));
+    } else {
+      if (!empty()) print((*this)[0]);
+      for (L i = 1; i < size(); ++i) print(", ", (*this)[i]);
+    }
+    ::utils::print("]");
+  }
+  TRIVIAL constexpr TinyVector(){}; // NOLINT (modernize-use-equals-default)
+  TRIVIAL constexpr TinyVector(const std::initializer_list<T> &list)
     : len_{math::length(L(list.size()))} {
     invariant(list.size() <= N);
     if constexpr (Storage<T, N>::trivial)
       std::copy_n(list.begin(), size(), data_.data());
     else std::uninitialized_move_n(list.begin(), size(), data_.data());
   }
-  constexpr TinyVector(T t) : len_{math::length(L(1))} {
+  TRIVIAL constexpr TinyVector(T t) : len_{math::length(L(1))} {
     std::construct_at(data_.data(), std::move(t));
   }
 
@@ -79,101 +93,93 @@ public:
     }
     return *this;
   }
-  constexpr auto operator[](std::ptrdiff_t i) -> T & {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) -> T & {
     invariant(i < len_);
     return data_.data()[i];
   }
-  constexpr auto operator[](std::ptrdiff_t i) const -> const T & {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> const T & {
     invariant(i < len_);
     return data_.data()[i];
   }
-  constexpr auto back() -> T & {
+  TRIVIAL constexpr auto back() -> T & {
     invariant(len_ > 0);
     return data_.data()[size() - 1z];
   }
-  constexpr auto back() const -> const T & {
+  TRIVIAL constexpr auto back() const -> const T & {
     invariant(len_ > 0);
     return data_.data()[size() - 1z];
   }
-  constexpr auto front() -> T & {
+  TRIVIAL constexpr auto front() -> T & {
     invariant(len_ > 0);
     return data_.data()[0z];
   }
-  constexpr auto front() const -> const T & {
+  TRIVIAL constexpr auto front() const -> const T & {
     invariant(len_ > 0);
     return data_.data()[0z];
   }
-  constexpr void push_back(const T &t) {
+  TRIVIAL constexpr void push_back(const T &t) {
     invariant(len_ < std::ptrdiff_t(N));
     std::construct_at(data_.data() + std::ptrdiff_t(L(len_++)), t);
   }
-  constexpr void push_back(T &&t) {
+  TRIVIAL constexpr void push_back(T &&t) {
     invariant(len_ < std::ptrdiff_t(N));
     std::construct_at(data_.data() + std::ptrdiff_t(L(len_++)), std::move(t));
   }
-  template <class... Args> constexpr auto emplace_back(Args &&...args) -> T & {
+  template <class... Args>
+  TRIVIAL constexpr auto emplace_back(Args &&...args) -> T & {
     invariant(len_ < std::ptrdiff_t(N));
     return *std::construct_at(data_.data() + std::ptrdiff_t(L(len_++)),
                               std::forward<Args>(args)...);
   }
-  constexpr void pop_back() {
+  TRIVIAL constexpr void pop_back() {
     invariant(len_ > 0);
     --len_;
     if constexpr (!std::is_trivially_destructible_v<T>)
       std::destroy_at(data_.data() + size());
   }
-  [[nodiscard]] constexpr auto pop_back_val() -> T {
+  [[nodiscard]] TRIVIAL constexpr auto pop_back_val() -> T {
     invariant(len_ > 0);
     return std::move(data_.data()[std::ptrdiff_t(L(--len_))]);
   }
-  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+  [[nodiscard]] TRIVIAL constexpr auto size() const -> std::ptrdiff_t {
     auto l = std::ptrdiff_t(L(len_));
     utils::assume(l <= std::ptrdiff_t(N));
     return l;
   }
-  [[nodiscard]] constexpr auto empty() const -> bool { return len_ == 0z; }
-  constexpr void clear() {
+  [[nodiscard]] TRIVIAL constexpr auto empty() const -> bool {
+    return len_ == 0z;
+  }
+  TRIVIAL constexpr void clear() {
     if constexpr (!std::is_trivially_destructible_v<T>)
       std::destroy_n(data_.data(), size());
     len_ = Length{};
   }
 
-  constexpr auto data() -> T * { return data_.data(); }
-  constexpr auto data() const -> const T * { return data_.data(); }
-  constexpr auto begin() -> T * { return data_.data(); }
-  constexpr auto begin() const -> const T * { return data_.data(); }
-  constexpr auto end() -> T * { return data_.data() + size(); }
-  constexpr auto end() const -> const T * { return data_.data() + size(); }
-  constexpr void resize(L new_size) {
+  TRIVIAL constexpr auto data() -> T * { return data_.data(); }
+  TRIVIAL constexpr auto data() const -> const T * { return data_.data(); }
+  TRIVIAL constexpr auto begin() -> T * { return data_.data(); }
+  TRIVIAL constexpr auto begin() const -> const T * { return data_.data(); }
+  TRIVIAL constexpr auto end() -> T * { return data_.data() + size(); }
+  TRIVIAL constexpr auto end() const -> const T * {
+    return data_.data() + size();
+  }
+  TRIVIAL constexpr void resize(L new_size) {
     // initialize new data
     for (std::ptrdiff_t i = size(); i < new_size; ++i)
       std::construct_at(data_.data() + i);
     len_ = math::length(new_size);
   }
-  constexpr void reserve(L space) {
+  TRIVIAL constexpr void reserve(L space) {
     invariant(space >= 0);
     invariant(std::size_t(space) <= N);
   }
-  constexpr ~TinyVector()
+  TRIVIAL constexpr ~TinyVector()
   requires(std::is_trivially_destructible_v<T>)
   = default;
-  constexpr ~TinyVector()
+  TRIVIAL constexpr ~TinyVector()
   requires(!std::is_trivially_destructible_v<T>)
   {
     std::destroy_n(data_.data(), size());
-  }
-
-  DEBUGUSED void dump(const TinyVector &x) {
-    utils::print('[');
-    if constexpr (std::same_as<T, std::int8_t> ||
-                  std::same_as<T, std::uint8_t>) {
-      if (!x.empty()) utils::print(int(x[0]));
-      for (L i = 1; i < x.size(); ++i) utils::print(", ", int(x[i]));
-    } else {
-      if (!x.empty()) utils::print(x[0]);
-      for (L i = 1; i < x.size(); ++i) utils::print(", ", x[i]);
-    }
-    utils::print("]");
   }
 };
 } // namespace containers

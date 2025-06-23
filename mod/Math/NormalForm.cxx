@@ -886,6 +886,134 @@ TRIVIAL constexpr void solveSystemSkip(MutPtrMatrix<std::int64_t> A) {
 TRIVIAL constexpr void solveSystem(MutPtrMatrix<std::int64_t> A) {
   solveSystem(A, std::ptrdiff_t(A.numCol()) - 1);
 }
+
+/// bareissSolveSystem(A, B)
+/// Like solveSystem, but uses Bareiss algorithm instead of Hermite Normal Form
+/// for the initial triangular form. Operations done to A are also applied to B.
+/// Avoids allocating temporary arrays like pivot vectors.
+TRIVIAL constexpr void bareissSolveSystem(MutPtrMatrix<std::int64_t> A,
+                                          MutPtrMatrix<std::int64_t> B) {
+  const auto [M, N] = shape(A);
+  utils::assume(B.numRow() == M);
+
+  // Step 1: Apply Bareiss algorithm to A, mirroring operations on B
+  std::int64_t prev = 1;
+  for (std::ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
+    // Find pivot row without allocating array
+    std::ptrdiff_t piv_row = r;
+    while (piv_row < M && A[piv_row, c] == 0) ++piv_row;
+    if (piv_row == M) continue;
+    // Swap rows if needed (apply to both A and B)
+    if (r != piv_row) {
+      swap(A, row(r), row(piv_row));
+      swap(B, row(r), row(piv_row));
+    }
+
+    // Bareiss elimination: eliminate below pivot
+    std::int64_t Arc = A[r, c];
+    auto j{_(c + 1, N)};
+    for (std::ptrdiff_t k = r + 1; k < M; ++k) {
+      if (std::int64_t Akc = A[k, c]) {
+        // Apply Bareiss to A
+        A[k, j] << (Arc * A[k, j] - Akc * A[r, j]) / prev;
+        B[k, _] << (Arc * B[k, _] - Akc * B[r, _]) / prev;
+        A[k, c] = 0;
+      } else if (Arc != prev) {
+        A[k, j] << (Arc * A[k, j]) / prev;
+        B[k, _] << (Arc * B[k, _]) / prev;
+      }
+    }
+    prev = Arc;
+    ++r;
+  }
+
+  // // Step 2: Back-solve the upper triangular system
+  // // Now A is upper triangular, solve A * X = B by back substitution
+  // // X = A \ B, overwrite B with X
+  // // B[i,j] = A[i,_(i,end)] * X[_(i,end),j].t()
+  // // B[i,j] = A[i,i] * X[i,j] + A[i,_(i+1,end)] * X[_(i+1,end),j].t()
+  // // X[i,j] = (B[i,j] - A[i,_(i+1,end)] * X[_(i+1,end),j].t()) / A[i,i]
+  // // Problem: 
+  // std::ptrdiff_t rank = std::min(M, N);
+  // for (std::ptrdiff_t i = rank - 1; i >= 0; --i) {
+  //   if (A[i, i] != 0) {
+  //     // Eliminate entries above the diagonal
+  //     for (std::ptrdiff_t j = 0; j < i; ++j) {
+  //       if (A[j, i] != 0) {
+  //         std::int64_t Aii = A[i, i], Aji = A[j, i];
+  //         // Use integer arithmetic: B[j, :] = Aii * B[j, :] - Aji * B[i, :]
+  //         for (std::ptrdiff_t k = 0; k < B.numCol(); ++k)
+  //           B[j, k] = Aii * B[j, k] - Aji * B[i, k];
+  //         for (std::ptrdiff_t k = 0; k < N; ++k)
+  //           A[j, k] = Aii * A[j, k] - Aji * A[i, k];
+  //       }
+  //     }
+  //   }
+  // }
+}
+
+/// bareissSolveSystemRight(A, B)
+/// Like solveSystemRight, but uses Bareiss algorithm for the initial triangular
+/// form. Given XA = B, right-multiplies both sides to diagonalize A.
+TRIVIAL constexpr void bareissSolveSystemRight(MutPtrMatrix<std::int64_t> A,
+                                               MutPtrMatrix<std::int64_t> B) {
+  const auto [M, N] = shape(A);
+  utils::assume(B.numCol() == N);
+
+  // Step 1: Apply Bareiss algorithm to A, mirroring operations on B
+  // For right multiplication, we work on columns to get lower triangular form
+  std::int64_t prev = 1;
+  for (std::ptrdiff_t c = 0, r = 0; r < M && c < N; ++r) {
+    // Find pivot column without allocating array
+    std::ptrdiff_t piv_col = c;
+    while (piv_col < N && A[r, piv_col] == 0) ++piv_col;
+
+    if (piv_col < N) {
+      // Swap columns if needed (apply to both A and B)
+      if (c != piv_col) {
+        swap(A, col(c), col(piv_col));
+        swap(B, col(c), col(piv_col));
+      }
+
+      // Bareiss elimination: eliminate to the right of pivot
+      std::int64_t Arc = A[r, c];
+      for (std::ptrdiff_t k = c + 1; k < N; ++k) {
+        if (std::int64_t Ark = A[r, k]) {
+          // Apply Bareiss to A
+          for (std::ptrdiff_t i = r + 1; i < M; ++i)
+            A[i, k] = (Arc * A[i, k] - Ark * A[i, c]) / prev;
+          A[r, k] = 0;
+
+          // Apply same operations to B
+          for (std::ptrdiff_t i = 0; i < B.numRow(); ++i)
+            B[i, k] = (Arc * B[i, k] - Ark * B[i, c]) / prev;
+        }
+      }
+      prev = Arc;
+      ++c;
+    }
+  }
+
+  // Step 2: Back-solve the triangular system
+  // Now A has pivots on the diagonal, solve X * A = B by forward substitution
+  std::ptrdiff_t rank = std::min(M, N);
+  for (std::ptrdiff_t i = 0; i < rank; ++i) {
+    if (A[i, i] != 0) {
+      // Eliminate entries to the left of diagonal
+      for (std::ptrdiff_t j = i + 1; j < rank; ++j) {
+        if (A[i, j] != 0) {
+          std::int64_t Aii = A[i, i], Aij = A[i, j];
+          // Use integer arithmetic: B[:, j] = Aii * B[:, j] - Aij * B[:, i]
+          for (std::ptrdiff_t k = 0; k < B.numRow(); ++k)
+            B[k, j] = Aii * B[k, j] - Aij * B[k, i];
+          for (std::ptrdiff_t k = 0; k < M; ++k)
+            A[k, j] = Aii * A[k, j] - Aij * A[k, i];
+        }
+      }
+    }
+  }
+}
+
 /// inv(A) -> (D, B)
 /// Given a matrix \f$\textbf{A}\f$, returns two matrices \f$\textbf{D}\f$ and
 /// \f$\textbf{B}\f$ so that \f$\textbf{D}^{-1}\textbf{B} = \textbf{A}^{-1}\f$,

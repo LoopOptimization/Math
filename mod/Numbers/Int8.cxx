@@ -406,7 +406,8 @@ private:
   TRIVIAL friend inline constexpr auto operator!(strong x) -> bool {
     return !static_cast<bool>(x);
   }
-  void print(strong x) { utils::print(static_cast<I>(x)); }
+  // ADL-compatible print method
+  friend inline void print(strong x) { ::utils::print(static_cast<I>(x)); }
 };
 static_assert(++static_cast<IntWrapper<int, 0, true>::strong>(3) == 4);
 
@@ -420,3 +421,9 @@ static_assert(bool(i8{1}));
 static_assert(bool(u8{1}));
 
 } // namespace numbers
+
+namespace utils {
+inline void print(numbers::i8 x) { print(static_cast<int>(x)); }
+inline void print(numbers::u8 x) { print(static_cast<unsigned int>(x)); }
+inline void print(numbers::Flag8 x) { print(static_cast<unsigned int>(x)); }
+} // namespace utils

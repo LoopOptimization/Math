@@ -23,8 +23,8 @@ export namespace utils {
 namespace utils {
 #endif
 
-constexpr auto getChars(std::integral auto x, bool ptr = false)
-  -> std::array<char, 21> {
+template <std::integral T>
+constexpr auto getChars(T x, bool ptr = false) -> std::array<char, 21> {
   std::array<char, 21> ret{};
   auto *b = ret.data();
   if (ptr) {
@@ -32,7 +32,8 @@ constexpr auto getChars(std::integral auto x, bool ptr = false)
     ret[1] = 'x';
     b += 2;
   }
-  if (std::to_chars(b, ret.data() + ret.size() - 1, x, 16).ec ==
+  static constexpr int base = std::is_unsigned_v<T> ? 16 : 10;
+  if (std::to_chars(b, ret.data() + ret.size() - 1, x, base).ec ==
       std::errc::value_too_large)
     __builtin_trap();
   return ret;
@@ -67,6 +68,12 @@ concept HasPrintMethod = requires(const T &x) {
   { x.print() } -> std::same_as<void>;
 };
 
+inline void flush() {
+  [[maybe_unused]] int erc = std::fflush(stdout);
+#ifndef NDEBUG
+  if (erc) __builtin_trap();
+#endif
+}
 inline void print(char c) { std::putchar(c); }
 inline void print(const char *c) { std::fputs(c, stdout); }
 inline void print(const std::string &s) {
@@ -77,14 +84,17 @@ inline void println(const std::string &s) {
   print(s);
   std::putchar('\n');
 }
+inline void println() { std::putchar('\n'); }
 
-// Print function for integral and floating point types
-template <typename T>
-inline void print(const T &x)
-requires(std::integral<T> || std::floating_point<T>)
-{
-  print(getChars(x).data());
+inline void print(std::integral auto x) {
+  // if (__builtin_constant_p(x)) {
+  if (x >= 0 && x < 10) std::putchar('0' + x);
+  else print(getChars(x).data());
 }
+inline void print(std::floating_point auto x) { print(getChars(x).data()); }
+
+// Print function for pointers
+inline void print(const void *p) { print(getPtrChars(p).data()); }
 
 // Print function for types with .print() member function
 template <HasPrintMethod T> inline void print(const T &x) { x.print(); }
