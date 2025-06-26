@@ -42,16 +42,17 @@ struct TinyString {
     len_ = end_ptr - data_.begin();
   }
   constexpr TinyString() = default;
-  template <std::integral T> constexpr TinyString(T x, bool ptr = false) {
+  template <std::integral T>
+  explicit constexpr TinyString(T x, bool ptr = false) {
     static constexpr int base = std::is_unsigned_v<T> ? 16 : 10;
     if (ptr) push_back('0').push_back('x');
     auto ec = std::to_chars(end(), lastValid(), x, base);
     if (ec.ec == std::errc::value_too_large) __builtin_trap();
     setLength(ec.ptr);
   }
-  constexpr TinyString(const void *ptr)
+  explicit constexpr TinyString(const void *ptr)
     : TinyString(std::bit_cast<std::uintptr_t>(ptr), true) {}
-  constexpr TinyString(double x) {
+  explicit constexpr TinyString(double x) {
     setLength(std::to_chars(begin(), lastValid(), x).ptr);
   }
 };
@@ -69,19 +70,10 @@ inline void flush() {
 #endif
 }
 inline void print(char c) { std::putchar(c); }
-inline void print(const char *c) { std::fputs(c, stdout); }
-inline void print(const std::string &s) {
-  std::fwrite(s.data(), 1, s.size(), stdout);
-}
 inline void print(std::string_view s) {
   std::fwrite(s.data(), 1, s.size(), stdout);
 }
 inline void print(TinyString s) { print(std::string_view{s}); }
-inline void println(const char *c) { std::puts(c); }
-inline void println(const std::string &s) {
-  print(s);
-  std::putchar('\n');
-}
 inline void println(std::string_view s) {
   print(s);
   std::putchar('\n');
