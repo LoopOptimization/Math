@@ -48,7 +48,7 @@ using utils::operator""_mat;
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SparseIndexingTest, BasicAssertions) {
   SmallSparseMatrix<std::int64_t> sparseA(row(3), col(4));
-  utils::print("&Asparse = ", utils::getPtrChars(&sparseA).data(), '\n');
+  utils::print("&Asparse = ", &sparseA, '\n');
   sparseA[0, 1] = 5;
   sparseA[1, 3] = 3;
   sparseA[2, 0] = -1;
