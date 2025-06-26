@@ -6,15 +6,17 @@ module;
 
 #include <cstdio>
 #ifndef USE_MODULE
-#include <array>
+#include "Utilities/Invariant.cxx"
 #include <bit>
 #include <charconv>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 #include <system_error>
 #else
 export module CorePrint;
+import Invariant;
 import std;
 #endif
 
@@ -26,20 +28,19 @@ namespace utils {
 
 struct TinyString {
   // 21 to allow for typemin<std::int64_t> + new-line char
-  std::array<char, 21> data_{};
-  std::size_t len_{};
-  constexpr operator std::string_view() const { return {data_.data(), len_}; }
-  constexpr auto begin() -> char * { return data_.data(); }
-  constexpr auto end() -> char * { return data_.data() + len_; }
-  constexpr auto lastValid() -> char * {
-    return data_.data() + data_.size() - 1;
+  static constexpr std::ptrdiff_t n_elts = 21;
+  char data_[n_elts];
+  std::ptrdiff_t len_{};
+  constexpr operator std::string_view() const {
+    utils::assume(len_ >= 0 && len_ <= n_elts);
+    return {data_, std::size_t(len_)};
   }
+  constexpr auto begin() -> char * { return data_; }
+  constexpr auto end() -> char * { return data_ + len_; }
   constexpr auto push_back(char x) -> TinyString & {
+    utils::assume(len_ >= 0 && len_ < n_elts);
     data_[len_++] = x;
     return *this;
-  }
-  constexpr void setLength(const char *end_ptr) {
-    len_ = end_ptr - data_.begin();
   }
   constexpr TinyString() = default;
   template <std::integral T>
@@ -55,6 +56,10 @@ struct TinyString {
   explicit constexpr TinyString(double x) {
     setLength(std::to_chars(begin(), lastValid(), x).ptr);
   }
+
+private:
+  constexpr void setLength(const char *end_ptr) { len_ = end_ptr - data_; }
+  constexpr auto lastValid() -> char * { return data_ + n_elts - 1; }
 };
 
 // Concept for objects with a .print() member function
@@ -119,8 +124,12 @@ inline void print(const auto &x, const auto &y, const Args &...z) {
 
 template <typename... Args>
 inline void println(const auto &x, const auto &y, const Args &...z) {
-  print(x);         // pop off first
-  println(y, z...); // recurse
+  print(x); // pop off first
+  // the branch halves the number of recursive calls vs `println(y, z...)`
+  if constexpr (sizeof...(z)) {
+    print(y);
+    println(z...); // recurse
+  } else println(y);
 }
 
 } // namespace utils
