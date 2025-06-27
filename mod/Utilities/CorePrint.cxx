@@ -130,5 +130,9 @@ inline void println(const auto &x, const auto &y, const Args &...z) {
     println(z...); // recurse
   } else println(y);
 }
+template <typename T>
+concept Printable = requires(const T &x) {
+  { ::utils::print(x) };
+};
 
 } // namespace utils

@@ -347,14 +347,14 @@ struct MATH_GSL_OWNER StaticArray
     memory_[(r * N) + c] = x;
   }
 
-  void print() const requires(utils::Printable<T>) {
+  void print() const requires(utils::ColumnPrintable<T>) {
     if constexpr (MatrixDimension<S>) utils::printMatrix(data(), M, N, N);
     else utils::printVector(begin(), end());
   }
 
 private:
   friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
-    if constexpr (utils::Printable<T>) {
+    if constexpr (utils::ColumnPrintable<T>) {
       // Use the view's print functionality by capturing stdout temporarily
       // This is a workaround since printToStream is protected
       std::ostringstream oss;

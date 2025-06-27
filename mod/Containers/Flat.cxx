@@ -28,7 +28,9 @@ template <typename T> struct MATH_GSL_OWNER Flat {
   static_assert(std::is_same_v<T, std::remove_cvref_t<T>>);
   explicit constexpr Flat(std::ptrdiff_t len)
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
-    std::uninitialized_default_construct_n(ptr_, len_);
+    if constexpr (!std::is_trivially_default_constructible_v<T> ||
+                  !std::is_trivially_destructible_v<T>)
+      std::uninitialized_default_construct_n(ptr_, len_);
   };
   explicit constexpr Flat(std::ptrdiff_t len, T x)
     : ptr_{alloc::Mallocator<T>{}.allocate(len)}, len_{len} {
@@ -39,7 +41,7 @@ template <typename T> struct MATH_GSL_OWNER Flat {
     : ptr_{alloc::Mallocator<T>{}.allocate(other.size())}, len_{other.size()} {
     std::uninitialized_copy_n(other.data(), len_, data());
   };
-  constexpr Flat(auto B, auto E)
+  constexpr Flat(const T *B, const T *E)
     : ptr_{alloc::Mallocator<T>{}.allocate(std::distance(B, E))},
       len_{std::distance(B, E)} {
     std::uninitialized_copy(B, E, data());

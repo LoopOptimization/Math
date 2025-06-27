@@ -19,6 +19,7 @@ module;
 #include "Math/Ranges.cxx"
 #include "Math/ScalarizeViaCastArrayOps.cxx"
 #include "Utilities/ArrayPrint.cxx"
+#include "Utilities/CorePrint.cxx"
 #include "Utilities/Invariant.cxx"
 #include "Utilities/Optional.cxx"
 #include "Utilities/Parameters.cxx"
@@ -525,7 +526,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), aslength(row(this->sz_)), stride(this->sz_),
             std::ptrdiff_t(col(this->sz_))};
   }
-  void print() const requires(utils::Printable<T>) {
+  void print() const requires(utils::ColumnPrintable<T>) {
     if constexpr (MatrixDimension<S>)
       utils::printMatrix(data(), std::ptrdiff_t(numRow()),
                          std::ptrdiff_t(numCol()), std::ptrdiff_t(rowStride()));
@@ -544,9 +545,9 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const {
-    // we can't combine `gnu::used` with `requires(utils::Printable<T>)`
-    // requires(utils::Printable<T>)
-    if constexpr (utils::Printable<T>) {
+    // we can't combine `gnu::used` with `requires(utils::ColumnPrintable<T>)`
+    // requires(utils::ColumnPrintable<T>)
+    if constexpr (utils::ColumnPrintable<T>) {
       utils::print("Size: ", std::ptrdiff_t(sz_), " ");
       print();
       utils::print("\n");
@@ -576,13 +577,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
 #endif
 protected:
   friend void PrintTo(const Array &x, ::std::ostream *os) {
-    if constexpr (utils::Printable<T>) {
+    if constexpr (utils::ColumnPrintable<T>) {
       std::ostringstream oss;
       x.printToStream(oss);
       *os << oss.str();
     }
   }
-  void printToStream(std::ostream &os) const requires(utils::Printable<T>) {
+  void printToStream(std::ostream &os) const requires(utils::ColumnPrintable<T>)
+  {
     if constexpr (MatrixDimension<S>) {
       // For matrices, we need to implement streaming manually since
       // utils::printMatrix doesn't use streams
