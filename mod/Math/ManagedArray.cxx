@@ -80,7 +80,8 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif
-  constexpr ManagedArray() noexcept : BaseT{S{}, capacity(StackStorage)} {
+  constexpr ManagedArray() noexcept
+    : BaseT{S{}, U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
 #ifndef NDEBUG
     if (!StackStorage) return;
@@ -93,10 +94,11 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   // if `T` is trivial, contents are uninitialized
   // if non-trivial, they are default constructed.
-  constexpr ManagedArray(S s) noexcept : BaseT{s, capacity(StackStorage)} {
+  constexpr ManagedArray(S s) noexcept
+    : BaseT{s, U(static_cast<U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
-    U len = U(capacity(std::ptrdiff_t(this->sz_)));
-    if (len > StackStorage) this->allocateAtLeast(len);
+    U len = U(static_cast<U::cap>(std::ptrdiff_t(this->sz_)));
+    if (std::ptrdiff_t(len) > StackStorage) this->allocateAtLeast(len);
 #ifndef NDEBUG
     if (!len) return;
     auto l = std::ptrdiff_t(len);
@@ -108,10 +110,12 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     if constexpr (!trivialelt)
       std::uninitialized_default_construct_n(this->data(), len);
   }
-  constexpr ManagedArray(S s, T x) noexcept : BaseT{s, capacity(StackStorage)} {
+  constexpr ManagedArray(S s, T x) noexcept
+    : BaseT{s, U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(this->sz_);
-    if (len > StackStorage) this->allocateAtLeast(capacity(len));
+    if (len > StackStorage)
+      this->allocateAtLeast(U(static_cast<typename U::cap>(len)));
     if (!len) return;
     if constexpr (trivialelt) std::fill_n(this->data(), len, x);
     else std::uninitialized_fill_n(this->data(), len, std::move(x));
@@ -125,7 +129,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 
   constexpr ManagedArray(T x) noexcept
   requires(std::same_as<S, Length<>>)
-    : BaseT{S{}, capacity(StackStorage)} {
+    : BaseT{S{}, U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     if constexpr (StackStorage == 0) this->growUndef(1);
     this->push_back_within_capacity(std::move(x));
@@ -133,7 +137,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 
   template <class D>
   constexpr ManagedArray(const ManagedArray<T, D, StackStorage, A> &b) noexcept
-    : BaseT{S(b.dim()), capacity(StackStorage)} {
+    : BaseT{S(b.dim()), U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(this->sz_);
     this->growUndef(len);
@@ -142,7 +146,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, StackStorage, AY> &b) noexcept
-    : BaseT{S{}, capacity(StackStorage)} {
+    : BaseT{S{}, U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     S d = b.dim();
     auto len = std::ptrdiff_t(d);
@@ -153,7 +157,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   template <std::convertible_to<T> Y, std::size_t M>
   constexpr ManagedArray(std::array<Y, M> il) noexcept
-    : BaseT{S{}, capacity(StackStorage)} {
+    : BaseT{S{}, U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(M);
     this->growUndef(len);
@@ -164,7 +168,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   template <std::convertible_to<T> Y, class D, class AY>
   constexpr ManagedArray(const ManagedArray<Y, D, StackStorage, AY> &b,
                          S s) noexcept
-    : BaseT{S(s), capacity(StackStorage)} {
+    : BaseT{S(s), U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(this->sz_);
     invariant(len == U(b.size()));
@@ -174,7 +178,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const ManagedArray &b) noexcept
-    : BaseT{S(b.dim()), capacity(StackStorage)} {
+    : BaseT{S(b.dim()), U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(this->sz_);
     this->growUndef(len);
@@ -182,7 +186,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     else std::uninitialized_copy_n(b.data(), len, this->data());
   }
   constexpr ManagedArray(const Array<T, S> &b) noexcept
-    : BaseT{S(b.dim()), capacity(StackStorage)} {
+    : BaseT{S(b.dim()), U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(this->sz_);
     this->growUndef(len);
@@ -191,7 +195,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   template <AbstractSimilar<S> V>
   constexpr ManagedArray(const V &b) noexcept
-    : BaseT{S(shape(b)), capacity(StackStorage)} {
+    : BaseT{S(shape(b)), U(static_cast<typename U::cap>(StackStorage))} {
     this->ptr_ = memory_.data();
     this->growUndef(std::ptrdiff_t(this->sz_));
     (*this) << b;
@@ -321,7 +325,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   constexpr void resetNoFree() {
     this->ptr_ = memory_.data();
     this->sz_ = S{};
-    this->capacity_ = capacity(StackStorage);
+    this->capacity_ = U(static_cast<typename U::cap>(StackStorage));
   }
   constexpr ~ManagedArray() noexcept { this->maybeDeallocate(); }
 
@@ -412,7 +416,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
         std::uninitialized_default_construct_n(new_ptr + oz, nz - oz);
         maybeDeallocate();
         this->ptr_ = new_ptr;
-        this->capacity_ = capacity(new_cap);
+        this->capacity_ = U(static_cast<typename U::cap>(new_cap));
       } else if (nz > oz)
         std::uninitialized_default_construct_n(old_ptr + oz, nz - oz);
     } else if (nz > std::ptrdiff_t(this->sz_)) growUndef(nz);
@@ -482,7 +486,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       else std::uninitialized_move_n(op, old_len, new_ptr);
     }
     maybeDeallocate(op, old_len, std::ptrdiff_t(oc), was_allocated);
-    return {new_ptr, math::capacity(nc)};
+    return {new_ptr, U(static_cast<typename U::cap>(nc))};
   }
   constexpr void reserve(S nz) {
     auto [np, nc] = reserveCore(nz, this->data(), std::ptrdiff_t(this->sz_),
@@ -545,7 +549,7 @@ private:
     alloc::AllocResult<storage_type> res = alloc::alloc_at_least(A{}, l);
     this->ptr_ = res.ptr;
     invariant(res.count >= l);
-    this->capacity_ = capacity(res.count);
+    this->capacity_ = U(static_cast<typename U::cap>(res.count));
   }
   [[nodiscard]] constexpr auto isSmall() const -> bool {
     invariant(this->capacity_ >= StackStorage);
@@ -578,7 +582,7 @@ private:
     maybeDeallocate(this->data(), std::ptrdiff_t(this->sz_),
                     std::ptrdiff_t(this->capacity_), wasAllocated());
     this->ptr_ = newPtr;
-    this->capacity_ = capacity(newCapacity);
+    this->capacity_ = U(static_cast<typename U::cap>(newCapacity));
   }
   // reallocate, discarding old data
   // This only performs the allocation!!
@@ -589,7 +593,7 @@ private:
     // because this doesn't care about the old data,
     // we can allocate after freeing, which may be faster
     this->ptr_ = A{}.allocate(M);
-    this->capacity_ = capacity(M);
+    this->capacity_ = U(static_cast<typename U::cap>(M));
     // if constexpr (!trivialelt)
     //   std::uninitialized_default_construct_n(this->data(), M);
 #ifndef NDEBUG
@@ -711,7 +715,7 @@ private:
         std::uninitialized_copy_n(bptr + oz, nz - oz, new_ptr);
         maybeDeallocate();
         this->ptr_ = new_ptr;
-        this->capacity_ = capacity(new_cap);
+        this->capacity_ = U(static_cast<typename U::cap>(new_cap));
       } else {
         std::copy_n(bptr, std::min(nz, oz), old_ptr);
         if (nz < oz) std::destroy_n(old_ptr + nz, oz - nz);

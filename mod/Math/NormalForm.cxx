@@ -888,8 +888,10 @@ TRIVIAL constexpr void solveSystem(MutPtrMatrix<std::int64_t> A) {
 }
 
 // /// bareissSolveSystem(A, B)
-// /// Like solveSystem, but uses Bareiss algorithm instead of Hermite Normal Form
-// /// for the initial triangular form. Operations done to A are also applied to B.
+// /// Like solveSystem, but uses Bareiss algorithm instead of Hermite Normal
+// Form
+// /// for the initial triangular form. Operations done to A are also applied to
+// B.
 // /// Avoids allocating temporary arrays like pivot vectors.
 // constexpr void bareissSolveSystem(MutPtrMatrix<std::int64_t> A,
 //                                   MutPtrMatrix<std::int64_t> B) {
@@ -972,7 +974,8 @@ TRIVIAL constexpr void solveSystem(MutPtrMatrix<std::int64_t> A) {
 //   //     for (std::ptrdiff_t j = 0; j < i; ++j) {
 //   //       if (A[j, i] != 0) {
 //   //         std::int64_t Aii = A[i, i], Aji = A[j, i];
-//   //         // Use integer arithmetic: B[j, :] = Aii * B[j, :] - Aji * B[i, :]
+//   //         // Use integer arithmetic: B[j, :] = Aii * B[j, :] - Aji * B[i,
+//   :]
 //   //         for (std::ptrdiff_t k = 0; k < B.numCol(); ++k)
 //   //           B[j, k] = Aii * B[j, k] - Aji * B[i, k];
 //   //         for (std::ptrdiff_t k = 0; k < N; ++k)
@@ -984,17 +987,19 @@ TRIVIAL constexpr void solveSystem(MutPtrMatrix<std::int64_t> A) {
 // }
 
 // /// bareissSolveSystemRight(A, B)
-// /// Like solveSystemRight, but uses Bareiss algorithm for the initial triangular
+// /// Like solveSystemRight, but uses Bareiss algorithm for the initial
+// triangular
 // /// form. Given XA = B, right-multiplies both sides to diagonalize A.
 // TRIVIAL constexpr void bareissSolveSystemRight(MutPtrMatrix<std::int64_t> A,
-//                                                MutPtrMatrix<std::int64_t> B) {
+//                                                MutPtrMatrix<std::int64_t> B)
+//                                                {
 //   const auto [M, N] = shape(A);
 //   utils::assume(B.numCol() == N);
 
 //   // Step 1: Apply Bareiss algorithm to A, mirroring operations on B
-//   // For right multiplication, we work on columns to get lower triangular form
-//   std::int64_t prev = 1;
-//   for (std::ptrdiff_t c = 0, r = 0; r < M && c < N; ++r) {
+//   // For right multiplication, we work on columns to get lower triangular
+//   form std::int64_t prev = 1; for (std::ptrdiff_t c = 0, r = 0; r < M && c <
+//   N; ++r) {
 //     // Find pivot column without allocating array
 //     std::ptrdiff_t piv_col = c;
 //     while (piv_col < N && A[r, piv_col] == 0) ++piv_col;
@@ -1026,9 +1031,9 @@ TRIVIAL constexpr void solveSystem(MutPtrMatrix<std::int64_t> A) {
 //   }
 
 //   // Step 2: Back-solve the triangular system
-//   // Now A has pivots on the diagonal, solve X * A = B by forward substitution
-//   std::ptrdiff_t rank = std::min(M, N);
-//   for (std::ptrdiff_t i = 0; i < rank; ++i) {
+//   // Now A has pivots on the diagonal, solve X * A = B by forward
+//   substitution std::ptrdiff_t rank = std::min(M, N); for (std::ptrdiff_t i =
+//   0; i < rank; ++i) {
 //     if (A[i, i] != 0) {
 //       // Eliminate entries to the left of diagonal
 //       for (std::ptrdiff_t j = i + 1; j < rank; ++j) {

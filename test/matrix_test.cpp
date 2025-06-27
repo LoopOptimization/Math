@@ -515,3 +515,148 @@ TEST(StringVector, BasicAssertions) {
   EXPECT_TRUE(anyGTZero(a));
   EXPECT_TRUE(anyLTZero(a));
 }
+
+TEST(DimensionConversions, BasicAssertions) {
+  // Test StridedDims conversions
+  {
+    // StridedDims<> -> StridedDims<4, 3, 4> (runtime to compile-time)
+    StridedDims<> runtime_strided{row(4), col(3), stride(4)};
+    StridedDims<4, 3, 4> static_strided = runtime_strided;
+    EXPECT_EQ(row(static_strided), 4);
+    EXPECT_EQ(col(static_strided), 3);
+    EXPECT_EQ(stride(static_strided), 4);
+
+    // StridedDims<4, 3, 4> -> StridedDims<> (compile-time to runtime)
+    StridedDims<> back_to_runtime = static_strided;
+    EXPECT_EQ(row(back_to_runtime), 4);
+    EXPECT_EQ(col(back_to_runtime), 3);
+    EXPECT_EQ(stride(back_to_runtime), 4);
+
+    // Test with Arrays
+    ManagedArray<std::int64_t, StridedDims<>> array_runtime{runtime_strided};
+    ManagedArray<std::int64_t, StridedDims<4, 3, 4>> array_static{
+      static_strided};
+    for (std::ptrdiff_t i = 0; i < 4; ++i) {
+      for (std::ptrdiff_t j = 0; j < 3; ++j) {
+        array_runtime[i, j] = i * 10 + j;
+        array_static[i, j] = i * 10 + j;
+      }
+    }
+    EXPECT_EQ((array_runtime[2, 1]), 21);
+    EXPECT_EQ((array_static[2, 1]), 21);
+  }
+
+  // Test DenseDims conversions
+  {
+    // DenseDims<> -> DenseDims<3, 4> (runtime to compile-time)
+    DenseDims<> runtime_dense{row(3), col(4)};
+    DenseDims<3, 4> static_dense = runtime_dense;
+    EXPECT_EQ(row(static_dense), 3);
+    EXPECT_EQ(col(static_dense), 4);
+
+    // DenseDims<3, 4> -> DenseDims<> (compile-time to runtime)
+    DenseDims<> back_to_runtime = static_dense;
+    EXPECT_EQ(row(back_to_runtime), 3);
+    EXPECT_EQ(col(back_to_runtime), 4);
+
+    // Test with Arrays
+    ManagedArray<std::int64_t, DenseDims<>> array_runtime{runtime_dense};
+    ManagedArray<std::int64_t, DenseDims<3, 4>> array_static{static_dense};
+    for (std::ptrdiff_t i = 0; i < 3; ++i) {
+      for (std::ptrdiff_t j = 0; j < 4; ++j) {
+        array_runtime[i, j] = i * 100 + j;
+        array_static[i, j] = i * 100 + j;
+      }
+    }
+    EXPECT_EQ((array_runtime[1, 2]), 102);
+    EXPECT_EQ((array_static[1, 2]), 102);
+  }
+
+  // Test SquareDims conversions
+  {
+    // SquareDims<> -> SquareDims<5> (runtime to compile-time)
+    SquareDims<> runtime_square{row(5)};
+    SquareDims<5> static_square = runtime_square;
+    EXPECT_EQ(row(static_square), 5);
+    EXPECT_EQ(col(static_square), 5);
+
+    // SquareDims<5> -> SquareDims<> (compile-time to runtime)
+    SquareDims<> back_to_runtime = static_square;
+    EXPECT_EQ(row(back_to_runtime), 5);
+    EXPECT_EQ(col(back_to_runtime), 5);
+
+    // Test with Arrays
+    ManagedArray<std::int64_t, SquareDims<>> array_runtime{runtime_square};
+    ManagedArray<std::int64_t, SquareDims<5>> array_static{static_square};
+    for (std::ptrdiff_t i = 0; i < 5; ++i) {
+      for (std::ptrdiff_t j = 0; j < 5; ++j) {
+        array_runtime[i, j] = i * j;
+        array_static[i, j] = i * j;
+      }
+    }
+    EXPECT_EQ((array_runtime[3, 4]), 12);
+    EXPECT_EQ((array_static[3, 4]), 12);
+  }
+
+  // Test cross-type conversions
+  {
+    // SquareDims -> DenseDims
+    SquareDims<3> square_3x3;
+    DenseDims<3, 3> dense_from_square = square_3x3;
+    DenseDims<> dense_runtime_from_square = square_3x3;
+    EXPECT_EQ(row(dense_from_square), 3);
+    EXPECT_EQ(col(dense_from_square), 3);
+    EXPECT_EQ(row(dense_runtime_from_square), 3);
+    EXPECT_EQ(col(dense_runtime_from_square), 3);
+
+    // DenseDims -> StridedDims
+    DenseDims<2, 4> dense_2x4;
+    StridedDims<2, 4, 4> strided_from_dense = dense_2x4;
+    StridedDims<> strided_runtime_from_dense = dense_2x4;
+    EXPECT_EQ(row(strided_from_dense), 2);
+    EXPECT_EQ(col(strided_from_dense), 4);
+    EXPECT_EQ(stride(strided_from_dense), 4);
+    EXPECT_EQ(row(strided_runtime_from_dense), 2);
+    EXPECT_EQ(col(strided_runtime_from_dense), 4);
+    EXPECT_EQ(stride(strided_runtime_from_dense), 4);
+
+    // SquareDims -> StridedDims
+    SquareDims<6> square_6x6;
+    StridedDims<6, 6, 6> strided_from_square = square_6x6;
+    StridedDims<> strided_runtime_from_square = square_6x6;
+    EXPECT_EQ(row(strided_from_square), 6);
+    EXPECT_EQ(col(strided_from_square), 6);
+    EXPECT_EQ(stride(strided_from_square), 6);
+    EXPECT_EQ(row(strided_runtime_from_square), 6);
+    EXPECT_EQ(col(strided_runtime_from_square), 6);
+    EXPECT_EQ(stride(strided_runtime_from_square), 6);
+  }
+
+  // Test partial conversions (some known, some unknown parameters)
+  {
+    // StridedDims<-1, 3, -1> -> StridedDims<4, 3, 8>
+    StridedDims<-1, 3, -1> partial_strided{row(4), col(3), stride(8)};
+    StridedDims<4, 3, 8> full_strided = partial_strided;
+    EXPECT_EQ(row(full_strided), 4);
+    EXPECT_EQ(col(full_strided), 3);
+    EXPECT_EQ(stride(full_strided), 8);
+
+    // DenseDims<2, -1> -> DenseDims<2, 7>
+    DenseDims<2, -1> partial_dense{row(2), col(7)};
+    DenseDims<2, 7> full_dense = partial_dense;
+    EXPECT_EQ(row(full_dense), 2);
+    EXPECT_EQ(col(full_dense), 7);
+
+    // Test with Arrays
+    ManagedArray<std::int64_t, DenseDims<2, -1>> array_partial{partial_dense};
+    ManagedArray<std::int64_t, DenseDims<2, 7>> array_full{full_dense};
+    for (std::ptrdiff_t i = 0; i < 2; ++i) {
+      for (std::ptrdiff_t j = 0; j < 7; ++j) {
+        array_partial[i, j] = i + j;
+        array_full[i, j] = i + j;
+      }
+    }
+    EXPECT_EQ((array_partial[1, 5]), 6);
+    EXPECT_EQ((array_full[1, 5]), 6);
+  }
+}

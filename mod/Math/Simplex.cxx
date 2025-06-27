@@ -1203,8 +1203,10 @@ public:
     utils::printVector(getBasicConstraints().begin(),
                        getBasicConstraints().end());
     utils::print("Constraints:\n");
-    utils::printMatrix(getConstraints().data(), std::ptrdiff_t(getConstraints().numRow()),
-                       std::ptrdiff_t(getConstraints().numCol()), std::ptrdiff_t(getConstraints().rowStride()));
+    utils::printMatrix(getConstraints().data(),
+                       std::ptrdiff_t(getConstraints().numRow()),
+                       std::ptrdiff_t(getConstraints().numCol()),
+                       std::ptrdiff_t(getConstraints().rowStride()));
   }
 #ifndef NDEBUG
   [[gnu::used]] void dump() const { print(); }

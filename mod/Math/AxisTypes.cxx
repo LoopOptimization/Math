@@ -137,6 +137,14 @@ template <std::signed_integral I> struct Length<-1, I> {
     return static_cast<std::ptrdiff_t>(value_);
   }
 
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator Length<M, I>() const
+  requires(M != -1)
+  {
+    utils::invariant(value_ == M);
+    return {};
+  }
+
   TRIVIAL inline constexpr auto operator++() -> Length & {
     value_ = static_cast<len>(static_cast<std::ptrdiff_t>(value_) + 1z);
     return *this;
@@ -164,7 +172,9 @@ template <std::signed_integral I> struct Length<-1, I> {
   }
   static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
 
-  TRIVIAL inline constexpr auto flat() const -> Length { return *this; }
+  TRIVIAL [[nodiscard]] inline constexpr auto flat() const -> Length {
+    return *this;
+  }
 
 private:
   TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length y)
@@ -258,8 +268,22 @@ template <std::integral I> struct Capacity<-1, I> {
     invariant(m >= 0);
     return m;
   }
+  TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const
+  requires(!std::same_as<I, std::ptrdiff_t>)
+  {
+    auto m = static_cast<I>(value_);
+    invariant(m >= 0);
+    return m;
+  }
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<I>(value_);
+  }
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator Capacity<M, I>() const
+  requires(M != -1)
+  {
+    utils::invariant(value_ == M);
+    return {};
   }
   TRIVIAL inline constexpr auto operator++() -> Capacity & {
     value_ = static_cast<cap>(static_cast<I>(value_) + 1z);
@@ -378,6 +402,13 @@ template <> struct Row<-1> {
   }
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<std::ptrdiff_t>(value_);
+  }
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator Row<M>() const
+  requires(M != -1)
+  {
+    utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
+    return {};
   }
   TRIVIAL inline constexpr auto operator++() -> Row & {
     value_ = static_cast<row>(static_cast<std::ptrdiff_t>(value_) + 1z);
@@ -501,6 +532,13 @@ template <> struct Col<-1> {
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<std::ptrdiff_t>(value_);
   }
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator Col<M>() const
+  requires(M != -1)
+  {
+    utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
+    return {};
+  }
   TRIVIAL inline constexpr auto operator++() -> Col & {
     value_ = static_cast<col>(static_cast<std::ptrdiff_t>(value_) + 1z);
     return *this;
@@ -617,6 +655,13 @@ template <> struct RowStride<-1> {
   }
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<std::ptrdiff_t>(value_);
+  }
+  template <std::ptrdiff_t M>
+  TRIVIAL inline constexpr operator RowStride<M>() const
+  requires(M != -1)
+  {
+    utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
+    return {};
   }
   TRIVIAL inline constexpr auto operator++() -> RowStride & {
     value_ = static_cast<stride>(static_cast<std::ptrdiff_t>(value_) + 1z);

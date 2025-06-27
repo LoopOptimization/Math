@@ -672,7 +672,6 @@ private:
   friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
     *os << x.view();
   }
-
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t N>

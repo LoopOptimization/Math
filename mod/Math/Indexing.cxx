@@ -190,14 +190,8 @@ TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(Length<>, Colon)
   return 0z;
 }
 
-TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(SquareDims<>,
-                                                       std::ptrdiff_t i)
-  -> std::ptrdiff_t {
-  return i;
-}
-TRIVIAL [[nodiscard]] inline constexpr auto calcOffset(DenseDims<>,
-                                                       std::ptrdiff_t i)
-  -> std::ptrdiff_t {
+TRIVIAL [[nodiscard]] inline constexpr auto
+calcOffset(DenseMatrixDimension auto, std::ptrdiff_t i) -> std::ptrdiff_t {
   return i;
 }
 
@@ -211,7 +205,9 @@ template <std::ptrdiff_t L = -1, std::ptrdiff_t X = -1> struct StridedRange {
     return std::ptrdiff_t(len_);
   }
 
-  TRIVIAL constexpr auto flat() const -> StridedRange { return *this; }
+  TRIVIAL [[nodiscard]] constexpr auto flat() const -> StridedRange {
+    return *this;
+  }
 
   TRIVIAL constexpr explicit operator Row<L>() const { return asrow(len_); }
   TRIVIAL constexpr explicit operator Col<1>() const { return {}; }
@@ -341,11 +337,8 @@ TRIVIAL inline constexpr auto calcNewDim(VectorDimension auto, ScalarIndex auto)
   -> Empty {
   return {};
 }
-TRIVIAL inline constexpr auto calcNewDim(SquareDims<>, std::ptrdiff_t)
-  -> Empty {
-  return {};
-}
-TRIVIAL inline constexpr auto calcNewDim(DenseDims<>, std::ptrdiff_t) -> Empty {
+TRIVIAL inline constexpr auto calcNewDim(DenseMatrixDimension auto,
+                                         std::ptrdiff_t) -> Empty {
   return {};
 }
 // constexpr auto calcNewDim(auto, std::ptrdiff_t) -> Empty { return {}; }
@@ -364,7 +357,8 @@ TRIVIAL constexpr auto calcNewDim(Length<> len, Range<B, E> r) -> Length<> {
 TRIVIAL constexpr auto calcNewDim(StridedRange<> len,
                                   Range<std::ptrdiff_t, std::ptrdiff_t> r)
   -> StridedRange<> {
-  return StridedRange<>{calcNewDim(len.len_, r), len.stride_};
+  return StridedRange<>{.len_ = calcNewDim(len.len_, r),
+                        .stride_ = len.stride_};
 }
 template <class B, class E>
 TRIVIAL constexpr auto calcNewDim(StridedRange<> len, Range<B, E> r)

@@ -80,6 +80,15 @@ template <class R, class C> struct CartesianIndex {
 };
 template <class R, class C> CartesianIndex(R, C) -> CartesianIndex<R, C>;
 
+// To enable conversion, all `canConvert` must be true, and at least one
+// `wantToConvert` must be true.
+consteval auto canConvert(std::ptrdiff_t x, std::ptrdiff_t y) -> bool {
+  return (x == -1) || (y == -1) || (x == y);
+}
+consteval auto wantToConvert(std::ptrdiff_t x, std::ptrdiff_t y) -> bool {
+  return (x == -1) != (y == -1);
+}
+
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X>
 struct StridedDims {
   static constexpr std::ptrdiff_t nrow = R;
@@ -104,7 +113,8 @@ struct StridedDims {
 
   template <std::ptrdiff_t A, std::ptrdiff_t B, std::ptrdiff_t S>
   TRIVIAL constexpr StridedDims(StridedDims<A, B, S> other)
-  requires((R != -1 && A == -1) || (C != -1 && B == -1) || (X != -1 && S == -1))
+  requires((canConvert(R, A) && canConvert(C, B) && canConvert(X, S)) &&
+           (wantToConvert(R, A) || wantToConvert(C, B) || wantToConvert(X, S)))
     : m_{}, n_{}, stride_m_{} {
     if constexpr (R != -1) utils::invariant(row(other) == R);
     else m_ = other.m_;
@@ -176,11 +186,6 @@ struct StridedDims {
     invariant(c <= Col{stride_m_});
     return {m_, c, stride_m_};
   }
-  TRIVIAL constexpr operator StridedDims<-1, -1, -1>() const
-  requires((R != -1) || (C != -1) || (X != -1))
-  {
-    return {m_, n_, stride_m_};
-  }
   TRIVIAL constexpr explicit operator Row<R>() const { return m_; }
   TRIVIAL constexpr explicit operator Col<C>() const {
     invariant(n_ <= stride_m_);
@@ -220,13 +225,23 @@ template <std::ptrdiff_t R, std::ptrdiff_t C> struct DenseDims {
       n_{Col<C>(col(std::integral_constant<std::ptrdiff_t, 1>{}))} {}
   template <std::ptrdiff_t A, std::ptrdiff_t B>
   TRIVIAL constexpr DenseDims(DenseDims<A, B> other)
-  requires((R != -1 && A == -1) || (C != -1 && B == -1))
+  requires((canConvert(R, A) && canConvert(C, B)) &&
+           (wantToConvert(R, A) || wantToConvert(C, B)))
     : m_{}, n_{} {
     if constexpr (R != -1) utils::invariant(row(other) == R);
     else m_ = other.m_;
     if constexpr (C != -1) utils::invariant(col(other) == C);
     else n_ = other.n_;
   }
+  template <std::ptrdiff_t A, std::ptrdiff_t B>
+  TRIVIAL constexpr DenseDims(StridedDims<A, B, B> other)
+  requires(canConvert(R, A) && (B != -1) && ((C == B) || (C == -1)))
+  {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+    if constexpr (C == -1) n_ = other.n_;
+  }
+
   TRIVIAL constexpr explicit operator int() const {
     return int(std::ptrdiff_t(m_) * std::ptrdiff_t(n_));
   }
@@ -287,7 +302,9 @@ template <std::ptrdiff_t R, std::ptrdiff_t C> struct DenseDims {
   TRIVIAL constexpr operator StridedDims<R, C, C>() const
   requires((R != -1) || (C != -1))
   {
-    return {m_, n_, n_};
+    if constexpr (R == -1) return {m_, {}, {}};
+    else if constexpr (C == -1) return {{}, n_, n_};
+    else return StridedDims<R, C, C>{};
   }
   TRIVIAL constexpr operator StridedDims<>() const {
     return {m_, n_, stride(std::ptrdiff_t(n_))};
@@ -338,6 +355,29 @@ template <std::ptrdiff_t R> struct SquareDims {
   static constexpr std::ptrdiff_t ncol = R;
   static constexpr std::ptrdiff_t nstride = R;
   [[no_unique_address]] Row<R> m_;
+  TRIVIAL explicit constexpr SquareDims() = default;
+  TRIVIAL constexpr SquareDims(Row<R> m) : m_{m} {}
+  TRIVIAL constexpr SquareDims(Length<1>)
+    : m_{Row<R>(row(std::integral_constant<std::ptrdiff_t, 1>{}))} {}
+  template <std::ptrdiff_t A>
+  TRIVIAL constexpr SquareDims(SquareDims<A> other)
+  requires(canConvert(R, A) && wantToConvert(R, A))
+    : m_{} {
+    if constexpr (R != -1) utils::invariant(row(other) == R);
+    else m_ = other.m_;
+  }
+  template <std::ptrdiff_t A>
+  TRIVIAL constexpr SquareDims(DenseDims<A, A> other)
+  requires((A != -1) && ((R == A) || (R == -1)))
+    : m_{} {
+    if constexpr (R == -1) m_ = other.m_;
+  }
+  template <std::ptrdiff_t A>
+  TRIVIAL constexpr SquareDims(StridedDims<A, A, A> other)
+  requires((A != -1) && ((R == A) || (R == -1)))
+  {
+    if constexpr (R == -1) m_ = other.m_;
+  }
   TRIVIAL constexpr explicit operator int() const {
     return int(std::ptrdiff_t(m_) * std::ptrdiff_t(m_));
   }
@@ -388,7 +428,7 @@ template <std::ptrdiff_t R> struct SquareDims {
   TRIVIAL constexpr operator StridedDims<R, R, R>() const
   requires(R != -1)
   {
-    return {m_, col(std::ptrdiff_t(m_)), stride(std::ptrdiff_t(m_))};
+    return StridedDims<R, R, R>{};
   }
   TRIVIAL constexpr operator StridedDims<>() const {
     return {m_, col(std::ptrdiff_t(m_)), stride(std::ptrdiff_t(m_))};
@@ -396,7 +436,7 @@ template <std::ptrdiff_t R> struct SquareDims {
   TRIVIAL constexpr operator DenseDims<R, R>() const
   requires(R != -1)
   {
-    return {m_, {std::ptrdiff_t(m_)}};
+    return DenseDims<R, R>{};
   }
   TRIVIAL constexpr operator DenseDims<>() const { return {m_, ascol(m_)}; }
   TRIVIAL constexpr operator SquareDims<>() const
@@ -422,7 +462,8 @@ template <std::ptrdiff_t R> struct SquareDims {
 private:
   TRIVIAL friend constexpr auto row(SquareDims d) -> Row<R> { return d.m_; }
   TRIVIAL friend constexpr auto col(SquareDims d) -> Col<R> {
-    return col(std::ptrdiff_t(d.m_));
+    if constexpr (R == -1) return col(std::ptrdiff_t(d.m_));
+    else return {};
   }
   TRIVIAL friend constexpr auto stride(SquareDims d) -> RowStride<R> {
     if constexpr (R == -1) return stride(std::ptrdiff_t(d.m_));
@@ -520,6 +561,10 @@ concept MatrixDimension = requires(D d) {
   { row(d) } -> different<Row<1>>;
   { col(d) } -> different<Col<1>>;
 };
+template <typename D>
+concept DenseMatrixDimension =
+  MatrixDimension<D> && std::convertible_to<D, DenseDims<>>;
+
 static_assert(MatrixDimension<SquareDims<>>);
 static_assert(MatrixDimension<DenseDims<>>);
 static_assert(!MatrixDimension<DenseDims<1>>);
@@ -531,6 +576,13 @@ static_assert(MatrixDimension<StridedDims<8, 8, 16>>);
 static_assert(!MatrixDimension<unsigned>);
 
 static_assert(std::convertible_to<const DenseDims<8, 8>, DenseDims<>>);
+static_assert(std::convertible_to<const DenseDims<8, 8>, SquareDims<>>);
+static_assert(std::convertible_to<const DenseDims<8, 8>, SquareDims<8>>);
+static_assert(!std::convertible_to<const DenseDims<8, 8>, SquareDims<7>>);
+static_assert(!std::convertible_to<const DenseDims<-1, -1>, SquareDims<>>);
+
+static_assert(DenseMatrixDimension<StridedDims<-1, 4, 4>>);
+static_assert(!DenseMatrixDimension<StridedDims<-1, 4, 5>>);
 
 template <typename T, typename S>
 concept PromoteDimTo = (!std::same_as<T, S>) && std::convertible_to<T, S>;
