@@ -114,6 +114,13 @@ template <HasPrintMethod T> inline void println(const T &x) {
   print('\n');
 }
 
+template <typename T> inline void print(T x) requires(std::is_enum_v<T>) {
+  print(std::to_underlying(x));
+}
+template <typename T> inline void println(T x) requires(std::is_enum_v<T>) {
+  println(std::to_underlying(x));
+}
+
 // Variadic print functions using const references
 template <typename... Args>
 inline void print(const auto &x, const auto &y, const Args &...z) {
@@ -130,13 +137,6 @@ inline void println(const auto &x, const auto &y, const Args &...z) {
     print(y);
     println(z...); // recurse
   } else println(y);
-}
-
-template <typename T> inline void print(T x) requires(std::is_enum_v<T>) {
-  print(std::to_underlying(x));
-}
-template <typename T> inline void println(T x) requires(std::is_enum_v<T>) {
-  println(std::to_underlying(x));
 }
 
 template <typename T>

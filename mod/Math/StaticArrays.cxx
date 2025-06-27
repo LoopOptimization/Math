@@ -321,12 +321,6 @@ struct MATH_GSL_OWNER StaticArray
     requires(std::convertible_to<S, SHAPE>) {
     return {const_cast<T *>(data()), SHAPE(dim())};
   }
-  template <typename SHAPE>
-  TRIVIAL constexpr
-  operator MutArray<T, SHAPE, Compress &&utils::Compressible<T>>()
-    requires(std::convertible_to<S, SHAPE>) {
-    return {data(), SHAPE(dim())};
-  }
   // template<containers::ConvertibleFrom<S> SHAPE>
   // constexpr auto operator==(Array<T,SHAPE> rhs) const noexcept -> bool {
   //   return std::equal(begin(), end(), rhs.begin());
