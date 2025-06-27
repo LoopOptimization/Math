@@ -98,7 +98,6 @@ if(USE_MODULES)
                                PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
   target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE MATHTESTSTLDEFINITIONS)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(
