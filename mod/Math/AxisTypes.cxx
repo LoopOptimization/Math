@@ -278,11 +278,13 @@ template <std::integral I> struct Capacity<-1, I> {
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<I>(value_);
   }
-  template <std::ptrdiff_t M>
-  TRIVIAL inline constexpr operator Capacity<M, I>() const
+  template <std::ptrdiff_t M, std::integral J>
+  TRIVIAL inline constexpr operator Capacity<M, J>() const
   requires(M != -1)
   {
-    utils::invariant(value_ == M);
+    if constexpr (sizeof(J) >= sizeof(I))
+      utils::invariant(static_cast<J>(value_) == M);
+    else utils::invariant(static_cast<I>(value_) == static_cast<I>(M));
     return {};
   }
   TRIVIAL inline constexpr auto operator++() -> Capacity & {

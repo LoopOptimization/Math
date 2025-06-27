@@ -36,6 +36,26 @@ template <class S> struct DefaultCapacityType {
 template <SizeMultiple8 S> struct DefaultCapacityType<S> {
   using type = math::Capacity<-1, std::ptrdiff_t>;
 };
+
+// Specializations for known dimensions
+template <std::ptrdiff_t N> struct DefaultCapacityType<math::Length<N>> {
+  using type = math::Capacity<N, std::ptrdiff_t>;
+};
+template <std::ptrdiff_t R, std::ptrdiff_t C> 
+struct DefaultCapacityType<math::DenseDims<R, C>> {
+  static constexpr std::ptrdiff_t size = (R == -1 || C == -1) ? -1 : R * C;
+  using type = math::Capacity<size, std::ptrdiff_t>;
+};
+template <std::ptrdiff_t R> 
+struct DefaultCapacityType<math::SquareDims<R>> {
+  static constexpr std::ptrdiff_t size = (R == -1) ? -1 : R * R;
+  using type = math::Capacity<size, std::ptrdiff_t>;
+};
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t X> 
+struct DefaultCapacityType<math::StridedDims<R, C, X>> {
+  static constexpr std::ptrdiff_t size = (R == -1 || X == -1) ? -1 : R * X;
+  using type = math::Capacity<size, std::ptrdiff_t>;
+};
 static_assert(!SizeMultiple8<std::uint32_t>);
 static_assert(SizeMultiple8<std::uint64_t>);
 
