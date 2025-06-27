@@ -96,9 +96,6 @@ inline void print(std::integral auto x) {
 }
 inline void print(std::floating_point auto x) { print(TinyString{x}); }
 
-// Print function for pointers
-inline void print(const void *p) { print(TinyString{p}); }
-
 // Print function for types with .print() member function
 template <HasPrintMethod T> inline void print(const T &x) { x.print(); }
 
