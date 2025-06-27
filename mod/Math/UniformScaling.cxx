@@ -126,8 +126,7 @@ template <class T> struct UniformScaling {
   }
   template <typename B>
   TRIVIAL constexpr auto operator*(const B &b) const
-  requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
-  {
+    requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>) {
     if constexpr (!std::common_with<std::remove_cvref_t<B>, T>) {
       auto BB{b.view()};
       return elementwise(value_, BB, std::multiplies<>{});
@@ -181,8 +180,7 @@ private:
   // }
   template <typename B>
   TRIVIAL friend constexpr auto operator*(const B &b, UniformScaling a)
-  requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
-  {
+    requires(std::common_with<std::remove_cvref_t<B>, T> || AbstractTensor<B>) {
     if constexpr (!std::common_with<std::remove_cvref_t<B>, T>) {
       auto BB{b.view()};
       return elementwise(BB, a.value_, std::multiplies<>{});

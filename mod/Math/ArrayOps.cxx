@@ -509,8 +509,7 @@ TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
 template <typename A, typename... As, typename B, typename... Bs>
 TRIVIAL constexpr auto promote_shape(const Tuple<A, As...> &a,
                                      const Tuple<B, Bs...> &b)
-requires(sizeof...(As) == sizeof...(Bs))
-{
+  requires(sizeof...(As) == sizeof...(Bs)) {
   return a.map_reduce(
     b, [](const auto &x, const auto &y) { return ::math::promote_shape(x, y); },
     [](const auto &x, const auto &y) {
@@ -612,9 +611,8 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
 template <typename A, typename... As, typename B, typename... Bs>
 [[gnu::flatten]] TRIVIAL constexpr void copyFrom(Tuple<A, As...> &dst,
                                                  const Tuple<B, Bs...> &src)
-requires(sizeof...(As) == sizeof...(Bs) && detail::IsArrayOp<A> &&
-         (... && detail::IsArrayOp<As>))
-{
+  requires(sizeof...(As) == sizeof...(Bs) && detail::IsArrayOp<A> &&
+           (... && detail::IsArrayOp<As>)) {
 #ifndef CASTTOSCALARIZE
   tupletensorops::vcopyTo(dst, src);
 #else

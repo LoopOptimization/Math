@@ -52,9 +52,7 @@ struct Unroll {
   }
 #ifdef __AVX512F__
   template <std::ptrdiff_t S>
-  TRIVIAL constexpr auto sub()
-  requires(std::same_as<M, mask::Bit<W>>)
-  {
+  TRIVIAL constexpr auto sub() requires(std::same_as<M, mask::Bit<W>>) {
     static_assert((S <= W) && (U == 1));
     Unroll<1, S, mask::Bit<S>> u{index_, mask_.template sub<S>()};
     index_ += S;

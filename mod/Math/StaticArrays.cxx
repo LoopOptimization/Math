@@ -155,14 +155,11 @@ struct MATH_GSL_OWNER StaticArray
   }
 
   TRIVIAL constexpr void compress(compressed_type *p) const
-  requires(std::same_as<StaticArray, decompressed_type>)
-  {
+    requires(std::same_as<StaticArray, decompressed_type>) {
     *p << *this;
   }
   TRIVIAL static constexpr auto decompress(const compressed_type *p)
-    -> StaticArray
-  requires(std::same_as<StaticArray, decompressed_type>)
-  {
+    -> StaticArray requires(std::same_as<StaticArray, decompressed_type>) {
     return StaticArray{*p};
   }
   TRIVIAL [[nodiscard]] constexpr auto data() const noexcept
@@ -321,15 +318,13 @@ struct MATH_GSL_OWNER StaticArray
   template <typename SHAPE>
   TRIVIAL constexpr
   operator Array<T, SHAPE, Compress &&utils::Compressible<T>>() const
-  requires(std::convertible_to<S, SHAPE>)
-  {
+    requires(std::convertible_to<S, SHAPE>) {
     return {const_cast<T *>(data()), SHAPE(dim())};
   }
   template <typename SHAPE>
   TRIVIAL constexpr
   operator MutArray<T, SHAPE, Compress &&utils::Compressible<T>>()
-  requires(std::convertible_to<S, SHAPE>)
-  {
+    requires(std::convertible_to<S, SHAPE>) {
     return {data(), SHAPE(dim())};
   }
   // template<containers::ConvertibleFrom<S> SHAPE>
@@ -352,9 +347,7 @@ struct MATH_GSL_OWNER StaticArray
     memory_[(r * N) + c] = x;
   }
 
-  void print() const
-  requires(utils::Printable<T>)
-  {
+  void print() const requires(utils::Printable<T>) {
     if constexpr (MatrixDimension<S>) utils::printMatrix(data(), M, N, N);
     else utils::printVector(begin(), end());
   }
@@ -435,14 +428,11 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
   // constexpr operator compressed_type() { return compressed_type{*this}; }
   TRIVIAL [[nodiscard]] constexpr auto view() const -> StaticArray
-  requires(M *L <= 4)
-  {
+    requires(M *L <= 4) {
     return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const noexcept
-    -> Array<T, S, false>
-  requires(M *L > 4)
-  {
+    -> Array<T, S, false> requires(M *L > 4) {
     return {data(), S{}};
   }
   TRIVIAL [[nodiscard]] constexpr auto mview() noexcept
@@ -469,27 +459,23 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   TRIVIAL [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(memory_);
   }
-  TRIVIAL [[nodiscard]] constexpr auto begin() -> T *
-  requires(((M == 1) || (N == 1)))
-  {
+  TRIVIAL [[nodiscard]] constexpr auto begin()
+    -> T * requires(((M == 1) || (N == 1))) {
     return data();
   }
 
-  TRIVIAL [[nodiscard]] constexpr auto end() -> T *
-  requires(((M == 1) || (N == 1)))
-  {
+  TRIVIAL [[nodiscard]] constexpr auto end()
+    -> T * requires(((M == 1) || (N == 1))) {
     return data() + (M * N);
   }
 
-  TRIVIAL [[nodiscard]] constexpr auto begin() const -> const T *
-  requires(((M == 1) || (N == 1)))
-  {
+  TRIVIAL [[nodiscard]] constexpr auto begin() const
+    -> const T * requires(((M == 1) || (N == 1))) {
     return data();
   }
 
-  TRIVIAL [[nodiscard]] constexpr auto end() const -> const T *
-  requires(((M == 1) || (N == 1)))
-  {
+  TRIVIAL [[nodiscard]] constexpr auto end() const
+    -> const T * requires(((M == 1) || (N == 1))) {
     return data() + (M * N);
   }
 
@@ -523,14 +509,12 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   }
   template <typename SHAPE>
   TRIVIAL constexpr operator Array<T, SHAPE, false>() const
-  requires(std::convertible_to<S, SHAPE>)
-  {
+    requires(std::convertible_to<S, SHAPE>) {
     return {const_cast<T *>(data()), SHAPE(dim())};
   }
   template <typename SHAPE>
   TRIVIAL constexpr operator MutArray<T, SHAPE, false>()
-  requires(std::convertible_to<S, SHAPE>)
-  {
+    requires(std::convertible_to<S, SHAPE>) {
     return {data(), SHAPE(dim())};
   }
   template <std::ptrdiff_t U, typename Mask>
@@ -646,14 +630,12 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     return Ref<R, C>{this, i.index_, j.index_};
   }
   TRIVIAL constexpr auto operator[](auto i) noexcept -> decltype(auto)
-  requires((N == 1) || (M == 1))
-  {
+    requires((N == 1) || (M == 1)) {
     if constexpr (M == 1) return (*this)[0z, i];
     else return (*this)[i, 0z];
   }
   TRIVIAL constexpr auto operator[](auto i) const noexcept -> decltype(auto)
-  requires((N == 1) || (M == 1))
-  {
+    requires((N == 1) || (M == 1)) {
     if constexpr (M == 1) return (*this)[0z, i];
     else return (*this)[i, 0z];
   }
@@ -883,14 +865,12 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   }
   template <typename SHAPE>
   TRIVIAL constexpr operator Array<T, SHAPE, false>() const
-  requires(std::convertible_to<S, SHAPE>)
-  {
+    requires(std::convertible_to<S, SHAPE>) {
     return {const_cast<T *>(data()), SHAPE(dim())};
   }
   template <typename SHAPE>
   TRIVIAL constexpr operator MutArray<T, SHAPE, false>()
-  requires(std::convertible_to<S, SHAPE>)
-  {
+    requires(std::convertible_to<S, SHAPE>) {
     return {data(), SHAPE(dim())};
   }
 

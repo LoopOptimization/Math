@@ -272,8 +272,7 @@ template <AbstractVector V> struct BoxTransformVector {
     }
   };
   constexpr auto operator[](std::ptrdiff_t i) -> Reference
-  requires(IsMutable<V>)
-  {
+    requires(IsMutable<V>) {
     return {*this, i};
   }
   [[nodiscard]] constexpr auto view() const -> BoxTransformVector {

@@ -66,8 +66,7 @@ struct Unroll {
   }
   template <typename U>
   TRIVIAL constexpr operator Unroll<R, C, N, U>() const
-  requires(!std::same_as<T, U>)
-  {
+    requires(!std::same_as<T, U>) {
     Unroll<R, C, N, U> x;
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
@@ -120,24 +119,20 @@ struct Unroll {
     for (std::ptrdiff_t i = 0; i < R * C; ++i) data_[i] /= a;
     return *this;
   }
-  TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     return (*this) += vbroadcast<W, T>(a);
   }
-  TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     return (*this) -= vbroadcast<W, T>(a);
   }
-  TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     return (*this) *= vbroadcast<W, T>(a);
   }
-  TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     return (*this) /= vbroadcast<W, T>(a);
   }
 
@@ -194,30 +189,22 @@ private:
   }
   TRIVIAL friend constexpr auto operator+(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a + vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator-(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a - vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a * vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a / vbroadcast<W, T>(b);
   }
 
@@ -246,23 +233,19 @@ private:
     return c;
   }
   TRIVIAL friend constexpr auto operator+(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) + a;
   }
   TRIVIAL friend constexpr auto operator-(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) - a;
   }
   TRIVIAL friend constexpr auto operator*(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) * a;
   }
   TRIVIAL friend constexpr auto operator/(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) / a;
   }
 
@@ -385,8 +368,7 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   TRIVIAL constexpr operator VT() const { return vec_; }
   template <typename U>
   TRIVIAL constexpr operator Unroll<1, 1, N, U>() const
-  requires(!std::same_as<T, U>)
-  {
+    requires(!std::same_as<T, U>) {
     if constexpr (W == 1) return {U(vec_)};
     else return {__builtin_convertvector(vec_, Vec<W, U>)};
   }
@@ -423,27 +405,23 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     vec_ /= a;
     return *this;
   }
-  TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     vec_ += vbroadcast<W, T>(a);
     return *this;
   }
-  TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     vec_ -= vbroadcast<W, T>(a);
     return *this;
   }
-  TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     vec_ *= vbroadcast<W, T>(a);
     return *this;
   }
-  TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a) -> Unroll &
-  requires(W != 1)
-  {
+  TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a)
+    -> Unroll & requires(W != 1) {
     vec_ /= vbroadcast<W, T>(a);
     return *this;
   }
@@ -544,30 +522,22 @@ private:
   }
   TRIVIAL friend constexpr auto operator+(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a + vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator-(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a - vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a * vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           std::convertible_to<T> auto b)
-    -> Unroll
-  requires(W != 1)
-  {
+    -> Unroll requires(W != 1) {
     return a / vbroadcast<W, T>(b);
   }
 
@@ -584,23 +554,19 @@ private:
     return {a / b.vec_};
   }
   TRIVIAL friend constexpr auto operator+(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) + a;
   }
   TRIVIAL friend constexpr auto operator-(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) - a;
   }
   TRIVIAL friend constexpr auto operator*(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) * a;
   }
   TRIVIAL friend constexpr auto operator/(T b, Unroll a) -> Unroll
-  requires(W != 1)
-  {
+    requires(W != 1) {
     return vbroadcast<W, T>(b) / a;
   }
 
@@ -743,9 +709,7 @@ struct UnrollRef {
     else
       return loadstrideunroll<R, C, N, T, X, NM, MT>(ptr_, row_stride_, masks_);
   }
-  TRIVIAL constexpr auto operator=(UT x) -> UnrollRef &
-  requires(!Transposed)
-  {
+  TRIVIAL constexpr auto operator=(UT x) -> UnrollRef & requires(!Transposed) {
     auto rs = std::ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -770,9 +734,8 @@ struct UnrollRef {
     }
     return *this;
   }
-  TRIVIAL constexpr auto operator=(Unroll<1, C, N, T> x) -> UnrollRef &
-  requires((!Transposed) && (R != 1))
-  {
+  TRIVIAL constexpr auto operator=(Unroll<1, C, N, T> x)
+    -> UnrollRef & requires((!Transposed) && (R != 1)) {
     auto rs = std::ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -796,9 +759,8 @@ struct UnrollRef {
     }
     return *this;
   }
-  TRIVIAL constexpr auto operator=(Unroll<R, C, 1, T> x) -> UnrollRef &
-  requires(!Transposed && (N != 1))
-  {
+  TRIVIAL constexpr auto operator=(Unroll<R, C, 1, T> x)
+    -> UnrollRef & requires(!Transposed && (N != 1)) {
     auto rs = std::ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -821,9 +783,8 @@ struct UnrollRef {
     return *this;
   }
 
-  TRIVIAL constexpr auto operator=(Vec<W, T> v) -> UnrollRef &
-  requires(!Transposed)
-  {
+  TRIVIAL constexpr auto operator=(Vec<W, T> v)
+    -> UnrollRef & requires(!Transposed) {
     auto rs = std::ptrdiff_t(row_stride_);
     T *p = ptr_;
     POLYMATHFULLUNROLL
@@ -845,9 +806,8 @@ struct UnrollRef {
     }
     return *this;
   }
-  TRIVIAL constexpr auto operator=(Unroll<R, C, N, T> x) -> UnrollRef &
-  requires(Transposed)
-  {
+  TRIVIAL constexpr auto operator=(Unroll<R, C, N, T> x)
+    -> UnrollRef & requires(Transposed) {
     auto s = std::int32_t(std::ptrdiff_t(row_stride_));
     T *p = ptr_;
     for (std::ptrdiff_t r = 0; r < R; ++r, ++p) {
@@ -868,9 +828,8 @@ struct UnrollRef {
     }
     return *this;
   }
-  TRIVIAL constexpr auto operator=(Vec<W, T> v) -> UnrollRef &
-  requires(Transposed)
-  {
+  TRIVIAL constexpr auto operator=(Vec<W, T> v)
+    -> UnrollRef & requires(Transposed) {
     auto s = std::int32_t(std::ptrdiff_t(row_stride_));
     T *p = ptr_;
     for (std::ptrdiff_t r = 0; r < R; ++r, ++p) {

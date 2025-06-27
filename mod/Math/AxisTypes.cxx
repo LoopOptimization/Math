@@ -58,8 +58,7 @@ struct Length {
   static_assert(M >= 0);
   static_assert(M <= std::numeric_limits<I>::max());
   TRIVIAL explicit inline constexpr operator I() const
-  requires(!std::same_as<I, std::ptrdiff_t>)
-  {
+    requires(!std::same_as<I, std::ptrdiff_t>) {
     return M;
   }
   TRIVIAL explicit inline constexpr operator std::ptrdiff_t() const {
@@ -101,16 +100,12 @@ private:
   }
   template <std::ptrdiff_t N>
   TRIVIAL friend inline constexpr auto operator+(Length, Length<N>)
-    -> Length<M + N>
-  requires(N != -1)
-  {
+    -> Length<M + N> requires(N != -1) {
     return {};
   }
   template <std::ptrdiff_t N>
   TRIVIAL friend inline constexpr auto operator-(Length, Length<N>)
-    -> Length<M - N>
-  requires(N != -1)
-  {
+    -> Length<M - N> requires(N != -1) {
     static_assert(M >= N);
     return {};
   }
@@ -127,8 +122,7 @@ template <std::signed_integral I> struct Length<-1, I> {
     return m;
   }
   TRIVIAL explicit inline constexpr operator std::ptrdiff_t() const
-  requires(!std::same_as<I, std::ptrdiff_t>)
-  {
+    requires(!std::same_as<I, std::ptrdiff_t>) {
     auto m = static_cast<std::ptrdiff_t>(static_cast<I>(value_));
     invariant(m >= 0);
     return m;
@@ -138,9 +132,7 @@ template <std::signed_integral I> struct Length<-1, I> {
   }
 
   template <std::ptrdiff_t M>
-  TRIVIAL inline constexpr operator Length<M, I>() const
-  requires(M != -1)
-  {
+  TRIVIAL inline constexpr operator Length<M, I>() const requires(M != -1) {
     utils::invariant(value_ == M);
     return {};
   }
@@ -165,8 +157,7 @@ template <std::signed_integral I> struct Length<-1, I> {
   }
 
   TRIVIAL inline constexpr operator Length<-1>() const
-  requires(!std::same_as<I, std::ptrdiff_t>)
-  {
+    requires(!std::same_as<I, std::ptrdiff_t>) {
     return Length<-1, std::ptrdiff_t>{
       static_cast<Length<-1, std::ptrdiff_t>::len>(std::ptrdiff_t(I(*this)))};
   }
@@ -269,8 +260,7 @@ template <std::integral I> struct Capacity<-1, I> {
     return m;
   }
   TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const
-  requires(!std::same_as<I, std::ptrdiff_t>)
-  {
+    requires(!std::same_as<I, std::ptrdiff_t>) {
     auto m = static_cast<I>(value_);
     invariant(m >= 0);
     return m;
@@ -279,9 +269,7 @@ template <std::integral I> struct Capacity<-1, I> {
     return static_cast<I>(value_);
   }
   template <std::ptrdiff_t M, std::integral J>
-  TRIVIAL inline constexpr operator Capacity<M, J>() const
-  requires(M != -1)
-  {
+  TRIVIAL inline constexpr operator Capacity<M, J>() const requires(M != -1) {
     if constexpr (sizeof(J) >= sizeof(I))
       utils::invariant(static_cast<J>(value_) == M);
     else utils::invariant(static_cast<I>(value_) == static_cast<I>(M));
@@ -381,15 +369,13 @@ private:
   }
   void print() const { utils::print("Row<>{", M, "}"); }
   template <std::ptrdiff_t N>
-  TRIVIAL friend inline constexpr auto operator+(Row, Row<N>) -> Row<M + N>
-  requires(N != -1)
-  {
+  TRIVIAL friend inline constexpr auto operator+(Row, Row<N>)
+    -> Row<M + N> requires(N != -1) {
     return {};
   }
   template <std::ptrdiff_t N>
-  TRIVIAL friend inline constexpr auto operator-(Row, Row<N>) -> Row<M - N>
-  requires(N != -1)
-  {
+  TRIVIAL friend inline constexpr auto operator-(Row, Row<N>)
+    -> Row<M - N> requires(N != -1) {
     static_assert(M >= N);
     return {};
   }
@@ -406,9 +392,7 @@ template <> struct Row<-1> {
     return static_cast<std::ptrdiff_t>(value_);
   }
   template <std::ptrdiff_t M>
-  TRIVIAL inline constexpr operator Row<M>() const
-  requires(M != -1)
-  {
+  TRIVIAL inline constexpr operator Row<M>() const requires(M != -1) {
     utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
     return {};
   }
@@ -510,15 +494,13 @@ private:
   }
   void print() const { utils::print("Col<>{", M, "}"); }
   template <std::ptrdiff_t N>
-  TRIVIAL friend inline constexpr auto operator+(Col, Col<N>) -> Col<M + N>
-  requires(N != -1)
-  {
+  TRIVIAL friend inline constexpr auto operator+(Col, Col<N>)
+    -> Col<M + N> requires(N != -1) {
     return {};
   }
   template <std::ptrdiff_t N>
-  TRIVIAL friend inline constexpr auto operator-(Col, Col<N>) -> Col<M - N>
-  requires(N != -1)
-  {
+  TRIVIAL friend inline constexpr auto operator-(Col, Col<N>)
+    -> Col<M - N> requires(N != -1) {
     static_assert(M >= N);
     return {};
   }
@@ -535,9 +517,7 @@ template <> struct Col<-1> {
     return static_cast<std::ptrdiff_t>(value_);
   }
   template <std::ptrdiff_t M>
-  TRIVIAL inline constexpr operator Col<M>() const
-  requires(M != -1)
-  {
+  TRIVIAL inline constexpr operator Col<M>() const requires(M != -1) {
     utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
     return {};
   }
@@ -659,9 +639,7 @@ template <> struct RowStride<-1> {
     return static_cast<std::ptrdiff_t>(value_);
   }
   template <std::ptrdiff_t M>
-  TRIVIAL inline constexpr operator RowStride<M>() const
-  requires(M != -1)
-  {
+  TRIVIAL inline constexpr operator RowStride<M>() const requires(M != -1) {
     utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
     return {};
   }
@@ -778,9 +756,8 @@ TRIVIAL inline constexpr auto stride(std::ptrdiff_t x) -> RowStride<> {
   return RowStride<-1>{static_cast<RowStride<-1>::stride>(x)};
 }
 template <std::signed_integral Int>
-TRIVIAL inline constexpr auto length(Int x) -> Length<-1, Int>
-requires(!std::same_as<Int, std::ptrdiff_t>)
-{
+TRIVIAL inline constexpr auto length(Int x)
+  -> Length<-1, Int> requires(!std::same_as<Int, std::ptrdiff_t>) {
   invariant(x >= 0);
   return Length<-1, Int>{static_cast<Length<-1, Int>::len>(x)};
 }

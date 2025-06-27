@@ -109,8 +109,7 @@ template <class T, std::ptrdiff_t N, bool Compress = false> struct Dual {
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t N>
-requires(std::popcount(std::size_t(N)) > 1)
-struct Dual<T, N, true> {
+requires(std::popcount(std::size_t(N)) > 1) struct Dual<T, N, true> {
   SVector<T, N + 1, true> data_{T{}};
 
   using decompressed_type = Dual<utils::decompressed_t<T>, N, false>;
@@ -228,23 +227,19 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
               (other.val_ * other.val_)};
   }
   TRIVIAL constexpr auto operator+(const T &other) const & -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {val_ + other, partials_};
   }
   TRIVIAL constexpr auto operator-(const T &other) const -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {val_ - other, partials_};
   }
   TRIVIAL constexpr auto operator*(const T &other) const -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {val_ * other, partials_ * other};
   }
   TRIVIAL constexpr auto operator/(const T &other) const -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {val_ / other, partials_ / other};
   }
   TRIVIAL constexpr auto operator+=(const Dual &other) -> Dual & {
@@ -335,33 +330,27 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
     return val_ >= other;
   }
   TRIVIAL constexpr auto operator==(T other) const -> bool
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return val_ == other;
   }
   TRIVIAL constexpr auto operator!=(T other) const -> bool
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return val_ != other;
   }
   TRIVIAL constexpr auto operator<(T other) const -> bool
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return val_ < other;
   }
   TRIVIAL constexpr auto operator>(T other) const -> bool
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return val_ > other;
   }
   TRIVIAL constexpr auto operator<=(T other) const -> bool
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return val_ <= other;
   }
   TRIVIAL constexpr auto operator>=(T other) const -> bool
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return val_ >= other;
   }
   TRIVIAL constexpr void compress(compressed_type *p) const {
@@ -407,18 +396,15 @@ private:
     utils::print("}");
   };
   TRIVIAL friend constexpr auto operator+(T a, Dual b) -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {a + b.val_, b.partials_};
   }
   TRIVIAL friend constexpr auto operator-(T a, Dual b) -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {a - b.val_, -b.partials_};
   }
   TRIVIAL friend constexpr auto operator*(T a, Dual b) -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     // Dual res;
     // res.val_ = val_ * other.val_;
     // res.partials << val_ * other.partials + other.val_ * partials;
@@ -426,8 +412,7 @@ private:
     return {a * b.val_, a * b.partials_};
   }
   TRIVIAL friend constexpr auto operator/(T a, Dual b) -> Dual
-  requires(!std::same_as<T, double>)
-  {
+    requires(!std::same_as<T, double>) {
     return {a / b.val_, (-a * b.partials_) / (b.val_ * b.val_)};
   }
   TRIVIAL friend constexpr auto operator+(double other, Dual x) -> Dual {
@@ -445,8 +430,7 @@ private:
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t N>
-requires(std::popcount(std::size_t(N)) > 1)
-struct Dual<T, N, false> {
+requires(std::popcount(std::size_t(N)) > 1) struct Dual<T, N, false> {
   static constexpr std::ptrdiff_t value_idx = 0; // N;
   static constexpr std::ptrdiff_t partial_offset = value_idx != N;
   using data_type = SVector<T, N + 1, false>;
@@ -473,7 +457,7 @@ struct Dual<T, N, false> {
   }
   TRIVIAL constexpr Dual(data_type d) : data_{d} {}
   TRIVIAL constexpr Dual(const AbstractVector auto &d)
-  requires(std::convertible_to<utils::eltype_t<decltype(d)>, T>)
+    requires(std::convertible_to<utils::eltype_t<decltype(d)>, T>)
     : data_{d} {}
   TRIVIAL constexpr Dual(std::integral auto v) { value() = v; }
   TRIVIAL constexpr Dual(std::floating_point auto v) { value() = v; }

@@ -104,8 +104,7 @@ template <HasPrintMethod T> inline void print(const T &x) { x.print(); }
 // Println variants
 template <typename T>
 inline void println(const T &x)
-requires(std::integral<T> || std::floating_point<T>)
-{
+  requires(std::integral<T> || std::floating_point<T>) {
   print(TinyString(x).push_back('\n'));
 }
 

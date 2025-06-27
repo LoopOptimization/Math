@@ -134,7 +134,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return math::length(((N + usize - 1) >> ushift));
   }
   TRIVIAL constexpr explicit BitSet(std::ptrdiff_t N)
-  requires(!std::is_trivially_destructible_v<T>)
+    requires(!std::is_trivially_destructible_v<T>)
     : data_{numElementsNeeded(N), 0} {}
   TRIVIAL static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
   TRIVIAL constexpr void resizeData(std::ptrdiff_t N) {

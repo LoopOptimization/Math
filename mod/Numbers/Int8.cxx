@@ -81,17 +81,15 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator==(strong x, J y) -> bool
-  requires((issigned == std::is_signed_v<J>) ||
-           (!issigned && (sizeof(J) > sizeof(I))))
-  {
+    requires((issigned == std::is_signed_v<J>) ||
+             (!issigned && (sizeof(J) > sizeof(I)))) {
     if constexpr (sizeof(J) >= sizeof(I)) return static_cast<J>(x) == y;
     else return static_cast<I>(x) == static_cast<I>(y);
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator==(J y, strong x) -> bool
-  requires((issigned == std::is_signed_v<J>) ||
-           (!issigned && (sizeof(J) > sizeof(I))))
-  {
+    requires((issigned == std::is_signed_v<J>) ||
+             (!issigned && (sizeof(J) > sizeof(I)))) {
     if constexpr (sizeof(J) >= sizeof(I)) return y == static_cast<J>(x);
     else return static_cast<I>(x) == static_cast<I>(y);
   }
@@ -101,19 +99,15 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator<=>(strong x, J y)
-    -> std::strong_ordering
-  requires((issigned == std::is_signed_v<J>) ||
-           (!issigned && (sizeof(J) > sizeof(I))))
-  {
+    -> std::strong_ordering requires((issigned == std::is_signed_v<J>) ||
+                                     (!issigned && (sizeof(J) > sizeof(I)))) {
     if constexpr (sizeof(J) >= sizeof(I)) return static_cast<J>(x) <=> y;
     else return static_cast<I>(x) <=> static_cast<I>(y);
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator<=>(J y, strong x)
-    -> std::strong_ordering
-  requires((issigned == std::is_signed_v<J>) ||
-           (!issigned && (sizeof(J) > sizeof(I))))
-  {
+    -> std::strong_ordering requires((issigned == std::is_signed_v<J>) ||
+                                     (!issigned && (sizeof(J) > sizeof(I)))) {
     if constexpr (sizeof(J) >= sizeof(I)) return y <=> static_cast<J>(x);
     else if constexpr (nowrap)
       return static_cast<std::ptrdiff_t>(x) <=> static_cast<std::ptrdiff_t>(y);
@@ -128,15 +122,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator+(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(static_cast<J>(x) + y);
     else return static_cast<strong>(static_cast<T>(x) + static_cast<T>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator+(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(y + static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(x) + static_cast<T>(y));
   }
@@ -146,15 +138,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator-(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(static_cast<J>(x) - y);
     else return static_cast<strong>(static_cast<T>(x) - static_cast<T>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator-(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(y - static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) - static_cast<T>(x));
   }
@@ -164,15 +154,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator*(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(static_cast<J>(x) * y);
     else return static_cast<strong>(static_cast<T>(x) * static_cast<T>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator*(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(y * static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) * static_cast<T>(x));
   }
@@ -182,15 +170,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator/(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(static_cast<J>(x) / y);
     else return static_cast<strong>(static_cast<I>(x) / static_cast<I>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator/(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(y / static_cast<J>(x));
     else return static_cast<strong>(static_cast<I>(y) / static_cast<I>(x));
   }
@@ -200,15 +186,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator|(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(static_cast<J>(x) | y);
     else return static_cast<strong>(static_cast<T>(x) | static_cast<T>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator|(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(y | static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) | static_cast<T>(x));
   }
@@ -218,15 +202,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator&(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return static_cast<J>(x) & y;
     else return static_cast<strong>(static_cast<T>(x) & static_cast<T>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator&(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return y & static_cast<J>(x);
     else return static_cast<strong>(static_cast<T>(y) & static_cast<T>(x));
   }
@@ -236,15 +218,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator^(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(static_cast<J>(x) ^ y);
     else return static_cast<strong>(static_cast<T>(x) ^ static_cast<T>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator^(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return create(y ^ static_cast<J>(x));
     else return static_cast<strong>(static_cast<T>(y) ^ static_cast<T>(x));
   }
@@ -254,15 +234,13 @@ private:
 
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator%(strong x, J y) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return static_cast<J>(x) % y;
     else return static_cast<strong>(static_cast<I>(x) % static_cast<I>(y));
   }
   template <std::integral J>
   TRIVIAL friend inline constexpr auto operator%(J y, strong x) -> strong
-  requires(issigned == std::is_signed_v<J>)
-  {
+    requires(issigned == std::is_signed_v<J>) {
     if constexpr (sizeof(J) > sizeof(I)) return y % static_cast<J>(x);
     else return static_cast<strong>(static_cast<I>(y) % static_cast<I>(x));
   }
@@ -293,9 +271,8 @@ private:
   }
 
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator+=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator+=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x + y;
   }
 
@@ -304,9 +281,8 @@ private:
     return x = x + y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator-=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator-=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x - y;
   }
 
@@ -315,9 +291,8 @@ private:
     return x = x - y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator*=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator*=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x * y;
   }
 
@@ -326,9 +301,8 @@ private:
     return x = x * y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator/=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator/=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x / y;
   }
 
@@ -337,9 +311,8 @@ private:
     return x = x / y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator%=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator%=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x % y;
   }
 
@@ -348,9 +321,8 @@ private:
     return x = x % y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator&=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator&=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x & y;
   }
 
@@ -359,9 +331,8 @@ private:
     return x = x & y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator|=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator|=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x | y;
   }
 
@@ -370,9 +341,8 @@ private:
     return x = x | y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator^=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator^=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x ^ y;
   }
 
@@ -382,9 +352,8 @@ private:
   }
 
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator<<=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator<<=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x << y;
   }
 
@@ -393,9 +362,8 @@ private:
     return x = x << y;
   }
   template <std::integral J>
-  TRIVIAL friend inline constexpr auto operator>>=(strong &x, J y) -> strong &
-  requires(issigned == std::is_signed_v<J>)
-  {
+  TRIVIAL friend inline constexpr auto operator>>=(strong &x, J y)
+    -> strong & requires(issigned == std::is_signed_v<J>) {
     return x = x >> y;
   }
 

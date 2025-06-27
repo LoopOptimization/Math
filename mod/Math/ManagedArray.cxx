@@ -114,8 +114,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     : BaseT{s, U(math::Capacity<StackStorage, std::ptrdiff_t>{})} {
     this->ptr_ = memory_.data();
     auto len = std::ptrdiff_t(this->sz_);
-    if (len > StackStorage)
-      this->allocateAtLeast(U(capacity(len)));
+    if (len > StackStorage) this->allocateAtLeast(U(capacity(len)));
     if (!len) return;
     if constexpr (trivialelt) std::fill_n(this->data(), len, x);
     else std::uninitialized_fill_n(this->data(), len, std::move(x));
@@ -123,12 +122,11 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   constexpr ManagedArray(A) noexcept : ManagedArray() {};
   constexpr ManagedArray(S s, A) noexcept : ManagedArray(s) {};
   constexpr ManagedArray(std::ptrdiff_t s, A) noexcept
-  requires(std::same_as<S, SquareDims<>>)
+    requires(std::same_as<S, SquareDims<>>)
     : ManagedArray(SquareDims<>{row(s)}) {};
   constexpr ManagedArray(S s, T x, A) noexcept : ManagedArray(s, x) {};
 
-  constexpr ManagedArray(T x) noexcept
-  requires(std::same_as<S, Length<>>)
+  constexpr ManagedArray(T x) noexcept requires(std::same_as<S, Length<>>)
     : BaseT{S{}, U(math::Capacity<StackStorage, std::ptrdiff_t>{})} {
     this->ptr_ = memory_.data();
     if constexpr (StackStorage == 0) this->growUndef(1);
@@ -252,8 +250,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     }
     b.resetNoFree();
   }
-  constexpr ManagedArray(const ColVector auto &v)
-  requires(MatrixDimension<S>)
+  constexpr ManagedArray(const ColVector auto &v) requires(MatrixDimension<S>)
     : BaseT{S(shape(v)), U(capacity(StackStorage))} {
     this->ptr_ = memory_.data();
     std::ptrdiff_t M = std::ptrdiff_t(this->sz_);
@@ -262,8 +259,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       std::uninitialized_default_construct_n(this->data(), M);
     MutArray<T, decltype(v.dim())>(this->data(), v.dim()) << v;
   }
-  constexpr ManagedArray(const RowVector auto &v)
-  requires(MatrixDimension<S>)
+  constexpr ManagedArray(const RowVector auto &v) requires(MatrixDimension<S>)
     : BaseT{S(CartesianIndex(1, v.size())), U(capacity(StackStorage))} {
     this->ptr_ = memory_.data();
     std::ptrdiff_t M = std::ptrdiff_t(this->sz_);
@@ -282,9 +278,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   template <class D>
   constexpr auto
   operator=(const ManagedArray<T, D, StackStorage, A> &b) noexcept
-    -> ManagedArray &
-  requires(!std::same_as<S, D>)
-  {
+    -> ManagedArray & requires(!std::same_as<S, D>) {
     // this condition implies `this->data() == nullptr`
     if (this->data() == b.data()) return *this;
     resizeCopyTo(b);
@@ -292,9 +286,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   }
   template <class D>
   constexpr auto operator=(ManagedArray<T, D, StackStorage, A> &&b) noexcept
-    -> ManagedArray &
-  requires(!std::same_as<S, D>)
-  {
+    -> ManagedArray & requires(!std::same_as<S, D>) {
     // this condition implies `this->data() == nullptr`
     if (this->data() == b.data()) return *this;
     // here, we commandeer `b`'s memory
@@ -330,26 +322,21 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   constexpr ~ManagedArray() noexcept { this->maybeDeallocate(); }
 
   [[nodiscard]] static constexpr auto identity(std::ptrdiff_t M) -> ManagedArray
-  requires(MatrixDimension<S>)
-  {
+    requires(MatrixDimension<S>) {
     ManagedArray B(SquareDims<>{row(M)}, T{0});
     B.diag() << 1;
     return B;
   }
   [[nodiscard]] static constexpr auto identity(Row<> R) -> ManagedArray
-  requires(MatrixDimension<S>)
-  {
+    requires(MatrixDimension<S>) {
     return identity(std::ptrdiff_t(R));
   }
   [[nodiscard]] static constexpr auto identity(Col<> C) -> ManagedArray
-  requires(MatrixDimension<S>)
-  {
+    requires(MatrixDimension<S>) {
     return identity(std::ptrdiff_t(C));
   }
 
-  constexpr void reserveForGrow1()
-  requires(std::same_as<S, Length<>>)
-  {
+  constexpr void reserveForGrow1() requires(std::same_as<S, Length<>>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
@@ -357,20 +344,15 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 
   template <class... Args>
   constexpr auto emplace_back(Args &&...args) -> decltype(auto)
-  requires(std::same_as<S, Length<>>)
-  {
+    requires(std::same_as<S, Length<>>) {
     reserveForGrow1();
     return this->emplace_back_within_capacity(args...);
   }
-  constexpr void push_back(T value)
-  requires(std::same_as<S, Length<>>)
-  {
+  constexpr void push_back(T value) requires(std::same_as<S, Length<>>) {
     reserveForGrow1();
     this->push_back_within_capacity(std::move(value));
   }
-  constexpr auto insert(T *p, T x) -> T *
-  requires(std::same_as<S, Length<>>)
-  {
+  constexpr auto insert(T *p, T x) -> T * requires(std::same_as<S, Length<>>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]] {
       std::ptrdiff_t d = p - this->data();
@@ -391,14 +373,12 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     this->sz_ = nz;
   }
   constexpr void resize(Row<> r)
-  requires(std::same_as<S, Length<>> || MatrixDimension<S>)
-  {
+    requires(std::same_as<S, Length<>> || MatrixDimension<S>) {
     if constexpr (std::same_as<S, Length<>>) return resize(S(r));
     else return resize(auto{this->sz_}.set(r));
   }
   constexpr void resize(Col<> c)
-  requires(std::same_as<S, Length<>> || MatrixDimension<S>)
-  {
+    requires(std::same_as<S, Length<>> || MatrixDimension<S>) {
     if constexpr (std::same_as<S, Length<>>) return resize(S(c));
     else if constexpr (MatrixDimension<S>)
       return resize(auto{this->sz_}.set(c));
@@ -423,23 +403,17 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     this->sz_ = M;
   }
   constexpr void resizeForOverwrite(std::ptrdiff_t M)
-  requires(std::same_as<S, Length<>>)
-  {
+    requires(std::same_as<S, Length<>>) {
     resizeForOverwrite(length(M));
   }
-  constexpr void resize(std::ptrdiff_t M)
-  requires(std::same_as<S, Length<>>)
-  {
+  constexpr void resize(std::ptrdiff_t M) requires(std::same_as<S, Length<>>) {
     resize(length(M));
   }
-  constexpr void reserve(std::ptrdiff_t M)
-  requires(std::same_as<S, Length<>>)
-  {
+  constexpr void reserve(std::ptrdiff_t M) requires(std::same_as<S, Length<>>) {
     reserve(length(M));
   }
   constexpr void reservePow2(std::ptrdiff_t M)
-  requires(std::same_as<S, Length<>>)
-  {
+    requires(std::same_as<S, Length<>>) {
     // 1 -> 0 -> 64 -> 0
     // 2 -> 1 -> 63 -> 1
     // 3 -> 2 -> 62 -> 2

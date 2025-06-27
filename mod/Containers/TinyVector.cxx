@@ -173,11 +173,9 @@ public:
     invariant(space >= 0);
     invariant(std::size_t(space) <= N);
   }
-  TRIVIAL constexpr ~TinyVector()
-  requires(std::is_trivially_destructible_v<T>)
+  TRIVIAL constexpr ~TinyVector() requires(std::is_trivially_destructible_v<T>)
   = default;
-  TRIVIAL constexpr ~TinyVector()
-  requires(!std::is_trivially_destructible_v<T>)
+  TRIVIAL constexpr ~TinyVector() requires(!std::is_trivially_destructible_v<T>)
   {
     std::destroy_n(data_.data(), size());
   }

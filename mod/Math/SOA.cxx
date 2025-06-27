@@ -397,27 +397,22 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
          i < L; ++i)
       self[i] = other[i];
   }
-  void resize(std::ptrdiff_t nsz)
-  requires(std::same_as<S, Length<>>)
-  {
+  void resize(std::ptrdiff_t nsz) requires(std::same_as<S, Length<>>) {
     resize(length(nsz));
   }
   constexpr void clear() { this->sz_ = {}; }
   template <typename... Args> void emplace_back(Args &&...args) {
     push_back(T(args...));
   }
-  void push_back(T arg)
-  requires(std::same_as<S, Length<>>)
-  {
+  void push_back(T arg) requires(std::same_as<S, Length<>>) {
     S osz = this->sz_;
     auto i = std::ptrdiff_t(osz);
     resize(i + 1z);
     (*this)[i] = arg;
   }
   void erase(std::ptrdiff_t pos)
-  requires(std::same_as<S, Length<>> &&
-           std::same_as<C, CapacityCalculators::Explicit>)
-  {
+    requires(std::same_as<S, Length<>> &&
+             std::same_as<C, CapacityCalculators::Explicit>) {
     invariant(pos >= 0);
     std::ptrdiff_t N = (this->size()) - 1;
     invariant(pos <= N);

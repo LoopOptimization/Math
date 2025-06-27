@@ -139,9 +139,7 @@ struct AbstractSelect {
   [[no_unique_address]] A a;
   [[no_unique_address]] B b;
 
-  TRIVIAL [[nodiscard]] constexpr auto numRow() const
-  requires(!isvector)
-  {
+  TRIVIAL [[nodiscard]] constexpr auto numRow() const requires(!isvector) {
     auto n = unwrapRow(c.numRow());
     if constexpr (AbstractMatrix<A>) {
       auto nn = check_sizes(n, unwrapRow(a.numRow()));
@@ -152,9 +150,7 @@ struct AbstractSelect {
       return row(check_sizes(n, unwrapRow(b.numRow())));
     else return row(n);
   }
-  TRIVIAL [[nodiscard]] constexpr auto numCol() const
-  requires(!isvector)
-  {
+  TRIVIAL [[nodiscard]] constexpr auto numCol() const requires(!isvector) {
     auto n = unwrapCol(c.numCol());
     if constexpr (AbstractMatrix<A>) {
       auto nn = check_sizes(n, unwrapCol(a.numCol()));
@@ -270,8 +266,8 @@ public:
   }
   template <typename B>
   TRIVIAL constexpr auto operator*(const B &b) const
-  requires(std::convertible_to<std::remove_cvref_t<B>, T> || AbstractTensor<B>)
-  {
+    requires(std::convertible_to<std::remove_cvref_t<B>, T> ||
+             AbstractTensor<B>) {
     if constexpr (!std::convertible_to<std::remove_cvref_t<B>, T>) {
       auto AA{v()};
       auto BB{b.view()};
@@ -342,14 +338,11 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
   using value_type = T;
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
   [[no_unique_address]] A a_;
-  TRIVIAL constexpr auto operator[](auto i) const
-  requires(AbstractVector<A>)
-  {
+  TRIVIAL constexpr auto operator[](auto i) const requires(AbstractVector<A>) {
     return a_[i];
   }
   TRIVIAL constexpr auto operator[](auto i, auto j) const
-  requires(AbstractMatrix<A>)
-  {
+    requires(AbstractMatrix<A>) {
     using R = std::remove_cvref_t<decltype(a_[j, i])>;
     if constexpr (AbstractTensor<R>) return transpose(a_[j, i]);
     else return a_[j, i];
@@ -406,28 +399,22 @@ struct Elementwise : public Expr<decltype(std::declval<Op>()(
   [[no_unique_address]] A a_;
   [[no_unique_address]] Op op_;
   TRIVIAL constexpr auto operator[](auto i) const
-  requires(LinearlyIndexableOrConvertible<A, value_type>)
-  {
+    requires(LinearlyIndexableOrConvertible<A, value_type>) {
     return op_(a_[i]);
   }
   TRIVIAL constexpr auto operator[](auto i, auto j) const
-  requires(CartesianIndexableOrConvertible<A, value_type>)
-  {
+    requires(CartesianIndexableOrConvertible<A, value_type>) {
     return op_(a_[i, j]);
   }
 
-  [[nodiscard]] TRIVIAL constexpr auto size() const
-  requires(DefinesSize<A>)
-  {
+  [[nodiscard]] TRIVIAL constexpr auto size() const requires(DefinesSize<A>) {
     return a_.size();
   }
-  [[nodiscard]] TRIVIAL constexpr auto numRow() const
-  requires(DefinesShape<A>)
+  [[nodiscard]] TRIVIAL constexpr auto numRow() const requires(DefinesShape<A>)
   {
     return a_.numRow();
   }
-  [[nodiscard]] TRIVIAL constexpr auto numCol() const
-  requires(DefinesShape<A>)
+  [[nodiscard]] TRIVIAL constexpr auto numCol() const requires(DefinesShape<A>)
   {
     return a_.numCol();
   }
@@ -460,9 +447,8 @@ struct ElementwiseBinaryOp
   [[no_unique_address]] B b_;
   [[no_unique_address]] Op op_;
   TRIVIAL constexpr auto operator[](auto i) const
-  requires LinearlyIndexableOrConvertible<A, elta> &&
-           LinearlyIndexableOrConvertible<B, eltb>
-  {
+    requires LinearlyIndexableOrConvertible<A, elta> &&
+             LinearlyIndexableOrConvertible<B, eltb> {
     if constexpr (LinearlyIndexable<A, elta>)
       if constexpr (LinearlyIndexable<B, eltb>) return op_(a_[i], b_[i]);
       else return op_(a_[i], b_);
@@ -529,10 +515,9 @@ struct Select : public AbstractSelect<C, A, B>,
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
   TRIVIAL constexpr auto operator[](auto i) const
-  requires LinearlyIndexable<C, bool> &&
-           LinearlyIndexableOrConvertible<A, value_type> &&
-           LinearlyIndexableOrConvertible<B, value_type>
-  {
+    requires LinearlyIndexable<C, bool> &&
+             LinearlyIndexableOrConvertible<A, value_type> &&
+             LinearlyIndexableOrConvertible<B, value_type> {
     if constexpr (LinearlyIndexable<A, value_type>)
       if constexpr (LinearlyIndexable<B, value_type>)
         return this->c[i] ? this->a[i] : this->b[i];
@@ -542,10 +527,9 @@ struct Select : public AbstractSelect<C, A, B>,
     else return this->c[i] ? this->a : this->b;
   }
   TRIVIAL constexpr auto operator[](auto i, auto j) const
-  requires CartesianIndexableOrConvertible<C, bool> &&
-           CartesianIndexableOrConvertible<A, value_type> &&
-           CartesianIndexableOrConvertible<B, value_type>
-  {
+    requires CartesianIndexableOrConvertible<C, bool> &&
+             CartesianIndexableOrConvertible<A, value_type> &&
+             CartesianIndexableOrConvertible<B, value_type> {
     if constexpr (CartesianIndexable<A, value_type>)
       if constexpr (CartesianIndexable<B, value_type>)
         return this->c[i, j] ? this->a[i, j] : this->b[i, j];
@@ -572,10 +556,9 @@ struct Conditional
   [[no_unique_address]] Op op_;
 
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type
-  requires LinearlyIndexableOrConvertible<C, bool> &&
-           LinearlyIndexableOrConvertible<A, value_type> &&
-           LinearlyIndexableOrConvertible<B, value_type>
-  {
+    requires LinearlyIndexableOrConvertible<C, bool> &&
+             LinearlyIndexableOrConvertible<A, value_type> &&
+             LinearlyIndexableOrConvertible<B, value_type> {
     if constexpr (LinearlyIndexable<A, value_type>)
       if constexpr (LinearlyIndexable<B, value_type>)
         return this->c[i] ? op_(this->a[i], this->b[i]) : this->a[i];
@@ -586,10 +569,9 @@ struct Conditional
   }
   template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
   TRIVIAL constexpr auto operator[](simd::index::Unroll<U, W, M> i) const
-  requires LinearlyIndexableOrConvertible<C, bool> &&
-           LinearlyIndexableOrConvertible<A, value_type> &&
-           LinearlyIndexableOrConvertible<B, value_type>
-  {
+    requires LinearlyIndexableOrConvertible<C, bool> &&
+             LinearlyIndexableOrConvertible<A, value_type> &&
+             LinearlyIndexableOrConvertible<B, value_type> {
     if constexpr (W == 1) {
       auto c = this->c[i];
       simd::Unroll<U, 1, 1, value_type> x = get<value_type>(this->a, i),
@@ -643,10 +625,9 @@ struct Conditional
     // }
   }
   TRIVIAL constexpr auto operator[](auto i, auto j) const
-  requires CartesianIndexableOrConvertible<C, bool> &&
-           CartesianIndexableOrConvertible<A, value_type> &&
-           CartesianIndexableOrConvertible<B, value_type>
-  {
+    requires CartesianIndexableOrConvertible<C, bool> &&
+             CartesianIndexableOrConvertible<A, value_type> &&
+             CartesianIndexableOrConvertible<B, value_type> {
     if constexpr (LinearlyIndexable<A, value_type>)
       if constexpr (LinearlyIndexable<B, value_type>)
         return this->c[i, j] ? op_(this->a[i, j], this->b[i, j])
@@ -679,9 +660,7 @@ struct MatMatMul : public math::Expr<
   // Matrix * Matrix
   [[no_unique_address]] A a_;
   [[no_unique_address]] B b_;
-  TRIVIAL constexpr auto operator[](auto i, auto j) const
-  requires(ismatrix)
-  {
+  TRIVIAL constexpr auto operator[](auto i, auto j) const requires(ismatrix) {
     static_assert(AbstractMatrix<B>, "B should be an AbstractMatrix");
     invariant(std::ptrdiff_t(a_.numCol()) > 0);
     decltype(a_[i, 0] * b_[0, j] + a_[i, 1] * b_[1, j]) s{};
@@ -707,9 +686,7 @@ struct MatMatMul : public math::Expr<
   // implementation strategy.
   //
   //
-  TRIVIAL constexpr auto operator[](auto i) const
-  requires(!ismatrix)
-  {
+  TRIVIAL constexpr auto operator[](auto i) const requires(!ismatrix) {
     if constexpr (RowVector<A>) {
       invariant(a_.size() == b_.numRow());
       invariant(a_.size() > 0);

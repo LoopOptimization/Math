@@ -267,34 +267,22 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> std::ptrdiff_t {
     return 32 - std::countl_zero(std::uint32_t(intmask()));
   }
-  TRIVIAL constexpr operator __m128i()
-  requires(sizeof(I) * W == 16)
-  {
+  TRIVIAL constexpr operator __m128i() requires(sizeof(I) * W == 16) {
     return std::bit_cast<__m128i>(m);
   }
-  TRIVIAL constexpr operator __m128d()
-  requires(sizeof(I) * W == 16)
-  {
+  TRIVIAL constexpr operator __m128d() requires(sizeof(I) * W == 16) {
     return std::bit_cast<__m128d>(m);
   }
-  TRIVIAL constexpr operator __m128()
-  requires(sizeof(I) * W == 16)
-  {
+  TRIVIAL constexpr operator __m128() requires(sizeof(I) * W == 16) {
     return std::bit_cast<__m128>(m);
   }
-  TRIVIAL constexpr operator __m256i()
-  requires(sizeof(I) * W == 32)
-  {
+  TRIVIAL constexpr operator __m256i() requires(sizeof(I) * W == 32) {
     return std::bit_cast<__m256i>(m);
   }
-  TRIVIAL constexpr operator __m256d()
-  requires(sizeof(I) * W == 32)
-  {
+  TRIVIAL constexpr operator __m256d() requires(sizeof(I) * W == 32) {
     return std::bit_cast<__m256d>(m);
   }
-  TRIVIAL constexpr operator __m256()
-  requires(sizeof(I) * W == 32)
-  {
+  TRIVIAL constexpr operator __m256() requires(sizeof(I) * W == 32) {
     return std::bit_cast<__m256>(m);
   }
 
