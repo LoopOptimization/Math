@@ -47,7 +47,8 @@ class MATH_GSL_OWNER TinyVector {
 public:
   using value_type = T;
 
-  void print() const {
+  void print() const
+    requires(std::is_arithmetic_v<T> || utils::HasPrintMethod<T>) {
     using ::utils::print;
     ::utils::print('[');
     if constexpr (std::same_as<T, std::int8_t> ||
