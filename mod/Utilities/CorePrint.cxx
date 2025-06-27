@@ -14,6 +14,7 @@ module;
 #include <cstdint>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #else
 export module CorePrint;
 import Invariant;
@@ -130,9 +131,18 @@ inline void println(const auto &x, const auto &y, const Args &...z) {
     println(z...); // recurse
   } else println(y);
 }
+
+template <typename T> inline void print(T x) requires(std::is_enum_v<T>) {
+  print(std::to_underlying(x));
+}
+template <typename T> inline void println(T x) requires(std::is_enum_v<T>) {
+  println(std::to_underlying(x));
+}
+
 template <typename T>
 concept Printable = requires(const T &x) {
   { ::utils::print(x) };
+  { ::utils::println(x) };
 };
 
 } // namespace utils

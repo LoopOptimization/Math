@@ -1,15 +1,19 @@
 #include <gtest/gtest.h>
 #ifndef USE_MODULE
 #include "Numbers/Int8.cxx"
+#include "Utilities/CorePrint.cxx"
 #include <cstdint>
 #include <limits>
 #else
 
+import CorePrint;
 import Int8;
 import std;
 #endif
 
 using numbers::i8, numbers::u8, numbers::Flag8;
+static_assert(utils::Printable<numbers::i8>);
+static_assert(utils::Printable<numbers::u8>);
 
 TEST(Int8Test, BasicAssertions) {
   for (std::uint8_t x = 0; x < std::numeric_limits<std::uint8_t>::max(); ++x) {
@@ -20,6 +24,7 @@ TEST(Int8Test, BasicAssertions) {
     for (std::uint8_t y = 0; y < std::numeric_limits<std::uint8_t>::max();
          ++y) {
       auto uy = static_cast<u8>(y);
+      utils::print(uy);
       EXPECT_EQ(ux <=> uy, x <=> y);
       {
         u8 z = static_cast<u8>(x + y);
