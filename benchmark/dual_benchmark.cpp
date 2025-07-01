@@ -1,22 +1,7 @@
 
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/Dual.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/StaticArrays.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/Invariant.cxx"
-#include "include/randdual.hpp"
-#include <array>
-#include <benchmark/benchmark.h>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <random>
 
-using math::Vector;
+#include "include/randdual.hpp"
+#include <benchmark/benchmark.h>
 
 namespace {
 using benchmark::State;

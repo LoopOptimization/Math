@@ -1,15 +1,7 @@
 
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
+import Array;
 #include "include/randdual.hpp"
 #include <benchmark/benchmark.h>
-#include <concepts>
-#include <cstddef>
-#include <random>
-#include <type_traits>
 
 using math::Dual, math::SquareDims, math::SquareMatrix, math::MutArray,
   math::Array, math::URand, containers::tie, containers::Tuple;

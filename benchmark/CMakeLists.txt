@@ -1,10 +1,23 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 
-project(MathBenchmarks LANGUAGES C CXX)
+add_compile_options(
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>")
+
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+    # This specific value changes as experimental support evolves. See
+    # `Help/dev/experimental.rst` in the CMake source corresponding to
+    # your CMake build for the exact value to use.
+    "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+
+project(MathBenchmarks LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_MODULE_STD 1)
 
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
-option(ENABLE_OPENMP "Use OpenMP for a multithreading benchmark" OFF)
+# option(ENABLE_OPENMP "Use OpenMP for a multithreading benchmark" OFF)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 
 # --- Import tools ----
@@ -49,10 +62,10 @@ add_executable(${PROJECT_NAME} ${benchmarks})
 message(STATUS "PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
-if(ENABLE_OPENMP)
-  find_package(OpenMP)
-  target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
-endif()
+# if(ENABLE_OPENMP)
+#   find_package(OpenMP)
+#   target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
+# endif()
 
 # --- Maybe Use SIMD Array Ops ---
 if(POLYMATHNOEXPLICITSIMDARRAY)
@@ -62,7 +75,7 @@ else()
   message(STATUS "Use SIMD Array operations")
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Math benchmark::benchmark_main)
+target_link_libraries(${PROJECT_NAME} Math benchmark::benchmark_main)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES
                                                "IntelLLVM"))
@@ -127,15 +140,15 @@ target_compile_options(
           -Wextra
           -save-temps
           -Werror)
-if(ENABLE_OPENMP)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_compile_options(${PROJECT_NAME} PRIVATE -fiopenmp)
-  else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp)
-  endif()
-else()
-  target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp-simd)
-endif()
+# if(ENABLE_OPENMP)
+#   if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+#     target_compile_options(${PROJECT_NAME} PRIVATE -fiopenmp)
+#   else()
+#     target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp)
+#   endif()
+# else()
+#   target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp-simd)
+# endif()
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
   target_compile_options(${PROJECT_NAME} PRIVATE -masm=intel)
 endif()

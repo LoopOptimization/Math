@@ -1,8 +1,8 @@
 #include <benchmark/benchmark.h>
 
 import Arena;
-import Array;
 import ArrayParse;
+import ManagedArray;
 import Simplex;
 import std;
 import Valid;

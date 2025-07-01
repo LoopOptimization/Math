@@ -1,23 +1,14 @@
 #pragma once
-#include "Containers/TinyVector.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Dual.cxx"
-#include "Math/ElementarySIMD.cxx"
-#include "Math/GenericConstructors.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/UniformScaling.cxx"
 #include "randdual.hpp"
-#include <algorithm>
 #include <benchmark/benchmark.h>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
+import Dual;
+import LinearAlgebra;
+import GenericArrayConstructors;
+import ManagedArray;
+import MatDim;
+import TinyVector;
+import Tuple;
+import UniformScaling;
 // auto x = Dual<Dual<double, 4>, 2>{1.0};
 // auto y = x * 3.4;
 namespace math {

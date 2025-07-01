@@ -50,8 +50,8 @@ public:
     -> Valid<Simplex>;
   static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
                      Capacity<> conCap, RowStride<> varCap) -> Valid<Simplex>;
-  auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-              std::ptrdiff_t numSlack) -> Valid<Simplex>;
+  static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
+                     std::ptrdiff_t numSlack) -> Valid<Simplex>;
   static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex>;
   static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
                      RowStride<> varCap) -> std::unique_ptr<Simplex>;
@@ -112,7 +112,6 @@ public:
 // Debug and helper methods
 #ifndef NDEBUG
   void assertCanonical() const;
-  [[nodiscard]] auto getConstraintsDebug() const -> PtrMatrix<value_type>;
 #endif
 
   // Additional accessors

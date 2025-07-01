@@ -1,20 +1,8 @@
 
 #include "LoopMacros.hxx"
-#include "Math/Array.cxx"
-#include "Math/Dual.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Math/UniformScaling.cxx"
-#include "SIMD/Intrin.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Utilities/TypeCompression.cxx"
 #include "include/randdual.hpp"
-#include <array>
+import Array;
 #include <benchmark/benchmark.h>
-#include <cstddef>
-#include <random>
 
 using math::Dual, math::SquareMatrix, math::SquareDims, math::I, math::URand;
 

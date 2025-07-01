@@ -1,10 +1,7 @@
 #pragma once
-#ifndef randdual_hpp_INCLUDED
-#define randdual_hpp_INCLUDED
 
-#include "Math/Dual.cxx"
-#include <cstddef>
-#include <random>
+import Dual;
+import std;
 
 namespace math {
 template <class T> struct URand {};
@@ -23,4 +20,3 @@ template <> struct URand<double> {
 };
 } // namespace math
 
-#endif // randdual_hpp_INCLUDED

@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
 
-import Array;
+import ManagedArray;
 import ArrayParse;
 import NormalForm;
 import std;

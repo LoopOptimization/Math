@@ -185,15 +185,6 @@ auto Simplex::requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
             var_capacity_p1_,
           }};
 }
-DEBUGUSED [[nodiscard]] auto Simplex::getConstraintsDebug() const
-  -> PtrMatrix<value_type> {
-  return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
-          StridedDims<>{
-            num_constraints_,
-            ++auto(num_vars_),
-            var_capacity_p1_,
-          }};
-}
 void Simplex::zeroConstraints() {
   MutPtrVector<value_type>{
     tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
