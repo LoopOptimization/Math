@@ -78,14 +78,17 @@ if(USE_MODULES)
   # or explicitly mention them here.
   file(GLOB_RECURSE headers CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
-  file(GLOB_RECURSE modules CONFIGURE_DEPENDS
+  file(GLOB_RECURSE module_interfaces CONFIGURE_DEPENDS
+       "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxxm")
+  file(GLOB_RECURSE module_implementations CONFIGURE_DEPENDS
        "${CMAKE_CURRENT_SOURCE_DIR}/mod/*.cxx")
 
   # ---- Create library ----
   add_library(${PROJECT_NAME} OBJECT) # ${headers})
   target_sources(
     ${PROJECT_NAME}
-    PUBLIC FILE_SET CXX_MODULES FILES ${modules}
+    PUBLIC FILE_SET CXX_MODULES FILES ${module_interfaces}
+    PRIVATE ${module_implementations}
     INTERFACE FILE_SET HEADERS FILES ${headers})
   target_compile_definitions(${PROJECT_NAME} PUBLIC USE_MODULE)
   target_include_directories(

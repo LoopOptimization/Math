@@ -1,58 +1,7 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/Constructors.cxx"
-#include "Math/EmptyArrays.cxx"
-#include "Math/GenericConstructors.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/Rational.cxx"
-#include "Math/VectorGreatestCommonDivisor.cxx"
-#include "SIMD/Intrin.cxx"
-#include "SIMD/Masks.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-#include <optional>
-#include <utility>
-#else
-export module NormalForm;
-import Arena;
-import Array;
-import ArrayConcepts;
-import ArrayConstructors;
-import AxisTypes;
-import Comparisons;
-import EmptyMatrix;
-import GenericArrayConstructors;
-import Invariant;
-import ManagedArray;
-import Range;
-import Rational;
-import SIMD;
-import std;
-import Tuple;
-import VGCD;
-#endif
+module NormalForm;
+// Implementation unit for NormalForm module
 
 namespace math::NormalForm {
 using alloc::Arena, containers::Tuple, containers::tie;
@@ -89,32 +38,6 @@ TRIVIAL constexpr void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A,
         MutPtrVector<std::int64_t> Ai{A[i, _(M, N)]}, Aj{A[j, _(M, N)]};
         tie(Ai, Aj) << Tuple(p * Ai + q * Aj, Aiir * Aj - Aijr * Ai);
       }
-      // for (std::ptrdiff_t k = 0; k < minMN; ++k) {
-      //   std::int64_t Aki = A[i, k];
-      //   std::int64_t Akj = A[j, k];
-      //   std::int64_t Kki = K[i, k];
-      //   std::int64_t Kkj = K[j, k];
-      //   // when k == i, then
-      //   // p * Aii + q * Akj == r, so we set A(i,i) = r
-      //   A[i, k] = p * Aki + q * Akj;
-      //   // Aii/r * Akj - Aij/r * Aki = 0
-      //   A[j, k] = Aiir * Akj - Aijr * Aki;
-      //   // Mirror for K
-      //   K[i, k] = p * Kki + q * Kkj;
-      //   K[j, k] = Aiir * Kkj - Aijr * Kki;
-      // }
-      // for (auto k = std::ptrdiff_t(N); k < M; ++k) {
-      //   std::int64_t Kki = K[i, k];
-      //   std::int64_t Kkj = K[j, k];
-      //   K[i, k] = p * Kki + q * Kkj;
-      //   K[j, k] = Aiir * Kkj - Aijr * Kki;
-      // }
-      // for (auto k = std::ptrdiff_t(M); k < N; ++k) {
-      //   std::int64_t Aki = A[i, k];
-      //   std::int64_t Akj = A[j, k];
-      //   A[i, k] = p * Aki + q * Akj;
-      //   A[j, k] = Aiir * Akj - Aijr * Aki;
-      // }
     }
   }
 }
@@ -143,12 +66,6 @@ TRIVIAL constexpr void zeroSubDiagonal(MutPtrMatrix<std::int64_t> A,
       Tuple(Akz * A[k, _(0, minMN)], Akz * K[k, _(0, minMN)]);
     if (Mi > Ni) K[z, _(Ni, Mi)] -= Akz * K[k, _(Ni, Mi)];
     else if (Ni > Mi) A[z, _(Mi, Ni)] -= Akz * A[k, _(Mi, Ni)];
-    // for (std::ptrdiff_t i = 0; i < minMN; ++i) {
-    //   A[z, i] -= Akz * A[k, i];
-    //   K[z, i] -= Akz * K[k, i];
-    // }
-    // for (auto i = std::ptrdiff_t(N); i < M; ++i) K[z, i] -= Akz * K[k, i];
-    // for (auto i = std::ptrdiff_t(M); i < N; ++i) A[z, i] -= Akz * A[k, i];
   }
 }
 
@@ -179,11 +96,7 @@ pivotColsPair(std::array<MutPtrMatrix<std::int64_t>, 2> AK, Row<> i, Col<> N,
 } // namespace detail
 } // namespace math::NormalForm
 
-#ifdef USE_MODULE
-export namespace math::NormalForm {
-#else
 namespace math::NormalForm {
-#endif
 TRIVIAL constexpr auto pivotRows(MutPtrMatrix<std::int64_t> A,
                                  MutSquarePtrMatrix<std::int64_t> K,
                                  std::ptrdiff_t i, Row<> M) -> bool {
@@ -218,8 +131,6 @@ TRIVIAL constexpr void dropCol(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i,
   // if any rows are left, we shift them up to replace it
   if (N <= i) return;
   A[_(0, M), _(i, N)] << A[_(0, M), _(i, N) + 1];
-  // for (std::ptrdiff_t m = 0; m < M; ++m) A[m, _(i, N)] << A[m, _(i, N) + 1];
-  // for (std::ptrdiff_t n = i; n < N; ++n) A[m, n] = A[m, n + 1];
 }
 
 TRIVIAL constexpr void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A, Col<> c,
@@ -401,11 +312,6 @@ zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c, Row<> r) {
     std::int64_t Arc = A[r, c], Ajc = A[j, c];
     if (!Ajc) continue;
     std::int64_t g = gcd(Arc, Ajc), x = Arc / g, y = Ajc / g;
-    // auto [x, y] = divgcd(Arc, Ajc);
-    // MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-    // Aj << x * Aj - y * Ar;
-    // MutPtrVector<std::int64_t> Br = B[r, _], Bj = B[j, _];
-    // Bj << x * Bj - y * Br;
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutPtrVector<std::int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
       Aj << x * Aj - y * Ar;
@@ -417,10 +323,6 @@ zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c, Row<> r) {
     std::int64_t Arc = A[r, c], Ajc = A[j, c];
     if (!Ajc) continue;
     const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Ajc);
-    // MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-    // tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
-    // MutPtrVector<std::int64_t> Br = B[r, _], Bj = B[j, _];
-    // tie(Br, Bj) << Tuple(q * Bj + p * Br, Arcr * Bj - Ajcr * Br);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutPtrVector<std::int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
       tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
@@ -436,12 +338,7 @@ zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Row<> r, Col<> c) {
   for (std::ptrdiff_t j = 0; j < c; ++j) {
     std::int64_t Arc = A[r, c], Arj = A[r, j];
     if (!Arj) continue;
-    // std::int64_t g = gcd(Arc, Arj), x = Arc / g, y = Arj / g;
     auto [x, y] = divgcd(Arc, Arj);
-    // MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-    // Aj << x * Aj - y * Ar;
-    // MutPtrVector<std::int64_t> Br = B[r, _], Bj = B[j, _];
-    // Bj << x * Bj - y * Br;
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutArray<std::int64_t, StridedRange<>> Ac = AB[i][_, c], Aj = AB[i][_, j];
       Aj << x * Aj - y * Ac;
@@ -453,10 +350,6 @@ zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Row<> r, Col<> c) {
     std::int64_t Arc = A[r, c], Arj = A[r, j];
     if (!Arj) continue;
     const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Arj);
-    // MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-    // tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
-    // MutPtrVector<std::int64_t> Br = B[r, _], Bj = B[j, _];
-    // tie(Br, Bj) << Tuple(q * Bj + p * Br, Arcr * Bj - Ajcr * Br);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutArray<std::int64_t, StridedRange<>> Ac = AB[i][_, c], Aj = AB[i][_, j];
       tie(Ac, Aj) << Tuple(q * Aj + p * Ac, Arcr * Aj - Ajcr * Ac);
@@ -530,11 +423,7 @@ TRIVIAL constexpr auto orthogonalizeBang(MutDensePtrMatrix<std::int64_t> &A)
 }
 } // namespace math::NormalForm::detail
 
-#ifdef USE_MODULE
-export namespace math {
-#else
 namespace math {
-#endif
 namespace NormalForm {
 // update a reduced matrix for a new row
 // doesn't reduce last row (assumes you're solving for it)
@@ -602,7 +491,7 @@ TRIVIAL constexpr void reduceColumnStack(MutPtrMatrix<std::int64_t> A,
 }
 // pass by value, returns number of rows to truncate
 TRIVIAL constexpr auto simplifySystemImpl(MutPtrMatrix<std::int64_t> A,
-                                          std::ptrdiff_t colInit = 0) -> Row<> {
+                                          std::ptrdiff_t colInit) -> Row<> {
   auto [M, N] = shape(A);
   for (std::ptrdiff_t r = 0, c = colInit; c < N && r < M; ++c)
     if (!pivotRows(A, col(c), row(M), row(r)))
@@ -610,10 +499,8 @@ TRIVIAL constexpr auto simplifySystemImpl(MutPtrMatrix<std::int64_t> A,
   return numNonZeroRows(A);
 }
 
-TRIVIAL constexpr void simplifySystem(EmptyMatrix<std::int64_t>,
-                                      std::ptrdiff_t = 0) {}
 TRIVIAL constexpr void simplifySystem(MutPtrMatrix<std::int64_t> &E,
-                                      std::ptrdiff_t colInit = 0) {
+                                      std::ptrdiff_t colInit) {
   E.truncate(simplifySystemImpl(E, colInit));
 }
 // TODO: `const IntMatrix &` can be copied to `MutPtrMatrix<std::int64_t>`
@@ -646,6 +533,7 @@ TRIVIAL constexpr void hermite(MutPtrMatrix<std::int64_t> A,
   simplifySystemsImpl({A, U});
 }
 
+// SIMD optimized functions
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 /// use A[j,k] to zero A[i,k]
 TRIVIAL constexpr auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i,
@@ -886,169 +774,6 @@ TRIVIAL constexpr void solveSystemSkip(MutPtrMatrix<std::int64_t> A) {
 TRIVIAL constexpr void solveSystem(MutPtrMatrix<std::int64_t> A) {
   solveSystem(A, std::ptrdiff_t(A.numCol()) - 1);
 }
-
-// /// bareissSolveSystem(A, B)
-// /// Like solveSystem, but uses Bareiss algorithm instead of Hermite Normal
-// Form
-// /// for the initial triangular form. Operations done to A are also applied to
-// B.
-// /// Avoids allocating temporary arrays like pivot vectors.
-// constexpr void bareissSolveSystem(MutPtrMatrix<std::int64_t> A,
-//                                   MutPtrMatrix<std::int64_t> B) {
-//   const auto [M, N] = shape(A);
-//   utils::assume(B.numRow() == M);
-
-//   // Step 1: Apply Bareiss algorithm to A, mirroring operations on B
-//   std::int64_t prev = 1;
-//   for (std::ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
-//     // Find pivot row without allocating array
-//     std::ptrdiff_t piv_row = r;
-//     while (piv_row < M && A[piv_row, c] == 0) ++piv_row;
-//     if (piv_row == M) continue;
-//     // Swap rows if needed (apply to both A and B)
-//     if (r != piv_row) {
-//       swap(A, row(r), row(piv_row));
-//       swap(B, row(r), row(piv_row));
-//     }
-
-//     // Bareiss elimination: eliminate below pivot
-//     std::int64_t Arc = A[r, c];
-//     auto j{_(c + 1, N)};
-//     for (std::ptrdiff_t k = r + 1; k < M; ++k) {
-//       if (std::int64_t Akc = A[k, c]) {
-//         if (prev == 1) {
-//           // Apply Bareiss to A
-//           A[k, j] << Arc * A[k, j] - Akc * A[r, j];
-//           B[k, _] << Arc * B[k, _] - Akc * B[r, _];
-//         } else {
-//           A[k, j] << (Arc * A[k, j] - Akc * A[r, j]) / prev;
-//           B[k, _] << (Arc * B[k, _] - Akc * B[r, _]) / prev;
-//         }
-//         A[k, c] = 0;
-//       } else if (Arc != prev) {
-//         A[k, j] << (Arc * A[k, j]) / prev;
-//         B[k, _] << (Arc * B[k, _]) / prev;
-//       }
-//     }
-//     prev = Arc;
-//     ++r;
-//   }
-//   // perform a triangular solve
-//   for (std::ptrdiff_t r = 0, c = 0; c < N && r < M; ++c) {
-//     std::int64_t Arc = A[r, c];
-//     if (!Arc) continue;
-//     // zero rows < r; d is "diagonal"'s column
-//     for (std::ptrdiff_t z = 0, d = 0; z < r; ++z) {
-//       std::int64_t Azc = A[z, c];
-//       if (!Azc) continue;
-//       const auto [p, q, Arcr, Ajcr] = detail::gcdxScale(Arc, Azc);
-//       MutPtrVector<std::int64_t> Ar{A[r, _(c + 1, end)]},
-//         Az{A[z, _(c + 1, end)]};
-//       // MutPtrVector<std::int64_t> Ar{A[r, _(c + 1, end)]},
-//       //   Az{A[z, _(c + 1, end)]};
-//       Az << Arcr * Az - Ajcr * Ar;
-//       MutPtrVector<std::int64_t> Br{B[r, _]}, Bz{B[z, _]};
-//       Bz << Arcr * Bz - Ajcr * Br;
-//       A[z, c] = 0;
-//       // Arc = q * Azc + p * Arc;
-//       if (Arcr == 1) continue;
-//       // update "diagonal"
-//       int64_t Azd = A[z, d];
-//       while (!Azd) Azd = A[z, ++d];
-//       A[z, d++] = Arcr * Azd;
-//     }
-//     ++r;
-//   }
-
-//   // // Step 2: Back-solve the upper triangular system
-//   // // Now A is upper triangular, solve A * X = B by back substitution
-//   // // X = A \ B, overwrite B with X
-//   // // B[i,j] = A[i,_(i,end)] * X[_(i,end),j].t()
-//   // // B[i,j] = A[i,i] * X[i,j] + A[i,_(i+1,end)] * X[_(i+1,end),j].t()
-//   // // X[i,j] = (B[i,j] - A[i,_(i+1,end)] * X[_(i+1,end),j].t()) / A[i,i]
-//   // // Problem:
-//   // std::ptrdiff_t rank = std::min(M, N);
-//   // for (std::ptrdiff_t i = rank - 1; i >= 0; --i) {
-//   //   if (A[i, i] != 0) {
-//   //     // Eliminate entries above the diagonal
-//   //     for (std::ptrdiff_t j = 0; j < i; ++j) {
-//   //       if (A[j, i] != 0) {
-//   //         std::int64_t Aii = A[i, i], Aji = A[j, i];
-//   //         // Use integer arithmetic: B[j, :] = Aii * B[j, :] - Aji * B[i,
-//   :]
-//   //         for (std::ptrdiff_t k = 0; k < B.numCol(); ++k)
-//   //           B[j, k] = Aii * B[j, k] - Aji * B[i, k];
-//   //         for (std::ptrdiff_t k = 0; k < N; ++k)
-//   //           A[j, k] = Aii * A[j, k] - Aji * A[i, k];
-//   //       }
-//   //     }
-//   //   }
-//   // }
-// }
-
-// /// bareissSolveSystemRight(A, B)
-// /// Like solveSystemRight, but uses Bareiss algorithm for the initial
-// triangular
-// /// form. Given XA = B, right-multiplies both sides to diagonalize A.
-// TRIVIAL constexpr void bareissSolveSystemRight(MutPtrMatrix<std::int64_t> A,
-//                                                MutPtrMatrix<std::int64_t> B)
-//                                                {
-//   const auto [M, N] = shape(A);
-//   utils::assume(B.numCol() == N);
-
-//   // Step 1: Apply Bareiss algorithm to A, mirroring operations on B
-//   // For right multiplication, we work on columns to get lower triangular
-//   form std::int64_t prev = 1; for (std::ptrdiff_t c = 0, r = 0; r < M && c <
-//   N; ++r) {
-//     // Find pivot column without allocating array
-//     std::ptrdiff_t piv_col = c;
-//     while (piv_col < N && A[r, piv_col] == 0) ++piv_col;
-
-//     if (piv_col < N) {
-//       // Swap columns if needed (apply to both A and B)
-//       if (c != piv_col) {
-//         swap(A, col(c), col(piv_col));
-//         swap(B, col(c), col(piv_col));
-//       }
-
-//       // Bareiss elimination: eliminate to the right of pivot
-//       std::int64_t Arc = A[r, c];
-//       for (std::ptrdiff_t k = c + 1; k < N; ++k) {
-//         if (std::int64_t Ark = A[r, k]) {
-//           // Apply Bareiss to A
-//           for (std::ptrdiff_t i = r + 1; i < M; ++i)
-//             A[i, k] = (Arc * A[i, k] - Ark * A[i, c]) / prev;
-//           A[r, k] = 0;
-
-//           // Apply same operations to B
-//           for (std::ptrdiff_t i = 0; i < B.numRow(); ++i)
-//             B[i, k] = (Arc * B[i, k] - Ark * B[i, c]) / prev;
-//         }
-//       }
-//       prev = Arc;
-//       ++c;
-//     }
-//   }
-
-//   // Step 2: Back-solve the triangular system
-//   // Now A has pivots on the diagonal, solve X * A = B by forward
-//   substitution std::ptrdiff_t rank = std::min(M, N); for (std::ptrdiff_t i =
-//   0; i < rank; ++i) {
-//     if (A[i, i] != 0) {
-//       // Eliminate entries to the left of diagonal
-//       for (std::ptrdiff_t j = i + 1; j < rank; ++j) {
-//         if (A[i, j] != 0) {
-//           std::int64_t Aii = A[i, i], Aij = A[i, j];
-//           // Use integer arithmetic: B[:, j] = Aii * B[:, j] - Aij * B[:, i]
-//           for (std::ptrdiff_t k = 0; k < B.numRow(); ++k)
-//             B[k, j] = Aii * B[k, j] - Aij * B[k, i];
-//           for (std::ptrdiff_t k = 0; k < M; ++k)
-//             A[k, j] = Aii * A[k, j] - Aij * A[k, i];
-//         }
-//       }
-//     }
-//   }
-// }
 
 /// inv(A) -> (D, B)
 /// Given a matrix \f$\textbf{A}\f$, returns two matrices \f$\textbf{D}\f$ and

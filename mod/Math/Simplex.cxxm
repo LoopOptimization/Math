@@ -1,0 +1,107 @@
+export module Simplex;
+
+import Allocator;
+import Arena;
+import Array;
+import ArrayConcepts;
+import ArrayPrint;
+import AxisTypes;
+import BitSet;
+import Comparisons;
+import Constraints;
+import CorePrint;
+import ExprTemplates;
+import GCD;
+import Invariant;
+import ManagedArray;
+import MatDim;
+import NormalForm;
+import Range;
+import Rational;
+import SIMD;
+import std;
+
+export namespace math {
+
+// Forward declaration of the main Simplex class
+class Simplex {
+public:
+  using index_t = int;
+  using value_type = std::int64_t;
+
+  // Static utility functions
+  template <std::integral T>
+  static constexpr auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t;
+  
+  static constexpr auto alignVarCapacity(RowStride<> rs) -> RowStride<>;
+  static constexpr auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t;
+  static constexpr auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t;
+
+  // Memory access functions
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicConsPointer() const -> index_t *;
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicVarsPointer() const -> index_t *;
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto tableauPointer() const -> value_type *;
+
+  // Capacity and size queries
+  [[nodiscard]] constexpr auto reservedBasicConstraints() const -> RowStride<>;
+  [[nodiscard]] constexpr auto reservedBasicVariables() const -> RowStride<>;
+  [[nodiscard]] constexpr auto getNumConstraints() const -> Row<>;
+  [[nodiscard]] constexpr auto getNumVars() const -> Col<>;
+
+  // Tableau access
+  [[nodiscard]] constexpr auto getTableau() const -> PtrMatrix<value_type>;
+  [[nodiscard]] constexpr auto getTableau() -> MutPtrMatrix<value_type>;
+  [[nodiscard]] constexpr auto getConstraints() const -> PtrMatrix<value_type>;
+  [[nodiscard]] constexpr auto getConstraints() -> MutPtrMatrix<value_type>;
+  
+  // Basic variable management
+  [[nodiscard]] constexpr auto getBasicConstraints() const -> PtrVector<index_t>;
+  [[nodiscard]] constexpr auto getBasicConstraints() -> MutPtrVector<index_t>;
+  [[nodiscard]] constexpr auto getBasicVariables() const -> PtrVector<index_t>;
+  [[nodiscard]] constexpr auto getBasicVariables() -> MutPtrVector<index_t>;
+  
+  // Cost vector access
+  [[nodiscard]] constexpr auto getCost() const -> PtrVector<value_type>;
+  [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type>;
+  
+  // Individual element access
+  [[nodiscard]] constexpr auto getBasicConstraint(std::ptrdiff_t var) const -> index_t;
+  [[nodiscard]] constexpr auto getBasicVariable(std::ptrdiff_t constraint) const -> index_t;
+  [[nodiscard]] constexpr auto getObjectiveCoefficient(std::ptrdiff_t i) const -> value_type;
+  [[nodiscard]] constexpr auto getObjectiveValue() -> value_type &;
+  [[nodiscard]] constexpr auto getObjectiveValue() const -> value_type;
+
+  // Utility functions
+  constexpr void zeroConstraints();
+  constexpr void simplifySystem();
+
+  // Simplex algorithm core functions
+  constexpr void initiateFeasible();
+  constexpr void removeAugmentVars();
+  constexpr auto runCore() -> std::optional<std::ptrdiff_t>;
+  constexpr void makeBasic(std::ptrdiff_t var, std::ptrdiff_t constraint);
+  constexpr auto rLexMin() -> std::optional<std::ptrdiff_t>;
+  
+  // Variable selection for simplex pivoting
+  constexpr auto getEnteringVariable() -> std::optional<std::ptrdiff_t>;
+  constexpr auto getLeavingVariable(std::ptrdiff_t entering_var) -> std::optional<std::ptrdiff_t>;
+
+  // Constructors and assignment
+  constexpr Simplex(char *memory, std::ptrdiff_t cons, std::ptrdiff_t vars);
+  constexpr Simplex(const Simplex &) = delete;
+  constexpr auto operator=(const Simplex &) -> Simplex & = delete;
+  constexpr Simplex(Simplex &&) = delete;
+  constexpr auto operator=(Simplex &&) -> Simplex & = delete;
+
+private:
+  char *memory_;
+  Row<> num_constraints_;
+  Col<> num_vars_;
+  RowStride<> var_capacity_p1_;
+#ifndef NDEBUG
+  bool in_canonical_form_ = true;
+#endif
+};
+
+
+} // namespace math

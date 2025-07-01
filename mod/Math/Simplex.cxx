@@ -1,71 +1,9 @@
-#ifdef USE_MODULE
+// Implementation unit for Simplex module
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#include <cassert>
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Alloc/Mallocator.cxx"
-#include "Containers/BitSets.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/Constraints.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/NormalForm.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/Rational.cxx"
-#include "SIMD/Intrin.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <array>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <iterator>
-#include <limits>
-#include <memory>
-#include <new>
-#include <optional>
-#else
-export module Simplex;
+module Simplex;
 
-import Allocator;
-import Arena;
-import Array;
-import ArrayConcepts;
-import ArrayPrint;
-import AxisTypes;
-import BitSet;
-import Comparisons;
-import Constraints;
-import CorePrint;
-import ExprTemplates;
-import GCD;
-import Invariant;
-import ManagedArray;
-import MatDim;
-import NormalForm;
-import Range;
-import Rational;
-import SIMD;
-import std;
-#endif
-
-#ifdef USE_MODULE
-export namespace math {
-#else
 namespace math {
-#endif
 
 // #define VERBOSESIMPLEX
 
@@ -79,12 +17,71 @@ namespace math {
 /// to avoid unnecessary specialization.
 ///
 /// Slack variables are sorted first.
-class Simplex {
-  using index_t = int;
-  using value_type = std::int64_t;
 
-  template <std::integral T>
-  static constexpr auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
+// Private module fragment - static utility functions
+namespace {
+  struct NoFilter {
+    static constexpr auto operator()(std::int64_t) -> bool { return false; }
+  };
+
+  // 1 based to match getBasicConstraints
+  [[nodiscard]] constexpr auto
+  getEnteringVariable(PtrVector<std::int64_t> costs) -> std::optional<Simplex::index_t> {
+    // Bland's algorithm; guaranteed to terminate
+    auto f = costs.begin(), l = costs.end();
+    const auto *neg =
+      std::find_if(f, l, [](std::int64_t c) -> bool { return c < 0; });
+    return neg != l ? std::distance(f, neg) : std::optional<Simplex::index_t>{};
+  }
+
+  // Searches rows (constraints) for the one to make non-zero for
+  // this particular variable. It will be used to zero all other rows.
+  // This makes the `entering_variable` basic.
+  // The `leaving_variable`, i.e. the variable that will no longer
+  // be basic, is `getBasicVariable(leaving_variable)`.
+  //
+  //
+  // Tries to find the row with the lowest numerator/denominator
+  // ratio, and returns that row. If any numerator == 0, it'll
+  // stop early and return that row.
+  [[nodiscard]] constexpr auto
+  getLeavingVariable(PtrMatrix<std::int64_t> C,
+                     std::ptrdiff_t entering_variable, const auto &filter)
+    -> std::optional<Simplex::index_t> {
+    // inits guarantee first valid is selected
+    std::int64_t dj = -1, nj = 0;
+    Simplex::index_t j = 0;
+    StridedVector<std::int64_t> cv{C[_, entering_variable + 1]};
+    for (Simplex::index_t i = 1; i < C.numRow(); ++i) {
+      if (filter(i)) continue;
+      std::int64_t di = cv[i];
+      if (di <= 0) continue;
+      std::int64_t ni = C[i, 0];
+      if (!ni) return --i;
+      invariant(ni > 0);
+      if ((dj * ni) >= (di * nj)) continue;
+      dj = di;
+      nj = ni;
+      j = i;
+    }
+    // NOTE: if we fail to find a leaving variable, then `j = 0`,
+    // and it will unsigned wrap to `std::ptrdiff_t(-1)`, which indicates
+    // an empty `Optional<unsigned int>`
+    return j ? --j : std::optional<Simplex::index_t>{};
+  }
+
+  [[nodiscard]] constexpr auto
+  getLeavingVariable(PtrMatrix<std::int64_t> C,
+                     std::ptrdiff_t entering_variable)
+    -> std::optional<Simplex::index_t> {
+    return getLeavingVariable(C, entering_variable, NoFilter{});
+  }
+}
+
+// Out-of-line Simplex member function definitions
+
+template <std::integral T>
+constexpr auto Simplex::alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
     --x;
     std::ptrdiff_t W = simd::VECTORWIDTH / sizeof(T); // simd::Width<T>;
     std::ptrdiff_t nW = -W;
@@ -93,67 +90,46 @@ class Simplex {
     return x;
     // return (--x + simd::Width<T>)&(-simd::Width<T>);
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicConsPointer() const
-    -> index_t * {
+[[gnu::returns_nonnull, nodiscard]] constexpr auto Simplex::basicConsPointer() const
+  -> Simplex::index_t * {
     void *p = const_cast<char *>(memory_);
-    return std::assume_aligned<simd::VECTORWIDTH>(static_cast<index_t *>(p));
+    return std::assume_aligned<simd::VECTORWIDTH>(static_cast<Simplex::index_t *>(p));
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto basicVarsPointer() const
-    -> index_t * {
-    std::ptrdiff_t offset = alignOffset<index_t>(reservedBasicConstraints());
-    return std::assume_aligned<simd::VECTORWIDTH>(basicConsPointer() + offset);
+[[gnu::returns_nonnull, nodiscard]] constexpr auto Simplex::basicVarsPointer() const
+  -> Simplex::index_t * {
+  std::ptrdiff_t offset = alignOffset<Simplex::index_t>(reservedBasicConstraints());
+  return std::assume_aligned<simd::VECTORWIDTH>(basicConsPointer() + offset);
   }
   // offset in bytes
-  static constexpr auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars)
+  static constexpr auto Simplex::tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars)
     -> std::ptrdiff_t {
     std::ptrdiff_t coff = alignOffset<index_t>(cons);
     std::ptrdiff_t voff = alignOffset<index_t>(vars);
     std::ptrdiff_t offset = coff + voff;
     // std::ptrdiff_t offset =
     //   alignOffset<index_t>(cons) + alignOffset<index_t>(vars);
-    return static_cast<std::ptrdiff_t>(sizeof(index_t)) * offset;
+    return static_cast<std::ptrdiff_t>(sizeof(Simplex::index_t)) * offset;
   }
-  [[gnu::returns_nonnull, nodiscard]] constexpr auto tableauPointer() const
+  [[gnu::returns_nonnull, nodiscard]] constexpr auto Simplex::tableauPointer() const
     -> value_type * {
     std::ptrdiff_t offset =
-      tableauOffset(reservedBasicConstraints(), reservedBasicVariables());
+      tableauOffset(Simplex::reservedBasicConstraints(), Simplex::reservedBasicVariables());
     void *p = const_cast<char *>(memory_) + offset;
     return std::assume_aligned<simd::VECTORWIDTH>(static_cast<value_type *>(p));
   }
-  Row<> num_constraints_{};
-  Col<> num_vars_{};
-  Capacity<> constraint_capacity_;
-  RowStride<> var_capacity_p1_; // varCapacity + 1
-#ifndef NDEBUG
-  bool in_canonical_form_{false};
-#endif
-#if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#else
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wc99-extensions"
-#endif
-  // NOLINTNEXTLINE(modernize-avoid-c-arrays) // FAM
-  alignas(simd::VECTORWIDTH) char memory_[];
-#if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic pop
-#else
-#pragma clang diagnostic pop
-#endif
 
   // (varCapacity+1)%simd::Width<std::int64_t>==0
-  TRIVIAL static constexpr auto alignVarCapacity(RowStride<> rs)
+  TRIVIAL static constexpr auto Simplex::alignVarCapacity(RowStride<> rs)
     -> RowStride<> {
     static constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
     return stride((std::ptrdiff_t(rs) + W) & -W);
   }
   TRIVIAL [[nodiscard]] static constexpr auto
-  reservedTableau(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
+  Simplex::reservedTableau(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
     return static_cast<std::ptrdiff_t>(sizeof(value_type)) *
            ((cons + 1) * vars);
   }
-  TRIVIAL static constexpr auto requiredMemory(std::ptrdiff_t cons,
+  TRIVIAL static constexpr auto Simplex::requiredMemory(std::ptrdiff_t cons,
                                                std::ptrdiff_t vars)
     -> std::size_t {
     std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
@@ -162,19 +138,18 @@ class Simplex {
     return static_cast<std::size_t>(base + indices + tableau);
   }
 
-public:
   // tableau is constraint * var matrix w/ extra col for LHS
   // and extra row for objective function
-  TRIVIAL [[nodiscard]] constexpr auto reservedBasicConstraints() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::reservedBasicConstraints() const
     -> std::ptrdiff_t {
     return std::ptrdiff_t(var_capacity_p1_) - 1;
   }
-  TRIVIAL [[nodiscard]] constexpr auto reservedBasicVariables() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::reservedBasicVariables() const
     -> std::ptrdiff_t {
     return std::ptrdiff_t(constraint_capacity_);
   }
 
-  // TRIVIAL [[nodiscard]] constexpr auto intsNeeded() const -> std::ptrdiff_t {
+  // TRIVIAL [[nodiscard]] constexpr auto Simplex::intsNeeded() const -> std::ptrdiff_t {
   //   return reservedTableau() + reservedBasicConstraints() +
   //          reservedBasicVariables();
   // }
@@ -188,7 +163,7 @@ public:
   //
   /// [ value | objective function ]
   /// [ LHS   | tableau            ]
-  TRIVIAL [[nodiscard]] constexpr auto getTableau() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getTableau() const
     -> PtrMatrix<value_type> {
     //
     return {tableauPointer(), StridedDims<>{
@@ -198,7 +173,7 @@ public:
                               }};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
-  TRIVIAL [[nodiscard]] constexpr auto getTableau()
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getTableau()
     -> MutPtrMatrix<value_type> {
     return {tableauPointer(), StridedDims<>{
                                 ++auto(num_constraints_),
@@ -206,7 +181,7 @@ public:
                                 var_capacity_p1_,
                               }};
   }
-  TRIVIAL [[nodiscard]] constexpr auto getConstraints() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getConstraints() const
     -> PtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
@@ -215,7 +190,7 @@ public:
               var_capacity_p1_,
             }};
   }
-  DEBUGUSED [[nodiscard]] constexpr auto getConstraintsDebug() const
+  DEBUGUSED [[nodiscard]] constexpr auto Simplex::getConstraintsDebug() const
     -> PtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
@@ -224,7 +199,7 @@ public:
               var_capacity_p1_,
             }};
   }
-  TRIVIAL constexpr void zeroConstraints() {
+  TRIVIAL constexpr void Simplex::zeroConstraints() {
     MutPtrVector<value_type>{
       tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
       length(std::ptrdiff_t(num_constraints_) *
@@ -233,7 +208,7 @@ public:
       .zero();
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
-  TRIVIAL [[nodiscard]] constexpr auto getConstraints()
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getConstraints()
     -> MutPtrMatrix<value_type> {
     return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
             StridedDims<>{
@@ -242,7 +217,7 @@ public:
               var_capacity_p1_,
             }};
   }
-  TRIVIAL [[nodiscard]] constexpr auto getBasicConstraints() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getBasicConstraints() const
     -> PtrVector<index_t> {
     return {basicConsPointer(), aslength(num_vars_)};
   }
@@ -251,49 +226,49 @@ public:
   // constraint, and the variable's value is `0`, i.e. it is non-basic
   // Otherwise, it is the index of the only non-zero constraint for that
   // variable.
-  TRIVIAL [[nodiscard]] constexpr auto getBasicConstraints()
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getBasicConstraints()
     -> MutPtrVector<index_t> {
     return {basicConsPointer(), aslength(num_vars_)};
   }
   // maps constraints to variables
-  TRIVIAL [[nodiscard]] constexpr auto getBasicVariables() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getBasicVariables() const
     -> PtrVector<index_t> {
     return {basicVarsPointer(), length(std::ptrdiff_t(num_constraints_))};
   }
-  TRIVIAL [[nodiscard]] constexpr auto getBasicVariables()
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getBasicVariables()
     -> MutPtrVector<index_t> {
     return {basicVarsPointer(), length(std::ptrdiff_t(num_constraints_))};
   }
-  TRIVIAL [[nodiscard]] constexpr auto getCost() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getCost() const
     -> PtrVector<value_type> {
     return {tableauPointer(), length(std::ptrdiff_t(num_vars_) + 1z)};
   }
   // NOLINTNEXTLINE(readability-make-member-function-const)
-  TRIVIAL [[nodiscard]] constexpr auto getCost() -> MutPtrVector<value_type> {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getCost() -> MutPtrVector<value_type> {
     return {tableauPointer(), length(std::ptrdiff_t(num_vars_) + 1z)};
   }
   // maps variables to constraints; <0 if variable is not basic
   TRIVIAL [[nodiscard]] constexpr auto
-  getBasicConstraint(std::ptrdiff_t var) const -> index_t {
+  Simplex::getBasicConstraint(std::ptrdiff_t var) const -> index_t {
     return getBasicConstraints()[var];
   }
   // get the variable that is basic associated with this constraint;
   // must always be valid while the simplex is in canonical form.
   TRIVIAL [[nodiscard]] constexpr auto
-  getBasicVariable(std::ptrdiff_t constraint) const -> index_t {
+  Simplex::getBasicVariable(std::ptrdiff_t constraint) const -> index_t {
     return getBasicVariables()[constraint];
   }
   TRIVIAL [[nodiscard]] constexpr auto
-  getObjectiveCoefficient(std::ptrdiff_t i) const -> value_type {
+  Simplex::getObjectiveCoefficient(std::ptrdiff_t i) const -> value_type {
     return getCost()[++i];
   }
-  TRIVIAL [[nodiscard]] constexpr auto getObjectiveValue() -> value_type & {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getObjectiveValue() -> value_type & {
     return getCost()[0];
   }
-  TRIVIAL [[nodiscard]] constexpr auto getObjectiveValue() const -> value_type {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getObjectiveValue() const -> value_type {
     return getCost()[0];
   }
-  constexpr void simplifySystem() {
+  constexpr void Simplex::simplifySystem() {
 #ifndef NDEBUG
     in_canonical_form_ = false;
 #endif
@@ -307,7 +282,7 @@ public:
     truncateConstraints(std::ptrdiff_t(NormalForm::numNonZeroRows(C)));
   }
 #ifndef NDEBUG
-  constexpr void assertCanonical() const {
+  constexpr void Simplex::assertCanonical() const {
     PtrMatrix<value_type> C{getTableau()};
     PtrVector<index_t> basic_vars{getBasicVariables()};
     PtrVector<index_t> basic_cons{getBasicConstraints()};
@@ -328,50 +303,50 @@ public:
     }
   }
 #endif
-  TRIVIAL [[nodiscard]] constexpr auto getConstants()
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getConstants()
     -> MutStridedVector<std::int64_t> {
     return getTableau()[_(1, end), 0];
   }
-  TRIVIAL [[nodiscard]] constexpr auto getConstants() const
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getConstants() const
     -> StridedVector<std::int64_t> {
     return getTableau()[_(1, end), 0];
   }
-  TRIVIAL constexpr void truncateConstraints(std::ptrdiff_t i) {
+  TRIVIAL constexpr void Simplex::truncateConstraints(std::ptrdiff_t i) {
     invariant(std::ptrdiff_t(num_constraints_) <=
               std::ptrdiff_t(constraint_capacity_));
     invariant(i >= 0z);
     invariant(i <= num_constraints_);
     num_constraints_ = row(i);
   }
-  TRIVIAL constexpr void setNumCons(std::ptrdiff_t i) {
+  TRIVIAL constexpr void Simplex::setNumCons(std::ptrdiff_t i) {
     invariant(i <= constraint_capacity_);
     num_constraints_ = row(i);
   }
-  TRIVIAL constexpr void setNumVars(std::ptrdiff_t i) {
+  TRIVIAL constexpr void Simplex::setNumVars(std::ptrdiff_t i) {
     invariant(i < var_capacity_p1_);
     num_vars_ = col(i);
   }
-  TRIVIAL constexpr void truncateVars(std::ptrdiff_t i) {
+  TRIVIAL constexpr void Simplex::truncateVars(std::ptrdiff_t i) {
     invariant(i <= num_vars_);
     num_vars_ = col(i);
   }
-  TRIVIAL [[nodiscard]] constexpr auto getNumCons() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getNumCons() const -> std::ptrdiff_t {
     invariant(num_constraints_ >= 0);
     return std::ptrdiff_t(num_constraints_);
   }
-  TRIVIAL [[nodiscard]] constexpr auto getNumVars() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getNumVars() const -> std::ptrdiff_t {
     invariant(num_vars_ >= 0);
     return std::ptrdiff_t(num_vars_);
   }
-  TRIVIAL [[nodiscard]] constexpr auto getConCap() const -> Capacity<> {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getConCap() const -> Capacity<> {
     invariant(constraint_capacity_ >= 0);
     return constraint_capacity_;
   }
-  TRIVIAL [[nodiscard]] constexpr auto getVarCap() const -> RowStride<> {
+  TRIVIAL [[nodiscard]] constexpr auto Simplex::getVarCap() const -> RowStride<> {
     invariant(var_capacity_p1_ > 0);
     return --auto{var_capacity_p1_};
   }
-  constexpr void deleteConstraint(std::ptrdiff_t c) {
+  constexpr void Simplex::deleteConstraint(std::ptrdiff_t c) {
     auto basic_cons = getBasicConstraints();
     auto basic_vars = getBasicVariables();
     auto constraints = getConstraints();
@@ -589,8 +564,10 @@ public:
         costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
       }
     }
-    assert(
-      std::ranges::all_of(basic_vars, [](std::int64_t i) { return i >= 0; }));
+#ifndef NDEBUG
+    if (!std::ranges::all_of(basic_vars, [](std::int64_t i) { return i >= 0; }))
+      __builtin_trap();
+#endif
     // false/0 means feasible
     // true/non-zero infeasible
     if (runCore()) return true;
@@ -731,7 +708,7 @@ public:
   // 0
   constexpr auto runCore(std::int64_t f = 1) -> Rational {
 #ifndef NDEBUG
-    assert(in_canonical_form_);
+    if (!in_canonical_form_) __builtin_trap();
 #endif
     //     return runCore(getCostsAndConstraints(), f);
     // }
@@ -749,7 +726,7 @@ public:
   // set basicVar's costs to 0, and then runCore()
   constexpr auto run() -> Rational {
 #ifndef NDEBUG
-    assert(in_canonical_form_);
+    if (!in_canonical_form_) __builtin_trap();
     assertCanonical();
 #endif
     MutPtrVector<index_t> basic_vars{getBasicVariables()};
@@ -794,7 +771,7 @@ public:
   // minimize v, not touching any variable lex > v
   constexpr auto rLexMin(std::ptrdiff_t v) -> bool {
 #ifndef NDEBUG
-    assert(in_canonical_form_);
+    if (!in_canonical_form_) __builtin_trap();
 #endif
     index_t c = getBasicConstraint(v);
     if (c < 0) return false;
@@ -866,7 +843,7 @@ public:
   }
   constexpr auto rLexMinLast(std::ptrdiff_t n) -> Solution {
 #ifndef NDEBUG
-    assert(in_canonical_form_);
+    if (!in_canonical_form_) __builtin_trap();
     assertCanonical();
 #endif
     for (std::ptrdiff_t v = getNumVars(), e = v - n; v != e;) rLexMin(--v);
@@ -880,7 +857,7 @@ public:
   constexpr auto rLexMinStop(std::ptrdiff_t skip_first,
                              std::ptrdiff_t skip_last = 0) -> Solution {
 #ifndef NDEBUG
-    assert(in_canonical_form_);
+    if (!in_canonical_form_) __builtin_trap();
     assertCanonical();
 #endif
     std::ptrdiff_t num_v = getNumVars() - skip_last;
@@ -1015,14 +992,14 @@ public:
   }
 
   // static constexpr auto toMask(PtrVector<std::int64_t> x) -> std::uint64_t {
-  //   assert(x.size() <= 64);
+  //   if(x.size() > 64)__builtin_trap();
   //   std::uint64_t m = 0;
   //   for (auto y : x) m = ((m << 1) | (y != 0));
   //   return m;
   // }
   // [[nodiscard]] constexpr auto getBasicTrueVarMask() const -> std::uint64_t {
   //   const std::ptrdiff_t numVarTotal = getNumVars();
-  //   assert(numVarTotal <= 64);
+  //   if(numVarTotal > 64)__builtin_trap();
   //   std::uint64_t m = 0;
   //   PtrVector<index_t> basicCons{getBasicConstraints()};
   //   for (std::ptrdiff_t i = numSlack; i < numVarTotal; ++i)
@@ -1209,9 +1186,8 @@ public:
                        std::ptrdiff_t(getConstraints().rowStride()));
   }
 #ifndef NDEBUG
-  [[gnu::used]] void dump() const { print(); }
+[[gnu::used]] void Simplex::dump() const { print(); }
 #endif
-};
 
 static_assert(AbstractVector<Simplex::Solution>);
 

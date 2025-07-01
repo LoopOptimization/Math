@@ -1,0 +1,110 @@
+module;
+#include "Macros.hxx"
+export module NormalForm;
+
+import Arena;
+import Array;
+import ArrayConcepts;
+import ArrayConstructors;
+import AxisTypes;
+import Comparisons;
+import EmptyMatrix;
+import GenericArrayConstructors;
+import Invariant;
+import ManagedArray;
+import Range;
+import Rational;
+import SIMD;
+import std;
+import Tuple;
+import VGCD;
+
+export namespace math::NormalForm {
+
+// Forward declarations for concrete int64_t algorithms  
+constexpr auto gcdxScale(std::int64_t a, std::int64_t b) -> std::array<std::int64_t, 4>;
+
+constexpr auto pivotRows(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> K,
+                         std::ptrdiff_t i, Row<> M) -> bool;
+constexpr auto pivotRows(MutPtrMatrix<std::int64_t> A, Col<> i, Row<> M, Row<> piv) -> bool;
+constexpr auto pivotRows(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i, Row<> N) -> bool;
+
+constexpr auto numNonZeroRows(PtrMatrix<std::int64_t> A) -> Row<>;
+
+constexpr void bareiss(MutPtrMatrix<std::int64_t> A, MutPtrVector<std::ptrdiff_t> pivots);
+constexpr auto bareiss(IntMatrix<> &A) -> Vector<std::ptrdiff_t>;
+
+constexpr void solveColumn(MutPtrMatrix<std::int64_t> A, MutPtrMatrix<std::int64_t> B,
+                           std::ptrdiff_t r, std::ptrdiff_t c);
+constexpr void solveSystem(MutPtrMatrix<std::int64_t> A, MutPtrMatrix<std::int64_t> B);
+constexpr void solveSystemRight(MutPtrMatrix<std::int64_t> A, MutPtrMatrix<std::int64_t> B);
+constexpr void solveSystem(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t K);
+constexpr void solveSystemSkip(MutPtrMatrix<std::int64_t> A);
+constexpr void solveSystem(MutPtrMatrix<std::int64_t> A);
+
+constexpr auto inv(Arena<> *alloc, MutSquarePtrMatrix<std::int64_t> A) -> MutSquarePtrMatrix<std::int64_t>;
+constexpr auto scaledInv(MutSquarePtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> B) -> std::int64_t;
+constexpr auto scaledInv(Arena<> *alloc, MutSquarePtrMatrix<std::int64_t> A) 
+  -> containers::Pair<MutSquarePtrMatrix<std::int64_t>, std::int64_t>;
+
+constexpr auto nullSpace(MutDensePtrMatrix<std::int64_t> B, MutDensePtrMatrix<std::int64_t> A) 
+  -> MutDensePtrMatrix<std::int64_t>;
+constexpr auto nullSpace(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A) 
+  -> MutDensePtrMatrix<std::int64_t>;
+
+constexpr auto orthogonalize(IntMatrix<> A) -> containers::Pair<SquareMatrix<std::int64_t>, Vector<unsigned>>;
+
+// Template and general functions
+constexpr auto updateForNewRow(MutPtrMatrix<std::int64_t> A) -> std::ptrdiff_t;
+constexpr void simplifySystemsImpl(std::array<MutPtrMatrix<std::int64_t>, 2> AB);
+constexpr void reduceColumnStack(MutPtrMatrix<std::int64_t> A, MutPtrMatrix<std::int64_t> B,
+                                 std::ptrdiff_t c, std::ptrdiff_t r);
+constexpr auto simplifySystemImpl(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t colInit = 0) -> Row<>;
+TRIVIAL constexpr void simplifySystem(EmptyMatrix<std::int64_t>, std::ptrdiff_t = 0){}
+constexpr void simplifySystem(MutPtrMatrix<std::int64_t> &E, std::ptrdiff_t colInit = 0);
+constexpr auto rank(Arena<> alloc, PtrMatrix<std::int64_t> A) -> std::ptrdiff_t;
+
+template <MatrixDimension S0, MatrixDimension S1>
+constexpr void simplifySystem(MutArray<std::int64_t, S0> &A, MutArray<std::int64_t, S1> &B);
+
+constexpr void hermite(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> U);
+
+// SIMD-optimized functions
+constexpr auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k, std::int64_t f)
+  -> std::int64_t;
+constexpr void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k);
+
+namespace detail {
+constexpr void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> K,
+                               std::ptrdiff_t i, Row<> M, Col<> N);
+constexpr void zeroSubDiagonal(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> K,
+                               std::ptrdiff_t k, Row<> M, Col<> N);
+constexpr auto pivotRowsPair(std::array<MutPtrMatrix<std::int64_t>, 2> AK, Col<> i, Row<> M, Row<> piv) -> bool;
+constexpr auto pivotColsPair(std::array<MutPtrMatrix<std::int64_t>, 2> AK, Row<> i, Col<> N, Col<> piv) -> bool;
+constexpr void dropCol(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i, Row<> M, Col<> N);
+constexpr void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r);
+constexpr void zeroSupDiagonal(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c, Row<> r);
+constexpr void reduceSubDiagonal(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r);
+constexpr void reduceSubDiagonalStack(MutPtrMatrix<std::int64_t> A, MutPtrMatrix<std::int64_t> B,
+                                      std::ptrdiff_t c, std::ptrdiff_t r);
+constexpr void reduceSubDiagonal(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c, Row<> r);
+constexpr void reduceColumn(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r);
+constexpr void reduceColumn(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c, Row<> r);
+constexpr void removeZeroRows(MutDensePtrMatrix<std::int64_t> &A);
+constexpr void zeroWithRowOperation(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k,
+                                    Range<std::ptrdiff_t, std::ptrdiff_t> skip);
+constexpr void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c, Row<> r);
+constexpr void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Row<> r, Col<> c);
+constexpr void zeroColumn(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r);
+constexpr auto pivotRowsBareiss(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i, Row<> M, Row<> piv)
+  -> std::optional<std::ptrdiff_t>;
+constexpr auto orthogonalizeBang(MutDensePtrMatrix<std::int64_t> &A)
+  -> containers::Pair<SquareMatrix<std::int64_t>, Vector<unsigned>>;
+} // namespace detail
+
+} // namespace math::NormalForm
+
+export namespace math {
+constexpr auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A) -> MutDensePtrMatrix<std::int64_t>;
+constexpr auto orthogonalNullSpace(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A) -> MutDensePtrMatrix<std::int64_t>;
+}
