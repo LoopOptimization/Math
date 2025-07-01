@@ -1,23 +1,8 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
-#ifndef USE_MODULE
-#include <concepts>
-#include <type_traits>
-
-#else
 export module TypeCompression;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 constexpr auto value(std::floating_point auto x) { return x; }
 constexpr auto extractvalue(std::floating_point auto x) { return x; }
 } // namespace math
@@ -38,11 +23,7 @@ constexpr auto extractvalue(std::floating_point auto x) { return x; }
 ///
 
 /// `T` is the canonical type, which may define `compress`
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 template <typename T>
 concept Compressible =
   (!std::same_as<T, typename T::compressed_type>) &&

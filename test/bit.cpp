@@ -1,16 +1,7 @@
 #include <gtest/gtest.h>
 
-#ifndef USE_MODULE
-#include <cmath>
-#include <cstdint>
-#include <random>
-
-#include "Bit/Float.cxx"
-#else
-
 import BitHack;
 import std;
-#endif
 
 TEST(BitTest, BasicAssertions) {
   for (int i = 0; i < 63; ++i) {

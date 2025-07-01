@@ -1,25 +1,4 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <random>
-
-#include "Alloc/Arena.cxx"
-#include "Containers/TinyVector.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/Dual.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Reductions.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Math/UniformScaling.cxx"
-#include "Utilities/TypeCompression.cxx"
-#else
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -36,7 +15,6 @@ import TinyVector;
 import Tuple;
 import TypeCompression;
 import UniformScaling;
-#endif
 
 using namespace math;
 using utils::eltype_t, math::transpose;

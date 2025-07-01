@@ -1,18 +1,9 @@
 #include <gtest/gtest.h>
 
-#ifndef USE_MODULE
-#include "Containers/BitSets.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Utilities/CorePrint.cxx"
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#else
 import BitSet;
 import CorePrint;
 import ManagedArray;
 import std;
-#endif
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)

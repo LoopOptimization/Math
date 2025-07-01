@@ -1,31 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include <cstdio>
-#ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
-#include <bit>
-#include <charconv>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <string_view>
-#include <system_error>
-#include <utility>
-#else
 export module CorePrint;
 import Invariant;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 
 struct TinyString {
   // 21 to allow for typemin<std::int64_t> + new-line char

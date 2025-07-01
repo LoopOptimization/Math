@@ -1,26 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
-#ifndef USE_MODULE
-#include <concepts>
-#include <limits>
-
-#include "Utilities/Widen.cxx"
-#else
 export module Saturated;
 
 import std;
 import Widen;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 template <std::unsigned_integral T> constexpr auto add_sat(T x, T y) -> T {
   T res = x + y;
   return res | -(res < x);
@@ -40,9 +24,7 @@ template <std::unsigned_integral T> constexpr auto mul_sat(T x, T y) -> T {
 template <std::signed_integral T> constexpr auto add_sat(T x, T y) -> T {
   T res;
   // workaround for modules
-#ifndef USE_MODULE
-  if (!__builtin_add_overflow(x, y, &res)) return res;
-#else
+  // if (!__builtin_add_overflow(x, y, &res)) return res;
   if constexpr (sizeof(T) < sizeof(int)) {
     int sx = x, sy = y, sres = sx + sy;
     if ((sres >= std::numeric_limits<T>::min()) &&
@@ -55,14 +37,11 @@ template <std::signed_integral T> constexpr auto add_sat(T x, T y) -> T {
   } else {
     if (!__builtin_saddll_overflow(x, y, &res)) return res;
   }
-#endif
   return x > 0 ? std::numeric_limits<T>::max() : std::numeric_limits<T>::min();
 }
 template <std::signed_integral T> constexpr auto sub_sat(T x, T y) -> T {
   T res;
-#ifndef USE_MODULE
-  if (!__builtin_sub_overflow(x, y, &res)) return res;
-#else
+  // if (!__builtin_sub_overflow(x, y, &res)) return res;
   if constexpr (sizeof(T) < sizeof(int)) {
     int sx = x, sy = y, sres = sx - sy;
     if ((sres >= std::numeric_limits<T>::min()) &&
@@ -75,14 +54,11 @@ template <std::signed_integral T> constexpr auto sub_sat(T x, T y) -> T {
   } else {
     if (!__builtin_ssubll_overflow(x, y, &res)) return res;
   }
-#endif
   return x > 0 ? std::numeric_limits<T>::max() : std::numeric_limits<T>::min();
 }
 template <std::signed_integral T> constexpr auto mul_sat(T x, T y) -> T {
   T res;
-#ifndef USE_MODULE
-  if (!__builtin_mul_overflow(x, y, &res)) return res;
-#else
+  // if (!__builtin_mul_overflow(x, y, &res)) return res;
   if constexpr (sizeof(T) < sizeof(int)) {
     int sx = x, sy = y, sres = sx * sy;
     if ((sres >= std::numeric_limits<T>::min()) &&
@@ -95,7 +71,6 @@ template <std::signed_integral T> constexpr auto mul_sat(T x, T y) -> T {
   } else {
     if (!__builtin_smulll_overflow(x, y, &res)) return res;
   }
-#endif
   return ((x > 0) == (y > 0)) ? std::numeric_limits<T>::max()
                               : std::numeric_limits<T>::min();
 }

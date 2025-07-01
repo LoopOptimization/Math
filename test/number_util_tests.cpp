@@ -1,12 +1,7 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/Factor.cxx"
-#include <cmath>
-#else
 
 import Factor;
 import std;
-#endif
 
 TEST(FactorLowerBound, BasicAssertions) {
 

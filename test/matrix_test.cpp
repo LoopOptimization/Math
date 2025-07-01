@@ -1,32 +1,5 @@
 #include <gtest/gtest.h>
 
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Containers/TinyVector.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/SmallSparseMatrix.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Math/UniformScaling.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/MatrixStringParse.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include <algorithm>
-#include <array>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <iterator>
-#include <ranges>
-#include <tuple>
-#include <type_traits>
-#else
 import Arena;
 import ArrayParse;
 import AxisTypes;
@@ -41,7 +14,6 @@ import TinyVector;
 import Tuple;
 import TypeCompression;
 import UniformScaling;
-#endif
 
 using namespace math;
 using utils::operator""_mat;

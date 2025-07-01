@@ -1,28 +1,11 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
-#ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-
-#include "Math/AxisTypes.cxx"
-#include "SIMD/Masks.cxx"
-#else
 export module SIMD:Index;
 
 import :Mask;
 import AxisTypes;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace simd::index {
-#else
-namespace simd::index {
-#endif
 
 // template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M,
 // std::ptrdiff_t X> constexpr auto unroll(std::ptrdiff_t index, M mask,

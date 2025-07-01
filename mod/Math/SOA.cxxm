@@ -1,26 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include "Alloc/Mallocator.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <compare>
-#include <concepts>
-#include <cstddef>
-#include <memory>
-#include <tuple>
-#include <type_traits>
-#include <utility>
-#else
 export module SOA;
 import Allocator;
 import Array;
@@ -28,13 +6,7 @@ import AxisTypes;
 import MatDim;
 import std;
 import Tuple;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 template <typename... T> struct Types {};
 

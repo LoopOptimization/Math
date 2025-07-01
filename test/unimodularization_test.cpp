@@ -1,16 +1,9 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/ManagedArray.cxx"
-#include "Math/Unimodularization.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/MatrixStringParse.cxx"
-#else
 import ArrayParse;
 import CorePrint;
 import ManagedArray;
 import std;
 import Unimodularization;
-#endif
 
 using namespace math;
 using utils::operator""_mat;

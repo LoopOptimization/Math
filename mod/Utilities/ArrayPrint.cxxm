@@ -1,28 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include "Alloc/Mallocator.cxx"
-#include "Containers/Flat.cxx"
-#include "Math/Rational.cxx"
-#include "Utilities/CorePrint.cxx"
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <charconv>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <iterator>
-#include <limits>
-#include <system_error>
-#include <type_traits>
-#else
 export module ArrayPrint;
 
 import Allocator;
@@ -30,13 +6,7 @@ import CorePrint;
 import Flat;
 import Rational;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 
 namespace detail {
 template <std::integral T> consteval auto maxPow10() -> std::size_t {

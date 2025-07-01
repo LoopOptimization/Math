@@ -1,12 +1,7 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/MultiplicativeInverse.cxx"
-#include <cstdint>
-#else
 
 import MultiplicativeInverse;
 import std;
-#endif
 
 using math::MultiplicativeInverse, math::cld;
 

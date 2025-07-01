@@ -1,27 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-#ifndef USE_MODULE
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/GenericConstructors.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/Rational.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <optional>
-#include <utility>
-#else
 export module LinearAlgebra;
 
 import Array;
@@ -37,18 +14,13 @@ import Rational;
 import std;
 import Tuple;
 import TypeCompression;
-#endif
 
 template <typename T>
 concept TrivialVec = utils::TriviallyCopyable<T> && math::AbstractVector<T>;
 // template <typename T>
 // concept TrivialMat = utils::TriviallyCopyable<T> && AbstractMatrix<T>;
 //
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 namespace LU {
 [[nodiscard]] constexpr auto ldivrat(SquarePtrMatrix<Rational> F,
                                      PtrVector<unsigned> ipiv,

@@ -1,34 +1,14 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <iterator>
-#include <type_traits>
-
-#include "Math/AxisTypes.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Invariant.cxx"
-#else
 export module Range;
 
 import AxisTypes;
 import CorePrint;
 import Invariant;
 import std;
-#endif
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 template <std::ptrdiff_t M>
 TRIVIAL inline constexpr auto standardizeRangeBound(math::Row<M> x) {
   if constexpr (M == -1) return std::ptrdiff_t(x);

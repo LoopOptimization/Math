@@ -1,19 +1,6 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
-
-#ifndef USE_MODULE
-#ifdef NDEBUG
-#ifdef __cpp_lib_unreachable
-#include <utility>
-#include <version>
-#endif // __cpp_lib_unreachable
-#endif // NDEBUG
-#endif // ! USE_MODULE
 
 #if __has_builtin(__builtin_trap)
 #define TRAP() __builtin_trap()
@@ -22,14 +9,10 @@ module;
 #define TRAP() std::abort()
 #endif
 
-#ifdef USE_MODULE
 export module Invariant;
 import std;
 
 export namespace utils {
-#else
-namespace utils {
-#endif
 
 #ifndef NDEBUG
 TRIVIAL constexpr inline void invariant(bool condition) {

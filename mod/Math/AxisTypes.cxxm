@@ -1,25 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include <compare>
-#include <concepts>
-#include <cstddef>
-#include <limits>
-#include <type_traits>
-
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Invariant.cxx"
-#else
 export module AxisTypes;
 
 import CorePrint;
 import Invariant;
 import std;
-#endif
 
 /// LinAlg
 ///
@@ -42,11 +27,7 @@ import std;
 /// All the PtrVector/PtrMatrix types are trivially destructible, copyable, etc
 /// Their lifetimes are governed by the Arena or RAII type used to back
 /// them.
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 using utils::invariant;
 

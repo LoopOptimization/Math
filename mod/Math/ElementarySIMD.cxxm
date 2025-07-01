@@ -1,26 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include <bit>
-#include <cmath>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-
-#include "Bit/Float.cxx"
-#include "SIMD/SIMD.cxx"
-#else
 export module Elementary;
 
 import BitHack;
 import SIMD;
 import std;
-#endif
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 constexpr double J_TABLE[256] = {1.0,
@@ -490,11 +474,7 @@ constexpr auto exp_impl(simd::Unroll<R, U, W, double> x)
   }
 }
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 constexpr auto exp(double x) -> double { return exp_impl<3>(x); }
 constexpr auto exp2(double x) -> double { return exp_impl<2>(x); }
 constexpr auto exp10(double x) -> double { return exp_impl<10>(x); }

@@ -1,28 +1,7 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "SIMD/SIMD.cxx"
-#include "SIMD/Unroll.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Widen.cxx"
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <type_traits>
-#else
 export module UniformScaling;
 
 import ArrayConcepts;
@@ -32,13 +11,7 @@ import ExprTemplates;
 import SIMD;
 import std;
 import Widen;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 template <class T> struct UniformScaling {
   using value_type = T;

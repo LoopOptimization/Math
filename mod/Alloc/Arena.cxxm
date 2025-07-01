@@ -1,22 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include <algorithm>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <memory>
-#include <type_traits>
-#include <utility>
-#include <version>
-#endif
 
 // taken from LLVM, to avoid needing to include
 /// \macro LLVM_ADDRESS_SANITIZER_BUILD
@@ -39,18 +21,12 @@ module;
 #define MATH_NO_SANITIZE_MEMORY_ATTRIBUTE
 #endif
 
-#ifndef USE_MODULE
-#include "Alloc/Mallocator.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Utilities/Valid.cxx"
-#else
 export module Arena;
 
 import Allocator;
 import Invariant;
 import std;
 import Valid;
-#endif
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 #if !__has_include(<sanitizer/asan_interface.h>)
@@ -63,11 +39,7 @@ void __asan_unpoison_memory_region(void const volatile *addr, std::size_t size);
 #endif
 #endif
 
-#ifdef USE_MODULE
 export namespace alloc {
-#else
-namespace alloc {
-#endif
 
 using utils::invariant, utils::Valid;
 

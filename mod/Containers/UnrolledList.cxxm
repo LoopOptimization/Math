@@ -1,27 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-#ifndef USE_MODULE
-#include <cstddef>
-#include <memory>
-
-#include "Alloc/Arena.cxx"
-#include "Utilities/Invariant.cxx"
-#else
 export module UnrolledList;
 
 import Arena;
 import Invariant;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace containers {
-#else
-namespace containers {
-#endif
 using utils::invariant;
 template <typename T> class UList {
   T data_[6]; // NOLINT(modernize-avoid-c-arrays)

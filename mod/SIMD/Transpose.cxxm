@@ -1,26 +1,11 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "LoopMacros.hxx"
-#ifndef USE_MODULE
-#include "SIMD/Unroll.cxx"
-#include "SIMD/Vec.cxx"
-#include <cstddef>
-#else
 module SIMD:Tranpose;
 
 import :Unroll;
 import :Vec;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace simd {
-#else
-namespace simd {
-#endif
 
 template <std::ptrdiff_t C, typename T>
 constexpr auto transpose(Unroll<1, C, 1, T> u) -> Unroll<C, 1, 1, T> {

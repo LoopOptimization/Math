@@ -1,34 +1,17 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <type_traits>
-
-#include "Utilities/Invariant.cxx"
-#include "Utilities/Parameters.cxx"
-#else
 export module CheckSizes;
 
 import Invariant;
 import Param;
 import std;
-#endif
 
 template <typename T>
 concept ShouldView = requires(const T &x) {
   { x.view() } -> utils::TriviallyCopyable;
 };
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 using utils::invariant;
 // inputs must be `std::ptrdiff_t` or
 // `std::integral_constant<std::ptrdiff_t,value>`

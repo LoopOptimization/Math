@@ -1,16 +1,8 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Utilities/CorePrint.cxx"
-#else
 import Array;
 import CorePrint;
 import ManagedArray;
 import std;
-#endif
 
 using namespace math;
 

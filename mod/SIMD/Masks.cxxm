@@ -1,8 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
 
@@ -10,31 +6,13 @@ module;
 #include <immintrin.h>
 #endif
 
-#ifndef USE_MODULE
-#include <algorithm>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
-
-#include "SIMD/Vec.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Utilities/Widen.cxx"
-#else
 export module SIMD:Mask;
 
 import :Vec;
 import Invariant;
 import std;
 import Widen;
-#endif
-
-#ifdef USE_MODULE
 export namespace simd {
-#else
-namespace simd {
-#endif
 template <std::ptrdiff_t W,
           typename I = std::conditional_t<W == 2, std::int64_t, std::int32_t>>
 consteval auto range() -> Vec<W, I> {

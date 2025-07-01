@@ -1,20 +1,9 @@
 #include <benchmark/benchmark.h>
 
-#ifndef USE_MODULE
-#include "Math/AxisTypes.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/NormalForm.cxx"
-#include <cstddef>
-#include <cstdint>
-#include <random>
-#else
 import Array;
 import ArrayParse;
 import NormalForm;
 import std;
-#endif
 
 static void BM_solve_system(benchmark::State &state) {
   using math::_;

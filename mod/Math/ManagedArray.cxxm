@@ -1,29 +1,7 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
+#include "Macros.hxx"
 #include "Owner.hxx"
-#ifndef USE_MODULE
-#include "Alloc/Mallocator.cxx"
-#include "Containers/Storage.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <limits>
-#include <memory>
-#include <type_traits>
-#else
 export module ManagedArray;
 export import Array;
 import Allocator;
@@ -35,13 +13,7 @@ import std;
 import Storage;
 import Tuple;
 import TypeCompression;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 template <typename T>
 using DefaultAlloc = std::allocator<utils::compressed_t<T>>;
@@ -119,7 +91,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     if constexpr (trivialelt) std::fill_n(this->data(), len, x);
     else std::uninitialized_fill_n(this->data(), len, std::move(x));
   }
-  constexpr ManagedArray(A) noexcept : ManagedArray() {};
+  TRIVIAL constexpr ManagedArray(A) noexcept : ManagedArray(){};
   constexpr ManagedArray(S s, A) noexcept : ManagedArray(s) {};
   constexpr ManagedArray(std::ptrdiff_t s, A) noexcept
     requires(std::same_as<S, SquareDims<>>)
@@ -319,10 +291,10 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     this->sz_ = S{};
     this->capacity_ = U(math::Capacity<StackStorage, std::ptrdiff_t>{});
   }
-  constexpr ~ManagedArray() noexcept { this->maybeDeallocate(); }
+  TRIVIAL constexpr ~ManagedArray() noexcept { this->maybeDeallocate(); }
 
-  [[nodiscard]] static constexpr auto identity(std::ptrdiff_t M) -> ManagedArray
-    requires(MatrixDimension<S>) {
+  [[nodiscard]] TRIVIAL static constexpr auto identity(std::ptrdiff_t M)
+    -> ManagedArray requires(MatrixDimension<S>) {
     ManagedArray B(SquareDims<>{row(M)}, T{0});
     B.diag() << 1;
     return B;
@@ -336,19 +308,20 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     return identity(std::ptrdiff_t(C));
   }
 
-  constexpr void reserveForGrow1() requires(std::same_as<S, Length<>>) {
+  TRIVIAL constexpr void reserveForGrow1() requires(std::same_as<S, Length<>>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
   }
 
   template <class... Args>
-  constexpr auto emplace_back(Args &&...args) -> decltype(auto)
+  TRIVIAL constexpr auto emplace_back(Args &&...args) -> decltype(auto)
     requires(std::same_as<S, Length<>>) {
     reserveForGrow1();
     return this->emplace_back_within_capacity(args...);
   }
-  constexpr void push_back(T value) requires(std::same_as<S, Length<>>) {
+  TRIVIAL constexpr void push_back(T value) requires(std::same_as<S, Length<>>)
+  {
     reserveForGrow1();
     this->push_back_within_capacity(std::move(value));
   }
@@ -368,16 +341,16 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   // If the new dims are smaller in rows or cols, we truncate.
   // New memory outside of dims (i.e., stride larger), we leave uninitialized.
   //
-  constexpr void resize(S nz) {
+  TRIVIAL constexpr void resize(S nz) {
     reallocForSize(nz);
     this->sz_ = nz;
   }
-  constexpr void resize(Row<> r)
+  TRIVIAL constexpr void resize(Row<> r)
     requires(std::same_as<S, Length<>> || MatrixDimension<S>) {
     if constexpr (std::same_as<S, Length<>>) return resize(S(r));
     else return resize(auto{this->sz_}.set(r));
   }
-  constexpr void resize(Col<> c)
+  TRIVIAL constexpr void resize(Col<> c)
     requires(std::same_as<S, Length<>> || MatrixDimension<S>) {
     if constexpr (std::same_as<S, Length<>>) return resize(S(c));
     else if constexpr (MatrixDimension<S>)
@@ -402,17 +375,19 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     } else if (nz > std::ptrdiff_t(this->sz_)) growUndef(nz);
     this->sz_ = M;
   }
-  constexpr void resizeForOverwrite(std::ptrdiff_t M)
+  TRIVIAL constexpr void resizeForOverwrite(std::ptrdiff_t M)
     requires(std::same_as<S, Length<>>) {
     resizeForOverwrite(length(M));
   }
-  constexpr void resize(std::ptrdiff_t M) requires(std::same_as<S, Length<>>) {
+  TRIVIAL constexpr void resize(std::ptrdiff_t M)
+    requires(std::same_as<S, Length<>>) {
     resize(length(M));
   }
-  constexpr void reserve(std::ptrdiff_t M) requires(std::same_as<S, Length<>>) {
+  TRIVIAL constexpr void reserve(std::ptrdiff_t M)
+    requires(std::same_as<S, Length<>>) {
     reserve(length(M));
   }
-  constexpr void reservePow2(std::ptrdiff_t M)
+  TRIVIAL constexpr void reservePow2(std::ptrdiff_t M)
     requires(std::same_as<S, Length<>>) {
     // 1 -> 0 -> 64 -> 0
     // 2 -> 1 -> 63 -> 1
@@ -462,44 +437,46 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     maybeDeallocate(op, old_len, std::ptrdiff_t(oc), was_allocated);
     return {new_ptr, U(capacity(nc))};
   }
-  constexpr void reserve(S nz) {
+  TRIVIAL constexpr void reserve(S nz) {
     auto [np, nc] = reserveCore(nz, this->data(), std::ptrdiff_t(this->sz_),
                                 this->capacity_, wasAllocated());
     this->ptr_ = np;
     this->capacity_ = nc;
   }
-  [[nodiscard]] constexpr auto get_allocator() const noexcept -> A {
+  [[nodiscard]] TRIVIAL constexpr auto get_allocator() const noexcept -> A {
     return {};
   }
   // set size and 0.
-  constexpr void setSize(Row<> r, Col<> c) {
+  TRIVIAL constexpr void setSize(Row<> r, Col<> c) {
     resizeForOverwrite({r, c});
     this->fill(0);
   }
-  constexpr void resize(Row<> MM, Col<> NN) { resize(DenseDims{MM, NN}); }
-  constexpr void reserve(Row<> M, Col<> N) {
+  TRIVIAL constexpr void resize(Row<> MM, Col<> NN) {
+    resize(DenseDims{MM, NN});
+  }
+  TRIVIAL constexpr void reserve(Row<> M, Col<> N) {
     if constexpr (std::is_same_v<S, StridedDims<>>)
       reserve(StridedDims{M, N, max(N, RowStride(this->dim()))});
     else if constexpr (std::is_same_v<S, SquareDims<>>)
       reserve(SquareDims{row(std::max(std::ptrdiff_t(M), std::ptrdiff_t(N)))});
     else reserve(DenseDims{M, N});
   }
-  constexpr void reserve(Row<> M, RowStride<> X) {
+  TRIVIAL constexpr void reserve(Row<> M, RowStride<> X) {
     if constexpr (std::is_same_v<S, StridedDims<>>)
       reserve(S{M, col(std::ptrdiff_t(X)), X});
     else if constexpr (std::is_same_v<S, SquareDims<>>)
       reserve(SquareDims{row(std::max(std::ptrdiff_t(M), std::ptrdiff_t(X)))});
     else reserve(S{M, col(std::ptrdiff_t(X))});
   }
-  constexpr void clearReserve(Row<> M, Col<> N) {
+  TRIVIAL constexpr void clearReserve(Row<> M, Col<> N) {
     this->clear();
     reserve(M, N);
   }
-  constexpr void clearReserve(Row<> M, RowStride<> X) {
+  TRIVIAL constexpr void clearReserve(Row<> M, RowStride<> X) {
     this->clear();
     reserve(M, X);
   }
-  constexpr void resizeForOverwrite(Row<> M, Col<> N, RowStride<> X) {
+  TRIVIAL constexpr void resizeForOverwrite(Row<> M, Col<> N, RowStride<> X) {
     invariant(X >= N);
     if constexpr (std::is_same_v<S, StridedDims<>>)
       resizeForOverwrite(S{M, N, X});
@@ -508,7 +485,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       resizeForOverwrite(S{M});
     } else resizeForOverwrite(S{M, N});
   }
-  constexpr void resizeForOverwrite(Row<> M, Col<> N) {
+  TRIVIAL constexpr void resizeForOverwrite(Row<> M, Col<> N) {
     if constexpr (std::is_same_v<S, StridedDims<>>)
       resizeForOverwrite(S{M, N, {std::ptrdiff_t(N)}});
     else if constexpr (std::is_same_v<S, SquareDims<>>) {
@@ -525,11 +502,11 @@ private:
     invariant(res.count >= l);
     this->capacity_ = U(capacity(res.count));
   }
-  [[nodiscard]] constexpr auto isSmall() const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto isSmall() const -> bool {
     invariant(this->capacity_ >= StackStorage);
     return this->capacity_ == StackStorage;
   }
-  [[nodiscard]] constexpr auto wasAllocated() const -> bool {
+  TRIVIAL [[nodiscard]] constexpr auto wasAllocated() const -> bool {
     return !isSmall();
   }
   // this method should only be called from the destructor

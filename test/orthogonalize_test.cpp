@@ -1,24 +1,10 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Macros.hxx"
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/NormalForm.cxx"
-#include <cstddef>
-#include <cstdint>
-#include <random>
-#else
-
 import Arena;
 import Array;
 import ManagedArray;
 import MatDim;
 import NormalForm;
 import std;
-#endif
 
 using math::DenseMatrix, math::DenseDims, math::row, math::col;
 

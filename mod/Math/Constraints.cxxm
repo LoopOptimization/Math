@@ -1,28 +1,5 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include "Containers/BitSets.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Comparisons.cxx"
-#include "Math/EmptyArrays.cxx"
-#include "Math/GenericConstructors.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/NormalForm.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#else
+#include "Macros.hxx"
 export module Constraints;
 import ArrayConcepts;
 import AxisTypes;
@@ -35,13 +12,8 @@ import GenericArrayConstructors;
 import ManagedArray;
 import NormalForm;
 import std;
-#endif
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 inline void printConstraint(PtrVector<std::int64_t> a, std::ptrdiff_t numSyms,
                             bool inequality) {
   std::ptrdiff_t numVar = a.size();
@@ -451,7 +423,8 @@ removeRedundantRows(MutDensePtrMatrix<std::int64_t> A,
   return {NormalForm::numNonZeroRows(A), NormalForm::numNonZeroRows(B)};
 }
 
-constexpr void dropEmptyConstraints(MutDensePtrMatrix<std::int64_t> &A) {
+TRIVIAL constexpr void
+dropEmptyConstraints(MutDensePtrMatrix<std::int64_t> &A) {
   for (Row c = A.numRow(); c != 0;)
     if (allZero(A[--c, _])) eraseConstraint(A, c);
 }
@@ -467,7 +440,8 @@ constexpr auto uniqueConstraint(DensePtrMatrix<std::int64_t> A,
   return true;
 }
 
-constexpr auto countSigns(DensePtrMatrix<std::int64_t> A, std::ptrdiff_t i)
+TRIVIAL constexpr auto countSigns(DensePtrMatrix<std::int64_t> A,
+                                  std::ptrdiff_t i)
   -> std::array<std::ptrdiff_t, 2> {
   std::ptrdiff_t numNeg = 0;
   std::ptrdiff_t numPos = 0;
@@ -479,8 +453,8 @@ constexpr auto countSigns(DensePtrMatrix<std::int64_t> A, std::ptrdiff_t i)
   return {numNeg, numPos};
 }
 
-constexpr void deleteBounds(MutDensePtrMatrix<std::int64_t> &A,
-                            std::ptrdiff_t i) {
+TRIVIAL constexpr void deleteBounds(MutDensePtrMatrix<std::int64_t> &A,
+                                    std::ptrdiff_t i) {
   for (Row j = A.numRow(); j != 0;)
     if (A[--j, i]) eraseConstraint(A, j);
 }

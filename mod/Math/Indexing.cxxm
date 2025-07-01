@@ -1,22 +1,5 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Math/AxisTypes.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "SIMD/Indexing.cxx"
-#include "SIMD/Masks.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "Utilities/CorePrint.cxx"
-#include <concepts>
-#include <cstddef>
-#include <type_traits>
-#include <utility>
-#else
 export module Indexing;
 
 import AxisTypes;
@@ -26,13 +9,7 @@ import Range;
 import MatDim;
 import SIMD;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 [[maybe_unused]] inline constexpr struct Begin {
   void print() const { utils::print('0'); }

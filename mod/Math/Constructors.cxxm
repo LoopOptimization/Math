@@ -1,18 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-#ifndef USE_MODULE
-#include <cstddef>
-#include <cstring>
-#include <type_traits>
-
-#include "Alloc/Arena.cxx"
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/MatrixDimensions.cxx"
-#else
 export module ArrayConstructors;
 
 import Arena;
@@ -20,14 +6,9 @@ import Array;
 import AxisTypes;
 import MatDim;
 import std;
-#endif
 
 using utils::eltype_t;
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 template <class T>
 constexpr auto vector(alloc::WArena<T> alloc, std::ptrdiff_t M)

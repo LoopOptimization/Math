@@ -1,19 +1,7 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/LinearDiophantine.cxx"
-#include "Utilities/CorePrint.cxx"
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <random>
-#include <vector>
-#else
 import CorePrint;
 import LinearDiophantine;
 import std;
-#endif
 
 using namespace math;
 

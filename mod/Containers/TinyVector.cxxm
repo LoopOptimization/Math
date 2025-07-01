@@ -1,24 +1,6 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
 #include "Owner.hxx"
-#ifndef USE_MODULE
-#include "Containers/Storage.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <initializer_list>
-#include <limits>
-#include <memory>
-#include <type_traits>
-#else
 export module TinyVector;
 import ArrayPrint;
 import AxisTypes;
@@ -27,13 +9,7 @@ import Invariant;
 import MatDim;
 import Storage;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace containers {
-#else
-namespace containers {
-#endif
 using utils::invariant;
 
 template <class T, std::size_t N, std::signed_integral L = std::ptrdiff_t>

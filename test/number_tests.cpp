@@ -1,15 +1,8 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Numbers/Int8.cxx"
-#include "Utilities/CorePrint.cxx"
-#include <cstdint>
-#include <limits>
-#else
 
 import CorePrint;
 import Int8;
 import std;
-#endif
 
 using numbers::i8, numbers::u8, numbers::Flag8;
 static_assert(utils::Printable<numbers::i8>);

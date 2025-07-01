@@ -1,26 +1,7 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include <array>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <type_traits>
-
-#include "Math/AxisTypes.cxx"
-#include "SIMD/Indexing.cxx"
-#include "SIMD/Intrin.cxx"
-#include "SIMD/Masks.cxx"
-#include "SIMD/Vec.cxx"
-#else
 export module SIMD:Unroll;
 
 import :Vec;
@@ -29,13 +10,7 @@ import :Index;
 import :Mask;
 import AxisTypes;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace simd {
-#else
-namespace simd {
-#endif
 // template <typename T, std::ptrdiff_t W, typename S>
 // TRIVIAL constexpr auto vcvt(Vec<W, S> v) {
 //   if constexpr (std::same_as<T, S>) return v;

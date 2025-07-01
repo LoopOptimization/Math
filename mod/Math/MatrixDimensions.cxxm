@@ -1,32 +1,14 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
 
-#ifndef USE_MODULE
-#include "Math/AxisTypes.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <concepts>
-#include <cstddef>
-#include <type_traits>
-#else
 export module MatDim;
 
 import AxisTypes;
 import CorePrint;
 import Invariant;
 import std;
-#endif
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 using utils::invariant;
 
@@ -582,11 +564,7 @@ concept StaticInt =
 
 } // namespace math
 
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 template <typename T>
 concept HasEltype = requires(T) {
   typename std::remove_cvref_t<T>::value_type;

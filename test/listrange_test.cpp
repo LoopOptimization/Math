@@ -1,20 +1,9 @@
 #include <gtest/gtest.h>
 
-#ifndef USE_MODULE
-#include <algorithm>
-#include <concepts>
-#include <ranges>
-
-#include "Alloc/Arena.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Utilities/ListRanges.cxx"
-#else
-
 import Arena;
 import ListRange;
 import ManagedArray;
 import std;
-#endif
 
 template <typename T> class List {
   T data_;

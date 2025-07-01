@@ -1,26 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-
-#include "Utilities/TypeCompression.cxx"
-#else
 export module CompressReference;
 
 import TypeCompression;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 template <typename T> struct Reference {
   using C = utils::compressed_t<T>;
   static_assert(!std::same_as<C, T>);

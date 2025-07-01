@@ -1,26 +1,9 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-#ifndef USE_MODULE
-#include <array>
-#include <cstdint>
-#include <optional>
-
-#include "Math/GreatestCommonDivisor.cxx"
-#else
 export module LinearDiophantine;
 
 import GCD;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 inline auto linearDiophantine(std::int64_t c, std::int64_t a, std::int64_t b)
   -> std::optional<std::array<std::int64_t, 2>> {

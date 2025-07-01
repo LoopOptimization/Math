@@ -150,8 +150,7 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
   TRIVIAL [[nodiscard]] constexpr auto gradient() const -> const data_type & {
     return partials_;
   }
-  TRIVIAL [[nodiscard]] constexpr auto gradient(std::ptrdiff_t i) const
-    -> const T & {
+  TRIVIAL [[nodiscard]] constexpr auto gradient(std::ptrdiff_t i) const -> T {
     return partials_[i];
   }
   TRIVIAL constexpr auto operator-() const -> Dual {
@@ -1083,39 +1082,44 @@ struct ScalarizeEltViaCast<Dual<T, N, true>> {
 // These correspond to definitions in Dual.cxx implementation file
 
 // Common dual number types for SIMD optimization
-extern template struct Dual<double, 1, false>;  // Scalar AD
-extern template struct Dual<double, 1, true>;   // Compressed scalar AD
-extern template struct Dual<double, 3, false>;  // 256-bit SIMD (4 doubles - 1)
-extern template struct Dual<double, 3, true>;   // Compressed 256-bit SIMD
-extern template struct Dual<double, 7, false>;  // 512-bit SIMD (8 doubles - 1)
-extern template struct Dual<double, 7, true>;   // Compressed 512-bit SIMD
-extern template struct Dual<double, 8, false>;  // Common general purpose size
+extern template struct Dual<double, 1, false>; // Scalar AD
+extern template struct Dual<double, 1, true>;  // Compressed scalar AD
+extern template struct Dual<double, 3, false>; // 256-bit SIMD (4 doubles - 1)
+extern template struct Dual<double, 3, true>;  // Compressed 256-bit SIMD
+extern template struct Dual<double, 7, false>; // 512-bit SIMD (8 doubles - 1)
+extern template struct Dual<double, 7, true>;  // Compressed 512-bit SIMD
+extern template struct Dual<double, 8, false>; // Common general purpose size
 
 // Complex operations that benefit from explicit instantiation
-// Note: operators are currently commented out in the interface, so no extern template declarations needed
+// Note: operators are currently commented out in the interface, so no extern
+// template declarations needed
 
 // Elementary functions
-extern template auto exp<double, 1>(const Dual<double, 1>&) -> Dual<double, 1>;
-extern template auto exp<double, 3>(const Dual<double, 3>&) -> Dual<double, 3>;
-extern template auto exp<double, 7>(const Dual<double, 7>&) -> Dual<double, 7>;
-extern template auto exp<double, 8>(const Dual<double, 8>&) -> Dual<double, 8>;
+extern template auto exp<double, 1>(const Dual<double, 1> &) -> Dual<double, 1>;
+extern template auto exp<double, 3>(const Dual<double, 3> &) -> Dual<double, 3>;
+extern template auto exp<double, 7>(const Dual<double, 7> &) -> Dual<double, 7>;
+extern template auto exp<double, 8>(const Dual<double, 8> &) -> Dual<double, 8>;
 
-extern template auto log<double, 1>(const Dual<double, 1>&) -> Dual<double, 1>;
-extern template auto log<double, 3>(const Dual<double, 3>&) -> Dual<double, 3>;
-extern template auto log<double, 7>(const Dual<double, 7>&) -> Dual<double, 7>;
-extern template auto log<double, 8>(const Dual<double, 8>&) -> Dual<double, 8>;
+extern template auto log<double, 1>(const Dual<double, 1> &) -> Dual<double, 1>;
+extern template auto log<double, 3>(const Dual<double, 3> &) -> Dual<double, 3>;
+extern template auto log<double, 7>(const Dual<double, 7> &) -> Dual<double, 7>;
+extern template auto log<double, 8>(const Dual<double, 8> &) -> Dual<double, 8>;
 
-extern template auto sigmoid<double, 1>(const Dual<double, 1>&) -> Dual<double, 1>;
-extern template auto sigmoid<double, 3>(const Dual<double, 3>&) -> Dual<double, 3>;
-extern template auto sigmoid<double, 7>(const Dual<double, 7>&) -> Dual<double, 7>;
-extern template auto sigmoid<double, 8>(const Dual<double, 8>&) -> Dual<double, 8>;
+extern template auto sigmoid<double, 1>(const Dual<double, 1> &)
+  -> Dual<double, 1>;
+extern template auto sigmoid<double, 3>(const Dual<double, 3> &)
+  -> Dual<double, 3>;
+extern template auto sigmoid<double, 7>(const Dual<double, 7> &)
+  -> Dual<double, 7>;
+extern template auto sigmoid<double, 8>(const Dual<double, 8> &)
+  -> Dual<double, 8>;
 
 // Common type aliases for convenience
-template<typename T> using DualScalar = Dual<T, 1>;
+template <typename T> using DualScalar = Dual<T, 1>;
 using Dual64 = DualScalar<double>;
-using Dual64x3 = Dual<double, 3>;  // AVX256 optimized
-using Dual64x7 = Dual<double, 7>;  // AVX512 optimized
-using Dual64x8 = Dual<double, 8>;  // General purpose
+using Dual64x3 = Dual<double, 3>; // AVX256 optimized
+using Dual64x7 = Dual<double, 7>; // AVX512 optimized
+using Dual64x8 = Dual<double, 8>; // General purpose
 
 } // namespace math
 

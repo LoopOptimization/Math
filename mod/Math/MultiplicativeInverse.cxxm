@@ -1,28 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include <array>
-#include <bit>
-#include <cmath>
-#include <concepts>
-#include <limits>
-#include <type_traits>
-
-#include "Numbers/Int8.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Utilities/Widen.cxx"
-#else
 export module MultiplicativeInverse;
 
 import Int8;
 import Invariant;
 import std;
 import Widen;
-#endif
 
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
@@ -58,11 +40,7 @@ template <std::integral T> CLANGNOUBSAN constexpr auto mul_high(T a, T b) -> T {
 #undef CLANGNOUBSAN
 } // namespace math::detail
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 using numbers::i8, numbers::u8;
 template <std::integral T> constexpr auto cld(T a, T b) -> T {
   T d = a / b;

@@ -1,32 +1,11 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Math/ArrayConcepts.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "SIMD/Intrin.cxx"
-#include "SIMD/Unroll.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "SIMD/Vec.cxx"
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <type_traits>
-#else
 export module Comparisons;
 import ArrayConcepts;
 import SIMD;
 import std;
-#endif
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 // constexpr auto allZero(const auto &x) -> bool {
 //   return std::all_of(x.begin(), x.end(), [](auto a) { return a == 0; });
 //   // return std::ranges::all_of(x, [](auto x) { return x == 0; });

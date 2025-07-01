@@ -1,18 +1,5 @@
 #include <gtest/gtest.h>
 
-#ifndef USE_MODULE
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Rational.cxx"
-#include "Math/Reductions.cxx"
-#include "Utilities/CorePrint.cxx"
-#include <cstddef>
-#include <cstdint>
-#include <random>
-#else
 import CorePrint;
 import Invariant;
 import LinearAlgebra;
@@ -21,7 +8,6 @@ import MatDim;
 import Rational;
 import Reductions;
 import std;
-#endif
 
 using namespace math;
 

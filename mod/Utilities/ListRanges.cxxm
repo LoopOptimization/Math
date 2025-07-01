@@ -1,30 +1,11 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
-#include "Utilities/Valid.cxx"
-#include <concepts>
-#include <cstddef>
-#include <iterator>
-#include <ranges>
-#include <type_traits>
-#else
 export module ListRange;
 import Invariant;
 import std;
 import Valid;
-#endif
-
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 
 class GetNext {
 public:

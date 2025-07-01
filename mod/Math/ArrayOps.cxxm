@@ -1,29 +1,6 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Containers/Tuple.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/CheckSizes.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Math/UniformScaling.cxx"
-#include "SIMD/Intrin.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <array>
-#include <concepts>
-#include <cstddef>
-#include <cstring>
-#include <functional>
-#include <type_traits>
-#else
 export module AssignExprTemplates;
 
 import ArrayConcepts;
@@ -36,15 +13,10 @@ import std;
 import Tuple;
 import TypeCompression;
 import UniformScaling;
-#endif
 
 #define CASTTOSCALARIZE
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 using utils::invariant;
 // scalars broadcast
 
@@ -420,11 +392,7 @@ public:
 
 } // namespace math
 
-#ifdef USE_MODULE
 export namespace containers {
-#else
-namespace containers {
-#endif
 
 namespace detail {
 template <typename T> struct IsArrayOpImpl : std::false_type {};

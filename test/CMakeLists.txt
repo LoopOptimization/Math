@@ -36,16 +36,14 @@ if(USE_TYPE_SANITIZER)
       OFF
       CACHE BOOL "No jemalloc with sanitizers")
 endif()
-if(USE_MODULES)
-  # set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-  # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-      # This specific value changes as experimental support evolves. See
-      # `Help/dev/experimental.rst` in the CMake source corresponding to
-      # your CMake build for the exact value to use.
-      "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-  # cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-endif()
+# set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+# "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+    # This specific value changes as experimental support evolves. See
+    # `Help/dev/experimental.rst` in the CMake source corresponding to
+    # your CMake build for the exact value to use.
+    "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+# cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 
 # # ---- Static Analyzers ---- find_program(CLANGTIDY clang-tidy) if(NOT
 # CLANGTIDY MATCHES CLANGTIDY-NOTFOUND) set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY})
@@ -57,9 +55,7 @@ project(MathTests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-if(USE_MODULES)
-  set(CMAKE_CXX_MODULE_STD 1)
-endif()
+set(CMAKE_CXX_MODULE_STD 1)
 
 # --- Import tools ----
 
@@ -137,9 +133,6 @@ endif()
 if(POLYMATHNOEXPLICITSIMDARRAY)
   target_compile_definitions(${PROJECT_NAME}
                              PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
-endif()
-if(NOT USE_MODULES)
-  set_target_properties(${PROJECT_NAME} PROPERTIES CXX_SCAN_FOR_MODULES 0)
 endif()
 
 # enable compiler warnings

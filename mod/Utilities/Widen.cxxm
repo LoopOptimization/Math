@@ -1,25 +1,8 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
-#else
 
 export module Widen;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 
 template <std::size_t Size>
 using signed_integer_t = std::conditional_t<

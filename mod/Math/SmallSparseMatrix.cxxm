@@ -1,21 +1,4 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <utility>
-
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#else
 export module SmallSparseMatrix;
 
 import Array;
@@ -24,13 +7,7 @@ import CorePrint;
 import ManagedArray;
 import MatDim;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 // this file is not used at the moment
 template <typename T> class SmallSparseMatrix {
   // non-zeros

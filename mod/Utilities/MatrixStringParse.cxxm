@@ -1,22 +1,8 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
-
-#include "Math/StaticArrays.cxx"
-#else
 export module ArrayParse;
 
 import StaticArray;
 import std;
-#endif
 
 // #if !defined(__clang__)
 #define CONSTEVAL_LITERAL_ARRAYS
@@ -90,11 +76,7 @@ template <String S> consteval auto matrix_from_string() {
   return A;
 }
 
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 
 // constexpr auto cstoll(const char *s, std::ptrdiff_t &cur) -> std::int64_t {
 //   std::int64_t res = 0;

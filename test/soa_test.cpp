@@ -1,15 +1,4 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/SOA.cxx"
-#include <concepts>
-#include <cstddef>
-#include <type_traits>
-#else
 import Array;
 import AxisTypes;
 import ManagedArray;
@@ -17,7 +6,6 @@ import Range;
 import SOA;
 import std;
 import Tuple;
-#endif
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(SOATest, BasicAssertions) {

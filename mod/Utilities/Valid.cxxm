@@ -1,27 +1,12 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
 #include "Owner.hxx"
-#ifndef USE_MODULE
-#include "Utilities/Invariant.cxx"
-#include <cstddef>
-#include <type_traits>
-#else
 export module Valid;
 
 import Invariant;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace utils {
-#else
-namespace utils {
-#endif
 template <typename T> struct Mut : T {
   using T::T;
 };

@@ -1,13 +1,6 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/Saturated.cxx"
-#include <algorithm>
-#include <limits>
-#include <random>
-#else
 import Saturated;
 import std;
-#endif
 
 TEST(SaturatedArithmetic, BasicAssertions) {
 

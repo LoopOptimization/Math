@@ -1,12 +1,6 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Utilities/Optional.cxx"
-#include <cstddef>
-#include <limits>
-#else
 import Optional;
 import std;
-#endif
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 TEST(Optional, BasicAssertions) {

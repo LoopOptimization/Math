@@ -1,43 +1,9 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
 #include "Owner.hxx"
 
-#ifndef USE_MODULE
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/ArrayOps.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "SIMD/Intrin.cxx"
-#include "SIMD/Unroll.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/Reference.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <initializer_list>
-#include <iterator>
-#include <ostream>
-#include <tuple>
-#include <type_traits>
-#include <utility>
-#else
 export module StaticArray;
 import Array;
 import ArrayConcepts;
@@ -51,7 +17,6 @@ import Range;
 import SIMD;
 import std;
 import TypeCompression;
-#endif
 
 template <typename T, std::ptrdiff_t L>
 consteval auto paddedSize() -> std::array<std::ptrdiff_t, 2> {
@@ -73,11 +38,7 @@ consteval auto alignSIMD() -> std::size_t {
   else return alignof(simd::Vec<simd::VecLen<L, T>, T>);
 }
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 template <class T, std::ptrdiff_t M, std::ptrdiff_t N, bool Compress>
 using StaticDims = std::conditional_t<

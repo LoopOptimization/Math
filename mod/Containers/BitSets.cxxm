@@ -1,30 +1,5 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Math/Array.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <compare>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <iterator>
-#include <limits>
-#include <ranges>
-#include <string>
-#include <type_traits>
-#else
 export module BitSet;
 
 import Array;
@@ -35,13 +10,7 @@ import ManagedArray;
 import MatDim;
 import Range;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace containers {
-#else
-namespace containers {
-#endif
 using utils::invariant;
 
 struct EndSentinel {

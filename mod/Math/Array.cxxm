@@ -1,49 +1,7 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
 #include "Owner.hxx"
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Containers/Storage.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/ArrayOps.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/ExpressionTemplates.cxx"
-#include "Math/Indexing.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Ranges.cxx"
-#include "Math/ScalarizeViaCastArrayOps.cxx"
-#include "Utilities/ArrayPrint.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Utilities/Optional.cxx"
-#include "Utilities/Parameters.cxx"
-#include "Utilities/Reference.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include "Utilities/Valid.cxx"
-#include <algorithm>
-#include <array>
-#include <compare>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <iterator>
-#include <memory>
-#include <ostream>
-#include <ranges>
-#include <sstream>
-#include <type_traits>
-#include <utility>
-#include <version>
-#else
 export module Array;
 
 export import ArrayConcepts;
@@ -68,13 +26,7 @@ import Storage;
 import Tuple;
 import TypeCompression;
 import Valid;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 using utils::compressed_t, utils::decompressed_t;
 
 static_assert(Dimension<Length<>>);

@@ -1,35 +1,5 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 #include "LoopMacros.hxx"
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Alloc/Mallocator.cxx"
-#include "Containers/Tuple.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/Dual.cxx"
-#include "Math/ElementarySIMD.cxx"
-#include "Math/LinearAlgebra.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/Reductions.cxx"
-#include "SIMD/Unroll.cxx"
-#include "SIMD/UnrollIndex.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/Parameters.cxx"
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <new>
-#include <type_traits>
-#include <utility>
-#else
 export module BoxOpt;
 import Allocator;
 import Arena;
@@ -45,13 +15,8 @@ import Reductions;
 import SIMD;
 import std;
 import Tuple;
-#endif
 
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 constexpr double EXTREME = 8.0;
 

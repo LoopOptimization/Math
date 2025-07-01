@@ -1,29 +1,11 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include <cstddef>
-#include <cstdint>
-#else
 export module VGCD;
 export import GCD;
 import Array;
 import ArrayConcepts;
 import std;
 import Tuple;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 constexpr auto gcd(PtrVector<std::int64_t> x) -> std::int64_t {
   const std::ptrdiff_t N = x.size();

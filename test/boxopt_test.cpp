@@ -1,20 +1,4 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Alloc/Arena.cxx"
-#include "Math/Array.cxx"
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#include "Math/BoxOpt.cxx"
-#include "Math/BoxOptInt.cxx"
-#include "Math/Dual.cxx"
-#include "Math/ElementarySIMD.cxx"
-#include "Math/ManagedArray.cxx"
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstdlib>
-#else
-
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -25,7 +9,6 @@ import Dual;
 import Elementary;
 import ManagedArray;
 import std;
-#endif
 
 namespace {
 constexpr auto fcore(auto u1, auto u2) {

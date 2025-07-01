@@ -1,22 +1,6 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
 
 #include "Macros.hxx"
-#ifndef USE_MODULE
-#include "Math/GreatestCommonDivisor.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/Invariant.cxx"
-#include "Utilities/TypeCompression.cxx"
-#include "Utilities/Widen.cxx"
-#include <concepts>
-#include <cstdint>
-#include <limits>
-#include <optional>
-#include <type_traits>
-#else
 export module Rational;
 
 import CorePrint;
@@ -25,13 +9,7 @@ import Invariant;
 import std;
 import TypeCompression;
 import Widen;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 struct Rational {
   [[no_unique_address]] std::int64_t numerator_{0};
@@ -264,9 +242,7 @@ private:
   }
 };
 } // namespace math
-#ifdef USE_MODULE
 export {
-#endif
   template <> struct std::common_type<math::Rational, int> {
     using type = math::Rational;
   };
@@ -279,9 +255,7 @@ export {
   template <> struct std::common_type<std::int64_t, math::Rational> {
     using type = math::Rational;
   };
-#ifdef USE_MODULE
 } // namespace std
-#endif
 static_assert(
   std::same_as<std::common_type_t<math::Rational, int>, math::Rational>);
 static_assert(

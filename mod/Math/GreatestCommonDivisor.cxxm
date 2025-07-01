@@ -1,33 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include "SIMD/SIMD.cxx"
-#include "SIMD/Vec.cxx"
-#include "Utilities/Invariant.cxx"
-#include <algorithm>
-#include <array>
-#include <bit>
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-#else
 export module GCD;
 
 import Invariant;
 import SIMD;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 using utils::invariant;
 constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;

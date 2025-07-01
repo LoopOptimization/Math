@@ -1,15 +1,4 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Math/Array.cxx"
-#include "Math/ManagedArray.cxx"
-#include "Math/MatrixDimensions.cxx"
-#include "Math/StaticArrays.cxx"
-#include "Utilities/CorePrint.cxx"
-#include "Utilities/MatrixStringParse.cxx"
-#include <concepts>
-#include <cstddef>
-#include <cstdint>
-#else
 import Array;
 import ArrayParse;
 import CorePrint;
@@ -17,7 +6,6 @@ import ManagedArray;
 import MatDim;
 import StaticArray;
 import std;
-#endif
 
 using namespace math;
 using utils::operator""_mat;

@@ -1,27 +1,10 @@
-#ifdef USE_MODULE
 module;
-#else
-#pragma once
-#endif
-
-#ifndef USE_MODULE
-#include <cstddef>
-
-#include "Math/ArrayConcepts.cxx"
-#include "Math/AxisTypes.cxx"
-#else
 export module EmptyMatrix;
 
 import ArrayConcepts;
 import AxisTypes;
 import std;
-#endif
-
-#ifdef USE_MODULE
 export namespace math {
-#else
-namespace math {
-#endif
 
 template <typename T> struct EmptyMatrix {
   using value_type = T;

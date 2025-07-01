@@ -1,20 +1,8 @@
 #include <gtest/gtest.h>
-#ifndef USE_MODULE
-#include "Containers/Tuple.cxx"
-#include "Math/GreatestCommonDivisor.cxx"
-#include "SIMD/SIMD.cxx"
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-#include <numeric>
-#include <random>
-#else
 import GCD;
 import SIMD;
 import std;
 import Tuple;
-#endif
 
 template <std::ptrdiff_t W>
 constexpr auto vecget(simd::Vec<W, std::int64_t> v, std::ptrdiff_t i)

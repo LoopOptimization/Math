@@ -2,11 +2,11 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clang-modules clang-no-san clang-san gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
 else ifeq ($(HAVE_AVX2),0)
-all: clang-modules clang-no-san clang-san gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release gcc-avx2
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release gcc-avx2
 else
-all: clang-modules clang-no-san clang-san gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release
 endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
@@ -31,12 +31,15 @@ build-clang/no-san/:
 
 build-clang/san/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+
+build-clang/no-san-libstdcxx/:
+	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san-libstdcxx/ -DCMAKE_BUILD_TYPE=Debug
+
+build-clang/san-libstdcxx/:
+	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san-libstdcxx/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 	
 build-gcc/avx2/:
 	CXXFLAGS="-Og -march=x86-64-v3" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
-
-build-gcc/modules/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
 
 build-clang/base-arch/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/base-arch/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
@@ -46,12 +49,6 @@ build-clang/avx512/:
 
 build-clang/no-simd/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
-
-build-clang/modules/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/modules/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
-
-build-clang/modules-libstdcxx/:
-	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/modules-libstdcxx/ -DCMAKE_BUILD_TYPE=Debug -DUSE_MODULES=ON
 
 build-clang/bench/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
@@ -84,6 +81,14 @@ clang-san: build-clang/san/
 	cmake --build build-clang/san/
 	cmake --build build-clang/san/ --target test
 
+clang-no-san-libstdcxx: build-clang/no-san-libstdcxx/
+	cmake --build build-clang/no-san-libstdcxx/
+	cmake --build build-clang/no-san-libstdcxx/ --target test
+
+clang-san-libstdcxx: build-clang/san-libstdcxx/
+	cmake --build build-clang/san-libstdcxx/
+	cmake --build build-clang/san-libstdcxx/ --target test
+
 gcc-avx2: build-gcc/avx2/
 	cmake --build build-gcc/avx2/
 	cmake --build build-gcc/avx2/ --target test
@@ -99,18 +104,6 @@ clang-avx512: build-clang/avx512/
 clang-nosimd: build-clang/no-simd/
 	cmake --build build-clang/no-simd/
 	cmake --build build-clang/no-simd/ --target test
-
-clang-modules: build-clang/modules/
-	cmake --build build-clang/modules/
-	cmake --build build-clang/modules/ --target test
-
-clang-modules-libstdcxx: build-clang/modules-libstdcxx/
-	cmake --build build-clang/modules-libstdcxx/
-	cmake --build build-clang/modules-libstdcxx/ --target test
-
-gcc-modules: build-gcc/modules/
-	cmake --build build-gcc/modules/
-	cmake --build build-gcc/modules/ --target test
 
 clang-bench: build-clang/bench/
 	cmake --build build-clang/bench
