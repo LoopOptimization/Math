@@ -9,7 +9,7 @@ module;
 export module SIMD:Intrin;
 
 import AxisTypes;
-import Invariant;
+import BaseUtils;
 import std;
 import :Mask;
 import :Vec;

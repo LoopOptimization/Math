@@ -30,7 +30,7 @@ module;
 export module Allocator;
 
 import std;
-import Invariant;
+import BaseUtils;
 
 export namespace alloc {
 

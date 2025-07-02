@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-import BitHack;
+import BaseUtils;
 import std;
 
 TEST(BitTest, BasicAssertions) {

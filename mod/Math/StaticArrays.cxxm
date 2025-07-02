@@ -16,7 +16,7 @@ import MatDim;
 import Range;
 import SIMD;
 import std;
-import TypeCompression;
+import BaseUtils;
 
 template <typename T, std::ptrdiff_t L>
 consteval auto paddedSize() -> std::array<std::ptrdiff_t, 2> {

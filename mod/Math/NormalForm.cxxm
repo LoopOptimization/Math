@@ -10,7 +10,7 @@ import AxisTypes;
 import Comparisons;
 import EmptyMatrix;
 import GenericArrayConstructors;
-import Invariant;
+import BaseUtils;
 import ManagedArray;
 import Range;
 import Rational;

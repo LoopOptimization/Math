@@ -2,7 +2,7 @@ module;
 
 #include <cstdio>
 export module CorePrint;
-import Invariant;
+import BaseUtils;
 import std;
 export namespace utils {
 

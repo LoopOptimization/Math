@@ -3,7 +3,7 @@ module;
 export module Flat;
 
 import Allocator;
-import Invariant;
+import BaseUtils;
 import std;
 export namespace containers {
 template <typename T> struct MATH_GSL_OWNER Flat {

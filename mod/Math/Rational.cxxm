@@ -4,11 +4,9 @@ module;
 export module Rational;
 
 import CorePrint;
+import BaseUtils;
 import GCD;
-import Invariant;
 import std;
-import TypeCompression;
-import Widen;
 export namespace math {
 
 struct Rational {

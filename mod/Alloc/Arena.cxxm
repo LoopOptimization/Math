@@ -24,7 +24,7 @@ module;
 export module Arena;
 
 import Allocator;
-import Invariant;
+import BaseUtils;
 import std;
 import Valid;
 

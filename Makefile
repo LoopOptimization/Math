@@ -51,10 +51,10 @@ build-clang/no-simd/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
 
 build-clang/bench/:
-	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
 
 build-gcc/bench/:
-	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S benchmark -B build-gcc/bench/ -DCMAKE_BUILD_TYPE=Release
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S benchmark -B build-gcc/bench/ -DCMAKE_BUILD_TYPE=Release
 
 build-clang/type/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/type/ -DCMAKE_BUILD_TYPE=Debug -DUSE_TYPE_SANITIZER=ON

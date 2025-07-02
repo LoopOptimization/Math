@@ -10,7 +10,7 @@ import CorePrint;
 import ExprTemplates;
 import SIMD;
 import std;
-import Widen;
+import BaseUtils;
 export namespace math {
 
 template <class T> struct UniformScaling {

@@ -2,10 +2,8 @@ module;
 export module MultiplicativeInverse;
 
 import Int8;
-import Invariant;
+import BaseUtils;
 import std;
-import Widen;
-
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
 // https://bugs.llvm.org/show_bug.cgi?id=16404

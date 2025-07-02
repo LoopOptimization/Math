@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 import CorePrint;
-import Invariant;
+import BaseUtils;
 import LinearAlgebra;
 import ManagedArray;
 import MatDim;

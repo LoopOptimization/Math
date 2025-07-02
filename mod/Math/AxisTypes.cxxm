@@ -3,7 +3,7 @@ module;
 export module AxisTypes;
 
 import CorePrint;
-import Invariant;
+import BaseUtils;
 import std;
 
 /// LinAlg

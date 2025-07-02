@@ -2,7 +2,7 @@ module;
 #include "Macros.hxx"
 export module CompressReference;
 
-import TypeCompression;
+import BaseUtils;
 import std;
 export namespace utils {
 template <typename T> struct Reference {

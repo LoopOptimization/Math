@@ -4,7 +4,7 @@ module;
 #include "Owner.hxx"
 export module Valid;
 
-import Invariant;
+import BaseUtils;
 import std;
 export namespace utils {
 template <typename T> struct Mut : T {

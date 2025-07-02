@@ -2,6 +2,7 @@ module;
 export module LinearAlgebra;
 
 import Array;
+import BaseUtils;
 import ArrayConcepts;
 import ArrayConstructors;
 import ArrayPrint;
@@ -9,12 +10,9 @@ import AxisTypes;
 import CorePrint;
 import GenericArrayConstructors;
 import ManagedArray;
-import Param;
 import Rational;
 import std;
 import Tuple;
-import TypeCompression;
-
 template <typename T>
 concept TrivialVec = utils::TriviallyCopyable<T> && math::AbstractVector<T>;
 // template <typename T>

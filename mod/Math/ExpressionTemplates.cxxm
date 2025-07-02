@@ -10,7 +10,7 @@ import ArrayConcepts;
 import AxisTypes;
 import CheckSizes;
 import Indexing;
-import Param;
+import BaseUtils;
 import Range;
 import Reductions;
 import ScalarizeViaCast;

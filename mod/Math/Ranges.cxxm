@@ -5,7 +5,7 @@ export module Range;
 
 import AxisTypes;
 import CorePrint;
-import Invariant;
+import BaseUtils;
 import std;
 
 export namespace math {

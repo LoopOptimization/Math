@@ -5,6 +5,7 @@ module;
 export module Dual;
 
 export import Elementary;
+import BaseUtils;
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -13,16 +14,12 @@ import AxisTypes;
 import CompressReference;
 import CorePrint;
 import ExprTemplates;
-import Invariant;
 import MatDim;
-import Param;
 import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
 import std;
 import Tuple;
-import TypeCompression;
-
 export namespace math {
 
 template <class T, std::ptrdiff_t N, bool Compress = false> struct Dual {

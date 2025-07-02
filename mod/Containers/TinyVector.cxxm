@@ -5,7 +5,7 @@ export module TinyVector;
 import ArrayPrint;
 import AxisTypes;
 import CorePrint;
-import Invariant;
+import BaseUtils;
 import MatDim;
 import Storage;
 import std;

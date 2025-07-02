@@ -12,7 +12,7 @@ import MatDim;
 import std;
 import Storage;
 import Tuple;
-import TypeCompression;
+import BaseUtils;
 export namespace math {
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
 template <typename T>

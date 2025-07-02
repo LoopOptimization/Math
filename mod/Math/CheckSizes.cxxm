@@ -2,9 +2,8 @@ module;
 #include "Macros.hxx"
 export module CheckSizes;
 
-import Invariant;
-import Param;
 import std;
+import BaseUtils;
 
 template <typename T>
 concept ShouldView = requires(const T &x) {

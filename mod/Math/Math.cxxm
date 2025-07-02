@@ -46,8 +46,6 @@ export import Rational;
 export import GCD;
 export import VGCD;
 export import LinearDiophantine;
-export import Factor;
-export import MultiplicativeInverse;
 export import Unimodularization;
 export import NormalForm;
 export import Simplex;
@@ -66,18 +64,10 @@ export import Int8;
 
 // Utilities & Infrastructure
 export import ArrayPrint;
+export import BaseUtils;
 export import CorePrint;
-export import Invariant;
 export import ListRange;
 export import ArrayParse;
 export import Optional;
-export import Param;
 export import CompressReference;
-export import TypeCompression;
 export import Valid;
-export import Widen;
-
-// Bit Manipulation
-export import BitHack;
-
-// All symbols are already available in the math namespace through export imports

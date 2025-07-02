@@ -14,7 +14,7 @@ import Constraints;
 import CorePrint;
 import ExprTemplates;
 import GCD;
-import Invariant;
+import BaseUtils;
 import ManagedArray;
 import MatDim;
 import NormalForm;

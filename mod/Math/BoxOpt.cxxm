@@ -10,7 +10,7 @@ import Dual;
 import Elementary;
 import LinearAlgebra;
 import MatDim;
-import Param;
+import BaseUtils;
 import Reductions;
 import SIMD;
 import std;

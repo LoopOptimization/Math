@@ -4,14 +4,13 @@ module;
 export module AssignExprTemplates;
 
 import ArrayConcepts;
+import BaseUtils;
 import CheckSizes;
 import Indexing;
-import Invariant;
 import ScalarizeViaCast;
 import SIMD;
 import std;
 import Tuple;
-import TypeCompression;
 import UniformScaling;
 
 #define CASTTOSCALARIZE

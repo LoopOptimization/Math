@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-import Factor;
+import BaseUtils;
 import std;
 
 TEST(FactorLowerBound, BasicAssertions) {

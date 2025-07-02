@@ -9,9 +9,8 @@ module;
 export module SIMD:Mask;
 
 import :Vec;
-import Invariant;
 import std;
-import Widen;
+import BaseUtils;
 export namespace simd {
 template <std::ptrdiff_t W,
           typename I = std::conditional_t<W == 2, std::int64_t, std::int32_t>>

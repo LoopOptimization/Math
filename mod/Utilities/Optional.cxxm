@@ -1,7 +1,7 @@
 module;
 #include "Macros.hxx"
 export module Optional;
-import Invariant;
+import BaseUtils;
 import std;
 import Valid;
 export namespace utils {

@@ -2,7 +2,7 @@ module;
 #include "Macros.hxx"
 export module Int8;
 import CorePrint;
-import Invariant;
+import BaseUtils;
 import std;
 export namespace numbers {
 

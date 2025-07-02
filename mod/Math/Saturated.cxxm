@@ -3,7 +3,7 @@ module;
 export module Saturated;
 
 import std;
-import Widen;
+import BaseUtils;
 export namespace math {
 template <std::unsigned_integral T> constexpr auto add_sat(T x, T y) -> T {
   T res = x + y;

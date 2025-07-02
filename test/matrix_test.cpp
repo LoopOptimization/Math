@@ -12,7 +12,7 @@ import StaticArray;
 import std;
 import TinyVector;
 import Tuple;
-import TypeCompression;
+import BaseUtils;
 import UniformScaling;
 
 using namespace math;

@@ -5,7 +5,7 @@ export module BitSet;
 import Array;
 import AxisTypes;
 import CorePrint;
-import Invariant;
+import BaseUtils;
 import ManagedArray;
 import MatDim;
 import Range;

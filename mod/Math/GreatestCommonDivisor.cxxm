@@ -1,7 +1,7 @@
 module;
 export module GCD;
 
-import Invariant;
+import BaseUtils;
 import SIMD;
 import std;
 export namespace math {

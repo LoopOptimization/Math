@@ -1,0 +1,230 @@
+module;
+#include "Macros.hxx"
+
+#if __has_builtin(__builtin_trap)
+#define TRAP() __builtin_trap()
+#else
+#include <cstdlib>
+#define TRAP() std::abort()
+#endif
+
+export module BaseUtils;
+import std;
+export namespace math {
+constexpr auto value(std::floating_point auto x) { return x; }
+constexpr auto extractvalue(std::floating_point auto x) { return x; }
+} // namespace math
+
+/// The idea here is that some types may have a compression/decompression that
+/// is potentially costly. To work around this, temporaries can live in
+/// uncompressed form, while longer term storage can be compressed/decompressed.
+/// E.g., we have have an array of a compressed type.
+/// When loading, the uncompressed form is returned.
+/// The particular motivating example is around using SIMD types with arrays
+/// that are themselves not a perfect multiple of the SIMD-width.
+/// Writing/reading from temporary locations thus requires masking. For
+/// compilers to be able to optimize these loads and stores, they'd have need to
+/// track provenance using these masks to see that they don't alias, and be able
+/// to actually eliminate the temporaries. Compilers do not seem to do this.
+///
+/// The canonical type is the decompressed form.
+///
+
+/// `T` is the canonical type, which may define `compress`
+export namespace utils {
+template <typename T>
+concept Compressible =
+  (!std::same_as<T, typename T::compressed_type>) &&
+  requires(T t, typename T::compressed_type *p) {
+    { t.compress(p) };
+    { T::decompress(p) } -> std::same_as<T>;
+    { t = *p }; // need generic code to work reasonably well with pointers `p`
+    { T{*p} };  // and value_type `T`
+  };
+
+namespace detail {
+
+template <typename T> struct Uncompressed {
+  using compressed = T;
+};
+template <utils::Compressible T> struct Uncompressed<T> {
+  using compressed = typename T::compressed_type;
+};
+} // namespace detail
+template <typename T>
+using compressed_t =
+  typename detail::Uncompressed<std::remove_cvref_t<T>>::compressed;
+
+template <typename T>
+concept Decompressible =
+  utils::Compressible<typename T::decompressed_type> &&
+  std::same_as<T, utils::compressed_t<typename T::decompressed_type>>;
+namespace detail {
+
+template <typename T> struct Compressed {
+  using uncompressed = T;
+};
+template <Decompressible T> struct Compressed<T> {
+  using uncompressed = typename T::decompressed_type;
+};
+} // namespace detail
+template <typename T>
+using decompressed_t =
+  typename detail::Compressed<std::remove_cvref_t<T>>::uncompressed;
+
+template <typename T>
+constexpr void compress(const T &x, utils::compressed_t<T> *p) {
+  if constexpr (utils::Compressible<T>) x.compress(p);
+  else *p = x;
+}
+template <typename T>
+constexpr auto decompress(const utils::compressed_t<T> *p) -> decltype(auto) {
+  if constexpr (utils::Compressible<T>) return T::decompress(p);
+  else return *p;
+}
+} // namespace utils
+
+static_assert(std::same_as<utils::decompressed_t<double>, double>);
+static_assert(!utils::Decompressible<double>);
+static_assert(!utils::Compressible<double>);
+static_assert(std::same_as<utils::decompressed_t<unsigned>, unsigned>);
+
+export namespace utils {
+
+template <std::size_t Size>
+using signed_integer_t = std::conditional_t<
+  Size == 8, std::int64_t,
+  std::conditional_t<
+    Size == 4, std::int32_t,
+    std::conditional_t<
+      Size == 2, std::int16_t,
+      std::conditional_t<Size == 1, std::int8_t, __int128_t>>>>;
+template <std::size_t Size>
+using unsigned_integer_t = std::make_unsigned_t<signed_integer_t<Size>>;
+
+constexpr auto widen(std::signed_integral auto x) {
+  return signed_integer_t<2 * sizeof(decltype(x))>(x);
+}
+constexpr auto widen(std::unsigned_integral auto x) {
+  return unsigned_integer_t<2 * sizeof(decltype(x))>(x);
+}
+
+template <typename T>
+concept TriviallyCopyable =
+  std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
+} // namespace utils
+
+template <typename T> struct InParameter {
+  using type = const T &;
+};
+template <utils::TriviallyCopyable T> struct InParameter<T> {
+  using type = T;
+};
+
+export namespace utils {
+
+/// This can be used like
+/// auto foo_impl(inparam_t<T> x, ...);
+/// template <typename T>
+/// TRIVIAL inline auto foo(const T& x){
+///  return foo_impl<T>(x); // inparam_t blocks deduction
+/// }
+template <typename T> using inparam_t = typename InParameter<T>::type;
+} // namespace utils
+
+export namespace bit {
+
+constexpr auto exp2unchecked(std::integral auto x) {
+  return std::bit_cast<double>(static_cast<std::int64_t>(1023 + x) << 52);
+}
+
+constexpr auto next_pow2(double x) -> double {
+  static constexpr std::int64_t mantissa_mask = ~((std::int64_t(1) << 52) - 1);
+  std::int64_t i = std::bit_cast<std::int64_t>(x), j = i & mantissa_mask;
+  return j != i ? std::bit_cast<double>(j + (std::int64_t(1) << 52)) : x;
+}
+
+} // namespace bit
+export namespace math {
+
+/// Tested from [1..32]
+/// returns integer valued `double`s such that
+/// auto [x,y] = lower_bound_factor(N, a)
+/// x*y == N           // true
+/// x <= a             // true
+/// std::round(x) == x // true
+/// std::round(y) == y // true
+constexpr auto lower_bound_factor(double N, double x) -> std::array<double, 2> {
+  if (x <= 1.0) return {1.0, N};
+  if (x >= N) return {N, 1.0};
+  double y = std::ceil(N / x);
+  while (x * y != N) {
+    x = std::floor(N / y);
+    y = std::ceil(N / x);
+  }
+  return {x, y};
+}
+
+} // namespace math
+export namespace utils {
+
+#ifndef NDEBUG
+TRIVIAL constexpr inline void invariant(bool condition) {
+  if (!condition) [[unlikely]]
+    TRAP();
+}
+template <typename T> TRIVIAL constexpr inline void invariant(T x, T y) {
+  if (x != y) [[unlikely]]
+    TRAP();
+}
+#else
+template <typename T> TRIVIAL constexpr inline void invariant(T, T) {}
+TRIVIAL constexpr inline void invariant(bool) {}
+#endif
+
+TRIVIAL constexpr inline void assume(bool condition) {
+#ifndef NDEBUG
+  if (!condition) [[unlikely]]
+    TRAP();
+#else
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
+  [[assume(condition)]];
+#else
+  if (!condition) {
+#ifdef __cpp_lib_unreachable
+    std::unreachable();
+#else
+#ifdef __has_builtin
+#if __has_builtin(__builtin_unreachable)
+    __builtin_unreachable();
+#endif
+#endif
+#endif // __cpp_lib_unreachable
+  }
+#endif // assume
+#endif // NDEBUG
+}
+template <typename T> TRIVIAL constexpr inline void assumeeq(T x, T y) {
+#ifndef NDEBUG
+  if (x != y) [[unlikely]]
+    TRAP();
+#else
+#if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
+  [[assume(x == y)]];
+#else
+  if (x != y) {
+#ifdef __cpp_lib_unreachable
+    std::unreachable();
+#else
+#ifdef __has_builtin
+#if __has_builtin(__builtin_unreachable)
+    __builtin_unreachable();
+#endif
+#endif
+#endif // __cpp_lib_unreachable
+  }
+#endif // assume
+#endif // NDEBUG
+}
+
+} // namespace utils
