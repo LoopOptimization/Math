@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>")
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>"
+)
 
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # This specific value changes as experimental support evolves. See
@@ -62,10 +63,8 @@ add_executable(${PROJECT_NAME} ${benchmarks})
 message(STATUS "PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
 add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
-# if(ENABLE_OPENMP)
-#   find_package(OpenMP)
-#   target_link_libraries(${PROJECT_NAME} OpenMP::OpenMP_CXX)
-# endif()
+# if(ENABLE_OPENMP) find_package(OpenMP) target_link_libraries(${PROJECT_NAME}
+# OpenMP::OpenMP_CXX) endif()
 
 # --- Maybe Use SIMD Array Ops ---
 if(POLYMATHNOEXPLICITSIMDARRAY)
@@ -140,15 +139,10 @@ target_compile_options(
           -Wextra
           -save-temps
           -Werror)
-# if(ENABLE_OPENMP)
-#   if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-#     target_compile_options(${PROJECT_NAME} PRIVATE -fiopenmp)
-#   else()
-#     target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp)
-#   endif()
-# else()
-#   target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp-simd)
-# endif()
+# if(ENABLE_OPENMP) if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+# target_compile_options(${PROJECT_NAME} PRIVATE -fiopenmp) else()
+# target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp) endif() else()
+# target_compile_options(${PROJECT_NAME} PRIVATE -fopenmp-simd) endif()
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
   target_compile_options(${PROJECT_NAME} PRIVATE -masm=intel)
 endif()

@@ -36,8 +36,7 @@ if(USE_TYPE_SANITIZER)
       OFF
       CACHE BOOL "No jemalloc with sanitizers")
 endif()
-# set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-# "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+# set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # This specific value changes as experimental support evolves. See
     # `Help/dev/experimental.rst` in the CMake source corresponding to
@@ -84,7 +83,7 @@ include(FetchContent)
 # GIT_REPOSITORY https://github.com/google/googletest.git # GIT_TAG
 # 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17 ) endif() using
 # `FIND_PACKAGE_ARGS` causes it to try `find_package`
-if ("${CMAKE_CXX_FLAGS}" STREQUAL "")
+if("${CMAKE_CXX_FLAGS}" STREQUAL "")
   set(has_libcpp -1)
 else()
   string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)

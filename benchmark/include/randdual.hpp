@@ -19,4 +19,3 @@ template <> struct URand<double> {
   }
 };
 } // namespace math
-

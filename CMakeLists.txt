@@ -24,8 +24,7 @@ endif()
 # add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
 # else()
 # add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
-# endif() endif()
-# set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+# endif() endif() set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
 # "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # This specific value changes as experimental support evolves. See
@@ -68,8 +67,8 @@ cpmaddpackage("gh:TheLartians/PackageProject.cmake@1.8.0")
 # ---- Add source files ----
 
 # Note: globbing sources is considered bad practice as CMake's generators may
-# not detect new files automatically. Keep that in mind when changing files,
-# or explicitly mention them here.
+# not detect new files automatically. Keep that in mind when changing files, or
+# explicitly mention them here.
 file(GLOB_RECURSE headers CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hxx")
 file(GLOB_RECURSE module_interfaces CONFIGURE_DEPENDS
@@ -112,9 +111,9 @@ target_compile_features(
 set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES CXX_STANDARD 23
-      CXX_VISIBILITY_PRESET hidden
-      VISIBILITY_INLINES_HIDDEN ON
-      INTERPROCEDURAL_OPTIMIZATION ON)
+             CXX_VISIBILITY_PRESET hidden
+             VISIBILITY_INLINES_HIDDEN ON
+             INTERPROCEDURAL_OPTIMIZATION ON)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 
