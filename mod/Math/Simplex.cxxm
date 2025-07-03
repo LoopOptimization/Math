@@ -33,18 +33,6 @@ public:
   using index_t = int;
   using value_type = std::int64_t;
 
-  // Static utility functions
-  template <std::integral T>
-  static auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t;
-
-  static auto alignVarCapacity(RowStride<> rs) -> RowStride<>;
-  static auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
-    -> std::size_t;
-  static auto reservedTableau(std::ptrdiff_t cons, std::ptrdiff_t vars)
-    -> std::ptrdiff_t;
-  static auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars)
-    -> std::ptrdiff_t;
-
   // Static factory methods
   static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar)
     -> Valid<Simplex>;

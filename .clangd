@@ -16,6 +16,9 @@ Diagnostics:
       readability-identifier-naming.MemberIgnoredRegexp: "^[a-zA-Z0-9_]{1,2}$"
       modernize-use-trailing-return-type.TransformLambdas: all_except_auto
   UnusedIncludes: Strict
-  MissingIncludes: Strict
+  MissingIncludes: None
 Hover:
   ShowAKA: Yes
+InlayHints:
+  BlockEnd: true
+  DefaultArguments: true

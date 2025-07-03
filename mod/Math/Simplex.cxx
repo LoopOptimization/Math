@@ -75,12 +75,18 @@ getLeavingVariable(PtrMatrix<std::int64_t> C, std::ptrdiff_t entering_variable)
   -> std::optional<Simplex::index_t> {
   return getLeavingVariable(C, entering_variable, NoFilter{});
 }
-} // namespace
-
-// Out-of-line Simplex member function definitions
-
+// (varCapacity+1)%simd::Width<std::int64_t>==0
+auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
+  static std::ptrdiff_t W = simd::Width<std::int64_t>;
+  return stride((std::ptrdiff_t(rs) + W) & -W);
+}
+[[nodiscard]] auto reservedTableau(std::ptrdiff_t cons, std::ptrdiff_t vars)
+  -> std::ptrdiff_t {
+  return static_cast<std::ptrdiff_t>(sizeof(Simplex::value_type)) *
+         ((cons + 1) * vars);
+}
 template <std::integral T>
-auto Simplex::alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
+auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
   --x;
   std::ptrdiff_t W = simd::VECTORWIDTH / sizeof(T); // simd::Width<T>;
   std::ptrdiff_t nW = -W;
@@ -89,6 +95,25 @@ auto Simplex::alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
   return x;
   // return (--x + simd::Width<T>)&(-simd::Width<T>);
 }
+// offset in bytes
+auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
+  std::ptrdiff_t coff = alignOffset<Simplex::index_t>(cons);
+  std::ptrdiff_t voff = alignOffset<Simplex::index_t>(vars);
+  std::ptrdiff_t offset = coff + voff;
+  // std::ptrdiff_t offset =
+  //   alignOffset<index_t>(cons) + alignOffset<index_t>(vars);
+  return static_cast<std::ptrdiff_t>(sizeof(Simplex::index_t)) * offset;
+}
+auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::size_t {
+  std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
+                 indices = tableauOffset(cons, vars),
+                 tableau = reservedTableau(cons, vars);
+  return static_cast<std::size_t>(base + indices + tableau);
+}
+} // namespace
+
+// Out-of-line Simplex member function definitions
+
 [[gnu::returns_nonnull, nodiscard]] auto Simplex::basicConsPointer() const
   -> Simplex::index_t * {
   void *p = const_cast<char *>(memory_);
@@ -101,40 +126,12 @@ auto Simplex::alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
     alignOffset<Simplex::index_t>(reservedBasicConstraints());
   return std::assume_aligned<simd::VECTORWIDTH>(basicConsPointer() + offset);
 }
-// offset in bytes
-auto Simplex::tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars)
-  -> std::ptrdiff_t {
-  std::ptrdiff_t coff = alignOffset<Simplex::index_t>(cons);
-  std::ptrdiff_t voff = alignOffset<Simplex::index_t>(vars);
-  std::ptrdiff_t offset = coff + voff;
-  // std::ptrdiff_t offset =
-  //   alignOffset<index_t>(cons) + alignOffset<index_t>(vars);
-  return static_cast<std::ptrdiff_t>(sizeof(Simplex::index_t)) * offset;
-}
 [[gnu::returns_nonnull, nodiscard]] auto Simplex::tableauPointer() const
   -> value_type * {
   std::ptrdiff_t offset = tableauOffset(Simplex::reservedBasicConstraints(),
                                         Simplex::reservedBasicVariables());
   void *p = const_cast<char *>(memory_) + offset;
   return std::assume_aligned<simd::VECTORWIDTH>(static_cast<value_type *>(p));
-}
-
-// (varCapacity+1)%simd::Width<std::int64_t>==0
-auto Simplex::alignVarCapacity(RowStride<> rs) -> RowStride<> {
-  static std::ptrdiff_t W = simd::Width<std::int64_t>;
-  return stride((std::ptrdiff_t(rs) + W) & -W);
-}
-[[nodiscard]] auto Simplex::reservedTableau(std::ptrdiff_t cons,
-                                            std::ptrdiff_t vars)
-  -> std::ptrdiff_t {
-  return static_cast<std::ptrdiff_t>(sizeof(value_type)) * ((cons + 1) * vars);
-}
-auto Simplex::requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
-  -> std::size_t {
-  std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
-                 indices = tableauOffset(cons, vars),
-                 tableau = reservedTableau(cons, vars);
-  return static_cast<std::size_t>(base + indices + tableau);
 }
 
 // tableau is constraint * var matrix w/ extra col for LHS

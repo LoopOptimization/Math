@@ -6,6 +6,7 @@ module NormalForm;
 using namespace math;
 using containers::tie, containers::Tuple;
 
+namespace {
 auto gcdxScale(std::int64_t a, std::int64_t b) -> std::array<std::int64_t, 4> {
   if (constexpr_abs(a) == 1) return {a, 0, a, b};
   auto [g, p, q, adg, bdg] = dgcdx(a, b);
@@ -87,62 +88,6 @@ auto pivotColsPair(std::array<MutPtrMatrix<std::int64_t>, 2> AK, Row<> i,
   }
   return false;
 }
-namespace math {
-auto gcd(PtrVector<std::int64_t> x) -> std::int64_t {
-  const std::ptrdiff_t N = x.size();
-  if (!N) return 0;
-  std::int64_t g = constexpr_abs(x[0]);
-  for (std::ptrdiff_t n = 1; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
-  return g;
-}
-void normalizeByGCD(MutPtrVector<std::int64_t> x) {
-  std::ptrdiff_t N = x.size();
-  switch (N) {
-  case 0: return;
-  case 1: x[0] = 1; return;
-  default:
-    std::int64_t g = gcd(x[0], x[1]);
-    for (std::ptrdiff_t n = 2; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
-    if (g > 1) x /= g;
-  }
-}
-
-namespace NormalForm {
-using alloc::Arena, containers::Tuple, containers::tie;
-
-using namespace math;
-
-} // namespace NormalForm
-} // namespace math
-
-namespace math::NormalForm {
-auto pivotRows(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> K,
-               std::ptrdiff_t i, Row<> M) -> bool {
-  MutPtrMatrix<std::int64_t> B = K;
-  return ::pivotRowsPair({A, B}, col(i), M, row(i));
-}
-auto pivotRows(MutPtrMatrix<std::int64_t> A, Col<> i, Row<> M, Row<> piv)
-  -> bool {
-  Row j = piv;
-  while (A[piv, i] == 0)
-    if (++piv == std::ptrdiff_t(M)) return true;
-  if (j != piv) swap(A, j, piv);
-  return false;
-}
-auto pivotRows(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i, Row<> N)
-  -> bool {
-  return pivotRows(A, col(i), N, row(i));
-}
-/// numNonZeroRows(PtrMatrix<std::int64_t> A) -> Row
-/// Assumes some number of the trailing rows have been
-/// zeroed out.  Returns the number of rows that are remaining.
-auto numNonZeroRows(PtrMatrix<std::int64_t> A) -> Row<> {
-  Row newM = A.numRow();
-  while (newM && allZero(A[std::ptrdiff_t(newM) - 1, _])) --newM;
-  return newM;
-}
-} // namespace math::NormalForm
-
 void dropCol(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i, Row<> M, Col<> N) {
   // if any rows are left, we shift them up to replace it
   if (N <= i) return;
@@ -429,8 +374,55 @@ auto orthogonalizeBang(MutDensePtrMatrix<std::int64_t> &A)
   return {std::move(K), std::move(included)};
 }
 
+} // namespace
 namespace math {
+auto gcd(PtrVector<std::int64_t> x) -> std::int64_t {
+  const std::ptrdiff_t N = x.size();
+  if (!N) return 0;
+  std::int64_t g = constexpr_abs(x[0]);
+  for (std::ptrdiff_t n = 1; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
+  return g;
+}
+void normalizeByGCD(MutPtrVector<std::int64_t> x) {
+  std::ptrdiff_t N = x.size();
+  switch (N) {
+  case 0: return;
+  case 1: x[0] = 1; return;
+  default:
+    std::int64_t g = gcd(x[0], x[1]);
+    for (std::ptrdiff_t n = 2; (n < N) & (g != 1); ++n) g = gcd(g, x[n]);
+    if (g > 1) x /= g;
+  }
+}
+
 namespace NormalForm {
+using alloc::Arena;
+
+auto pivotRows(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> K,
+               std::ptrdiff_t i, Row<> M) -> bool {
+  MutPtrMatrix<std::int64_t> B = K;
+  return ::pivotRowsPair({A, B}, col(i), M, row(i));
+}
+auto pivotRows(MutPtrMatrix<std::int64_t> A, Col<> i, Row<> M, Row<> piv)
+  -> bool {
+  Row j = piv;
+  while (A[piv, i] == 0)
+    if (++piv == std::ptrdiff_t(M)) return true;
+  if (j != piv) swap(A, j, piv);
+  return false;
+}
+auto pivotRows(MutPtrMatrix<std::int64_t> A, std::ptrdiff_t i, Row<> N)
+  -> bool {
+  return pivotRows(A, col(i), N, row(i));
+}
+/// numNonZeroRows(PtrMatrix<std::int64_t> A) -> Row
+/// Assumes some number of the trailing rows have been
+/// zeroed out.  Returns the number of rows that are remaining.
+auto numNonZeroRows(PtrMatrix<std::int64_t> A) -> Row<> {
+  Row newM = A.numRow();
+  while (newM && allZero(A[std::ptrdiff_t(newM) - 1, _])) --newM;
+  return newM;
+}
 // update a reduced matrix for a new row
 // doesn't reduce last row (assumes you're solving for it)
 auto updateForNewRow(MutPtrMatrix<std::int64_t> A) -> std::ptrdiff_t {
