@@ -6,9 +6,7 @@ import CorePrint;
 import Flat;
 import Rational;
 import std;
-export namespace utils {
 
-namespace detail {
 template <std::integral T> consteval auto maxPow10() -> std::size_t {
   if constexpr (sizeof(T) == 1) return 3;
   else if constexpr (sizeof(T) == 2) return 5;
@@ -103,12 +101,12 @@ constexpr auto getMaxDigits(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
   return max_digits;
 }
 
-} // namespace detail
+export namespace utils {
 
 template <typename T>
 concept ColumnPrintable =
-  Printable<T> && (std::same_as<T, double> ||
-                   std::is_invocable_r_v<int, detail::DigitsCounter, T>);
+  Printable<T> &&
+  (std::same_as<T, double> || std::is_invocable_r_v<int, DigitsCounter, T>);
 static_assert(ColumnPrintable<math::Rational>);
 static_assert(ColumnPrintable<std::int64_t>);
 
@@ -127,15 +125,14 @@ inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
                         std::ptrdiff_t X) {
   if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
-  auto max_digits{detail::getMaxDigits(A, M, N, X)};
-  using U = decltype(detail::countDigits(std::declval<T>()));
+  auto max_digits{getMaxDigits(A, M, N, X)};
+  using U = decltype(countDigits(std::declval<T>()));
   for (std::ptrdiff_t i = 0; i < M; ++i) {
     if (i) print("  ");
     else print("\n[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
       T Aij = A[(i * X) + j];
-      for (U k = 0; k < U(max_digits[j]) - detail::countDigits(Aij); ++k)
-        print(' ');
+      for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); ++k) print(' ');
       print(Aij);
       if (j != N - 1) print(' ');
       else if (i != M - 1) print('\n');
