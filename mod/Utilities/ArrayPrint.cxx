@@ -226,7 +226,7 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
   ptr = p0;
   for (std::ptrdiff_t i = 0; i < M; i++) {
     if (i) print("  ");
-    else print("\n[ ");
+    else print("[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
       std::ptrdiff_t nD = num_digits[i * N + j];
       for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) print(' ');
