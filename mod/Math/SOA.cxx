@@ -379,17 +379,13 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     this->data_ = A::allocate(ncap * this->totalSizePer());
     this->capacity_ = ncap;
   }
-  void resize(S nsz) {
+  void reserve(S nsz) {
     auto [ocap, ncap] =
       this->capacity_.oldnewcap(std::ptrdiff_t(this->sz_), std::ptrdiff_t(nsz));
-    if (ocap >= ncap) {
-      this->sz_ = nsz;
-      return;
-    }
+    if (ocap >= ncap) return;
     ManagedSOA other{nsz};
     ManagedSOA &self{*this};
     std::swap(self.data_, other.data_);
-    std::swap(self.sz_, other.sz_);
     std::swap(self.capacity_, other.capacity_);
     // FIXME: only accepts non-copyable
     for (std::ptrdiff_t i = 0, L = std::min(std::ptrdiff_t(self.sz_),
@@ -397,10 +393,16 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
          i < L; ++i)
       self[i] = other[i];
   }
+  void resize(S nsz) {
+    reserve(nsz);
+    this->sz_ = nsz;
+  }
   void resize(std::ptrdiff_t nsz) requires(std::same_as<S, Length<>>) {
     resize(length(nsz));
   }
   constexpr void clear() { this->sz_ = {}; }
+  /// This does not actually construct in place, as we must
+  /// deconstruct the object to store it into the SOA.
   template <typename... Args> void emplace_back(Args &&...args) {
     push_back(T(args...));
   }
