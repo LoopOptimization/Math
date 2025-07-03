@@ -9,25 +9,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `make clang-no-san`: Build and test with Clang without sanitizers using libc++
 - `make clang-san-libstdcxx`: Build and test with Clang using AddressSanitizer and UndefinedBehaviorSanitizer using libstdc++
 - `make clang-no-san-libstdcxx`: Build and test with Clang without sanitizers using libstdc++
+- `make gcc-san`: Build and test with GCC using AddressSanitizer and UndefinedBehaviorSanitizer
+- `make gcc-no-san`: Build and test with GCC without sanitizers
 
 ### Architecture-Specific Builds
 - `make clang-avx512`: Build targeting AVX512 instructions
 - `make clang-base-arch`: Build for baseline x86-64 architecture
 - `make gcc-avx2`: Build targeting AVX2 instructions
 
-### Module Builds (C++23)
-- `make clang-modules`: Build using C++23 modules with Clang
-- `make gcc-modules`: Build using C++23 modules with GCC
-
 ### Other Builds
 - `make clang-release`: Release build with Clang
 - `make gcc-release`: Release build with GCC
 - `make clang-nosimd`: Build without explicit SIMD operations
+- `make clang-type`: Build with TypeSanitizer (Clang only)
+- `make clang-bench`: Build benchmarks with Clang
+- `make gcc-bench`: Build benchmarks with GCC
 
 ### Testing and Linting
 - Tests run automatically with build targets
 - `clang-tidy path/to/file`: Run the linter on specific files
 - Individual test executables are in `build-*/MathTests`
+- Run specific test patterns: `./build-clang/no-san/MathTests --gtest_filter="TestName*"`
+- Benchmark executables are in `build-*/MathBenchmarks`
 
 ### Clean
 - `make clean`: Remove all build directories
@@ -36,8 +39,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Dual Build System
 The library supports both traditional header-only compilation and modern C++23 modules:
-- Module files (`.cxx`) in `mod/` serve dual purpose as headers and module implementations
+- Module files (`.cxxm`) in `mod/` serve as module interfaces
+- Module implementation files (`.cxx`) in `mod/` provide implementations
 - Headers in `include/` provide the main API entry points
+- CMake automatically detects and builds C++23 modules when using compatible compilers
 
 ### Core Components
 
@@ -59,6 +64,19 @@ The library supports both traditional header-only compilation and modern C++23 m
 - `TinyVector.cxx`: Small vector optimizations
 - `Storage.cxx`: Memory layout and allocation strategies
 - `Tuple.cxx`: Multi-dimensional indexing utilities
+- `BitSets.cxx`: Efficient bit manipulation containers
+- `UnrolledList.cxx`: Unrolled linked list implementation
+- `Flat.cxx`: Flattened container structures
+
+**Allocation Module (`mod/Alloc/`)**
+- `Arena.cxx`: Arena-based memory allocator
+- `Mallocator.cxx`: Custom memory allocation strategies
+
+**Utilities Module (`mod/Utilities/`)**
+- `ArrayPrint.cxx`: Array printing and formatting utilities
+- `MatrixStringParse.cxx`: Parsing matrices from string representations
+- `Optional.cxx`: Optional type implementations
+- `Valid.cxx`: Validation utilities
 
 ### Key Design Patterns
 
@@ -119,3 +137,11 @@ The library supports both traditional header-only compilation and modern C++23 m
 - SIMD operations are automatically vectorized where possible
 - Focus on integer operations distinguishes this from typical math libraries
 - Used by LoopModels for polyhedral compilation analysis
+
+## Important Development Considerations
+- The build system automatically detects CPU features (AVX2, AVX512) and adjusts targets accordingly
+- All builds use `-fno-exceptions` and `-fno-rtti` for performance
+- Memory allocators can be configured (mimalloc, jemalloc) via CMake options
+- Cross-compiler testing with both Clang and GCC is essential due to C++23 features
+- Sanitizer builds help catch subtle bugs in template-heavy code
+- Use Google Test framework for testing with pattern-based test filtering available

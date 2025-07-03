@@ -1,4 +1,5 @@
 module;
+#include "Macros.hxx"
 export module GCD;
 
 import BaseUtils;
@@ -6,16 +7,16 @@ import SIMD;
 import std;
 export namespace math {
 using utils::invariant;
-constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
+TRIVIAL constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;
 }
 template <std::ptrdiff_t W, std::integral T>
-constexpr auto constexpr_abs(simd::Vec<W, T> x) noexcept {
+TRIVIAL constexpr auto constexpr_abs(simd::Vec<W, T> x) noexcept {
   if constexpr (std::signed_integral<T>) return x < 0 ? -x : x;
   else return x;
 }
 
-constexpr auto gcd(std::int64_t x, std::int64_t y) -> std::int64_t {
+TRIVIAL constexpr auto gcd(std::int64_t x, std::int64_t y) -> std::int64_t {
   invariant(x != std::numeric_limits<std::int64_t>::min());
   invariant(y != std::numeric_limits<std::int64_t>::min());
   if (x == 0) return constexpr_abs(y);
@@ -38,7 +39,8 @@ constexpr auto gcd(std::int64_t x, std::int64_t y) -> std::int64_t {
 }
 // TODO: add `Unroll` method, use in vectorized GCD?
 template <std::ptrdiff_t W>
-constexpr auto gcd(simd::Vec<W, std::int64_t> x, simd::Vec<W, std::int64_t> y)
+TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
+                           simd::Vec<W, std::int64_t> y)
   -> simd::Vec<W, std::int64_t> {
   constexpr simd::Vec<W, std::int64_t> zero = {};
   constexpr simd::Vec<W, std::int64_t> one = zero + 1;
@@ -68,12 +70,12 @@ constexpr auto gcd(simd::Vec<W, std::int64_t> x, simd::Vec<W, std::int64_t> y)
   return b << k;
 }
 template <>
-constexpr auto gcd<1>(std::int64_t x, std::int64_t y) -> std::int64_t {
+TRIVIAL constexpr auto gcd<1>(std::int64_t x, std::int64_t y) -> std::int64_t {
   return gcd(x, y);
 }
 
 template <std::ptrdiff_t W>
-constexpr auto gcdreduce(simd::Vec<W, std::int64_t> v) -> std::int64_t {
+TRIVIAL constexpr auto gcdreduce(simd::Vec<W, std::int64_t> v) -> std::int64_t {
   if constexpr (W != 2) {
     simd::Vec<W / 2, std::int64_t> a, b;
     for (std::ptrdiff_t w = 0; w < W / 2; ++w) {
@@ -87,7 +89,7 @@ template <> constexpr auto gcdreduce<1>(std::int64_t v) -> std::int64_t {
   return v;
 }
 
-constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {
+TRIVIAL constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {
   std::int64_t ax = constexpr_abs(x);
   std::int64_t ay = constexpr_abs(y);
   if (ax == 1) return ay;
@@ -101,14 +103,14 @@ constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {
 //   return std::copysign(x, s);
 // }
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-template <std::integral I> constexpr auto copySign(I x, I s) -> I {
+template <std::integral I> TRIVIAL constexpr auto copySign(I x, I s) -> I {
   if (s >= 0) return constexpr_abs(x);
   return -constexpr_abs(x);
 }
 
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
 template <std::integral T>
-constexpr auto dgcdx(T a, T b)
+TRIVIAL constexpr auto dgcdx(T a, T b)
   -> std::array<T, 5> { // NOLINT(bugprone-easily-swappable-parameters)
   T r_old = a, r = b;
   T s_old = 1, s = 0;
@@ -127,13 +129,13 @@ constexpr auto dgcdx(T a, T b)
 }
 template <
   std::integral T> // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-constexpr auto gcdx(T a, T b) -> std::array<T, 3> {
+TRIVIAL constexpr auto gcdx(T a, T b) -> std::array<T, 3> {
   auto [g, x, y, t, s] = dgcdx(a, b);
   return {g, x, y};
 }
 
 /// divgcd(x, y) = (x / gcd(x, y), y / gcd(x, y))
-constexpr auto divgcd(std::int64_t a, std::int64_t b)
+TRIVIAL constexpr auto divgcd(std::int64_t a, std::int64_t b)
   -> std::array<std::int64_t, 2> {
   auto [g, x, y, t, s] = dgcdx(a, b);
   return {t, s};

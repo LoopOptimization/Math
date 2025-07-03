@@ -7,19 +7,44 @@ import Array;
 import ArrayConcepts;
 import ArrayConstructors;
 import AxisTypes;
+import BaseUtils;
 import Comparisons;
 import EmptyMatrix;
+import GCD;
 import GenericArrayConstructors;
-import BaseUtils;
 import ManagedArray;
 import Range;
 import Rational;
 import SIMD;
 import std;
 import Tuple;
-import VGCD;
 
-export namespace math::NormalForm {
+export namespace math {
+ auto gcd(PtrVector<std::int64_t> x) -> std::int64_t;
+ void normalizeByGCD(MutPtrVector<std::int64_t> x);
+
+constexpr auto lcm(AbstractVector auto x) -> std::int64_t {
+  std::int64_t l = x[0];
+  for (std::int64_t xi : x[_(1, end)]) l = lcm(l, xi);
+  return l;
+}
+constexpr auto lcmNonUnity(AbstractVector auto x)
+  -> containers::Pair<std::int64_t, bool> {
+  std::int64_t l = x[0];
+  bool nonUnity = (l != 1);
+  for (std::int64_t xi : x[_(1, end)]) {
+    nonUnity |= (xi != 1);
+    l = lcm(l, xi);
+  }
+  return {l, nonUnity};
+}
+constexpr auto lcmSkipZero(AbstractVector auto x) -> std::int64_t {
+  std::int64_t l = 1;
+  for (std::int64_t xi : x)
+    if (xi) l = lcm(l, xi);
+  return l;
+}
+namespace NormalForm {
 
 // Forward declarations for concrete int64_t algorithms
 auto gcdxScale(std::int64_t a, std::int64_t b) -> std::array<std::int64_t, 4>;
@@ -127,11 +152,11 @@ auto orthogonalizeBang(MutDensePtrMatrix<std::int64_t> &A)
   -> containers::Pair<SquareMatrix<std::int64_t>, Vector<unsigned>>;
 } // namespace detail
 
-} // namespace math::NormalForm
+} // namespace NormalForm
 
-export namespace math {
 auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
   -> MutDensePtrMatrix<std::int64_t>;
 auto orthogonalNullSpace(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
   -> MutDensePtrMatrix<std::int64_t>;
+
 } // namespace math

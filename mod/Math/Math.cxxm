@@ -44,7 +44,6 @@ export import UnrolledList;
 // Mathematical Algorithms
 export import Rational;
 export import GCD;
-export import VGCD;
 export import LinearDiophantine;
 export import Unimodularization;
 export import NormalForm;
