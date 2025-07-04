@@ -30,5 +30,5 @@ void BM_expm_dual7x2(Bench& bench, std::ptrdiff_t size) {
                              decltype(2.3 * A)>());
 #endif
   for (auto &&a : A) a = URand<D>{}(rng0);
-  bench.run([&] { expbench(A); });
+  bench.run("BM_expm_dual7x2_size=" + std::to_string(size), [&] { expbench(A); });
 }

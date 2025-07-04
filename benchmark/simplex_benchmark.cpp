@@ -888,7 +888,7 @@ void BM_Simplex0(Bench &bench) {
     math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
                           math::col(simpBackup->getNumVars()))};
   // Vector<Rational> sol(37);
-  bench.run([&] {
+  bench.run("BM_Simplex0", [&] {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();
 #ifndef NDEBUG
@@ -1128,7 +1128,7 @@ void BM_Simplex1(Bench &bench) {
   utils::Valid<math::Simplex> simp{
     math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
                           math::col(simpBackup->getNumVars()), 0)};
-  bench.run([&] {
+  bench.run("BM_Simplex1", [&] {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();
 #ifndef NDEBUG

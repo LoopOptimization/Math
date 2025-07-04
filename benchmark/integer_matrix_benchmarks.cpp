@@ -15,7 +15,7 @@ void BM_solve_system(Bench& bench, std::ptrdiff_t size) {
   math::DenseMatrix<std::int64_t> A{dim}, B{dim}, C{dim}, D{dim};
   for (auto &&x : C) x = distrib(rng0);
   for (auto &&x : D) x = distrib(rng0);
-  bench.run([&] {
+  bench.run("BM_solve_system_size=" + std::to_string(size), [&] {
     A << C;
     B << D;
     for (std::ptrdiff_t n = 0; n < num_iter; ++n)

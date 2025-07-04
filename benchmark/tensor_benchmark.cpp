@@ -25,7 +25,7 @@ void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
   SquareMatrix<D> A{SquareDims{math::row(size)}};
   SquareMatrix<D> B{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  bench.run([&] {
+  bench.run("BM_dual8x2dApI_size=" + std::to_string(size), [&] {
     A12pI120(B, A);
     doNotOptimizeAway(B);
   });
@@ -39,7 +39,7 @@ void BM_dual8x2BmApI(Bench& bench, std::ptrdiff_t size) {
   SquareMatrix<D> C{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
-  bench.run([&] {
+  bench.run("BM_dual8x2BmApI_size=" + std::to_string(size), [&] {
     BApI60(C, A, B);
     doNotOptimizeAway(C);
   });
@@ -104,7 +104,7 @@ void BM_dual8x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
       }
     }
   }
-  bench.run([&] { BtimesAplusdI(C, A, B, 60.0); });
+  bench.run("BM_dual8x2BmApI_manual_size=" + std::to_string(size), [&] { BtimesAplusdI(C, A, B, 60.0); });
 }
 
 void BM_dual7x2dApI(Bench& bench, std::ptrdiff_t size) {
@@ -118,7 +118,7 @@ void BM_dual7x2dApI(Bench& bench, std::ptrdiff_t size) {
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  bench.run([&] {
+  bench.run("BM_dual7x2dApI_size=" + std::to_string(size), [&] {
     A12pI120(B, A);
     doNotOptimizeAway(B);
   });
@@ -133,7 +133,7 @@ void BM_dual7x2BmApI(Bench& bench, std::ptrdiff_t size) {
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
-  bench.run([&] {
+  bench.run("BM_dual7x2BmApI_size=" + std::to_string(size), [&] {
     BApI60(C, A, B);
     doNotOptimizeAway(C);
   });
@@ -154,7 +154,7 @@ void BM_dual7x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
       }
     }
   }
-  bench.run([&] { BtimesAplusdI(C, A, B, 60.0); });
+  bench.run("BM_dual7x2BmApI_manual_size=" + std::to_string(size), [&] { BtimesAplusdI(C, A, B, 60.0); });
 }
 
 void BM_dual6x2dApI(Bench& bench, std::ptrdiff_t size) {
@@ -176,7 +176,7 @@ void BM_dual6x2dApI(Bench& bench, std::ptrdiff_t size) {
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  bench.run([&] {
+  bench.run("BM_dual6x2dApI_size=" + std::to_string(size), [&] {
     A12pI120(B, A);
     doNotOptimizeAway(B);
   });
@@ -191,7 +191,7 @@ void BM_dual6x2BmApI(Bench& bench, std::ptrdiff_t size) {
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
-  bench.run([&] {
+  bench.run("BM_dual6x2BmApI_size=" + std::to_string(size), [&] {
     BApI60(C, A, B);
     doNotOptimizeAway(C);
   });
@@ -214,5 +214,5 @@ void BM_dual6x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
       }
     }
   }
-  bench.run([&] { BtimesAplusdI(C, A, B, 60.0); });
+  bench.run("BM_dual6x2BmApI_manual_size=" + std::to_string(size), [&] { BtimesAplusdI(C, A, B, 60.0); });
 }

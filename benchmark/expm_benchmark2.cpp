@@ -7,5 +7,5 @@ void BM_expm_dual2(Bench& bench, std::ptrdiff_t size) {
   using D = Dual<double, 2>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  bench.run([&] { expbench(A); });
+  bench.run("BM_expm_dual2_size=" + std::to_string(size), [&] { expbench(A); });
 }
