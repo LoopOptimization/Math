@@ -1,6 +1,6 @@
-#pragma once
-#include "randdual.hpp"
-#include <benchmark/benchmark.h>
+export module ExpMat;
+
+export import RandDual;
 import Dual;
 import LinearAlgebra;
 import GenericArrayConstructors;
@@ -9,9 +9,10 @@ import MatDim;
 import TinyVector;
 import Tuple;
 import UniformScaling;
+import std;
 // auto x = Dual<Dual<double, 4>, 2>{1.0};
 // auto y = x * 3.4;
-namespace math {
+export namespace math {
 static_assert(std::convertible_to<int, Dual<double, 4>>);
 static_assert(std::convertible_to<int, Dual<Dual<double, 4>, 2>>);
 

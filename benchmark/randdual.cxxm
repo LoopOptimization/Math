@@ -1,9 +1,11 @@
-#pragma once
+module;
 
-import Dual;
+export module RandDual;
+
+export import Dual;
 import std;
 
-namespace math {
+export namespace math {
 template <class T> struct URand {};
 
 template <class T, std::ptrdiff_t N> struct URand<Dual<T, N>> {

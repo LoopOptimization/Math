@@ -23,33 +23,40 @@ option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 
 # --- Import tools ----
 
-include(../cmake/tools.cmake)
+# include(../cmake/tools.cmake)
 
 # ---- Dependencies ----
 
-include(../cmake/CPM.cmake)
+include(FetchContent)
 
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-cpmaddpackage(
-  NAME
-  benchmark
-  GITHUB_REPOSITORY
-  google/benchmark
-  VERSION
-  1.8.4
-  OPTIONS
-  "BENCHMARK_ENABLE_TESTING Off"
-  "BENCHMARK_ENABLE_LIBPFM On"
-  "BENCHMARK_ENABLE_WERROR Off"
-  "BENCHMARK_ENABLE_EXCEPTIONS Off"
-  SYSTEM
-  TRUE)
-if(benchmark_ADDED)
-  # enable c++11 to avoid compilation errors
-  set_target_properties(benchmark PROPERTIES CXX_STANDARD 11)
-endif()
+# if("${CMAKE_CXX_FLAGS}" STREQUAL "")
+#   set(has_libcpp -1)
+# else()
+#   string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
+# endif()
+# if(has_libcpp GREATER_EQUAL 0)
+# main doesn't support -fno-exceptions or -fno-rtti
+FetchContent_Declare(
+  nanobench
+  GIT_REPOSITORY https://github.com/Spartan322/nanobench
+  GIT_TAG f49b052a68bc05d5497acf1f6c0c2d6ef65c6eef
+    # GIT_REPOSITORY https://github.com/martinus/nanobench.git
+    # GIT_TAG v4.3.11
+  GIT_SHALLOW TRUE)
+# else()
+#   FetchContent_Declare(
+#     nanobench FIND_PACKAGE_ARGS 
+#     GIT_REPOSITORY https://github.com/Spartan322/nanobench
+#     GIT_REPOSITORY https://github.com/martinus/nanobench.git
+#     GIT_TAG v4.3.11
+#     GIT_SHALLOW TRUE)
+# endif()
+
+FetchContent_MakeAvailable(nanobench)
+
 
 # FetchContent_Declare( Math GIT_REPOSITORY git@github.com:LoopModels/Math.git
 # GIT_TAG origin/main ) FetchContent_MakeAvailable(Math)
@@ -57,8 +64,18 @@ endif()
 # file(GLOB_RECURSE headers CONFIGURE_DEPENDS
 # ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
 file(GLOB benchmarks CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB_RECURSE module_interfaces CONFIGURE_DEPENDS
+     ${CMAKE_CURRENT_SOURCE_DIR}/*.cxxm)
+file(GLOB_RECURSE module_implementations CONFIGURE_DEPENDS
+     ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx)
 
 add_executable(${PROJECT_NAME} ${benchmarks})
+target_sources(
+  ${PROJECT_NAME}
+  PUBLIC FILE_SET CXX_MODULES FILES ${module_interfaces}
+  PRIVATE ${module_implementations})
+  # INTERFACE FILE_SET HEADERS FILES ${headers})
+
 
 message(STATUS "PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
@@ -74,7 +91,7 @@ else()
   message(STATUS "Use SIMD Array operations")
 endif()
 
-target_link_libraries(${PROJECT_NAME} Math benchmark::benchmark_main)
+target_link_libraries(${PROJECT_NAME} PRIVATE Math nanobench)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES
                                                "IntelLLVM"))
@@ -123,9 +140,7 @@ set_target_properties(
 
 target_compile_options(
   ${PROJECT_NAME}
-  PRIVATE -fno-exceptions
-          -fno-rtti
-          -fstrict-aliasing
+  PRIVATE -fstrict-aliasing
           -fno-plt
           -fstrict-overflow
           -fomit-frame-pointer
@@ -137,7 +152,7 @@ target_compile_options(
           -Wall
           -Wshadow
           -Wextra
-          -save-temps
+          # -save-temps
           -Werror)
 # if(ENABLE_OPENMP) if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
 # target_compile_options(${PROJECT_NAME} PRIVATE -fiopenmp) else()

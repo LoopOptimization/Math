@@ -1,8 +1,11 @@
 
 #include "LoopMacros.hxx"
-#include "include/randdual.hpp"
 import Array;
-#include <benchmark/benchmark.h>
+import ManagedArray;
+import Nanobench;
+import RandDual;
+import std;
+import UniformScaling;
 
 using math::Dual, math::SquareMatrix, math::SquareDims, math::I, math::URand;
 

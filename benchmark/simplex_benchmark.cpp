@@ -1,5 +1,4 @@
-#include <benchmark/benchmark.h>
-
+import Nanobench;
 import Arena;
 import ArrayParse;
 import ManagedArray;
@@ -9,7 +8,7 @@ import Valid;
 
 using utils::operator""_mat, math::_;
 
-static void BM_Simplex0(benchmark::State &state) {
+static void BM_Simplex0(Bench &bench) {
   math::DenseMatrix<std::int64_t> tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
@@ -889,17 +888,18 @@ static void BM_Simplex0(benchmark::State &state) {
     math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
                           math::col(simpBackup->getNumVars()))};
   // Vector<Rational> sol(37);
-  for (auto b : state) {
+  bench.run([&] {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();
-    assert(!fail);
+#ifndef NDEBUG
+    if (fail) __builtin_trap();
+#endif
     if (!fail) simp->rLexMinLast(37);
-  }
+  });
   alloc.reset();
 }
-BENCHMARK(BM_Simplex0);
 
-static void BM_Simplex1(benchmark::State &state) {
+static void BM_Simplex1(Bench &bench) {
   math::IntMatrix<> tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 "
     "94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 "
@@ -1128,11 +1128,12 @@ static void BM_Simplex1(benchmark::State &state) {
   utils::Valid<math::Simplex> simp{
     math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
                           math::col(simpBackup->getNumVars()), 0)};
-  for (auto b : state) {
+  bench.run([&] {
     *simp << *simpBackup;
     bool fail = simp->initiateFeasible();
-    assert(!fail);
+#ifndef NDEBUG
+    if (fail) __builtin_trap();
+#endif
     if (!fail) simp->rLexMinLast(15);
-  }
+  });
 }
-BENCHMARK(BM_Simplex1);

@@ -1,4 +1,4 @@
-#include "include/expm.hpp"
+import ExpMat;
 
 static void BM_expm_dual5x2(benchmark::State &state) {
   std::mt19937_64 rng0;

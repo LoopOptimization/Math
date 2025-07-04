@@ -1,7 +1,12 @@
 
 import Array;
-#include "include/randdual.hpp"
-#include <benchmark/benchmark.h>
+import ManagedArray;
+import Nanobench;
+import RandDual;
+import ScalarizeViaCast;
+import StaticArray;
+import std;
+import Tuple;
 
 using math::Dual, math::SquareDims, math::SquareMatrix, math::MutArray,
   math::Array, math::URand, containers::tie, containers::Tuple;

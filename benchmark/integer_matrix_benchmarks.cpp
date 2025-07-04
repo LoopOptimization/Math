@@ -1,7 +1,6 @@
-#include <benchmark/benchmark.h>
-
 import ManagedArray;
 import ArrayParse;
+import Nanobench;
 import NormalForm;
 import std;
 

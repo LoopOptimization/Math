@@ -1,25 +1,19 @@
 
+import Array;
+import BaseUtils;
+import ManagedArray;
+import Nanobench;
+import RandDual;
+import SIMD;
+import StaticArray;
+import std;
+import Tuple;
 
-#include "include/randdual.hpp"
-#include <benchmark/benchmark.h>
-
-namespace {
-using benchmark::State;
 using math::Dual, math::SquareMatrix, math::URand;
+namespace {
 
 [[gnu::noinline]] void prod(auto &c, const auto &a, const auto &b) {
   c = a * b;
-}
-
-template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualprod(benchmark::State &state) {
-  std::mt19937_64 rng0;
-  using D = Dual<Dual<double, M>, N>;
-  D a = URand<D>{}(rng0), b = URand<D>{}(rng0), c;
-  for (auto _ : state) {
-    prod(c, a, b);
-    benchmark::DoNotOptimize(c);
-  }
 }
 
 template <typename T, std::ptrdiff_t N, bool SIMDArray = false>
@@ -129,81 +123,89 @@ auto setup_manual() {
   }
   return std::array<D, 3>{a, b, c};
 }
-
-template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualprod_manual(benchmark::State &state) {
-  auto [a, b, c] = setup_manual<M, N, false, true>();
-  for (auto _ : state) {
-    prod(c, a, b);
-    benchmark::DoNotOptimize(c);
-  }
-}
-template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualprod_simdarray(State &state) {
-  auto [a, b, c] = setup_manual<M, N, true, true>();
-  for (auto _ : state) {
-    prod(c, a, b);
-    benchmark::DoNotOptimize(c);
-  }
-}
-template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualprod_manual_tuple(State &state) {
-  auto [a, b, c] = setup_manual<M, N, false, false>();
-  for (auto _ : state) {
-    prod(c, a, b);
-    benchmark::DoNotOptimize(c);
-  }
-}
-template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualprod_simdarray_tuple(benchmark::State &state) {
-  auto [a, b, c] = setup_manual<M, N, true, false>();
-  for (auto _ : state) {
-    prod(c, a, b);
-    benchmark::DoNotOptimize(c);
-  }
-}
 } // namespace
-BENCHMARK(BM_dualprod<6, 2>);
-BENCHMARK(BM_dualprod<7, 2>);
-BENCHMARK(BM_dualprod<8, 2>);
-
-BENCHMARK(BM_dualprod_manual<6, 2>);
-BENCHMARK(BM_dualprod_manual<7, 2>);
-BENCHMARK(BM_dualprod_manual<8, 2>);
-
-BENCHMARK(BM_dualprod_simdarray<6, 2>);
-BENCHMARK(BM_dualprod_simdarray<7, 2>);
-BENCHMARK(BM_dualprod_simdarray<8, 2>);
-
-BENCHMARK(BM_dualprod_manual_tuple<6, 2>);
-BENCHMARK(BM_dualprod_manual_tuple<7, 2>);
-BENCHMARK(BM_dualprod_manual_tuple<8, 2>);
-
-BENCHMARK(BM_dualprod_simdarray_tuple<6, 2>);
-BENCHMARK(BM_dualprod_simdarray_tuple<7, 2>);
-BENCHMARK(BM_dualprod_simdarray_tuple<8, 2>);
+template <std::ptrdiff_t M, std::ptrdiff_t N> void BM_dualprod(Bench &bench) {
+  std::mt19937_64 rng0;
+  using D = Dual<Dual<double, M>, N>;
+  D a = URand<D>{}(rng0), b = URand<D>{}(rng0), c;
+  bench.run([&] {
+    prod(c, a, b);
+    doNotOptimizeAway(c);
+  });
+}
 
 template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualdivsum(benchmark::State &state) {
+void BM_dualprod_manual(Bench &bench) {
+  auto [a, b, c] = setup_manual<M, N, false, true>();
+  bench.run([&] {
+    prod(c, a, b);
+    doNotOptimizeAway(c);
+  });
+}
+template <std::ptrdiff_t M, std::ptrdiff_t N>
+void BM_dualprod_simdarray(Bench &bench) {
+  auto [a, b, c] = setup_manual<M, N, true, true>();
+  bench.run([&] {
+    prod(c, a, b);
+    doNotOptimizeAway(c);
+  });
+}
+template <std::ptrdiff_t M, std::ptrdiff_t N>
+void BM_dualprod_manual_tuple(Bench &bench) {
+  auto [a, b, c] = setup_manual<M, N, false, false>();
+  bench.run([&] {
+    prod(c, a, b);
+    doNotOptimizeAway(c);
+  });
+}
+template <std::ptrdiff_t M, std::ptrdiff_t N>
+void BM_dualprod_simdarray_tuple(Bench &bench) {
+  auto [a, b, c] = setup_manual<M, N, true, false>();
+  bench.run([&] {
+    prod(c, a, b);
+    doNotOptimizeAway(c);
+  });
+}
+template void BM_dualprod<6, 2>(Bench &bench);
+template void BM_dualprod<7, 2>(Bench &bench);
+template void BM_dualprod<8, 2>(Bench &bench);
+
+template void BM_dualprod_manual<6, 2>(Bench &bench);
+template void BM_dualprod_manual<7, 2>(Bench &bench);
+template void BM_dualprod_manual<8, 2>(Bench &bench);
+
+template void BM_dualprod_simdarray<6, 2>(Bench &bench);
+template void BM_dualprod_simdarray<7, 2>(Bench &bench);
+template void BM_dualprod_simdarray<8, 2>(Bench &bench);
+
+template void BM_dualprod_manual_tuple<6, 2>(Bench &bench);
+template void BM_dualprod_manual_tuple<7, 2>(Bench &bench);
+template void BM_dualprod_manual_tuple<8, 2>(Bench &bench);
+
+template void BM_dualprod_simdarray_tuple<6, 2>(Bench &bench);
+template void BM_dualprod_simdarray_tuple<7, 2>(Bench &bench);
+template void BM_dualprod_simdarray_tuple<8, 2>(Bench &bench);
+
+template <std::ptrdiff_t M, std::ptrdiff_t N>
+void BM_dualdivsum(Bench &bench, std::ptrdiff_t len) {
   std::mt19937_64 rng0;
   using D =
     std::conditional_t<(N > 0), Dual<Dual<double, M>, N>, Dual<double, M>>;
-  std::ptrdiff_t len = state.range(0);
   Vector<std::array<D, 4>> x{math::length(len)};
   for (std::ptrdiff_t i = 0; i < len; ++i) {
     x[i] = {URand<D>{}(rng0), URand<D>{}(rng0), URand<D>{}(rng0),
             URand<D>{}(rng0)};
   }
-  for (auto _ : state) {
+  bench.run([&] {
     D s{};
     for (auto a : x) s += (a[0] + a[1]) / (a[2] + a[3]);
-    benchmark::DoNotOptimize(s);
-  }
+    doNotOptimizeAway(s);
+  });
 }
 
-BENCHMARK(BM_dualdivsum<7, 0>)->RangeMultiplier(2)->Range(1, 1 << 10);
-BENCHMARK(BM_dualdivsum<8, 0>)->RangeMultiplier(2)->Range(1, 1 << 10);
-BENCHMARK(BM_dualdivsum<7, 2>)->RangeMultiplier(2)->Range(1, 1 << 10);
-BENCHMARK(BM_dualdivsum<8, 2>)->RangeMultiplier(2)->Range(1, 1 << 10);
-BENCHMARK(BM_dualdivsum<7, 4>)->RangeMultiplier(2)->Range(1, 1 << 10);
-BENCHMARK(BM_dualdivsum<8, 4>)->RangeMultiplier(2)->Range(1, 1 << 10);
+template void BM_dualdivsum<7, 0>(Bench &bench, std::ptrdiff_t len);
+template void BM_dualdivsum<8, 0>(Bench &bench, std::ptrdiff_t len);
+template void BM_dualdivsum<7, 2>(Bench &bench, std::ptrdiff_t len);
+template void BM_dualdivsum<8, 2>(Bench &bench, std::ptrdiff_t len);
+template void BM_dualdivsum<7, 4>(Bench &bench, std::ptrdiff_t len);
+template void BM_dualdivsum<8, 4>(Bench &bench, std::ptrdiff_t len);

@@ -1,0 +1,26 @@
+module;
+
+#include <nanobench.h>
+
+export module Nanobench;
+
+// import std;
+
+
+export namespace ankerl::nanobench {
+  using ankerl::nanobench::Bench;
+  using ankerl::nanobench::Config;
+  using ankerl::nanobench::Result;
+  using ankerl::nanobench::doNotOptimizeAway;
+}
+
+// Convenience alias for the common usage pattern
+export using Bench = ankerl::nanobench::Bench;
+export using Config = ankerl::nanobench::Config;
+export using Result = ankerl::nanobench::Result;
+
+// Re-export the doNotOptimizeAway function
+export template<typename T>
+void doNotOptimizeAway(T const& val) {
+  ankerl::nanobench::doNotOptimizeAway(val);
+}
