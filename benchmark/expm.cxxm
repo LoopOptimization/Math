@@ -1,6 +1,9 @@
 export module ExpMat;
 
 export import RandDual;
+export import Nanobench;
+export import AxisTypes;
+import BaseUtils;
 import Dual;
 import LinearAlgebra;
 import GenericArrayConstructors;
@@ -114,7 +117,7 @@ template <typename T> constexpr void expm(MutSquarePtrMatrix<T> A) {
 
 } // namespace math
 
-using math::Dual, math::SquareDims, math::SquareMatrix, math::URand;
+export using math::Dual, math::SquareDims, math::SquareMatrix, math::URand;
 
 auto expwork(const auto &A) {
   SquareMatrix<math::eltype_t<decltype(A)>> C{SquareDims{A.numRow()}}, B{A};
@@ -125,4 +128,4 @@ auto expwork(const auto &A) {
   }
   return B;
 }
-void expbench(const auto &A) { benchmark::DoNotOptimize(expwork(A)); }
+export void expbench(const auto &A) { doNotOptimizeAway(expwork(A)); }

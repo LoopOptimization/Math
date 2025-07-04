@@ -2,7 +2,7 @@ import ExpMat;
 import Nanobench;
 import std;
 
-static void BM_expm_dual5(Bench& bench, std::ptrdiff_t size) {
+void BM_expm_dual5(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<double, 5>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};

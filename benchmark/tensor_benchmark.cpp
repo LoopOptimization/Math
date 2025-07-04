@@ -1,9 +1,12 @@
 
 #include "LoopMacros.hxx"
 import Array;
+import BaseUtils;
 import ManagedArray;
 import Nanobench;
 import RandDual;
+import SIMD;
+import StaticArray;
 import std;
 import UniformScaling;
 
@@ -16,7 +19,7 @@ using math::Dual, math::SquareMatrix, math::SquareDims, math::I, math::URand;
   C << B * (A + 60.0 * I);
 }
 
-static void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -28,7 +31,7 @@ static void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
   });
 }
 
-static void BM_dual8x2BmApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual8x2BmApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -86,10 +89,10 @@ void BtimesAplusdI(
   }
 }
 
-static void BM_dual8x2BmApI_manual(benchmark::State &state) {
+void BM_dual8x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = std::array<std::array<double, 9>, 3>;
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
@@ -101,48 +104,45 @@ static void BM_dual8x2BmApI_manual(benchmark::State &state) {
       }
     }
   }
-  for (auto b : state) BtimesAplusdI(C, A, B, 60.0);
+  bench.run([&] { BtimesAplusdI(C, A, B, 60.0); });
 }
-BENCHMARK(BM_dual8x2BmApI_manual)->DenseRange(2, 10, 1);
 
-static void BM_dual7x2dApI(benchmark::State &state) {
+void BM_dual7x2dApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 7>, 2>;
   static_assert(utils::Compressible<Dual<double, 7>>);
   static_assert(utils::Compressible<D>);
   static_assert(sizeof(utils::compressed_t<D>) == (24 * sizeof(double)));
   static_assert(sizeof(D) == (24 * sizeof(double)));
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  for (auto b : state) {
+  bench.run([&] {
     A12pI120(B, A);
-    benchmark::DoNotOptimize(B);
-  }
+    doNotOptimizeAway(B);
+  });
 }
-BENCHMARK(BM_dual7x2dApI)->DenseRange(2, 10, 1);
 
-static void BM_dual7x2BmApI(benchmark::State &state) {
+void BM_dual7x2BmApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 7>, 2>;
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
-  for (auto b : state) {
+  bench.run([&] {
     BApI60(C, A, B);
-    benchmark::DoNotOptimize(C);
-  }
+    doNotOptimizeAway(C);
+  });
 }
-BENCHMARK(BM_dual7x2BmApI)->DenseRange(2, 10, 1);
 
-static void BM_dual7x2BmApI_manual(benchmark::State &state) {
+void BM_dual7x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = std::array<std::array<double, 8>, 3>;
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
@@ -154,11 +154,10 @@ static void BM_dual7x2BmApI_manual(benchmark::State &state) {
       }
     }
   }
-  for (auto b : state) BtimesAplusdI(C, A, B, 60.0);
+  bench.run([&] { BtimesAplusdI(C, A, B, 60.0); });
 }
-BENCHMARK(BM_dual7x2BmApI_manual)->DenseRange(2, 10, 1);
 
-static void BM_dual6x2dApI(benchmark::State &state) {
+void BM_dual6x2dApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 6>, 2>;
   static_assert(utils::Compressible<Dual<double, 6>>);
@@ -173,39 +172,37 @@ static void BM_dual6x2dApI(benchmark::State &state) {
   static_assert(simd::SIMDSupported<double> ==
                 (sizeof(D) == (24 * sizeof(double))));
   // static_assert(sizeof(D) == sizeof(Dual<Dual<double, 8>, 2>));
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  for (auto b : state) {
+  bench.run([&] {
     A12pI120(B, A);
-    benchmark::DoNotOptimize(B);
-  }
+    doNotOptimizeAway(B);
+  });
 }
-BENCHMARK(BM_dual6x2dApI)->DenseRange(2, 10, 1);
 
-static void BM_dual6x2BmApI(benchmark::State &state) {
+void BM_dual6x2BmApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 6>, 2>;
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
-  for (auto b : state) {
+  bench.run([&] {
     BApI60(C, A, B);
-    benchmark::DoNotOptimize(C);
-  }
+    doNotOptimizeAway(C);
+  });
 }
-BENCHMARK(BM_dual6x2BmApI)->DenseRange(2, 10, 1);
 
-static void BM_dual6x2BmApI_manual(benchmark::State &state) {
+void BM_dual6x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   constexpr std::size_t Dcount = 6;
   constexpr std::size_t N = Dcount + 1;
   using D = std::array<std::array<double, N>, 3>;
-  std::ptrdiff_t dim = state.range(0);
+  std::ptrdiff_t dim = size;
   SquareMatrix<D> A{SquareDims{math::row(dim)}};
   SquareMatrix<D> B{SquareDims{math::row(dim)}};
   SquareMatrix<D> C{SquareDims{math::row(dim)}};
@@ -217,6 +214,5 @@ static void BM_dual6x2BmApI_manual(benchmark::State &state) {
       }
     }
   }
-  for (auto b : state) BtimesAplusdI(C, A, B, 60.0);
+  bench.run([&] { BtimesAplusdI(C, A, B, 60.0); });
 }
-BENCHMARK(BM_dual6x2BmApI_manual)->DenseRange(2, 10, 1);

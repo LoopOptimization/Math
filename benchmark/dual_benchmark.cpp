@@ -191,7 +191,7 @@ void BM_dualdivsum(Bench &bench, std::ptrdiff_t len) {
   std::mt19937_64 rng0;
   using D =
     std::conditional_t<(N > 0), Dual<Dual<double, M>, N>, Dual<double, M>>;
-  Vector<std::array<D, 4>> x{math::length(len)};
+  math::Vector<std::array<D, 4>> x{math::length(len)};
   for (std::ptrdiff_t i = 0; i < len; ++i) {
     x[i] = {URand<D>{}(rng0), URand<D>{}(rng0), URand<D>{}(rng0),
             URand<D>{}(rng0)};

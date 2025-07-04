@@ -8,7 +8,7 @@ import Valid;
 
 using utils::operator""_mat, math::_;
 
-static void BM_Simplex0(Bench &bench) {
+void BM_Simplex0(Bench &bench) {
   math::DenseMatrix<std::int64_t> tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
@@ -899,7 +899,7 @@ static void BM_Simplex0(Bench &bench) {
   alloc.reset();
 }
 
-static void BM_Simplex1(Bench &bench) {
+void BM_Simplex1(Bench &bench) {
   math::IntMatrix<> tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 "
     "94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 "
