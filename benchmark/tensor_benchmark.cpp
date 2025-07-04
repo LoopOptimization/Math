@@ -16,35 +16,31 @@ using math::Dual, math::SquareMatrix, math::SquareDims, math::I, math::URand;
   C << B * (A + 60.0 * I);
 }
 
-static void BM_dual8x2dApI(benchmark::State &state) {
+static void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
-  std::ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{math::row(dim)}};
-  SquareMatrix<D> B{SquareDims{math::row(dim)}};
+  SquareMatrix<D> A{SquareDims{math::row(size)}};
+  SquareMatrix<D> B{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
-  for (auto b : state) {
+  bench.run([&] {
     A12pI120(B, A);
-    benchmark::DoNotOptimize(B);
-  }
+    doNotOptimizeAway(B);
+  });
 }
-BENCHMARK(BM_dual8x2dApI)->DenseRange(2, 10, 1);
 
-static void BM_dual8x2BmApI(benchmark::State &state) {
+static void BM_dual8x2BmApI(Bench& bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
-  std::ptrdiff_t dim = state.range(0);
-  SquareMatrix<D> A{SquareDims{math::row(dim)}};
-  SquareMatrix<D> B{SquareDims{math::row(dim)}};
-  SquareMatrix<D> C{SquareDims{math::row(dim)}};
+  SquareMatrix<D> A{SquareDims{math::row(size)}};
+  SquareMatrix<D> B{SquareDims{math::row(size)}};
+  SquareMatrix<D> C{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<D>{}(rng0);
   for (auto &&b : B) b = URand<D>{}(rng0);
-  for (auto b : state) {
+  bench.run([&] {
     BApI60(C, A, B);
-    benchmark::DoNotOptimize(C);
-  }
+    doNotOptimizeAway(C);
+  });
 }
-BENCHMARK(BM_dual8x2BmApI)->DenseRange(2, 10, 1);
 
 template <std::size_t M, std::size_t N>
 void BtimesAplusdI(
