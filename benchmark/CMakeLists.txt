@@ -10,6 +10,11 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # your CMake build for the exact value to use.
     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+else()
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
 project(MathBenchmarks LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)

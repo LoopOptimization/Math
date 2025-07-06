@@ -50,6 +50,12 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
 # CPPCHECK-NOTFOUND) set(CMAKE_CXX_CPPCHECK "${CPPCHECK} --language=c++
 # --enable=warning,style,performance,information") endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+else()
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+endif()
+
 project(MathTests LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -119,7 +125,11 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(${PROJECT_NAME} ${sources})
 target_link_libraries(${PROJECT_NAME} Math GTest::gtest_main)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES CXX_STANDARD 23
+             CXX_VISIBILITY_PRESET hidden
+             VISIBILITY_INLINES_HIDDEN ON)
 
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
