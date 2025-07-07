@@ -1,9 +1,11 @@
-#include <gtest/gtest.h>
+import boost.ut;
 
 import Arena;
 import ListRange;
 import ManagedArray;
 import std;
+
+using namespace boost::ut;
 
 template <typename T> class List {
   T data_;
@@ -46,14 +48,14 @@ static_assert(std::ranges::forward_range<LR>);
 static_assert(std::ranges::range<LR>);
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(ListRangeTest, BasicAssertions) {
+void testBasicAssertions() {
   alloc::OwningArena<> arena;
   List<int> *list = nullptr;
   for (int i = 0; i < 10; ++i) list = arena.create<List<int>>(i)->setNext(list);
   {
     int s = 0;
     for (auto *v : utils::ListRange{list, utils::GetNext{}}) s += v->getData();
-    EXPECT_EQ(s, 45);
+    expect(s == 45);
   }
   List<int> *list100 = nullptr;
   for (int i = 0; i < 1000; i += 100)
@@ -72,7 +74,7 @@ TEST(ListRangeTest, BasicAssertions) {
     for (auto *outer = list_list; outer; outer = outer->getNext())
       for (auto *v : utils::ListRange{outer->getData(), utils::GetNext{}})
         s += v->getData();
-    EXPECT_EQ(s, 454545);
+    expect(s == 454545);
   }
   {
     int s = 0;
@@ -80,7 +82,7 @@ TEST(ListRangeTest, BasicAssertions) {
       for (auto v : utils::ListRange{outer->getData(), utils::GetNext{},
                                      [](auto *v) { return 2 * v->getData(); }})
         s += v;
-    EXPECT_EQ(s, 909090);
+    expect(s == 909090);
   }
   {
     int s = 0;
@@ -99,7 +101,7 @@ TEST(ListRangeTest, BasicAssertions) {
     static_assert(std::ranges::borrowed_range<decltype(nlr)>);
     static_assert(std::ranges::range<decltype(nlr)>);
     for (auto *v : nlr) s += v->getData();
-    EXPECT_EQ(s, 454545);
+    expect(s == 454545);
   }
   {
     int s = 0;
@@ -131,18 +133,25 @@ TEST(ListRangeTest, BasicAssertions) {
       std::ranges::enable_borrowed_range<typename decltype(nlr)::InnerType>);
     static_assert(std::ranges::view<decltype(nlr)>);
     for (auto *v : nlr) s += v->getData();
-    EXPECT_EQ(s, 450045);
+    expect(s == 450045);
   }
   {
-    math::Vector<int> destination;
+    ::math::Vector<int> destination;
     utils::NestedList nlr{utils::ListRange{list_list, utils::GetNext{}}, g};
     static_assert(std::input_iterator<decltype(nlr.begin())>);
     static_assert(std::ranges::input_range<decltype(nlr)>);
     std::ranges::transform(nlr, std::back_inserter(destination),
                            [](auto *v) { return v->getData(); });
-    EXPECT_EQ(destination.size(), 3 * 10);
+    expect(destination.size() == 3 * 10);
     int s = 0;
     for (auto v : destination) s += v;
-    EXPECT_EQ(s, 454545);
+    expect(s == 454545);
   }
+}
+
+int main() {
+  "ListRangeTest BasicAssertions"_test = [] {
+    testBasicAssertions();
+  };
+  return 0;
 }

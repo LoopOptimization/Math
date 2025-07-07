@@ -88,8 +88,57 @@ cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
 # ---- Create binary ----
 
-file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-add_executable(${PROJECT_NAME} ${sources})
+# Get all test files
+file(GLOB test_sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+# Create a test executable for each source file
+foreach(test_source ${test_sources})
+  get_filename_component(test_name ${test_source} NAME_WE)
+  add_executable(${test_name} ${test_source})
+  target_link_libraries(${test_name} PRIVATE Math ut_module)
+  set_target_properties(
+    ${test_name}
+    PROPERTIES CXX_STANDARD 23
+               CXX_VISIBILITY_PRESET hidden
+               VISIBILITY_INLINES_HIDDEN ON)
+  
+  # Apply the same compiler options as the main target
+  if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)"))
+    target_compile_options(${test_name} PRIVATE -fsanitize-trap=all)
+  elseif(USE_TYPE_SANITIZER)
+    target_compile_options(${test_name} PRIVATE -fsanitize-trap=all -fsanitize=type)
+    target_link_options(${test_name} PRIVATE -fsanitize=type)
+  endif()
+  
+  if(POLYMATHNOEXPLICITSIMDARRAY)
+    target_compile_definitions(${test_name} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
+  endif()
+  
+  if(NOT TEST_INSTALLED_VERSION)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+      target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra -Wshadow -Werror)
+    elseif(MSVC)
+      target_compile_definitions(${test_name} PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
+    endif()
+  endif()
+  
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(${test_name} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(${test_name} PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4 -fno-semantic-interposition -fdiagnostics-color=always -Wno-comma-subscript -Wno-psabi)
+  endif()
+  
+  target_compile_options(${test_name} PRIVATE -D_GLIBCXX_ASSERTIONS -ftemplate-backtrace-limit=0)
+  
+  if(ENABLE_LLD)
+    target_link_options(${test_name} PRIVATE -fuse-ld=lld)
+  endif()
+  
+  add_test(NAME ${test_name} COMMAND ${test_name})
+endforeach()
+
+# Also create the combined executable for compatibility
+add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE Math ut_module)
 set_target_properties(
   ${PROJECT_NAME}

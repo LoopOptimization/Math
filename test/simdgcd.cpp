@@ -1,4 +1,6 @@
-#include <gtest/gtest.h>
+import boost.ut;
+
+using namespace boost::ut;
 import GCD;
 import SIMD;
 import std;
@@ -34,7 +36,7 @@ inline auto fillGCD(std::mt19937 &gen)
   std::int64_t rg = 0;
   for (std::ptrdiff_t j = 0; j < W; ++j) {
     std::int64_t w = distrib(gen), x = distrib(gen), y = std::gcd(w, x);
-    EXPECT_EQ(y, math::gcd(w, x));
+    expect(y == ::math::gcd(w, x));
     z[j] = y;
     vecset<W>(a, w, j);
     vecset<W>(b, x, j);
@@ -44,14 +46,17 @@ inline auto fillGCD(std::mt19937 &gen)
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(SIMDGCDTest, BasicAssertions) {
+int main() {
+  "SIMDGCDTest BasicAssertions"_test = [] {
   constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
   std::random_device rd;
   std::mt19937 gen(rd());
   for (std::ptrdiff_t i = 0; i < 20000; ++i) {
     auto [a, b, z, rg] = fillGCD<W>(gen);
-    simd::Vec<W, std::int64_t> g = math::gcd<W>(a, b);
-    for (std::ptrdiff_t j = 0; j < W; ++j) EXPECT_EQ(vecget<W>(g, j), z[j]);
-    EXPECT_EQ(rg, math::gcdreduce<W>(g));
+    simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+    for (std::ptrdiff_t j = 0; j < W; ++j) expect(vecget<W>(g, j) == z[j]);
+    expect(rg == ::math::gcdreduce<W>(g));
   }
+  };
+  return 0;
 }

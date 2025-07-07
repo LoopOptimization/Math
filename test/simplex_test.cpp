@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+import boost.ut;
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -14,9 +14,27 @@ import std;
 
 using namespace math;
 using utils::operator""_mat;
+using namespace boost::ut;
 
+auto simplexFromTableau(alloc::Arena<> *alloc, IntMatrix<> &tableau)
+  -> Valid<Simplex> {
+  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
+  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
+  Simplex *simp{Simplex::create(alloc, row(numCon), col(numVar))};
+  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(tableau)); r < R; ++r)
+    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(tableau)); c < N; ++c)
+      invariant(tableau[r, c] != std::numeric_limits<std::int64_t>::min());
+  simp->getTableau() << tableau;
+  auto C{simp->getConstraints()};
+  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(C)); r < R; ++r)
+    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(C)); c < N; ++c)
+      invariant(C[r, c] != std::numeric_limits<std::int64_t>::min());
+  return simp;
+}
+
+int main() {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(SimplexTest, BasicAssertions) {
+"SimplexTest BasicAssertions"_test = [] {
   // 10 >= 3x + 2y + z
   // 15 >= 2x + 5y + 3z
   IntMatrix<> A{"[10 3 2 1; 15 2 5 3]"_mat};
@@ -24,9 +42,9 @@ TEST(SimplexTest, BasicAssertions) {
   IntMatrix<> D{"[0 0 0 -2 -3 -4; 10 1 0  3  2  1; 15 0 1  2  5  3 ]"_mat};
   alloc::OwningArena<> alloc;
   Optional<Simplex *> optS0{Simplex::positiveVariables(&alloc, A)};
-  ASSERT_TRUE(optS0.hasValue());
+  expect(fatal(optS0.hasValue()));
   Optional<Simplex *> optS1{Simplex::positiveVariables(&alloc, A, B)};
-  ASSERT_TRUE(optS1.hasValue());
+  expect(fatal(optS1.hasValue()));
   for (std::ptrdiff_t i = 0; i < 2; ++i) {
     Simplex *S{i ? *optS1 : *optS0};
     auto C{S->getCost()};
@@ -40,13 +58,13 @@ TEST(SimplexTest, BasicAssertions) {
     utils::print("S.tableau =");
     S->getTableau().print();
     utils::print('\n');
-    EXPECT_EQ(S->getTableau(), D);
-    EXPECT_EQ(S->run(), 20);
+    expect(S->getTableau() == D);
+    expect(S->run() == 20);
   }
-}
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(LexMinSmallTest, BasicAssertions) {
+"LexMinSmallTest BasicAssertions"_test = [] {
   alloc::OwningArena alloc;
   // -10 == -3x - 2y - z  + s0
   // -15 == -2x - 5y - 3z + s1
@@ -55,7 +73,7 @@ TEST(LexMinSmallTest, BasicAssertions) {
   Simplex *simp{Simplex::create(&alloc, row(2), col(5))};
   simp->getConstraints() << tableau;
   Vector<Rational> sol(length(5));
-  EXPECT_FALSE(simp->initiateFeasible());
+  expect(!(simp->initiateFeasible()));
   utils::print("S.tableau =");
   simp->getTableau().print();
   utils::print('\n');
@@ -118,32 +136,15 @@ TEST(LexMinSmallTest, BasicAssertions) {
   utils::print("sol = ");
   sol.print();
   utils::print('\n');
-  EXPECT_EQ(Rational::create(5, 1), 5);
-  EXPECT_EQ(sol[last - 0], 0);
-  EXPECT_EQ(sol[last - 1], 0);
-  EXPECT_EQ(sol[last - 2], 10);
-  EXPECT_EQ(sol[last - 3], 0);
-  EXPECT_EQ(sol[last - 4], 15);
-}
-
-auto simplexFromTableau(alloc::Arena<> *alloc, IntMatrix<> &tableau)
-  -> Valid<Simplex> {
-  std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
-  std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
-  Simplex *simp{Simplex::create(alloc, row(numCon), col(numVar))};
-  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(tableau)); r < R; ++r)
-    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(tableau)); c < N; ++c)
-      invariant(tableau[r, c] != std::numeric_limits<std::int64_t>::min());
-  simp->getTableau() << tableau;
-  auto C{simp->getConstraints()};
-  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(C)); r < R; ++r)
-    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(C)); c < N; ++c)
-      invariant(C[r, c] != std::numeric_limits<std::int64_t>::min());
-  return simp;
-}
+  expect(sol[last - 0] == 0);
+  expect(sol[last - 1] == 0);
+  expect(sol[last - 2] == 10);
+  expect(sol[last - 3] == 0);
+  expect(sol[last - 4] == 15);
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(LexMinSimplexTest, BasicAssertions) {
+"LexMinSimplexTest BasicAssertions"_test = [] {
   IntMatrix<> tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 "
@@ -1014,55 +1015,55 @@ TEST(LexMinSimplexTest, BasicAssertions) {
   alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
   Vector<Rational> sol(length(37));
-  EXPECT_EQ(sol.size(), 37);
-  EXPECT_FALSE(simp->initiateFeasible());
+  expect(sol.size() == 37);
+  expect(!(simp->initiateFeasible()));
   simp->rLexMin(sol);
   std::ptrdiff_t solSum = 0;
   for (auto s : sol) {
     solSum += s.numerator_;
-    EXPECT_EQ(s.denominator_, 1);
+    expect(s.denominator_ == 1);
   }
-  EXPECT_EQ(solSum, 3);
+  expect(solSum == 3);
   for (std::ptrdiff_t i = 0; i < 37; ++i)
-    EXPECT_EQ(sol[last - i], (i == 28) || (i == 30) || (i == 33));
+    expect(sol[last - i] == (i == 28) || (i == 30) || (i == 33));
   {
     // test that we didn't invalidate the simplex
     // note that we do not initiate feasible
     auto C{simp->getCost()};
     C[_(0, end - 36)].zero();
-    EXPECT_TRUE(math::allZero(C[_(0, end - 36)]));
+    expect(::math::allZero(C[_(0, end - 36)]));
     C[_(end - 36, end)] << 1;
-    EXPECT_EQ(simp->run(), -3);
+    expect(simp->run() == -3);
     Vector<Rational> sol2 = simp->getSolution();
     std::ptrdiff_t sum = 0;
     for (std::ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
       Rational r = sol2[i];
       sum += r.numerator_;
-      EXPECT_EQ(r.denominator_, 1);
+      expect(r.denominator_ == 1);
     }
-    EXPECT_EQ(sum, 3);
+    expect(sum == 3);
     for (std::ptrdiff_t i = 0; i < 37; ++i)
-      EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));
+      expect(sol2[last - i] == (i == 28) || (i == 30) || (i == 33));
   }
   {
     // test new simplex
     Valid<Simplex> simp2{simplexFromTableau(&alloc, tableau)};
-    EXPECT_FALSE(simp2->initiateFeasible());
+    expect(!(simp2->initiateFeasible()));
     auto C{simp2->getCost()};
     C[_(0, end - 36)] << 0;
     C[_(end - 36, end)] << 1;
-    EXPECT_EQ(simp2->run(), -3);
+    expect(simp2->run() == -3);
     auto sol2 = simp2->getSolution();
     std::ptrdiff_t sum = 0;
     Rational rsum = 0; // test summing rationals
     for (std::ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
       Rational r = sol2[i];
       sum += r.numerator_;
-      EXPECT_EQ(r.denominator_, 1);
+      expect(r.denominator_ == 1);
       rsum += r;
     }
-    EXPECT_EQ(sum, 3);
-    EXPECT_EQ(rsum, 3);
+    expect(sum == 3);
+    expect(rsum == 3);
     utils::print("sol2: ");
     utils::printVector(sol2.begin(), sol2.end());
     utils::print('\n');
@@ -1070,13 +1071,13 @@ TEST(LexMinSimplexTest, BasicAssertions) {
       utils::print("sol2[last-", i, "] = ");
       sol2[last - i].print();
       utils::print('\n');
-      EXPECT_EQ(sol2[last - i], (i == 28) || (i == 30) || (i == 33));
+      expect(sol2[last - i] == (i == 28) || (i == 30) || (i == 33));
     }
   }
-}
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(LexMinSimplexTest2, BasicAssertions) {
+"LexMinSimplexTest2 BasicAssertions"_test = [] {
   IntMatrix<> tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 "
     "94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 "
@@ -1298,8 +1299,8 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
   alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
   Vector<Rational> sol(length(15));
-  EXPECT_EQ(sol.size(), 15);
-  EXPECT_FALSE(simp->initiateFeasible());
+  expect(sol.size() == 15);
+  expect(!(simp->initiateFeasible()));
   auto s = simp->rLexMinLast(15);
   {
     std::ptrdiff_t solSum = 0, i = 0;
@@ -1310,49 +1311,49 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
       } else {
         allNumerZero &= x.numerator_ == 0;
         solSum += x.numerator_;
-        EXPECT_EQ(x.denominator_, 1);
+        expect(x.denominator_ == 1);
       }
     }
-    EXPECT_EQ(solSum, 2);
-    EXPECT_TRUE(allNumerZero);
+    expect(solSum == 2);
+    expect(allNumerZero);
   }
   {
     std::ptrdiff_t solSum = 0;
     for (auto x : s[_(0, 5)]) solSum += x != 0;
-    EXPECT_EQ(solSum, 2);
+    expect(solSum == 2);
   }
   {
     bool allNumerZero = true;
     for (auto x : s[_(5, end)]) {
       allNumerZero &= x.numerator_ == 0;
-      EXPECT_EQ(x.denominator_, 1);
+      expect(x.denominator_ == 1);
     }
-    EXPECT_TRUE(allNumerZero);
+    expect(allNumerZero);
   }
   sol << simp->getSolution()[_(end - 15, end)];
   std::ptrdiff_t solSum = 0;
   for (std::ptrdiff_t i = 0; i < 5; ++i) {
     solSum += sol[i] != 0;
     // solSum += sol[i].numerator;
-    // EXPECT_EQ(sol[i].denominator, 1);
+    // expect(sol[i].denominator == 1);
   }
-  EXPECT_EQ(solSum, 2);
+  expect(solSum == 2);
 
   solSum = 0;
   for (std::ptrdiff_t i = 5; i < sol.size(); ++i) {
     solSum += sol[i].numerator_;
-    EXPECT_EQ(sol[i].denominator_, 1);
+    expect(sol[i].denominator_ == 1);
   }
-  EXPECT_FALSE(solSum);
+  expect(!(solSum));
   // for (std::ptrdiff_t i = 0; i < 37; ++i)
-  //     EXPECT_EQ(sol(i), (i == 28) || (i == 30) || (i == 33));
+  //     expect(sol(i) == (i == 28) || (i == 30) || (i == 33));
   {
     // test that we didn't invalidate the simplex
     // note that we do not initiate feasible
     auto C{simp->getCost()};
     C[_(0, end - 10)] << 0;
     C[_(end - 10, end)] << 1;
-    EXPECT_EQ(simp->run(), 0);
+    expect(simp->run() == 0);
     Vector<Rational> sol2 = simp->getSolution();
     utils::print("sol2 = ");
     sol2.print();
@@ -1361,15 +1362,15 @@ TEST(LexMinSimplexTest2, BasicAssertions) {
     for (std::ptrdiff_t i = sol2.size() - 10; i < sol2.size(); ++i) {
       Rational r = sol2[i];
       sum += r.numerator_;
-      EXPECT_EQ(r.denominator_, 1);
+      expect(r.denominator_ == 1);
     }
-    EXPECT_EQ(sum, 0);
+    expect(sum == 0);
     // for (std::ptrdiff_t i = 0; i < 37; ++i)
-    //     EXPECT_EQ(sol2(i), (i == 29) || (i == 31) || (i == 34));
+    //     expect(sol2(i) == (i == 29) || (i == 31) || (i == 34));
   }
-}
+};
 
-TEST(Infeasible, BasicAssertions) {
+"Infeasible BasicAssertions"_test = [] {
   IntMatrix<> C{DenseDims<>{row(220), col(383)}, 0};
   C[0, 0] = -1;
   C[0, 1] = 1;
@@ -2213,5 +2214,8 @@ TEST(Infeasible, BasicAssertions) {
   C[219, 295] = 1;
   alloc::OwningArena<> alloc;
   Valid<Simplex> simp{simplexFromTableau(&alloc, C)};
-  EXPECT_TRUE(simp->initiateFeasible());
+  expect(simp->initiateFeasible());
+};
+
+  return 0;
 }

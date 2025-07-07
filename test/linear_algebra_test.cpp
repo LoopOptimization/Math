@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+import boost.ut;
 
 import CorePrint;
 import BaseUtils;
@@ -9,10 +9,11 @@ import Rational;
 import Reductions;
 import std;
 
-using namespace math;
+using namespace boost::ut;
+using namespace ::math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(LinearAlgebraTest, BasicAssertions) {
+void testBasicAssertions() {
   const SquareMatrix<Rational> identity = SquareMatrix<Rational>::identity(4);
   SquareMatrix<std::int64_t> A(SquareDims{row(4)});
   A[0, 0] = 2;
@@ -33,7 +34,7 @@ TEST(LinearAlgebraTest, BasicAssertions) {
   A[3, 3] = 4;
 
   auto opt_luf = LU::fact(A);
-  ASSERT_TRUE(opt_luf.has_value());
+  expect(fatal(opt_luf.has_value()));
   auto &LUF = *opt_luf;
   Matrix<Rational> B0 = A;
   utils::print("A = \n");
@@ -44,24 +45,24 @@ TEST(LinearAlgebraTest, BasicAssertions) {
   LUF.print();
 
   auto B1 = B0;
-  EXPECT_FALSE(LUF.ldivrat(B1));
+  expect(!LUF.ldivrat(B1));
   utils::print("LUF.ldiv(B) = \n");
   B1.print();
   utils::print('\n');
-  EXPECT_EQ(B1, identity);
+  expect(B1 == identity);
   utils::print("I = ");
   identity.print();
   utils::print('\n');
 
-  EXPECT_FALSE(LUF.rdivrat(B0));
+  expect(!LUF.rdivrat(B0));
   utils::print("LUF.rdiv(B) = \n");
   B0.print();
   utils::print('\n');
-  EXPECT_EQ(B0, identity);
+  expect(B0 == identity);
 }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(DoubleFactorization, BasicAssertions) {
+void testDoubleFactorization() {
   SquareMatrix<double> A(SquareDims{row(7)}), B(SquareDims{row(7)}),
     C(SquareDims{row(7)}), D(SquareDims{row(7)});
   std::mt19937 gen(0);
@@ -74,11 +75,11 @@ TEST(DoubleFactorization, BasicAssertions) {
     // B = A \ B
     // C == A*B == A * (A \ B)
     LU::fact(A).ldiv(MutPtrMatrix<double>(B));
-    EXPECT_LT(norm2(A * B - C), 1e-10);
+    expect(norm2(A * B - C) < 1e-10);
     B << C;
     D << A;
     LU::ldiv(A, MutPtrMatrix<double>(B));
-    EXPECT_LT(norm2(D * B - C), 1e-10);
+    expect(norm2(D * B - C) < 1e-10);
 
     // LDL; make `A` symmetric
     D << A + A.t();
@@ -87,10 +88,20 @@ TEST(DoubleFactorization, BasicAssertions) {
     // B = A \ B
     // C == A*B == A * (A \ B)
     LDL::factorize<>(D).ldiv(MutPtrMatrix<double>(B));
-    EXPECT_LT(norm2(A * B - C), 1e-10);
+    expect(norm2(A * B - C) < 1e-10);
     B << C;
     D << A;
     LDL::ldiv<>(A, MutPtrMatrix<double>(B));
-    EXPECT_LT(norm2(D * B - C), 1e-10);
+    expect(norm2(D * B - C) < 1e-10);
   }
+}
+
+int main() {
+  "LinearAlgebraTest BasicAssertions"_test = [] {
+    testBasicAssertions();
+  };
+  "DoubleFactorization BasicAssertions"_test = [] {
+    testDoubleFactorization();
+  };
+  return 0;
 }

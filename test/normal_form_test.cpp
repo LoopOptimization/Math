@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+import boost.ut;
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -13,12 +13,37 @@ import NormalForm;
 import std;
 import UniformScaling;
 
-using namespace math;
+using namespace ::math;
 using utils::operator""_mat;
+using namespace boost::ut;
 
+namespace {
+auto isHNF(PtrMatrix<std::int64_t> A) -> bool {
+  const auto [M, N] = shape(A);
+  // l is lead
+  Col<> l = {};
+  for (std::ptrdiff_t m = 0; m < M; ++m) {
+    // all entries must be 0
+    for (std::ptrdiff_t n = 0; n < l; ++n)
+      if (A[m, n]) return false;
+    // now search for next lead
+    while ((l < N) && A[m, l] == 0) ++l;
+    if (l == N) continue;
+    std::int64_t Aml = A[m, l];
+    if (Aml < 0) return false;
+    for (std::ptrdiff_t r = 0; r < m; ++r) {
+      std::int64_t Arl = A[r, l];
+      if ((Arl >= Aml) || (Arl < 0)) return false;
+    }
+  }
+  return true;
+}
+} // namespace
+
+int main() {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(OrthogonalizationTest, BasicAssertions) {
-  SquareMatrix<std::int64_t> A(SquareDims<>{math::row(4)});
+"OrthogonalizationTest BasicAssertions"_test = [] {
+  SquareMatrix<std::int64_t> A(SquareDims<>{::math::row(4)});
   utils::print("\n\n\n========\n========\n========\n\n");
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -49,14 +74,14 @@ TEST(OrthogonalizationTest, BasicAssertions) {
       utils::print("A=\n");
       A.print();
       utils::print('\n');
-      EXPECT_EQ(K * A, I4);
-      EXPECT_EQ(K * A, I);
+      expect(K * A == I4);
+      expect(K * A == I);
     } else if (auto optlu = LU::fact(K)) {
       if (auto opt_a2 = (*optlu).inv()) {
         auto &A2 = *opt_a2;
         for (std::ptrdiff_t n = 0; n < 4; ++n)
           for (std::ptrdiff_t j = 0; j < included.size(); ++j)
-            EXPECT_EQ((A2[n, j]), (B[n, included[j]]));
+            expect((A2[n, j]) == (B[n, included[j]]));
       } else {
         ++inv_failed_count;
       }
@@ -118,8 +143,8 @@ TEST(OrthogonalizationTest, BasicAssertions) {
   B.print();
   utils::print('\n');
   auto [K, included] = NormalForm::orthogonalize(B);
-  EXPECT_EQ(included.size(), 4);
-  for (std::ptrdiff_t i = 0; i < 4; ++i) EXPECT_EQ(included[i], i);
+  expect(included.size() == 4);
+  for (std::ptrdiff_t i = 0; i < 4; ++i) expect(included[i] == i);
   for (std::ptrdiff_t n = 0; n < 4; ++n) {
     std::ptrdiff_t m = 0;
     for (auto mb : included) {
@@ -133,34 +158,11 @@ TEST(OrthogonalizationTest, BasicAssertions) {
   utils::print("\nA * K = ");
   KA.print();
   utils::print('\n');
-  EXPECT_TRUE(KA == I4);
-}
-
-namespace {
-auto isHNF(PtrMatrix<std::int64_t> A) -> bool {
-  const auto [M, N] = shape(A);
-  // l is lead
-  Col<> l = {};
-  for (std::ptrdiff_t m = 0; m < M; ++m) {
-    // all entries must be 0
-    for (std::ptrdiff_t n = 0; n < l; ++n)
-      if (A[m, n]) return false;
-    // now search for next lead
-    while ((l < N) && A[m, l] == 0) ++l;
-    if (l == N) continue;
-    std::int64_t Aml = A[m, l];
-    if (Aml < 0) return false;
-    for (std::ptrdiff_t r = 0; r < m; ++r) {
-      std::int64_t Arl = A[r, l];
-      if ((Arl >= Aml) || (Arl < 0)) return false;
-    }
-  }
-  return true;
-}
-} // namespace
+  expect(KA == I4);
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(Hermite, BasicAssertions) {
+"Hermite BasicAssertions"_test = [] {
   {
     IntMatrix<> A43{DenseDims<>{row(4), col(3)}};
     A43[0, 0] = 2;
@@ -187,8 +189,8 @@ TEST(Hermite, BasicAssertions) {
     U.print();
     utils::print('\n');
 
-    EXPECT_TRUE(isHNF(H));
-    EXPECT_TRUE(H == U * A43);
+    expect(isHNF(H));
+    expect(H == U * A43);
 
     for (std::ptrdiff_t i = 0; i < 3; ++i) A43[2, i] = A43[0, i] + A43[1, i];
     utils::print("\n\n\n=======\n\nA=\n");
@@ -201,11 +203,11 @@ TEST(Hermite, BasicAssertions) {
     utils::print("\nU=\n");
     U.print();
     utils::print('\n');
-    EXPECT_TRUE(isHNF(H));
-    EXPECT_TRUE(H == U * A43);
+    expect(isHNF(H));
+    expect(H == U * A43);
   }
   {
-    SquareMatrix<std::int64_t> A(SquareDims<>{math::row(4)});
+    SquareMatrix<std::int64_t> A(SquareDims<>{::math::row(4)});
     A[0, 0] = 3;
     A[1, 0] = -6;
     A[2, 0] = 7;
@@ -230,8 +232,8 @@ TEST(Hermite, BasicAssertions) {
     utils::print("\nU=\n");
     U.print();
     utils::print('\n');
-    EXPECT_TRUE(isHNF(H));
-    EXPECT_TRUE(H == U * A);
+    expect(isHNF(H));
+    expect(H == U * A);
   }
   {
     IntMatrix<> A{"[1 -3 0 -2 0 0 -1 -1 0 0 -1 0 0 0 0 0 0 "
@@ -267,16 +269,16 @@ TEST(Hermite, BasicAssertions) {
     utils::print("\nU=");
     U.print();
     utils::print('\n');
-    EXPECT_TRUE(isHNF(H));
-    EXPECT_TRUE(H == U * A);
+    expect(isHNF(H));
+    expect(H == U * A);
   }
   {
     IntMatrix<> A = "[-3 -1 1; 0 0 -2]"_mat;
     IntMatrix<> H = A;
     SquareMatrix<std::int64_t> U{SquareDims{H.numRow()}};
     NormalForm::hermite(H, U);
-    EXPECT_TRUE(isHNF(H));
-    EXPECT_TRUE(U * A == H);
+    expect(isHNF(H));
+    expect(U * A == H);
     utils::print("A = \n");
     A.print();
     utils::print("\nH =\n");
@@ -291,8 +293,8 @@ TEST(Hermite, BasicAssertions) {
     IntMatrix<> H = A;
     SquareMatrix<std::int64_t> U{SquareDims{H.numRow()}};
     NormalForm::hermite(H, U);
-    EXPECT_TRUE(isHNF(H));
-    EXPECT_TRUE(U * A == H);
+    expect(isHNF(H));
+    expect(U * A == H);
     utils::print("A = \n");
     A.print();
     utils::print("\nH =\n");
@@ -301,10 +303,10 @@ TEST(Hermite, BasicAssertions) {
     U.print();
     utils::print('\n');
   }
-}
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(NullSpaceTests, BasicAssertions) {
+"NullSpaceTests BasicAssertions"_test = [] {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-10, 100);
@@ -338,20 +340,20 @@ TEST(NullSpaceTests, BasicAssertions) {
         Z.print();
         utils::print('\n');
       }
-      for (auto &z : Z) EXPECT_EQ(z, 0);
+      for (auto &z : Z) expect(z == 0);
       MutDensePtrMatrix<std::int64_t> ZN{
         mem + (8z * (8 + 3 * max_col)),
-        DenseDims<>{math::row(null_dim), math::col(null_dim)}};
-      EXPECT_EQ(NormalForm::nullSpace(ZN, NS).numRow(), 0);
+        DenseDims<>{::math::row(null_dim), ::math::col(null_dim)}};
+      expect(NormalForm::nullSpace(ZN, NS).numRow() == 0);
     }
     utils::print("Average tested null dim = ");
     utils::print(double(null_dim) / double(num_iters));
     utils::print('\n');
   }
-}
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(SimplifySystemTests, BasicAssertions) {
+"SimplifySystemTests BasicAssertions"_test = [] {
   IntMatrix<> A = "[2 4 5 5 -5; -4 3 -4 -3 -1; 1 0 -2 1 -4; -4 -2 3 -2 -1]"_mat,
               B = "[-6 86 -27 46 0 -15; -90 -81 91 44 -2 78; 4 -54 -98 "
                   "80 -10 82; -98 -15 -28 98 82 87]"_mat,
@@ -365,40 +367,40 @@ TEST(SimplifySystemTests, BasicAssertions) {
     "44820 14480 43390; -1334 -6865 -7666 8098 -538 9191; -6548 -9165 "
     "-24307 26176 4014 23332]"_mat;
 
-  EXPECT_EQ(sA, A);
-  EXPECT_EQ(true_b, B);
-  EXPECT_EQ(sA, At.t());
-  EXPECT_EQ(true_b, Bt.t());
+  expect(sA == A);
+  expect(true_b == B);
+  expect(sA == At.t());
+  expect(true_b == Bt.t());
 
   IntMatrix<> C = "[1 1 0; 0 1 1; 1 2 1]"_mat;
   IntMatrix<> D = "[1 0 0; 0 1 0; 0 0 1]"_mat;
   NormalForm::simplifySystem(C, D);
   IntMatrix<> true_c = "[1 0 -1; 0 1 1]"_mat;
   IntMatrix<> true_d = "[1 -1 0; 0 1 0]"_mat;
-  EXPECT_EQ(true_c, C);
-  EXPECT_EQ(true_d, D);
-}
+  expect(true_c == C);
+  expect(true_d == D);
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(BareissTests, BasicAssertions) {
+"BareissTests BasicAssertions"_test = [] {
   IntMatrix<> A =
     "[-4 3 -2 2 -5; -5 1 -1 2 -5; -1 0 5 -3 2; -4 5 -4 -2 -4]"_mat;
   auto piv = NormalForm::bareiss(A);
   IntMatrix<> B =
     "[-4 3 -2 2 -5; 0 11 -6 2 -5; 0 0 56 -37 32; 0 0 0 -278 136]"_mat;
-  EXPECT_EQ(A, B);
+  expect(A == B);
   Vector<std::ptrdiff_t> true_piv{std::array{0, 1, 2, 3}};
-  EXPECT_EQ(piv, true_piv);
+  expect(piv == true_piv);
 
   IntMatrix<> C = "[-2 -2 -1 -2 -1; 1 1 2 2 -2; -2 2 2 -1 "
                   "-1; 0 0 -2 1 -1; -1 -2 2 1 -1]"_mat;
   IntMatrix<> D = "[-2 -2 -1 -2 -1; 0 -8 -6 -2 0; 0 0 -12 -8 "
                   "20; 0 0 0 -28 52; 0 0 0 0 -142]"_mat;
   auto pivots = NormalForm::bareiss(C);
-  EXPECT_EQ(C, D);
+  expect(C == D);
   auto true_pivots = Vector<std::ptrdiff_t, 16>{"[0 2 2 3 4]"_mat};
-  EXPECT_EQ(pivots, true_pivots);
-}
+  expect(pivots == true_pivots);
+};
 
 // // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 // TEST(BareissSolveSystemTests, BasicAssertions) {
@@ -424,10 +426,10 @@ TEST(BareissTests, BasicAssertions) {
 //     "[-154140 -128775 -205035 317580 83820 299760; -4910 -21400 -60890 "
 //     "44820 14480 43390; -1334 -6865 -7666 8098 -538 9191; -6548 -9165 "
 //     "-24307 26176 4014 23332]"_mat;
-//   EXPECT_EQ(sA, A);
-//   EXPECT_EQ(true_b, B);
-//   EXPECT_EQ(sA, At.t());
-//   EXPECT_EQ(true_b, Bt.t());
+//   expect(sA == A);
+//   expect(true_b == B);
+//   expect(sA == At.t());
+//   expect(true_b == Bt.t());
 
 //   // Test smaller system
 //   IntMatrix<> C = "[1 1 0; 0 1 1; 1 2 1]"_mat;
@@ -435,8 +437,8 @@ TEST(BareissTests, BasicAssertions) {
 //   NormalForm::bareissSolveSystem(C, D);
 //   IntMatrix<> true_c = "[1 0 -1; 0 1 1]"_mat;
 //   IntMatrix<> true_d = "[1 -1 0; 0 1 0]"_mat;
-//   EXPECT_EQ(true_c, C);
-//   EXPECT_EQ(true_d, D);
+//   expect(true_c == C);
+//   expect(true_d == D);
 
 //   // Test that bareiss and HNF versions produce equivalent results on fresh
 //   // matrices
@@ -446,8 +448,8 @@ TEST(BareissTests, BasicAssertions) {
 //   NormalForm::solveSystem(A1, B1);        // Original HNF version
 //   NormalForm::bareissSolveSystem(A2, B2); // New Bareiss version
 
-//   EXPECT_EQ(A1, A2); // Both should produce same A result
-//   EXPECT_EQ(B1, B2); // Both should produce same B result
+//   expect(A1, A2); // Both should produce same A result
+//   expect(B1, B2); // Both should produce same B result
 
 //   // Test right versions as well
 //   IntMatrix<> At1 = At_orig, Bt1 = Bt_orig;
@@ -456,12 +458,12 @@ TEST(BareissTests, BasicAssertions) {
 //   NormalForm::solveSystemRight(At1, Bt1);        // Original HNF version
 //   NormalForm::bareissSolveSystemRight(At2, Bt2); // New Bareiss version
 
-//   EXPECT_EQ(At1, At2); // Both should produce same A result
-//   EXPECT_EQ(Bt1, Bt2); // Both should produce same B result
+//   expect(At1, At2); // Both should produce same A result
+//   expect(Bt1, Bt2); // Both should produce same B result
 // }
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(InvTest, BasicAssertions) {
+"InvTest BasicAssertions"_test = [] {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> distrib(-10, 10);
@@ -488,8 +490,8 @@ TEST(InvTest, BasicAssertions) {
         square_matrix<std::int64_t>(&alloc, dim)};
       Bc << B;
       auto [Binv1, s] = NormalForm::scaledInv(&alloc, Bc);
-      EXPECT_TRUE(Da.isDiagonal());
-      EXPECT_EQ((Binv0 * B), Da);
+      expect(Da.isDiagonal());
+      expect((Binv0 * B) == Da);
       Da.diag() << s;
       if (B * Binv1 != Da) {
         utils::print("\nB = ");
@@ -504,7 +506,10 @@ TEST(InvTest, BasicAssertions) {
         utils::print(s);
         utils::print('\n');
       }
-      EXPECT_EQ(B * Binv1, Da);
+      expect(B * Binv1 == Da);
     }
   }
+};
+
+  return 0;
 }

@@ -1,4 +1,6 @@
-#include <gtest/gtest.h>
+import boost.ut;
+
+using namespace boost::ut;
 import Array;
 import AxisTypes;
 import ManagedArray;
@@ -8,7 +10,8 @@ import std;
 import Tuple;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(SOATest, BasicAssertions) {
+int main() {
+  "SOATest BasicAssertions"_test = [] {
   containers::Tuple x{3, 2.0, 5.0F};
   // static_assert(math::CumSizeOf_v<0, decltype(x)> == 0);
   // static_assert(math::CumSizeOf_v<1, decltype(x)> == 4);
@@ -20,8 +23,8 @@ TEST(SOATest, BasicAssertions) {
     std::is_trivially_default_constructible_v<containers::Tuple<int, double>>);
   static_assert(std::is_trivially_default_constructible_v<T>);
   static_assert(std::is_trivially_destructible_v<T>);
-  math::ManagedSOA soa(std::type_identity<decltype(x)>{}, math::length(5z));
-  EXPECT_EQ(soa.capacity_.capacity_, 8);
+  ::math::ManagedSOA soa(std::type_identity<decltype(x)>{}, ::math::length(5z));
+  expect(soa.capacity_.capacity_ == 8);
   soa[0] = x;
   soa[1] = {5, 2.25, 5.5F};
   soa.template get<0>(2) = 7;
@@ -37,12 +40,12 @@ TEST(SOATest, BasicAssertions) {
       static_assert(std::same_as<decltype(i), int>);
       static_assert(std::same_as<decltype(d), double>);
       static_assert(std::same_as<decltype(f), float>);
-      EXPECT_EQ(i, 3 + 2 * j);
-      EXPECT_EQ(d, 2.0 + 0.25 * j);
-      EXPECT_EQ(f, 5.0F + 0.5F * j);
-      EXPECT_EQ(i, soa.get<0>(j));
-      EXPECT_EQ(d, soa.get<1>(j));
-      EXPECT_EQ(f, soa.get<2>(j));
+      expect(i == (3 + 2 * j));
+      expect(d == (2.0 + 0.25 * j));
+      expect(f == (5.0F + 0.5F * j));
+      expect(i == soa.get<0>(j));
+      expect(d == soa.get<1>(j));
+      expect(f == soa.get<2>(j));
       ++j;
     }
   }
@@ -56,12 +59,12 @@ TEST(SOATest, BasicAssertions) {
     static_assert(std::same_as<decltype(i), int>);
     static_assert(std::same_as<decltype(d), double>);
     static_assert(std::same_as<decltype(f), float>);
-    EXPECT_EQ(i, 3 + 2 * j);
-    EXPECT_EQ(d, 2.0 + 0.25 * j);
-    EXPECT_EQ(f, 5.0F + 0.5F * j);
-    EXPECT_EQ(i, soa.get<0>(j));
-    EXPECT_EQ(d, soa.get<1>(j));
-    EXPECT_EQ(f, soa.get<2>(j));
+    expect(i == (3 + 2 * j));
+    expect(d == (2.0 + 0.25 * j));
+    expect(f == (5.0F + 0.5F * j));
+    expect(i == soa.get<0>(j));
+    expect(d == soa.get<1>(j));
+    expect(f == soa.get<2>(j));
   }
   for (int j = 7; j < 65; ++j) {
     int i = 3 + 2 * j;
@@ -76,27 +79,28 @@ TEST(SOATest, BasicAssertions) {
     static_assert(std::same_as<decltype(i), int>);
     static_assert(std::same_as<decltype(d), double>);
     static_assert(std::same_as<decltype(f), float>);
-    EXPECT_EQ(i, 3 + 2 * j);
-    EXPECT_EQ(d, 2.0 + 0.25 * j);
-    EXPECT_EQ(f, 5.0F + 0.5F * j);
-    EXPECT_EQ(i, soa.get<0>(j));
-    EXPECT_EQ(d, soa.get<1>(j));
-    EXPECT_EQ(f, soa.get<2>(j));
+    expect(i == (3 + 2 * j));
+    expect(d == (2.0 + 0.25 * j));
+    expect(f == (5.0F + 0.5F * j));
+    expect(i == soa.get<0>(j));
+    expect(d == soa.get<1>(j));
+    expect(f == soa.get<2>(j));
   }
-  EXPECT_EQ(soa.size(), 65);
-}
-TEST(SOAPairTest, BasicAssertions) {
+  expect(soa.size() == 65);
+  };
+
+  "SOAPairTest BasicAssertions"_test = [] {
   containers::Pair x{3, 2.0};
   // static_assert(math::CumSizeOf_v<0, decltype(x)> == 0);
   // static_assert(math::CumSizeOf_v<1, decltype(x)> == 4);
   // static_assert(math::CumSizeOf_v<2, decltype(x)> == 12);
   // math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
-  math::ManagedSOA<decltype(x)> soa;
+  ::math::ManagedSOA<decltype(x)> soa;
   // math::ManagedSOA soa(std::type_identity<decltype(x)>{});
-  EXPECT_EQ(soa.capacity_.capacity_, 0);
+  expect(soa.capacity_.capacity_ == 0);
   soa.push_back(x);
   soa[0] = x;
-  EXPECT_EQ(soa.capacity_.capacity_, 8);
+  expect(soa.capacity_.capacity_ == 8);
   soa.resize(5);
   soa[1] = {5, 2.25};
   soa.template get<0>(2) = 7;
@@ -109,10 +113,10 @@ TEST(SOAPairTest, BasicAssertions) {
     auto [i, d] = y;
     static_assert(std::same_as<decltype(i), int>);
     static_assert(std::same_as<decltype(d), double>);
-    EXPECT_EQ(i, 3 + 2 * j);
-    EXPECT_EQ(d, 2.0 + 0.25 * j);
-    EXPECT_EQ(i, soa.get<0>(j));
-    EXPECT_EQ(d, soa.get<1>(j));
+    expect(i == (3 + 2 * j));
+    expect(d == (2.0 + 0.25 * j));
+    expect(i == soa.get<0>(j));
+    expect(d == soa.get<1>(j));
   }
   soa.resize(7);
   soa[5] = {13, 3.25};
@@ -122,10 +126,10 @@ TEST(SOAPairTest, BasicAssertions) {
     auto [i, d] = y;
     static_assert(std::same_as<decltype(i), int>);
     static_assert(std::same_as<decltype(d), double>);
-    EXPECT_EQ(i, 3 + 2 * j);
-    EXPECT_EQ(d, 2.0 + 0.25 * j);
-    EXPECT_EQ(i, soa.get<0>(j));
-    EXPECT_EQ(d, soa.get<1>(j));
+    expect(i == (3 + 2 * j));
+    expect(d == (2.0 + 0.25 * j));
+    expect(i == soa.get<0>(j));
+    expect(d == soa.get<1>(j));
   }
   for (int j = 7; j < 65; ++j) {
     int i = 3 + 2 * j;
@@ -138,20 +142,24 @@ TEST(SOAPairTest, BasicAssertions) {
     auto [i, d] = y;
     static_assert(std::same_as<decltype(i), int>);
     static_assert(std::same_as<decltype(d), double>);
-    EXPECT_EQ(i, 3 + 2 * j);
-    EXPECT_EQ(d, 2.0 + 0.25 * j);
-    EXPECT_EQ(i, soa.get<0>(j));
-    EXPECT_EQ(d, soa.get<1>(j));
+    expect(i == (3 + 2 * j));
+    expect(d == (2.0 + 0.25 * j));
+    expect(i == soa.get<0>(j));
+    expect(d == soa.get<1>(j));
   }
-  EXPECT_EQ(soa.size(), 65);
-}
-TEST(VecOfSOATest, BasicAssertions) {
-  math::Vector<math::ManagedSOA<containers::Tuple<int, double, float>>> vsoa;
+  expect(soa.size() == 65);
+  };
+
+  "VecOfSOATest BasicAssertions"_test = [] {
+  ::math::Vector<::math::ManagedSOA<containers::Tuple<int, double, float>>> vsoa;
   vsoa.emplace_back();
   vsoa.emplace_back();
   vsoa.pop_back();
   vsoa.emplace_back();
   vsoa.emplace_back();
   vsoa.emplace_back();
-  EXPECT_EQ(vsoa.size(), 4);
+  expect(vsoa.size() == 4);
+  };
+
+  return 0;
 }

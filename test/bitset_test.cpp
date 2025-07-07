@@ -7,7 +7,7 @@ import std;
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
-using containers::BitSet, math::Vector;
+using containers::BitSet, ::math::Vector;
 
 int main() {
   using namespace boost::ut;
@@ -34,18 +34,18 @@ int main() {
   Vector<std::size_t> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
   std::ptrdiff_t j = 0;
   for (auto J = bs.begin(); J != decltype(bs)::end(); ++J) {
-    expect(*J == bsc[j++]);
+    expect(std::size_t(*J) == bsc[std::size_t(j++)]);
     expect(bs[*J]);
     utils::println("We get: ", *J);
   }
   j = 0;
   for (auto i : bs) {
-    expect(i == bsc[j++]);
+    expect(std::size_t(i) == bsc[std::size_t(j++)]);
     expect(bs[i]);
     utils::println("We get: ", i);
   }
-  expect(j == bsc.size());
-  expect(j == bs.size());
+  expect(j == std::ptrdiff_t(bsc.size()));
+  expect(j == std::ptrdiff_t(bs.size()));
   utils::println("About to create empty!");
   BitSet empty;
   std::ptrdiff_t c = 0, d = 0;
@@ -140,12 +140,12 @@ int main() {
 };
 // NOLINTNEXTLINE()
 "BitSet IterTest"_test = [] {
-  math::Vector<std::uint64_t, 1> data{};
+  ::math::Vector<std::uint64_t, 1> data{};
   data.push_back(9223372036854775808U);
   data.push_back(1732766553700568065U);
   data.push_back(1891655728U);
   BitSet<> bs{data};
-  ptrdiff_t sz = bs.size(), i = 0;
+  std::ptrdiff_t sz = bs.size(), i = 0;
   for (std::ptrdiff_t a : bs) {
     utils::print(a, " ");
     ++i;

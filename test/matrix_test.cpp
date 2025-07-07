@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+import boost.ut;
 
 import Arena;
 import ArrayParse;
@@ -15,10 +15,12 @@ import Tuple;
 import BaseUtils;
 import UniformScaling;
 
-using namespace math;
+using namespace ::math;
 using utils::operator""_mat;
+using namespace boost::ut;
+int main() {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(SparseIndexingTest, BasicAssertions) {
+"SparseIndexingTest BasicAssertions"_test = [] {
   SmallSparseMatrix<std::int64_t> sparseA(row(3), col(4));
   utils::print("&Asparse = ", utils::TinyString(&sparseA), '\n');
   sparseA[0, 1] = 5;
@@ -31,13 +33,13 @@ TEST(SparseIndexingTest, BasicAssertions) {
     IntMatrix<> A2(DenseDims<>{row(3), col(4)});
     MutPtrMatrix<std::int64_t> MA2 = A2;
     MA2 << sparseA;
-    EXPECT_EQ(A, A2);
+    expect(A == A2);
   }
   for (std::ptrdiff_t i = 0; i < 3; ++i)
     for (std::ptrdiff_t j = 0; j < 4; ++j)
-      EXPECT_EQ((A[i, j]), (sparseA[i, j]));
+      expect((A[i, j]) == (sparseA[i, j]));
   DenseMatrix<std::int64_t> B(DenseDims<>{row(4), col(5)});
-  EXPECT_FALSE(B.isSquare());
+  expect(!B.isSquare());
   B[0, 0] = 3;
   B[0, 1] = -1;
   B[0, 2] = 0;
@@ -70,9 +72,9 @@ TEST(SparseIndexingTest, BasicAssertions) {
   C[1, 3] = -9;
   C[1, 4] = 15;
   C[last, _] << "[-21 17 6 -3 -11]"_mat;
-  EXPECT_EQ(A.numRow(), (A * B).numRow());
-  EXPECT_EQ(B.numCol(), (A * B).numCol());
-  EXPECT_TRUE(C == A * B);
+  expect(A.numRow() == (A * B).numRow());
+  expect(B.numCol() == (A * B).numCol());
+  expect(C == A * B);
   {
     IntMatrix<> C2{A * B};
     utils::print("C=");
@@ -80,22 +82,22 @@ TEST(SparseIndexingTest, BasicAssertions) {
     utils::print("\nC2=");
     C2.print();
     utils::print('\n');
-    EXPECT_TRUE(C == C2);
+    expect(C == C2);
     IntMatrix<> Bt{B.t()};
     {
       IntMatrix<> At{
-        DenseDims<>{math::asrow(A.numCol()), math::ascol(A.numRow())}};
+        DenseDims<>{::math::asrow(A.numCol()), ::math::ascol(A.numRow())}};
       At[_(0, end), _(0, end)] << A.t();
       std::ptrdiff_t k =
         std::min(std::ptrdiff_t(A.numCol()), std::ptrdiff_t(B.numRow()));
       C2 += At.t() * Bt.t()[_(k), _];
-      EXPECT_EQ(C * 2, C2);
-      EXPECT_EQ(C, At.t() * B);
-      EXPECT_EQ(C, A * Bt.t());
-      EXPECT_EQ(C, At.t() * Bt.t());
+      expect(C * 2 == C2);
+      expect(C == At.t() * B);
+      expect(C == A * Bt.t());
+      expect(C == At.t() * Bt.t());
     }
     C2 -= A * Bt.t();
-    EXPECT_EQ(C, C2);
+    expect(C == C2);
   }
   std::int64_t i = 0;
   IntMatrix<> D{C};
@@ -105,10 +107,10 @@ TEST(SparseIndexingTest, BasicAssertions) {
   static_assert(std::same_as<decltype(D[0, _]), MutPtrVector<std::int64_t>>);
   for (std::ptrdiff_t r : _(0, D.numRow())) D[r, _] += std::ptrdiff_t(r) + 1;
   for (auto r : C.eachRow()) {
-    EXPECT_EQ(r.size(), std::ptrdiff_t(C.numCol()));
+    expect(r.size() == std::ptrdiff_t(C.numCol()));
     r += (++i);
   }
-  EXPECT_EQ(C, D);
+  expect(C == D);
   auto oldD{D};
   for (std::ptrdiff_t c : _(0, D.numCol()))
     D[_, c] += std::ptrdiff_t(c) + std::ptrdiff_t(D.numRow()) + 1;
@@ -119,13 +121,13 @@ TEST(SparseIndexingTest, BasicAssertions) {
     b += i;
     c += i;
   }
-  EXPECT_EQ(C, D);
+  expect(C == D);
   for (auto c : C.eachCol() | std::views::reverse) c -= (i--);
-  EXPECT_EQ(C, oldD);
-}
+  expect(C == oldD);
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(ExpressionTemplateTest, BasicAssertions) {
+"ExpressionTemplateTest BasicAssertions"_test = [] {
   // 6x8
   auto A{
     "[3 -5 1 10 -4 6 4 4; 4 6 3 -1 6 1 -4 0; -7 -2 0 0 -10 -2 3 7; 2 -7 -5 "
@@ -139,11 +141,11 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
   auto templateA4{A * 4};
   IntMatrix<> C{templateA4};
   IntMatrix<> B{A * 4};
-  EXPECT_EQ(A4, B);
-  EXPECT_EQ(A4, C);
+  expect(A4 == B);
+  expect(A4 == C);
   IntMatrix<> Z = A * 4 - A4;
   for (std::ptrdiff_t i = 0; i < Z.numRow(); ++i)
-    for (std::ptrdiff_t j = 0; j < Z.numCol(); ++j) EXPECT_FALSE((Z[i, j]));
+    for (std::ptrdiff_t j = 0; j < Z.numCol(); ++j) expect(!(Z[i, j]));
   auto D{
     "[-5 6 -1 -4 7 -9 6; -3 -5 -1 -2 -9 -4 -1; -4 7 -6 10 -2 2 9; -4 -7 -1 "
     "-7 5 9 -10; 5 -7 -5 -1 -3 -8 -8; 3 -6 4 10 9 0 -5; 0 -1 4 -4 -9 -3 "
@@ -153,7 +155,7 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
     "-95 142 -36; -13 118 31 -91 78 8 151; 19 -74 15 26 153 31 -145; 86 "
     "-61 -18 -111 -22 -55 -135]"_mat};
   IntMatrix<> AD = A * D;
-  EXPECT_EQ(AD, refAD);
+  expect(AD == refAD);
   IntMatrix<> E{
     "[-4 7 9 -4 2 9 -8; 3 -5 6 0 -1 8 7; -7 9 -1 1 -5 2 10; -3 10 -10 -3 6 "
     "5 5; -6 7 -4 -7 10 5 3; 9 -8 7 9 2 2 6]"_mat};
@@ -162,7 +164,7 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
     "[-10 -77 -1 34 102 42 -82; -34 13 -111 29 -3 -155 -7; 48 -9 98 38 -60 "
     "128 -106; 8 48 101 -70 36 -27 116; 61 -123 43 75 83 -4 -166; 23 -5 "
     "-67 -174 -36 -69 -177]"_mat};
-  EXPECT_EQ(m7EpAD, refADm7E);
+  expect(m7EpAD == refADm7E);
 
   Vector<std::int64_t> a{-8};
   a.push_back(7);
@@ -172,33 +174,33 @@ TEST(ExpressionTemplateTest, BasicAssertions) {
   c.push_back(-16);
   c.push_back(14);
   c.push_back(6);
-  EXPECT_EQ(b, c);
+  expect(b == c);
   c.resize(6);
   c << A[_, 1];
   Vector<std::int64_t> d(std::array<std::int64_t, 6>{-5, 6, -2, -7, -8, -8});
-  EXPECT_EQ(c, d);
-  EXPECT_EQ(b * c[_(0, 3)].t(), 152);
+  expect(c == d);
+  expect(b * c[_(0, 3)].t() == 152);
   IntMatrix<> dA1x1(DenseDims<>{row(1), col(1)}, 0);
-  EXPECT_TRUE(dA1x1.isSquare());
+  expect(dA1x1.isSquare());
   IntMatrix<> dA2x2(DenseDims<>{row(2), col(2)}, 0);
   dA1x1.antiDiag() << 1;
-  EXPECT_EQ((dA1x1[0, 0]), 1);
+  expect((dA1x1[0, 0]) == 1);
   dA2x2.antiDiag() << 1;
-  EXPECT_EQ((dA2x2[0, 0]), 0);
-  EXPECT_EQ((dA2x2[0, 1]), 1);
-  EXPECT_EQ((dA2x2[1, 0]), 1);
-  EXPECT_EQ((dA2x2[1, 1]), 0);
+  expect((dA2x2[0, 0]) == 0);
+  expect((dA2x2[0, 1]) == 1);
+  expect((dA2x2[1, 0]) == 1);
+  expect((dA2x2[1, 1]) == 0);
   for (std::ptrdiff_t i = 1; i < 20; ++i) {
     IntMatrix<> F(DenseDims<>{row(i), col(i)});
     F << 0;
     F.antiDiag() << 1;
     for (std::ptrdiff_t j = 0; j < i; ++j)
       for (std::ptrdiff_t k = 0; k < i; ++k)
-        EXPECT_EQ((F[j, k]), k + j == i - 1);
+        expect((F[j, k]) == (k + j == i - 1));
   }
-}
+};
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(ExpressionTemplateTest2, BasicAssertions) {
+"ExpressionTemplateTest2 BasicAssertions"_test = [] {
   ManagedArray<double, DenseDims<>> W{{row(3), col(3)}, 0},
     X{{row(3), col(3)}, 0}, Y{{row(3), col(3)}, 0}, Z{{row(3), col(3)}, 0};
   W[0, 0] = 0.29483432115939806;
@@ -242,11 +244,11 @@ TEST(ExpressionTemplateTest2, BasicAssertions) {
     (33522128640 * W + 10559470521600 * X + 1187353796428800 * Y) +
     32382376266240000 * I};
 
-  EXPECT_EQ(A, Z);
-}
+  expect(A == Z);
+};
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(ArrayPrint, BasicAssertions) {
+"ArrayPrint BasicAssertions"_test = [] {
   {
     auto A{
       "[3 -5 1 10 -4 6 4 4; 4 6 3 -1 6 1 -4 0; -7 -2 0 0 -10 -2 3 7; 2 -7 -5 "
@@ -255,7 +257,7 @@ TEST(ArrayPrint, BasicAssertions) {
     utils::print(A);
     utils::print('\n');
     utils::print("PrintToString(A) yields:");
-    utils::print(testing::PrintToString(A));
+    utils::print("Matrix A");
     utils::print('\n');
   }
   {
@@ -265,18 +267,18 @@ TEST(ArrayPrint, BasicAssertions) {
     utils::print(v);
     utils::print('\n');
     utils::print("PrintToString: ");
-    utils::print(testing::PrintToString(v));
+    utils::print("Vector v");
     utils::print('\n');
   }
-}
+};
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-TEST(OffsetEnd, BasicAssertions) {
+"OffsetEnd BasicAssertions"_test = [] {
   auto A{"[3 3 3 3; 2 2 2 2; 1 1 1 1; 0 0 0 0]"_mat};
   auto B = IntMatrix<>{DenseDims<>{row(4), col(4)}};
   for (std::ptrdiff_t i = 0; i < 4; ++i) B[last - i, _] << i;
-  EXPECT_EQ(A, B);
-}
-TEST(SquareMatrixTest, BasicAssertions) {
+  expect(A == B);
+};
+"SquareMatrixTest BasicAssertions"_test = [] {
   SquareMatrix<std::int64_t> A{SquareDims<>{row(4)}};
   for (std::ptrdiff_t i = 0; i < 4; ++i)
     for (std::ptrdiff_t j = 0; j < 4; ++j) A[i, j] = 4 * i + j;
@@ -284,9 +286,9 @@ TEST(SquareMatrixTest, BasicAssertions) {
   B << A[_(end - 2, end), _].t();
   for (std::ptrdiff_t j = 0; j < 4; ++j)
     for (std::ptrdiff_t i = 0; i < 2; ++i)
-      EXPECT_EQ((B[j, i]), 4 * (i + 2) + j);
-}
-TEST(VectorTest, BasicAssertions) {
+      expect((B[j, i]) == 4 * (i + 2) + j);
+};
+"VectorTest BasicAssertions"_test = [] {
   alloc::OwningArena<> alloc;
   ResizeableView<std::int64_t, Length<>> x;
   for (std::size_t i = 0; i < 100; ++i) {
@@ -294,10 +296,10 @@ TEST(VectorTest, BasicAssertions) {
       x.reserve(&alloc, std::max<std::ptrdiff_t>(8, 2 * x.size()));
     x.emplace_back_within_capacity(i);
   }
-  EXPECT_EQ(x.size(), 100);
-  EXPECT_EQ(x.sum(), 100 * 99 / 2);
-}
-TEST(SVectorTest, BasicAssertions) {
+  expect(x.size() == 100);
+  expect(x.sum() == 100 * 99 / 2);
+};
+"SVectorTest BasicAssertions"_test = [] {
   SVector<std::int64_t, 3> x{1, 2, 3};
   // static_assert(simd::VecLen<3, std::int64_t> == 2);
   static_assert(utils::Compressible<SVector<std::int64_t, 3>>);
@@ -309,125 +311,124 @@ TEST(SVectorTest, BasicAssertions) {
   y = ycompress;
   SVector<std::int64_t, 3> z{11, 22, 33};
   SVector<std::int64_t, 3> w = x + y;
-  EXPECT_EQ(w, z);
-  EXPECT_TRUE(w == z);
+  expect(w == z);
+  expect(w == z);
   constexpr auto const_cmp = [](auto const &a, auto const &b) {
     return containers::tuple(a == b, std::is_constant_evaluated());
   };
-  Vector<std::int64_t> v{math::length(3)};
+  Vector<std::int64_t> v{::math::length(3)};
   v << _(1, 4);
-  EXPECT_TRUE(const_cmp(v.size(), 3)._0);
-  EXPECT_FALSE(const_cmp(v.size(), 3)._1);
-  EXPECT_TRUE(const_cmp(x.size(), 3)._0);
-  EXPECT_EQ(std::distance(v.begin(), std::ranges::find_if(
+  expect(const_cmp(v.size(), 3)._0);
+  expect(!const_cmp(v.size(), 3)._1);
+  expect(const_cmp(x.size(), 3)._0);
+  expect(std::distance(v.begin(), std::ranges::find_if(
                                        v[_(1, end)],
-                                       std::bind_front(std::equal_to<>{}, 3))),
-            2);
-  // EXPECT_TRUE(constCmp(v.size())._0);
-  // EXPECT_FALSE(constCmp(v.size())._1);
-  // EXPECT_TRUE(constCmp(x.size())._0);
+                                       std::bind_front(std::equal_to<>{}, 3))) == 2);
+  // expect(constCmp(v.size())._0);
+  // expect(!(constCmp(v.size())._1);
+  // expect(constCmp(x.size())._0);
   static_assert(const_cmp(decltype(x)::size(), unsigned(3))._1);
   static_assert(const_cmp(decltype(x)::size(), decltype(y)::size())._1);
-  // EXPECT_TRUE(constCmp(x.size())._1);
-  // EXPECT_TRUE(constCmp(x.size(), unsigned(3))._1);
-  // EXPECT_TRUE(constCmp(x.size(), y.size())._1);
+  // expect(constCmp(x.size())._1);
+  // expect(constCmp(x.size(), unsigned(3))._1);
+  // expect(constCmp(x.size(), y.size())._1);
   auto [a, b, c] = w;
-  EXPECT_EQ(a, 11);
-  EXPECT_EQ(b, 22);
-  EXPECT_EQ(c, 33);
-}
-TEST(TinyVectorTest, BasicAssertions) {
+  expect(a == 11);
+  expect(b == 22);
+  expect(c == 33);
+};
+"TinyVectorTest BasicAssertions"_test = [] {
   {
     containers::TinyVector<int, 5> v{};
     static_assert(std::same_as<utils::eltype_t<decltype(v)>, int>);
-    EXPECT_TRUE(v.empty());
-    EXPECT_EQ(v.size(), 0);
+    expect(v.empty());
+    expect(v.size() == 0);
     v.resize(3);
-    EXPECT_FALSE(v.empty());
-    EXPECT_EQ(v.size(), 3);
-    EXPECT_EQ(v.back(), 0);
+    expect(!(v.empty()));
+    expect(v.size() == 3);
+    expect(v.back() == 0);
     v.push_back(2);
-    EXPECT_EQ(v.size(), 4);
-    EXPECT_EQ(v.back(), 2);
-    EXPECT_EQ(v.pop_back_val(), 2);
-    EXPECT_EQ(v.front(), 0);
-    EXPECT_EQ(v.back(), 0);
-    EXPECT_EQ(v.size(), 3);
+    expect(v.size() == 4);
+    expect(v.back() == 2);
+    expect(v.pop_back_val() == 2);
+    expect(v.front() == 0);
+    expect(v.back() == 0);
+    expect(v.size() == 3);
     v.pop_back();
-    EXPECT_EQ(v.size(), 2);
+    expect(v.size() == 2);
     v.pop_back();
-    EXPECT_FALSE(v.empty());
-    EXPECT_EQ(v.size(), 1);
+    expect(!(v.empty()));
+    expect(v.size() == 1);
     v.pop_back();
-    EXPECT_TRUE(v.empty());
-    EXPECT_EQ(v.size(), 0);
+    expect(v.empty());
+    expect(v.size() == 0);
     int &y = v.emplace_back(2);
     y += 3;
-    EXPECT_EQ(v.front(), 5);
-    EXPECT_EQ(v.back(), 5);
+    expect(v.front() == 5);
+    expect(v.back() == 5);
     v.push_back(2);
-    EXPECT_EQ(v.front(), 5);
-    EXPECT_EQ(v.back(), 2);
+    expect(v.front() == 5);
+    expect(v.back() == 2);
     v.push_back(21);
-    EXPECT_EQ(v.back(), 21);
+    expect(v.back() == 21);
     int s = 0;
     for (auto x : v) s += x;
-    EXPECT_EQ(s, 28);
+    expect(s == 28);
   }
   {
     containers::TinyVector<std::int8_t, 5, std::int8_t> v{};
     static_assert(std::same_as<utils::eltype_t<decltype(v)>, std::int8_t>);
-    EXPECT_TRUE(v.empty());
-    EXPECT_EQ(v.size(), 0);
+    expect(v.empty());
+    expect(v.size() == 0);
     v.resize(3);
-    EXPECT_FALSE(v.empty());
-    EXPECT_EQ(v.size(), 3);
-    EXPECT_EQ(v.back(), 0);
+    expect(!(v.empty()));
+    expect(v.size() == 3);
+    expect(v.back() == 0);
     v.push_back(2);
-    EXPECT_EQ(v.size(), 4);
-    EXPECT_EQ(v.back(), 2);
-    EXPECT_EQ(v.pop_back_val(), 2);
-    EXPECT_EQ(v.front(), 0);
-    EXPECT_EQ(v.back(), 0);
-    EXPECT_EQ(v.size(), 3);
+    expect(v.size() == 4);
+    expect(v.back() == 2);
+    expect(v.pop_back_val() == 2);
+    expect(v.front() == 0);
+    expect(v.back() == 0);
+    expect(v.size() == 3);
     v.pop_back();
-    EXPECT_EQ(v.size(), 2);
+    expect(v.size() == 2);
     v.pop_back();
-    EXPECT_FALSE(v.empty());
-    EXPECT_EQ(v.size(), 1);
+    expect(!(v.empty()));
+    expect(v.size() == 1);
     v.pop_back();
-    EXPECT_TRUE(v.empty());
-    EXPECT_EQ(v.size(), 0);
+    expect(v.empty());
+    expect(v.size() == 0);
     std::int8_t &y = v.emplace_back(2);
     y += 3;
-    EXPECT_EQ(v.front(), 5);
-    EXPECT_EQ(v.back(), 5);
+    expect(v.front() == 5);
+    expect(v.back() == 5);
     v.push_back(2);
-    EXPECT_EQ(v.front(), 5);
-    EXPECT_EQ(v.back(), 2);
+    expect(v.front() == 5);
+    expect(v.back() == 2);
     v.push_back(21);
-    EXPECT_EQ(v.back(), 21);
+    expect(v.back() == 21);
     std::int8_t s = 0;
     for (auto x : v) s = std::int8_t(s + x);
-    EXPECT_EQ(s, 28);
+    expect(s == 28);
   }
-}
+};
 
-TEST(NonTriviallyDestructible, BasicAssertions) {
+"NonTriviallyDestructible BasicAssertions"_test = [] {
   // 2 + 2*100, 3 + 2*100, 4 + 2*100
   Vector<std::int64_t> y{std::array<std::int64_t, 3>{204, 205, 206}};
   for (std::ptrdiff_t i = 0; i < 4; ++i) {
     auto [a, b] = y.split(i);
-    EXPECT_EQ(a, y[_(0, i)]);
-    EXPECT_EQ(b, y[_(i, end)]);
+    expect(a == y[_(0, i)]);
+    expect(b == y[_(i, end)]);
   }
   {
     auto [a, b] = y.popFront();
-    EXPECT_EQ(a, y[0]);
-    EXPECT_EQ(b, y[_(1, end)]);
+    expect(a == y[0]);
+    expect(b == y[_(1, end)]);
   }
   Vector<std::int64_t> z{std::array<std::int64_t, 3>{0, 1, 2}};
-  Vector<Vector<std::int64_t, 0>, 0> x{math::length(5)};
+  Vector<Vector<std::int64_t, 0>, 0> x{::math::length(5)};
   for (std::ptrdiff_t i = 0; i < 10; i += 2)
     x[i / 2] = std::array<std::int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i};
   for (std::ptrdiff_t i = 10; i < 102; i += 2)
@@ -437,72 +438,72 @@ TEST(NonTriviallyDestructible, BasicAssertions) {
     x.insert(x.begin() + i,
              std::array<std::int64_t, 3>{2 + 2 * i, 3 + 2 * i, 4 + 2 * i});
   for (std::ptrdiff_t i = 0; i < x.size(); ++i)
-    for (std::ptrdiff_t j = 0; j < 3; ++j) EXPECT_EQ(x[i][j], 2 * (i + 1) + j);
-  EXPECT_EQ(x.pop_back_val(), y);
+    for (std::ptrdiff_t j = 0; j < 3; ++j) expect(x[i][j] == 2 * (i + 1) + j);
+  expect(x.pop_back_val() == y);
   x.truncate(55);
   x.resize(45);
   z += 2 * x.size();
-  EXPECT_EQ(x.pop_back_val(), z);
+  expect(x.pop_back_val() == z);
   x.resizeForOverwrite(23);
   z -= 2 * (45 - x.size());
-  EXPECT_EQ(x.pop_back_val(), z);
+  expect(x.pop_back_val() == z);
   x.zero();
-  EXPECT_TRUE(allZero(x));
-}
+  expect(allZero(x));
+};
 
-TEST(StringMat1x1, BasicAssertions) {
+"StringMat1x1 BasicAssertions"_test = [] {
 
   auto B = "[-5]"_mat;
   PtrMatrix<std::int64_t> Bp = B;
   IntMatrix<> A = "[-5]"_mat;
-  math::DensePtrMatrix<std::int64_t> Dp = B;
-  math::ManagedArray<std::int64_t, math::DenseDims<>> D = "[-5]"_mat;
+  ::math::DensePtrMatrix<std::int64_t> Dp = B;
+  ::math::ManagedArray<std::int64_t, ::math::DenseDims<>> D = "[-5]"_mat;
   containers::Tuple{Bp, A, Dp, D}.apply([](const auto &x) {
-    EXPECT_EQ(std::ptrdiff_t(x.numCol()), 1);
-    EXPECT_EQ(std::ptrdiff_t(x.numRow()), 1);
-    EXPECT_EQ((x[0, 0]), -5);
+    expect(std::ptrdiff_t(x.numCol()) == 1);
+    expect(std::ptrdiff_t(x.numRow()) == 1);
+    expect((x[0, 0]) == -5);
   });
-}
+};
 
-TEST(StringVector, BasicAssertions) {
+"StringVector BasicAssertions"_test = [] {
   static_assert(!utils::Compressible<std::int64_t>);
   auto a = "[-5 3 7]"_mat;
   auto along = "[-5 3 7 -15 17 -5 -4 -3 -2 1 0 0 1 2 0 3 4 5 6 7]"_mat;
   static_assert(
-    std::convertible_to<math::StaticDims<std::int64_t, 1, 3, false>, Length<>>);
-  math::Array<std::int64_t, math::StaticDims<std::int64_t, 1, 3, false>> aps =
+    std::convertible_to<::math::StaticDims<std::int64_t, 1, 3, false>, Length<>>);
+  ::math::Array<std::int64_t, ::math::StaticDims<std::int64_t, 1, 3, false>> aps =
     a;
   PtrVector<std::int64_t> ap = a;
   Vector<std::int64_t> b = a;
-  EXPECT_EQ("[-5 3]"_mat, a[_(0, 2)]);
+  expect("[-5 3]"_mat == a[_(0, 2)]);
   const auto &ca = along;
-  EXPECT_EQ(a, ca[_(0, 3)]);
+  expect(a == ca[_(0, 3)]);
   containers::Tuple{aps, ap, b}.apply([](const auto &x) {
-    EXPECT_EQ(std::ptrdiff_t(x.size()), 3);
-    EXPECT_EQ(x[0], -5);
-    EXPECT_EQ(x[1], 3);
-    EXPECT_EQ(x[2], 7);
+    expect(std::ptrdiff_t(x.size()) == 3);
+    expect(x[0] == -5);
+    expect(x[1] == 3);
+    expect(x[2] == 7);
   });
-  EXPECT_TRUE(anyNEZero(a));
-  EXPECT_TRUE(anyGTZero(a));
-  EXPECT_TRUE(anyLTZero(a));
-}
+  expect(anyNEZero(a));
+  expect(anyGTZero(a));
+  expect(anyLTZero(a));
+};
 
-TEST(DimensionConversions, BasicAssertions) {
+"DimensionConversions BasicAssertions"_test = [] {
   // Test StridedDims conversions
   {
     // StridedDims<> -> StridedDims<4, 3, 4> (runtime to compile-time)
     StridedDims<> runtime_strided{row(4), col(3), stride(4)};
     StridedDims<4, 3, 4> static_strided = runtime_strided;
-    EXPECT_EQ(row(static_strided), 4);
-    EXPECT_EQ(col(static_strided), 3);
-    EXPECT_EQ(stride(static_strided), 4);
+    expect(row(static_strided) == 4);
+    expect(col(static_strided) == 3);
+    expect(stride(static_strided) == 4);
 
     // StridedDims<4, 3, 4> -> StridedDims<> (compile-time to runtime)
     StridedDims<> back_to_runtime = static_strided;
-    EXPECT_EQ(row(back_to_runtime), 4);
-    EXPECT_EQ(col(back_to_runtime), 3);
-    EXPECT_EQ(stride(back_to_runtime), 4);
+    expect(row(back_to_runtime) == 4);
+    expect(col(back_to_runtime) == 3);
+    expect(stride(back_to_runtime) == 4);
 
     // Test with Arrays
     ManagedArray<std::int64_t, StridedDims<>> array_runtime{runtime_strided};
@@ -514,8 +515,8 @@ TEST(DimensionConversions, BasicAssertions) {
         array_static[i, j] = i * 10 + j;
       }
     }
-    EXPECT_EQ((array_runtime[2, 1]), 21);
-    EXPECT_EQ((array_static[2, 1]), 21);
+    expect((array_runtime[2, 1]) == 21);
+    expect((array_static[2, 1]) == 21);
   }
 
   // Test DenseDims conversions
@@ -523,13 +524,13 @@ TEST(DimensionConversions, BasicAssertions) {
     // DenseDims<> -> DenseDims<3, 4> (runtime to compile-time)
     DenseDims<> runtime_dense{row(3), col(4)};
     DenseDims<3, 4> static_dense = runtime_dense;
-    EXPECT_EQ(row(static_dense), 3);
-    EXPECT_EQ(col(static_dense), 4);
+    expect(row(static_dense) == 3);
+    expect(col(static_dense) == 4);
 
     // DenseDims<3, 4> -> DenseDims<> (compile-time to runtime)
     DenseDims<> back_to_runtime = static_dense;
-    EXPECT_EQ(row(back_to_runtime), 3);
-    EXPECT_EQ(col(back_to_runtime), 4);
+    expect(row(back_to_runtime) == 3);
+    expect(col(back_to_runtime) == 4);
 
     // Test with Arrays
     ManagedArray<std::int64_t, DenseDims<>> array_runtime{runtime_dense};
@@ -540,8 +541,8 @@ TEST(DimensionConversions, BasicAssertions) {
         array_static[i, j] = i * 100 + j;
       }
     }
-    EXPECT_EQ((array_runtime[1, 2]), 102);
-    EXPECT_EQ((array_static[1, 2]), 102);
+    expect((array_runtime[1, 2]) == 102);
+    expect((array_static[1, 2]) == 102);
   }
 
   // Test SquareDims conversions
@@ -549,13 +550,13 @@ TEST(DimensionConversions, BasicAssertions) {
     // SquareDims<> -> SquareDims<5> (runtime to compile-time)
     SquareDims<> runtime_square{row(5)};
     SquareDims<5> static_square = runtime_square;
-    EXPECT_EQ(row(static_square), 5);
-    EXPECT_EQ(col(static_square), 5);
+    expect(row(static_square) == 5);
+    expect(col(static_square) == 5);
 
     // SquareDims<5> -> SquareDims<> (compile-time to runtime)
     SquareDims<> back_to_runtime = static_square;
-    EXPECT_EQ(row(back_to_runtime), 5);
-    EXPECT_EQ(col(back_to_runtime), 5);
+    expect(row(back_to_runtime) == 5);
+    expect(col(back_to_runtime) == 5);
 
     // Test with Arrays
     ManagedArray<std::int64_t, SquareDims<>> array_runtime{runtime_square};
@@ -566,8 +567,8 @@ TEST(DimensionConversions, BasicAssertions) {
         array_static[i, j] = i * j;
       }
     }
-    EXPECT_EQ((array_runtime[3, 4]), 12);
-    EXPECT_EQ((array_static[3, 4]), 12);
+    expect((array_runtime[3, 4]) == 12);
+    expect((array_static[3, 4]) == 12);
   }
 
   // Test cross-type conversions
@@ -576,32 +577,32 @@ TEST(DimensionConversions, BasicAssertions) {
     SquareDims<3> square_3x3;
     DenseDims<3, 3> dense_from_square = square_3x3;
     DenseDims<> dense_runtime_from_square = square_3x3;
-    EXPECT_EQ(row(dense_from_square), 3);
-    EXPECT_EQ(col(dense_from_square), 3);
-    EXPECT_EQ(row(dense_runtime_from_square), 3);
-    EXPECT_EQ(col(dense_runtime_from_square), 3);
+    expect(row(dense_from_square) == 3);
+    expect(col(dense_from_square) == 3);
+    expect(row(dense_runtime_from_square) == 3);
+    expect(col(dense_runtime_from_square) == 3);
 
     // DenseDims -> StridedDims
     DenseDims<2, 4> dense_2x4;
     StridedDims<2, 4, 4> strided_from_dense = dense_2x4;
     StridedDims<> strided_runtime_from_dense = dense_2x4;
-    EXPECT_EQ(row(strided_from_dense), 2);
-    EXPECT_EQ(col(strided_from_dense), 4);
-    EXPECT_EQ(stride(strided_from_dense), 4);
-    EXPECT_EQ(row(strided_runtime_from_dense), 2);
-    EXPECT_EQ(col(strided_runtime_from_dense), 4);
-    EXPECT_EQ(stride(strided_runtime_from_dense), 4);
+    expect(row(strided_from_dense) == 2);
+    expect(col(strided_from_dense) == 4);
+    expect(stride(strided_from_dense) == 4);
+    expect(row(strided_runtime_from_dense) == 2);
+    expect(col(strided_runtime_from_dense) == 4);
+    expect(stride(strided_runtime_from_dense) == 4);
 
     // SquareDims -> StridedDims
     SquareDims<6> square_6x6;
     StridedDims<6, 6, 6> strided_from_square = square_6x6;
     StridedDims<> strided_runtime_from_square = square_6x6;
-    EXPECT_EQ(row(strided_from_square), 6);
-    EXPECT_EQ(col(strided_from_square), 6);
-    EXPECT_EQ(stride(strided_from_square), 6);
-    EXPECT_EQ(row(strided_runtime_from_square), 6);
-    EXPECT_EQ(col(strided_runtime_from_square), 6);
-    EXPECT_EQ(stride(strided_runtime_from_square), 6);
+    expect(row(strided_from_square) == 6);
+    expect(col(strided_from_square) == 6);
+    expect(stride(strided_from_square) == 6);
+    expect(row(strided_runtime_from_square) == 6);
+    expect(col(strided_runtime_from_square) == 6);
+    expect(stride(strided_runtime_from_square) == 6);
   }
 
   // Test partial conversions (some known, some unknown parameters)
@@ -609,15 +610,15 @@ TEST(DimensionConversions, BasicAssertions) {
     // StridedDims<-1, 3, -1> -> StridedDims<4, 3, 8>
     StridedDims<-1, 3, -1> partial_strided{row(4), col(3), stride(8)};
     StridedDims<4, 3, 8> full_strided = partial_strided;
-    EXPECT_EQ(row(full_strided), 4);
-    EXPECT_EQ(col(full_strided), 3);
-    EXPECT_EQ(stride(full_strided), 8);
+    expect(row(full_strided) == 4);
+    expect(col(full_strided) == 3);
+    expect(stride(full_strided) == 8);
 
     // DenseDims<2, -1> -> DenseDims<2, 7>
     DenseDims<2, -1> partial_dense{row(2), col(7)};
     DenseDims<2, 7> full_dense = partial_dense;
-    EXPECT_EQ(row(full_dense), 2);
-    EXPECT_EQ(col(full_dense), 7);
+    expect(row(full_dense) == 2);
+    expect(col(full_dense) == 7);
 
     // Test with Arrays
     ManagedArray<std::int64_t, DenseDims<2, -1>> array_partial{partial_dense};
@@ -628,7 +629,10 @@ TEST(DimensionConversions, BasicAssertions) {
         array_full[i, j] = i + j;
       }
     }
-    EXPECT_EQ((array_partial[1, 5]), 6);
-    EXPECT_EQ((array_full[1, 5]), 6);
+    expect((array_partial[1, 5]) == 6);
+    expect((array_full[1, 5]) == 6);
   }
+};
+
+  return 0;
 }
