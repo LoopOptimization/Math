@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
 option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
-option(ENABLE_LLD "Use lld as the linker" ON)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
 add_compile_options(
@@ -55,6 +54,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 else()
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
+set(CMAKE_LINKER_TYPE MOLD)
 
 project(MathTests LANGUAGES CXX)
 
@@ -130,74 +130,14 @@ foreach(test_source ${test_sources})
   
   target_compile_options(${test_name} PRIVATE -D_GLIBCXX_ASSERTIONS -ftemplate-backtrace-limit=0)
   
-  if(ENABLE_LLD)
-    target_link_options(${test_name} PRIVATE -fuse-ld=lld)
-  endif()
-  
   add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
 
-# Also create the combined executable for compatibility
-add_executable(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE Math ut_module)
-set_target_properties(
-  ${PROJECT_NAME}
-  PROPERTIES CXX_STANDARD 23
-             CXX_VISIBILITY_PRESET hidden
-             VISIBILITY_INLINES_HIDDEN ON)
-
-if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
-                                                "([Aa]ddress);([Uu]ndefined)"))
-  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-trap=all)
-elseif(USE_TYPE_SANITIZER)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-trap=all
-                                                 -fsanitize=type)
-  target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=type)
-endif()
-if(POLYMATHNOEXPLICITSIMDARRAY)
-  target_compile_definitions(${PROJECT_NAME}
-                             PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
-endif()
-
-# enable compiler warnings
-if(NOT TEST_INSTALLED_VERSION)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES
-                                              "GNU")
-    # target_compile_options(Math PUBLIC -Wall -Wpedantic -Wextra -Wshadow
-    # -Werror)
-    target_compile_options(${PROJECT_NAME} PUBLIC -Wall -Wpedantic -Wextra
-                                                  -Wshadow -Werror)
-  elseif(MSVC)
-    # target_compile_options(Math PUBLIC /W4 /WX)
-    target_compile_definitions(${PROJECT_NAME}
-                               PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
-  endif()
-endif()
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  target_compile_options(
-    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  target_compile_options(
-    ${PROJECT_NAME}
-    PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4
-            -fno-semantic-interposition -fdiagnostics-color=always
-            -Wno-comma-subscript -Wno-psabi)
-endif()
-# target_compile_options(Math INTERFACE -D_GLIBCXX_ASSERTIONS)
-target_compile_options(${PROJECT_NAME} PRIVATE -D_GLIBCXX_ASSERTIONS
-                                               -ftemplate-backtrace-limit=0)
-if(ENABLE_LLD)
-  # TODO: use `CMAKE_LINKER_TYPE`/`LINKER_TYPE` once you've upgraded to cmake 29
-  target_link_options(${PROJECT_NAME} PRIVATE -fuse-ld=lld)
-endif()
 
 # ---- Add MathTests ----
 
 include(CTest)
 enable_testing()
-
-# Tests are now handled by ut framework
-add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 
 # ---- code coverage ----
 
