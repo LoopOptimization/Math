@@ -1,0 +1,3 @@
+[submodule "extern/ut"]
+	path = extern/ut
+	url = git@github.com:boost-ext/ut.git

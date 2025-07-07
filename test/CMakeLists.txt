@@ -73,58 +73,24 @@ include(../cmake/CPM.cmake)
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(FetchContent)
-
-# include(CheckCXXSymbolExists)
-
-# # Check for _LIBCPP_VERSION check_cxx_symbol_exists(_LIBCPP_VERSION
-# "<version>" LIBCXX_FOUND) if(LIBCXX_FOUND) message(STATUS "libc++ is being
-# used.") FetchContent_Declare( googletest NAMES GTest URL
-# https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz #
-# GIT_REPOSITORY https://github.com/google/googletest.git # GIT_TAG
-# 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17 ) else() message(STATUS
-# "libstdc++ (or another standard library) is being used.")
-# FetchContent_Declare( googletest FIND_PACKAGE_ARGS NAMES GTest URL
-# https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz #
-# GIT_REPOSITORY https://github.com/google/googletest.git # GIT_TAG
-# 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17 ) endif() using
-# `FIND_PACKAGE_ARGS` causes it to try `find_package`
-if("${CMAKE_CXX_FLAGS}" STREQUAL "")
-  set(has_libcpp -1)
-else()
-  string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
-endif()
-if(has_libcpp GREATER_EQUAL 0)
-  FetchContent_Declare(
-    googletest
-    NAMES GTest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-    # GIT_REPOSITORY https://github.com/google/googletest.git GIT_TAG
-    # 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
-  )
-else()
-  FetchContent_Declare(
-    googletest
-    FIND_PACKAGE_ARGS NAMES GTest
-    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
-    # GIT_REPOSITORY https://github.com/google/googletest.git GIT_TAG
-    # 52eb8108c5bdec04579160ae17225d66034bd723 # 1.17
-  )
-endif()
-FetchContent_MakeAvailable(googletest)
+set(BOOST_UT_DISABLE_MODULE OFF)
+add_subdirectory("${CMAKE_SOURCE_DIR}/.." "extern_build/math")
+add_subdirectory("${CMAKE_SOURCE_DIR}/../extern/ut" "extern_build/ut")
+set(utdir "${CMAKE_SOURCE_DIR}/.." "${CMAKE_SOURCE_DIR}/../extern/ut")
+message(STATUS "adding dir ${utdir}")
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
-set(FOR_TESTING
-    ON
-    CACHE BOOL "Build for testing")
-add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
+# set(FOR_TESTING
+#     ON
+#     CACHE BOOL "Build for testing")
+# add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----
 
 file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 add_executable(${PROJECT_NAME} ${sources})
-target_link_libraries(${PROJECT_NAME} Math GTest::gtest_main)
+target_link_libraries(${PROJECT_NAME} PRIVATE Math ut_module)
 set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES CXX_STANDARD 23
@@ -178,10 +144,11 @@ endif()
 
 # ---- Add MathTests ----
 
+include(CTest)
 enable_testing()
 
-include(GoogleTest)
-gtest_discover_tests(${PROJECT_NAME})
+# Tests are now handled by ut framework
+add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
 
 # ---- code coverage ----
 

@@ -9,7 +9,7 @@ option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
-option(FOR_TESTING "Build for testing" OFF)
+# option(FOR_TESTING "Build for testing" OFF)
 
 if(ENABLE_RTTI)
   add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
