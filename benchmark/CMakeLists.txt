@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fomit-frame-pointer;-fno-rtti;-fno-plt;-fno-asynchronous-unwind-tables>"
 )
 
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
@@ -146,9 +146,7 @@ set_target_properties(
 target_compile_options(
   ${PROJECT_NAME}
   PRIVATE -fstrict-aliasing
-          -fno-plt
           -fstrict-overflow
-          -fomit-frame-pointer
           -fno-signed-zeros
           -fassociative-math
           -ffinite-math-only
