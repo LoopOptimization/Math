@@ -142,17 +142,27 @@ enable_testing()
 # ---- code coverage ----
 
 if(ENABLE_TEST_COVERAGE)
-  # target_compile_options(Math PUBLIC -O0 -g --coverage)
-  # target_link_options(Math PUBLIC --coverage)
-  target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g --coverage)
-  target_link_options(${PROJECT_NAME} PUBLIC --coverage)
-  add_custom_target(
-    clean_coverage
-    COMMAND rm -f ${PROJECT_BINARY_DIR}/CMakeFiles/MathTests.dir/*.gcda
-    COMMAND
-      rm -f
-      ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/lib/*.gcda
-    COMMENT "Clearing out old coverage data.")
-  add_dependencies(${PROJECT_NAME} clean_coverage)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # LLVM/Clang coverage instrumentation
+    target_compile_options(Math PUBLIC -O0 -g -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(Math PUBLIC -fprofile-instr-generate)
+    add_custom_target(
+      clean_coverage
+      COMMAND rm -f ${PROJECT_BINARY_DIR}/reports/*.profraw
+      COMMAND rm -f ${PROJECT_BINARY_DIR}/CMakeFiles/*/*.profraw
+      COMMAND rm -f ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/mod/**/*.profraw
+      COMMAND rm -f ${PROJECT_BINARY_DIR}/*.profraw
+      COMMENT "Clearing out old coverage data.")
+  else()
+    # GCC gcov coverage
+    target_compile_options(Math PUBLIC -O0 -g --coverage)
+    target_link_options(Math PUBLIC --coverage)
+    add_custom_target(
+      clean_coverage
+      COMMAND rm -f ${PROJECT_BINARY_DIR}/CMakeFiles/*/test/*.gcda
+      COMMAND rm -f ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/mod/**/*.gcda
+      COMMENT "Clearing out old coverage data.")
+  endif()
+  add_dependencies(Math clean_coverage)
   message(STATUS "Test coverage enabled.")
 endif()

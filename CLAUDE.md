@@ -28,9 +28,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing and Linting
 - Tests run automatically with build targets
 - `clang-tidy path/to/file`: Run the linter on specific files
-- Individual test executables are in `build-*/MathTests`
-- Run specific test patterns: `./build-clang/no-san/MathTests --gtest_filter="TestName*"`
-- Benchmark executables are in `build-*/MathBenchmarks`
+- Individual test executables are in `build-*/` directories
+- Run specific test patterns: `./build-clang/no-san/test_name`
+- Benchmark executables are in `build-*/` directories
+
+### Coverage Analysis
+- `make coverage-local`: Generate local HTML coverage reports with lcov
+- `make coverage-clean`: Clean coverage data files
+- `make coverage-check`: Verify coverage meets 85% threshold
+- Coverage reports available at: `build-clang/coverage/html/index.html`
+- Coverage data excludes test files, external dependencies, and system headers
 
 ### Clean
 - `make clean`: Remove all build directories
@@ -125,11 +132,12 @@ The library supports both traditional header-only compilation and modern C++23 m
 - Native compilation support with `-march=native`
 
 ## Testing Strategy
-- Comprehensive Google Test suite in `test/` directory
+- Comprehensive ut (micro test) framework in `test/` directory
 - Cross-compiler testing (Clang/GCC) with multiple configurations
 - Architecture-specific testing (baseline, AVX2, AVX512)
 - Sanitizer builds catch memory/undefined behavior issues
 - Performance benchmarks in `benchmark/` directory
+- Individual test executables for each test file
 
 ## Development Notes
 - Library is header-only by default but can build as C++23 modules
@@ -144,4 +152,4 @@ The library supports both traditional header-only compilation and modern C++23 m
 - Memory allocators can be configured (mimalloc, jemalloc) via CMake options
 - Cross-compiler testing with both Clang and GCC is essential due to C++23 features
 - Sanitizer builds help catch subtle bugs in template-heavy code
-- Use Google Test framework for testing with pattern-based test filtering available
+- Use ut framework for testing with individual test executables per test file
