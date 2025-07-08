@@ -247,30 +247,7 @@ int main() {
   expect(A == Z);
 };
 
-// NOLINTNEXTLINE(modernize-use-trailing-return-type)
-"ArrayPrint BasicAssertions"_test = [] {
-  {
-    auto A{
-      "[3 -5 1 10 -4 6 4 4; 4 6 3 -1 6 1 -4 0; -7 -2 0 0 -10 -2 3 7; 2 -7 -5 "
-      "-5 -7 -5 1 -7; 2 -8 2 7 4 9 6 -3; -2 -8 -5 0 10 -4 5 -3]"_mat};
-    utils::print("utils::print(A) yields:");
-    utils::print(A);
-    utils::print('\n');
-    utils::print("PrintToString(A) yields:");
-    utils::print("Matrix A");
-    utils::print('\n');
-  }
-  {
-    Vector<std::int64_t> v;
-    for (std::ptrdiff_t i = 0; i < 10; ++i) v.push_back(i);
-    utils::print("Vector: ");
-    utils::print(v);
-    utils::print('\n');
-    utils::print("PrintToString: ");
-    utils::print("Vector v");
-    utils::print('\n');
-  }
-};
+
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 "OffsetEnd BasicAssertions"_test = [] {
   auto A{"[3 3 3 3; 2 2 2 2; 1 1 1 1; 0 0 0 0]"_mat};

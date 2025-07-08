@@ -526,38 +526,6 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   }
 #endif
 protected:
-  friend void PrintTo(const Array &x, ::std::ostream *os) {
-    if constexpr (utils::ColumnPrintable<T>) {
-      std::ostringstream oss;
-      x.printToStream(oss);
-      *os << oss.str();
-    }
-  }
-  void printToStream(std::ostream &os) const requires(utils::ColumnPrintable<T>)
-  {
-    if constexpr (MatrixDimension<S>) {
-      // For matrices, we need to implement streaming manually since
-      // utils::printMatrix doesn't use streams
-      std::ptrdiff_t R = std::ptrdiff_t(numRow()), C = std::ptrdiff_t(numCol());
-      os << "\n[ ";
-      for (std::ptrdiff_t i = 0; i < R; i++) {
-        if (i) os << "  ";
-        for (std::ptrdiff_t j = 0; j < C; j++) {
-          os << (*this)[i, j];
-          if (j != C - 1) os << " ";
-          else if (i != R - 1) os << "\n";
-        }
-      }
-      os << " ]";
-    } else {
-      os << "[ ";
-      if (!empty()) {
-        os << (*this)[0];
-        for (std::ptrdiff_t i = 1; i < size(); ++i) os << ", " << (*this)[i];
-      }
-      os << " ]";
-    }
-  }
   TRIVIAL constexpr Array(S s) : sz_(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr_;

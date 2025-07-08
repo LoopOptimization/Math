@@ -306,37 +306,6 @@ struct MATH_GSL_OWNER StaticArray
     if constexpr (MatrixDimension<S>) utils::printMatrix(data(), M, N, N);
     else utils::printVector(begin(), end());
   }
-
-private:
-  friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
-    if constexpr (utils::ColumnPrintable<T>) {
-      // Use the view's print functionality by capturing stdout temporarily
-      // This is a workaround since printToStream is protected
-      std::ostringstream oss;
-      if constexpr (MatrixDimension<S>) {
-        oss << "\n[ ";
-        for (std::ptrdiff_t i = 0; i < M; i++) {
-          if (i) oss << "  ";
-          for (std::ptrdiff_t j = 0; j < N; j++) {
-            oss << x.view()[i, j];
-            if (j != N - 1) oss << " ";
-            else if (i != M - 1) oss << "\n";
-          }
-        }
-        oss << " ]";
-      } else {
-        oss << "[ ";
-        auto view = x.view();
-        if (view.begin() != view.end()) {
-          oss << *view.begin();
-          for (auto it = view.begin() + 1; it != view.end(); ++it)
-            oss << ", " << *it;
-        }
-        oss << " ]";
-      }
-      *os << oss.str();
-    }
-  }
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t M, std::ptrdiff_t N>
@@ -603,11 +572,6 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> T {
     return memory_[I / W][I % W];
-  }
-
-private:
-  friend void PrintTo(const StaticArray &x, ::std::ostream *os) {
-    *os << x.view();
   }
 };
 
