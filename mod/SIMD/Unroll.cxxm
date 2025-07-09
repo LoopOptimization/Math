@@ -622,7 +622,7 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 2, T> u)
 }
 template <std::ptrdiff_t R4, std::ptrdiff_t C, typename T>
 TRIVIAL constexpr auto transpose(Unroll<R4, C, 4, T> u)
-  -> Unroll<4 * C, 1, 4, T> requires(R4 % 4 == 0) {
+  -> Unroll<4 * C, R4 / 4, 4, T> requires(R4 % 4 == 0) {
   static constexpr std::ptrdiff_t R = R4 / 4;
   Unroll<4 * C, R, 4, T> z;
   POLYMATHFULLUNROLL
