@@ -5,9 +5,8 @@ export module AssignExprTemplates;
 
 import ArrayConcepts;
 import BaseUtils;
-import CheckSizes;
+import ExprTemplateUtils;
 import Indexing;
-import ScalarizeViaCast;
 import SIMD;
 import std;
 import Tuple;

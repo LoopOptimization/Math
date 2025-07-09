@@ -5,17 +5,17 @@ module;
 export module Dual;
 
 export import Elementary;
-import BaseUtils;
 import Arena;
 import Array;
 import ArrayConcepts;
 import ArrayConstructors;
 import AxisTypes;
+import BaseUtils;
 import CompressReference;
 import CorePrint;
 import ExprTemplates;
+import ExprTemplateUtils;
 import MatDim;
-import ScalarizeViaCast;
 import SIMD;
 import StaticArray;
 import std;
@@ -1002,7 +1002,7 @@ struct ScaledIncrement {
 TRIVIAL constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
                                 const auto &f)
   -> containers::Pair<double, MutPtrVector<double>> {
-  constexpr std::ptrdiff_t U = simd::Width<double>;
+  constexpr std::ptrdiff_t U = simd::Width<double> - (simd::Width<double> == 8);
   using D = Dual<double, U>;
   std::ptrdiff_t N = x.size();
   MutPtrVector<double> grad = vector<double>(arena, N);
@@ -1019,7 +1019,8 @@ TRIVIAL constexpr auto gradient(alloc::Arena<> *arena, PtrVector<double> x,
 /// fills the lower triangle of the hessian
 TRIVIAL constexpr auto hessian(HessianResultCore hr, PtrVector<double> x,
                                const auto &f, auto update) -> double {
-  constexpr std::ptrdiff_t Ui = simd::Width<double>;
+  constexpr std::ptrdiff_t Ui =
+    simd::Width<double> - (simd::Width<double> == 8);
   constexpr std::ptrdiff_t Uj = 2;
   using D = Dual<double, Ui>;
   using DD = Dual<D, Uj>;

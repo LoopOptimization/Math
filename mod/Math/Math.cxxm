@@ -12,7 +12,6 @@ export import Array;
 export import ArrayConcepts;
 export import ArrayConstructors;
 export import AxisTypes;
-export import CheckSizes;
 export import Comparisons;
 export import EmptyMatrix;
 export import ExprTemplates;
@@ -22,7 +21,6 @@ export import ManagedArray;
 export import MatDim;
 export import Range;
 export import Reductions;
-export import ScalarizeViaCast;
 export import StaticArray;
 export import SOA;
 export import UniformScaling;
@@ -35,7 +33,6 @@ export import SIMD;
 
 // Containers
 export import BitSet;
-export import Flat;
 export import Storage;
 export import Tuple;
 export import TinyVector;
@@ -45,7 +42,6 @@ export import UnrolledList;
 export import Rational;
 export import GCD;
 export import LinearDiophantine;
-export import Unimodularization;
 export import NormalForm;
 export import Simplex;
 

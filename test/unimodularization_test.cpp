@@ -2,12 +2,21 @@ import boost.ut;
 import ArrayParse;
 import CorePrint;
 import ManagedArray;
+import NormalForm;
 import std;
-import Unimodularization;
 
 using namespace boost::ut;
 using namespace ::math;
 using utils::operator""_mat;
+
+[[nodiscard]] inline auto unimodularize(IntMatrix<> A)
+  -> std::optional<SquareMatrix<std::int64_t>> {
+  SquareMatrix<std::int64_t> U{SquareDims{A.numRow()}};
+  NormalForm::hermite(A, U);
+  for (std::ptrdiff_t m = 0; m < A.numCol(); ++m)
+    if (A[m, m] != 1) return {};
+  return U;
+}
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 void testBasicAssertions() {

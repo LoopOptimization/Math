@@ -1,9 +1,9 @@
 
 import Array;
+import ExprTemplateUtils;
 import ManagedArray;
 import Nanobench;
 import RandDual;
-import ScalarizeViaCast;
 import StaticArray;
 import std;
 import Tuple;

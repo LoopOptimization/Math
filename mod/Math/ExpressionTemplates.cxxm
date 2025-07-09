@@ -9,11 +9,10 @@ export module ExprTemplates;
 import ArrayConcepts;
 import AxisTypes;
 import BaseUtils;
-import CheckSizes;
+import ExprTemplateUtils;
 import Indexing;
 import Range;
 import Reductions;
-import ScalarizeViaCast;
 import SIMD;
 import std;
 
@@ -538,55 +537,45 @@ struct Conditional
              LinearlyIndexableOrConvertible<B, value_type> {
     if constexpr (W == 1) {
       auto c = this->c[i];
-      simd::Unroll<U, 1, 1, value_type> x = get<value_type>(this->a, i),
-                                        y = op_(x, get<value_type>(this->b, i));
+      simd::Unroll<U, 1, 1, value_type> x = geta(i), y = op_(x, getb(i));
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        x.data[u] = c.data[u] ? y.data[u] : x.data[u];
+        x.data_[u] = c.data_[u] ? y.data_[u] : x.data_[u];
       return x;
     } else if constexpr (LinearlyIndexable<A, value_type>) {
-      auto c = get<bool>(this->c, i);
-      simd::Unroll<1, U, W, value_type> x = get<value_type>(this->a, i),
-                                        y = op_(x, get<value_type>(this->b, i));
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t u = 0; u < U; ++u)
-        x.data[u] = c.data[u] ? y.data[u] : x.data[u];
+      auto c = getc(i);
+      simd::Unroll<1, U, W, value_type> x = geta(i), y = op_(x, getb(i));
+      if constexpr (U != 1) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t u = 0; u < U; ++u)
+          x.data_[u] = c.data_[u] ? y.data_[u] : x.data_[u];
+      } else x.vec_ = c.vec_ ? y.vec_ : x.vec_;
       return x;
     } else if constexpr (LinearlyIndexable<B, value_type>) {
       auto c = this->c[i];
       using V = simd::Vec<W, value_type>;
-      V x = simd::vbroadcast<W, value_type>(get<value_type>(this->a, i));
-      simd::Unroll<1, U, W, value_type> y = op_(x, get<value_type>(this->b, i));
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t u = 0; u < U; ++u)
-        if constexpr (LinearlyIndexable<B, value_type>)
-          y.data[u] = c.data[u] ? y.data[u] : x;
+      V x = simd::vbroadcast<W, value_type>(geta(i));
+      simd::Unroll<1, U, W, value_type> y = op_(x, getb(i));
+      if constexpr (U != 1) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t u = 0; u < U; ++u)
+          if constexpr (LinearlyIndexable<B, value_type>)
+            y.data_[u] = c.data_[u] ? y.data_[u] : x;
+      } else y.vec_ = c.vec_ ? y.vec_ : x;
       return y;
     } else {
       auto c = this->c[i];
       using V = simd::Vec<W, value_type>;
-      value_type xs = get<value_type>(this->a, i);
-      value_type ys = op_(xs, get<value_type>(this->b, i));
+      value_type xs = geta(i), ys = op_(xs, getb(i));
       V x = simd::vbroadcast<W, value_type>(xs),
         y = simd::vbroadcast<W, value_type>(ys);
       simd::Unroll<1, U, W, value_type> z;
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t u = 0; u < U; ++u) z.data[u] = c.data[u] ? y : x;
+      if constexpr (U != 1) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t u = 0; u < U; ++u) z.data_[u] = c.data_[u] ? y : x;
+      } else z.vec_ = c.vec_ ? y : x;
       return z;
     }
-    //   auto c = get<bool>(this->c, i);
-    //   auto x = get<value_type>(this->a, i);
-    //   auto y = op(x, get<value_type>(this->b, i));
-    //   simd::Unroll<1, U, W, value_type> z;
-    //   POLYMATHFULLUNROLL
-    //   for (std::ptrdiff_t u = 0; u < U; ++u)
-    //     if constexpr (LinearlyIndexable<A, value_type>)
-    //       z.data[u] = !c.data[u] ? x.data[u] : y.data[u];
-    //     else if constexpr (LinearlyIndexable<B, value_type>)
-    //       z.data[u] = !c.data[u] ? x : y.data[u];
-    //     else z.data[u] = c.data[u] ? y : x;
-    //   return z;
-    // }
   }
   TRIVIAL constexpr auto operator[](auto i, auto j) const
     requires CartesianIndexableOrConvertible<C, bool> &&
@@ -604,6 +593,23 @@ struct Conditional
   TRIVIAL [[nodiscard]] constexpr auto view() const -> Conditional {
     return *this;
   };
+
+private:
+  template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
+  TRIVIAL constexpr auto geta(simd::index::Unroll<U, W, M> i) const {
+    if constexpr (LinearlyIndexable<A>) return this->a[i];
+    else return this->a;
+  }
+  template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
+  TRIVIAL constexpr auto getb(simd::index::Unroll<U, W, M> i) const {
+    if constexpr (LinearlyIndexable<B>) return this->b[i];
+    else return this->b;
+  }
+  template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
+  TRIVIAL constexpr auto getc(simd::index::Unroll<U, W, M> i) const {
+    if constexpr (LinearlyIndexable<C>) return this->c[i];
+    else return this->c;
+  }
 };
 template <AbstractTensor A, AbstractTensor B>
 struct MatMatMul : public math::Expr<
@@ -719,7 +725,7 @@ TRIVIAL constexpr auto conditional(auto op, const AbstractTensor auto &c,
   auto va = view(a);
   auto vb = view(b);
   return Conditional<decltype(vc), decltype(va), decltype(vb), decltype(op)>{
-    {vc, va, vb}, op};
+    {vc, va, vb}, {}, op};
 }
 TRIVIAL constexpr auto elementwise_equal(const auto &a, const auto &b) {
   return elementwise(view(a), view(b), std::equal_to<>{});

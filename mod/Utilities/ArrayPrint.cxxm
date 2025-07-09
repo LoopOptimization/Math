@@ -3,7 +3,6 @@ export module ArrayPrint;
 
 import Allocator;
 import CorePrint;
-import Flat;
 import Rational;
 import std;
 
@@ -63,11 +62,12 @@ inline constexpr struct DigitsCounter {
   }
 } countDigits;
 
+template <typename T> using Flat = std::vector<T, alloc::Mallocator<T>>;
+
 /// \brief Returns the maximum number of digits per column of a matrix.
 constexpr auto getMaxDigits(const math::Rational *A, std::ptrdiff_t M,
-                            std::ptrdiff_t N, std::ptrdiff_t X)
-  -> containers::Flat<int> {
-  containers::Flat<int> max_digits(N, 0);
+                            std::ptrdiff_t N, std::ptrdiff_t X) -> Flat<int> {
+  Flat<int> max_digits(N, 0);
   // this is slow, because we count the digits of every element
   // we could optimize this by reducing the number of calls to countDigits
   for (std::ptrdiff_t i = 0; i < M; i++) {
@@ -82,8 +82,8 @@ constexpr auto getMaxDigits(const math::Rational *A, std::ptrdiff_t M,
 /// Returns the number of digits of the largest number in the matrix.
 template <std::integral T>
 constexpr auto getMaxDigits(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
-                            std::ptrdiff_t X) -> containers::Flat<T> {
-  containers::Flat<T> max_digits{N, 0};
+                            std::ptrdiff_t X) -> Flat<T> {
+  Flat<T> max_digits(N, 0);
   // first, we find the digits with the maximum value per column
   for (std::ptrdiff_t i = 0; i < M; i++) {
     for (std::ptrdiff_t j = 0; j < N; j++) {
@@ -154,7 +154,7 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
   if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
   // we can't have more than 255 digits
-  containers::Flat<std::uint8_t> num_digits{M * N};
+  Flat<std::uint8_t> num_digits(M * N);
   char smem[512];
   char *p0 = smem, *ptr = p0, *p_end = p0 + 512;
   for (std::ptrdiff_t m = 0; m < M; m++) {
@@ -184,8 +184,7 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
       }
     }
   }
-  containers::Flat<std::uint8_t> max_digits{num_digits.begin(),
-                                            num_digits.begin() + N};
+  Flat<std::uint8_t> max_digits{num_digits.begin(), num_digits.begin() + N};
   for (std::ptrdiff_t m = 0; ++m < M;)
     for (std::ptrdiff_t n = 0; n < N; n++)
       max_digits[n] = std::max(max_digits[n], num_digits[m * N + n]);
