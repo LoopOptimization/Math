@@ -44,8 +44,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "Optional BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "Optional BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

@@ -51,11 +51,7 @@ void testBasicAssertions2() {
 }
 
 int main() {
-  "StringParse BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
-  "StringParse2 BasicAssertions"_test = [] {
-    testBasicAssertions2();
-  };
+  "StringParse BasicAssertions"_test = [] { testBasicAssertions(); };
+  "StringParse2 BasicAssertions"_test = [] { testBasicAssertions2(); };
   return 0;
 }

@@ -45,13 +45,11 @@ void testBasicAssertions() {
     expect(::math::add_sat(a, b) == std::clamp(a64, (long long)0, umaxlong));
     expect(::math::sub_sat(a, b) == std::clamp(s64, (long long)0, umaxlong));
     expect(::math::mul_sat(a, b) == std::clamp(m64, (unsigned long long)0,
-                                              (unsigned long long)umaxlong));
+                                               (unsigned long long)umaxlong));
   }
 }
 
 int main() {
-  "SaturatedArithmetic BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "SaturatedArithmetic BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

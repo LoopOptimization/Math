@@ -19,7 +19,7 @@ using math::Dual, math::SquareMatrix, math::SquareDims, math::I, math::URand;
   C << B * (A + 60.0 * I);
 }
 
-void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual8x2dApI(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -31,7 +31,7 @@ void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size) {
   });
 }
 
-void BM_dual8x2BmApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual8x2BmApI(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 8>, 2>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -89,7 +89,7 @@ void BtimesAplusdI(
   }
 }
 
-void BM_dual8x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
+void BM_dual8x2BmApI_manual(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = std::array<std::array<double, 9>, 3>;
   std::ptrdiff_t dim = size;
@@ -104,10 +104,11 @@ void BM_dual8x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
       }
     }
   }
-  bench.run("BM_dual8x2BmApI_manual_size=" + std::to_string(size), [&] { BtimesAplusdI(C, A, B, 60.0); });
+  bench.run("BM_dual8x2BmApI_manual_size=" + std::to_string(size),
+            [&] { BtimesAplusdI(C, A, B, 60.0); });
 }
 
-void BM_dual7x2dApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual7x2dApI(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 7>, 2>;
   static_assert(utils::Compressible<Dual<double, 7>>);
@@ -124,7 +125,7 @@ void BM_dual7x2dApI(Bench& bench, std::ptrdiff_t size) {
   });
 }
 
-void BM_dual7x2BmApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual7x2BmApI(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 7>, 2>;
   std::ptrdiff_t dim = size;
@@ -139,7 +140,7 @@ void BM_dual7x2BmApI(Bench& bench, std::ptrdiff_t size) {
   });
 }
 
-void BM_dual7x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
+void BM_dual7x2BmApI_manual(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = std::array<std::array<double, 8>, 3>;
   std::ptrdiff_t dim = size;
@@ -154,10 +155,11 @@ void BM_dual7x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
       }
     }
   }
-  bench.run("BM_dual7x2BmApI_manual_size=" + std::to_string(size), [&] { BtimesAplusdI(C, A, B, 60.0); });
+  bench.run("BM_dual7x2BmApI_manual_size=" + std::to_string(size),
+            [&] { BtimesAplusdI(C, A, B, 60.0); });
 }
 
-void BM_dual6x2dApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual6x2dApI(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 6>, 2>;
   static_assert(utils::Compressible<Dual<double, 6>>);
@@ -182,7 +184,7 @@ void BM_dual6x2dApI(Bench& bench, std::ptrdiff_t size) {
   });
 }
 
-void BM_dual6x2BmApI(Bench& bench, std::ptrdiff_t size) {
+void BM_dual6x2BmApI(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 6>, 2>;
   std::ptrdiff_t dim = size;
@@ -197,7 +199,7 @@ void BM_dual6x2BmApI(Bench& bench, std::ptrdiff_t size) {
   });
 }
 
-void BM_dual6x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
+void BM_dual6x2BmApI_manual(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   constexpr std::size_t Dcount = 6;
   constexpr std::size_t N = Dcount + 1;
@@ -214,5 +216,6 @@ void BM_dual6x2BmApI_manual(Bench& bench, std::ptrdiff_t size) {
       }
     }
   }
-  bench.run("BM_dual6x2BmApI_manual_size=" + std::to_string(size), [&] { BtimesAplusdI(C, A, B, 60.0); });
+  bench.run("BM_dual6x2BmApI_manual_size=" + std::to_string(size),
+            [&] { BtimesAplusdI(C, A, B, 60.0); });
 }

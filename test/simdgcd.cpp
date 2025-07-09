@@ -48,15 +48,15 @@ inline auto fillGCD(std::mt19937 &gen)
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 int main() {
   "SIMDGCDTest BasicAssertions"_test = [] {
-  constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  for (std::ptrdiff_t i = 0; i < 20000; ++i) {
-    auto [a, b, z, rg] = fillGCD<W>(gen);
-    simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
-    for (std::ptrdiff_t j = 0; j < W; ++j) expect(vecget<W>(g, j) == z[j]);
-    expect(rg == ::math::gcdreduce<W>(g));
-  }
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 20000; ++i) {
+      auto [a, b, z, rg] = fillGCD<W>(gen);
+      simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) expect(vecget<W>(g, j) == z[j]);
+      expect(rg == ::math::gcdreduce<W>(g));
+    }
   };
   return 0;
 }

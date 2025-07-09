@@ -2,7 +2,7 @@ import ExpMat;
 import Nanobench;
 import std;
 
-void BM_expm(Bench& bench, std::ptrdiff_t size) {
+void BM_expm(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   SquareMatrix<double> A{SquareDims{math::row(size)}};
   for (auto &&a : A) a = URand<double>{}(rng0);

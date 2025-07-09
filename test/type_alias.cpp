@@ -42,8 +42,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "TypeAliasChecks BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "TypeAliasChecks BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

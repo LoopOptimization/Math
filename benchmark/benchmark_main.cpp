@@ -24,36 +24,36 @@ void BM_Simplex0(Bench &bench);
 void BM_Simplex1(Bench &bench);
 
 // Integer matrix benchmark functions
-void BM_solve_system(Bench& bench, std::ptrdiff_t size);
+void BM_solve_system(Bench &bench, std::ptrdiff_t size);
 
 // Tensor benchmark functions
-void BM_dual8x2dApI(Bench& bench, std::ptrdiff_t size);
-void BM_dual8x2BmApI(Bench& bench, std::ptrdiff_t size);
-void BM_dual8x2BmApI_manual(Bench& bench, std::ptrdiff_t size);
-void BM_dual7x2dApI(Bench& bench, std::ptrdiff_t size);
-void BM_dual7x2BmApI(Bench& bench, std::ptrdiff_t size);
-void BM_dual7x2BmApI_manual(Bench& bench, std::ptrdiff_t size);
-void BM_dual6x2dApI(Bench& bench, std::ptrdiff_t size);
-void BM_dual6x2BmApI(Bench& bench, std::ptrdiff_t size);
-void BM_dual6x2BmApI_manual(Bench& bench, std::ptrdiff_t size);
+void BM_dual8x2dApI(Bench &bench, std::ptrdiff_t size);
+void BM_dual8x2BmApI(Bench &bench, std::ptrdiff_t size);
+void BM_dual8x2BmApI_manual(Bench &bench, std::ptrdiff_t size);
+void BM_dual7x2dApI(Bench &bench, std::ptrdiff_t size);
+void BM_dual7x2BmApI(Bench &bench, std::ptrdiff_t size);
+void BM_dual7x2BmApI_manual(Bench &bench, std::ptrdiff_t size);
+void BM_dual6x2dApI(Bench &bench, std::ptrdiff_t size);
+void BM_dual6x2BmApI(Bench &bench, std::ptrdiff_t size);
+void BM_dual6x2BmApI_manual(Bench &bench, std::ptrdiff_t size);
 
 // Expm benchmark functions
-void BM_expm_dual1(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual3(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual4(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual5(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual6(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual7(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual8(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual1x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual2x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual3x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual4x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual5x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual6x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual7x2(Bench& bench, std::ptrdiff_t size);
-void BM_expm_dual8x2(Bench& bench, std::ptrdiff_t size);
+void BM_expm_dual1(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual3(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual4(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual5(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual6(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual7(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual8(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual1x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual2x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual3x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual4x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual5x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual6x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual7x2(Bench &bench, std::ptrdiff_t size);
+void BM_expm_dual8x2(Bench &bench, std::ptrdiff_t size);
 
 int main() {
   Bench bench;
@@ -99,9 +99,8 @@ int main() {
 
   // Integer matrix benchmarks
   bench.title("Integer Matrix Benchmarks");
-  for (std::ptrdiff_t size = 2; size <= 10; ++size) {
+  for (std::ptrdiff_t size = 2; size <= 10; ++size)
     BM_solve_system(bench, size);
-  }
 
   // Tensor benchmarks
   bench.title("Tensor Benchmarks");

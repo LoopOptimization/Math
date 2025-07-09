@@ -10,7 +10,7 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # your CMake build for the exact value to use.
     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 else()
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
@@ -37,31 +37,21 @@ include(FetchContent)
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# if("${CMAKE_CXX_FLAGS}" STREQUAL "")
-#   set(has_libcpp -1)
-# else()
-#   string(FIND ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp)
-# endif()
-# if(has_libcpp GREATER_EQUAL 0)
-# main doesn't support -fno-exceptions or -fno-rtti
+# if("${CMAKE_CXX_FLAGS}" STREQUAL "") set(has_libcpp -1) else() string(FIND
+# ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp) endif() if(has_libcpp
+# GREATER_EQUAL 0) main doesn't support -fno-exceptions or -fno-rtti
 FetchContent_Declare(
   nanobench
   GIT_REPOSITORY https://github.com/Spartan322/nanobench
   GIT_TAG f49b052a68bc05d5497acf1f6c0c2d6ef65c6eef
-    # GIT_REPOSITORY https://github.com/martinus/nanobench.git
-    # GIT_TAG v4.3.11
+  # GIT_REPOSITORY https://github.com/martinus/nanobench.git GIT_TAG v4.3.11
   GIT_SHALLOW TRUE)
-# else()
-#   FetchContent_Declare(
-#     nanobench FIND_PACKAGE_ARGS 
-#     GIT_REPOSITORY https://github.com/Spartan322/nanobench
-#     GIT_REPOSITORY https://github.com/martinus/nanobench.git
-#     GIT_TAG v4.3.11
-#     GIT_SHALLOW TRUE)
+# else() FetchContent_Declare( nanobench FIND_PACKAGE_ARGS GIT_REPOSITORY
+# https://github.com/Spartan322/nanobench GIT_REPOSITORY
+# https://github.com/martinus/nanobench.git GIT_TAG v4.3.11 GIT_SHALLOW TRUE)
 # endif()
 
 FetchContent_MakeAvailable(nanobench)
-
 
 # FetchContent_Declare( Math GIT_REPOSITORY git@github.com:LoopModels/Math.git
 # GIT_TAG origin/main ) FetchContent_MakeAvailable(Math)
@@ -79,8 +69,7 @@ target_sources(
   ${PROJECT_NAME}
   PUBLIC FILE_SET CXX_MODULES FILES ${module_interfaces}
   PRIVATE ${module_implementations})
-  # INTERFACE FILE_SET HEADERS FILES ${headers})
-
+# INTERFACE FILE_SET HEADERS FILES ${headers})
 
 message(STATUS "PROJECT_BINARY_DIR: ${PROJECT_BINARY_DIR}")
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")

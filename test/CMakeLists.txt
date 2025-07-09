@@ -49,7 +49,7 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
 # CPPCHECK-NOTFOUND) set(CMAKE_CXX_CPPCHECK "${CPPCHECK} --language=c++
 # --enable=warning,style,performance,information") endif()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 else()
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
@@ -81,9 +81,7 @@ message(STATUS "adding dir ${utdir}")
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
-# set(FOR_TESTING
-#     ON
-#     CACHE BOOL "Build for testing")
+# set(FOR_TESTING ON CACHE BOOL "Build for testing")
 # add_subdirectory("${PROJECT_SOURCE_DIR}/.." "extern_build/math")
 
 # ---- Create binary ----
@@ -101,38 +99,48 @@ foreach(test_source ${test_sources})
     PROPERTIES CXX_STANDARD 23
                CXX_VISIBILITY_PRESET hidden
                VISIBILITY_INLINES_HIDDEN ON)
-  
+
   # Apply the same compiler options as the main target
-  if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)"))
+  if((USE_SANITIZER MATCHES "([Uu]ndefined)")
+     OR (USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)"))
     target_compile_options(${test_name} PRIVATE -fsanitize-trap=all)
   elseif(USE_TYPE_SANITIZER)
-    target_compile_options(${test_name} PRIVATE -fsanitize-trap=all -fsanitize=type)
+    target_compile_options(${test_name} PRIVATE -fsanitize-trap=all
+                                                -fsanitize=type)
     target_link_options(${test_name} PRIVATE -fsanitize=type)
   endif()
-  
+
   if(POLYMATHNOEXPLICITSIMDARRAY)
     target_compile_definitions(${test_name} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
-  
+
   if(NOT TEST_INSTALLED_VERSION)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-      target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra -Wshadow -Werror)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES
+                                                "GNU")
+      target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra
+                                                 -Wshadow -Werror)
     elseif(MSVC)
-      target_compile_definitions(${test_name} PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
+      target_compile_definitions(${test_name}
+                                 PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
     endif()
   endif()
-  
+
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(${test_name} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
+    target_compile_options(
+      ${test_name} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    target_compile_options(${test_name} PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4 -fno-semantic-interposition -fdiagnostics-color=always -Wno-comma-subscript -Wno-psabi)
+    target_compile_options(
+      ${test_name}
+      PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4
+              -fno-semantic-interposition -fdiagnostics-color=always
+              -Wno-comma-subscript -Wno-psabi)
   endif()
-  
-  target_compile_options(${test_name} PRIVATE -D_GLIBCXX_ASSERTIONS -ftemplate-backtrace-limit=0)
-  
+
+  target_compile_options(${test_name} PRIVATE -D_GLIBCXX_ASSERTIONS
+                                              -ftemplate-backtrace-limit=0)
+
   add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
-
 
 # ---- Add MathTests ----
 
@@ -144,13 +152,16 @@ enable_testing()
 if(ENABLE_TEST_COVERAGE)
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # LLVM/Clang coverage instrumentation
-    target_compile_options(Math PUBLIC -O0 -g -fprofile-instr-generate -fcoverage-mapping)
+    target_compile_options(Math PUBLIC -O0 -g -fprofile-instr-generate
+                                       -fcoverage-mapping)
     target_link_options(Math PUBLIC -fprofile-instr-generate)
     add_custom_target(
       clean_coverage
       COMMAND rm -f ${PROJECT_BINARY_DIR}/reports/*.profraw
       COMMAND rm -f ${PROJECT_BINARY_DIR}/CMakeFiles/*/*.profraw
-      COMMAND rm -f ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/mod/**/*.profraw
+      COMMAND
+        rm -f
+        ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/mod/**/*.profraw
       COMMAND rm -f ${PROJECT_BINARY_DIR}/*.profraw
       COMMENT "Clearing out old coverage data.")
   else()
@@ -160,7 +171,9 @@ if(ENABLE_TEST_COVERAGE)
     add_custom_target(
       clean_coverage
       COMMAND rm -f ${PROJECT_BINARY_DIR}/CMakeFiles/*/test/*.gcda
-      COMMAND rm -f ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/mod/**/*.gcda
+      COMMAND
+        rm -f
+        ${PROJECT_BINARY_DIR}/_deps/math-build/CMakeFiles/Math.dir/mod/**/*.gcda
       COMMENT "Clearing out old coverage data.")
   endif()
   add_dependencies(Math clean_coverage)

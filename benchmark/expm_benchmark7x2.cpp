@@ -2,7 +2,7 @@ import ExpMat;
 import Nanobench;
 import std;
 
-void BM_expm_dual7x2(Bench& bench, std::ptrdiff_t size) {
+void BM_expm_dual7x2(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, 7>, 2>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -30,5 +30,6 @@ void BM_expm_dual7x2(Bench& bench, std::ptrdiff_t size) {
                              decltype(2.3 * A)>());
 #endif
   for (auto &&a : A) a = URand<D>{}(rng0);
-  bench.run("BM_expm_dual7x2_size=" + std::to_string(size), [&] { expbench(A); });
+  bench.run("BM_expm_dual7x2_size=" + std::to_string(size),
+            [&] { expbench(A); });
 }

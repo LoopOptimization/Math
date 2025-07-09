@@ -49,7 +49,8 @@ template <typename T, typename S>
   tie(C, D) << Tuple(A + B, A - B);
 }
 
-template <std::ptrdiff_t N> void BM_dualNdoublemul(Bench& bench, std::ptrdiff_t size) {
+template <std::ptrdiff_t N>
+void BM_dualNdoublemul(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<double, N>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -59,7 +60,7 @@ template <std::ptrdiff_t N> void BM_dualNdoublemul(Bench& bench, std::ptrdiff_t 
 }
 
 template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualMxNdoublemul(Bench& bench, std::ptrdiff_t size) {
+void BM_dualMxNdoublemul(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
   SquareMatrix<D> A{SquareDims{math::row(size)}};
@@ -68,7 +69,8 @@ void BM_dualMxNdoublemul(Bench& bench, std::ptrdiff_t size) {
   bench.run([&] { eltmul(A, t); });
 }
 
-template <std::ptrdiff_t N> void BM_dualNadd(Bench& bench, std::ptrdiff_t size) {
+template <std::ptrdiff_t N>
+void BM_dualNadd(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
   SquareDims<> dim{math::row(size)};
@@ -78,7 +80,7 @@ template <std::ptrdiff_t N> void BM_dualNadd(Bench& bench, std::ptrdiff_t size) 
   bench.run([&] { eltadd(C, A, B); });
 }
 template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualMxNadd(Bench& bench, std::ptrdiff_t size) {
+void BM_dualMxNadd(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
   SquareDims<> dim{math::row(size)};
@@ -87,7 +89,8 @@ void BM_dualMxNadd(Bench& bench, std::ptrdiff_t size) {
   for (auto &&b : B) b = URand<T>{}(rng0);
   bench.run([&] { eltadd(C, A, B); });
 }
-template <std::ptrdiff_t N> void BM_dualNaddsub(Bench& bench, std::ptrdiff_t size) {
+template <std::ptrdiff_t N>
+void BM_dualNaddsub(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using T = Dual<double, N>;
   SquareDims<> dim{math::row(size)};
@@ -97,7 +100,7 @@ template <std::ptrdiff_t N> void BM_dualNaddsub(Bench& bench, std::ptrdiff_t siz
   bench.run([&] { eltaddsub(C, D, A, B); });
 }
 template <std::ptrdiff_t M, std::ptrdiff_t N>
-void BM_dualMxNaddsub(Bench& bench, std::ptrdiff_t size) {
+void BM_dualMxNaddsub(Bench &bench, std::ptrdiff_t size) {
   std::mt19937_64 rng0;
   using T = Dual<Dual<double, M>, N>;
   SquareDims<> dim{math::row(size)};
@@ -107,6 +110,3 @@ void BM_dualMxNaddsub(Bench& bench, std::ptrdiff_t size) {
   bench.run([&] { eltaddsub(C, D, A, B); });
 }
 } // namespace
-
-
-

@@ -16,11 +16,10 @@ void testBasicAssertions() {
     si64 s = i * (i + 1) / 2;
     expect(list->reduce(0, [](si64 a, si64 b) { return a + b; }) == s);
     si64 s2 = i * (i + 1) * (2 * i + 1) / 6;
-    expect(list->transform_reduce(0,
-                                     [](si64 a, si64 &b) {
-                                       b *= 2;
-                                       return a + (b * b);
-                                     }) == s2 * 4);
+    expect(list->transform_reduce(0, [](si64 a, si64 &b) {
+      b *= 2;
+      return a + (b * b);
+    }) == s2 * 4);
     // undo the *2;
     list->forEachRev([](si64 &a) { a /= 2; });
     const auto *const_list = list;
@@ -35,8 +34,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "UListTest BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "UListTest BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

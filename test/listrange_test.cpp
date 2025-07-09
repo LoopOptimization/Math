@@ -150,8 +150,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "ListRangeTest BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "ListRangeTest BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

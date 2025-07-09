@@ -75,14 +75,14 @@ void testBasicAssertions() {
     if (opt.has_value()) {
       auto [x0, x1, x2, x3, x4, x5, x6] = *opt;
       expect(d == a0 * x0 + a1 * x1 + a2 * x2 + a3 * x3 + a4 * x4 + a5 * x5 +
-                     a6 * x6);
+                    a6 * x6);
     }
     opt = linearDiophantine(1, t);
     if (opt.has_value()) {
       ++solvedOneCounter;
       auto [x0, x1, x2, x3, x4, x5, x6] = *opt;
       expect(1 == a0 * x0 + a1 * x1 + a2 * x2 + a3 * x3 + a4 * x4 + a5 * x5 +
-                     a6 * x6);
+                    a6 * x6);
     }
     {
       auto opt1 = linearDiophantine(d * a0, std::array<std::int64_t, 1>{a0});
@@ -102,8 +102,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "LinearDiophantineTest BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "LinearDiophantineTest BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

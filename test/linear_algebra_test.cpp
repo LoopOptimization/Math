@@ -97,9 +97,7 @@ void testDoubleFactorization() {
 }
 
 int main() {
-  "LinearAlgebraTest BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "LinearAlgebraTest BasicAssertions"_test = [] { testBasicAssertions(); };
   "DoubleFactorization BasicAssertions"_test = [] {
     testDoubleFactorization();
   };

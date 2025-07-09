@@ -28,7 +28,7 @@ void testBasicAssertions() {
     expect(fatal(orth.numCol() == A.numCol()));
     expect(fatal(orth.numRow() == r));
     ::math::MutDensePtrMatrix<std::int64_t> B{mem + (M * N),
-                                            DenseDims<>{row(r), col(r)}};
+                                              DenseDims<>{row(r), col(r)}};
     // note, A'A is not diagonal
     // but AA' is
     B << orth * orth.t();

@@ -81,8 +81,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "TupleTest BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "TupleTest BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

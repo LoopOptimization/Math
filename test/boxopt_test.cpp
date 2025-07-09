@@ -29,7 +29,8 @@ void testBasic() {
   ::math::BoxTransform box(2, 1, 32);
   expect(box.getLowerBounds().size() == 2);
   expect(box.getUpperBounds().size() == 2);
-  ::math::BoxTransformVector<::math::MutPtrVector<double>> trf{box.transformed()};
+  ::math::BoxTransformVector<::math::MutPtrVector<double>> trf{
+    box.transformed()};
   trf[1] = 3;
   box.transformed()[0] = 4;
   expect(approx(box.transformed()[0], 4.0, 1e-14));
@@ -150,7 +151,8 @@ struct MatOpt {
     // TODO: smarter penalty scaling
     auto violation_penalty =
       ::math::smax<>(0.0, l2_use(m_c, k_c) - ((0.9 / sizeof(double)) * L2c)) +
-      ::math::smax<>(0.0, l3_use(m_c, k_c, n_c) - ((0.9 / sizeof(double)) * L3c));
+      ::math::smax<>(0.0,
+                     l3_use(m_c, k_c, n_c) - ((0.9 / sizeof(double)) * L3c));
     auto r_to_l3 = ram_to_l3_datavolume(k_c, n_c) * (sizeof(double) / RAMb);
     auto l3_to_l2 = l3_to_l2_datavolume(m_c, k_c, n_c) * (sizeof(double) / L3b);
     auto l2_to_l1 = l2_to_l1_datavolume(m_c, k_c) * (sizeof(double) / L2b);
@@ -220,11 +222,7 @@ void testMatmul() {
 }
 
 int main() {
-  "BoxOptTest Basic"_test = [] {
-    testBasic();
-  };
-  "BoxOptTest Matmul"_test = [] {
-    testMatmul();
-  };
+  "BoxOptTest Basic"_test = [] { testBasic(); };
+  "BoxOptTest Matmul"_test = [] { testMatmul(); };
   return 0;
 }

@@ -6,7 +6,7 @@ import Nanobench;
 import NormalForm;
 import std;
 
-void BM_solve_system(Bench& bench, std::ptrdiff_t size) {
+void BM_solve_system(Bench &bench, std::ptrdiff_t size) {
   using math::_;
   std::mt19937_64 rng0;
   std::uniform_int_distribution<> distrib(-10, 10);

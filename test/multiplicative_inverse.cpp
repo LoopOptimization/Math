@@ -75,8 +75,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "MultiplicativeInverse BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "MultiplicativeInverse BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

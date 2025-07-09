@@ -27,8 +27,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "ElementarySIMD BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "ElementarySIMD BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

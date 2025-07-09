@@ -128,43 +128,52 @@ template <std::ptrdiff_t M, std::ptrdiff_t N> void BM_dualprod(Bench &bench) {
   std::mt19937_64 rng0;
   using D = Dual<Dual<double, M>, N>;
   D a = URand<D>{}(rng0), b = URand<D>{}(rng0), c;
-  bench.run("BM_dualprod<" + std::to_string(M) + "," + std::to_string(N) + ">", [&] {
-    prod(c, a, b);
-    doNotOptimizeAway(c);
-  });
+  bench.run("BM_dualprod<" + std::to_string(M) + "," + std::to_string(N) + ">",
+            [&] {
+              prod(c, a, b);
+              doNotOptimizeAway(c);
+            });
 }
 
 template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualprod_manual(Bench &bench) {
   auto [a, b, c] = setup_manual<M, N, false, true>();
-  bench.run("BM_dualprod_manual<" + std::to_string(M) + "," + std::to_string(N) + ">", [&] {
-    prod(c, a, b);
-    doNotOptimizeAway(c);
-  });
+  bench.run("BM_dualprod_manual<" + std::to_string(M) + "," +
+              std::to_string(N) + ">",
+            [&] {
+              prod(c, a, b);
+              doNotOptimizeAway(c);
+            });
 }
 template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualprod_simdarray(Bench &bench) {
   auto [a, b, c] = setup_manual<M, N, true, true>();
-  bench.run("BM_dualprod_simdarray<" + std::to_string(M) + "," + std::to_string(N) + ">", [&] {
-    prod(c, a, b);
-    doNotOptimizeAway(c);
-  });
+  bench.run("BM_dualprod_simdarray<" + std::to_string(M) + "," +
+              std::to_string(N) + ">",
+            [&] {
+              prod(c, a, b);
+              doNotOptimizeAway(c);
+            });
 }
 template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualprod_manual_tuple(Bench &bench) {
   auto [a, b, c] = setup_manual<M, N, false, false>();
-  bench.run("BM_dualprod_manual_tuple<" + std::to_string(M) + "," + std::to_string(N) + ">", [&] {
-    prod(c, a, b);
-    doNotOptimizeAway(c);
-  });
+  bench.run("BM_dualprod_manual_tuple<" + std::to_string(M) + "," +
+              std::to_string(N) + ">",
+            [&] {
+              prod(c, a, b);
+              doNotOptimizeAway(c);
+            });
 }
 template <std::ptrdiff_t M, std::ptrdiff_t N>
 void BM_dualprod_simdarray_tuple(Bench &bench) {
   auto [a, b, c] = setup_manual<M, N, true, false>();
-  bench.run("BM_dualprod_simdarray_tuple<" + std::to_string(M) + "," + std::to_string(N) + ">", [&] {
-    prod(c, a, b);
-    doNotOptimizeAway(c);
-  });
+  bench.run("BM_dualprod_simdarray_tuple<" + std::to_string(M) + "," +
+              std::to_string(N) + ">",
+            [&] {
+              prod(c, a, b);
+              doNotOptimizeAway(c);
+            });
 }
 template void BM_dualprod<6, 2>(Bench &bench);
 template void BM_dualprod<7, 2>(Bench &bench);
@@ -196,11 +205,13 @@ void BM_dualdivsum(Bench &bench, std::ptrdiff_t len) {
     x[i] = {URand<D>{}(rng0), URand<D>{}(rng0), URand<D>{}(rng0),
             URand<D>{}(rng0)};
   }
-  bench.run("BM_dualdivsum<" + std::to_string(M) + "," + std::to_string(N) + ">_len=" + std::to_string(len), [&] {
-    D s{};
-    for (auto a : x) s += (a[0] + a[1]) / (a[2] + a[3]);
-    doNotOptimizeAway(s);
-  });
+  bench.run("BM_dualdivsum<" + std::to_string(M) + "," + std::to_string(N) +
+              ">_len=" + std::to_string(len),
+            [&] {
+              D s{};
+              for (auto a : x) s += (a[0] + a[1]) / (a[2] + a[3]);
+              doNotOptimizeAway(s);
+            });
 }
 
 template void BM_dualdivsum<7, 0>(Bench &bench, std::ptrdiff_t len);

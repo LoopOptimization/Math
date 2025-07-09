@@ -42,8 +42,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "UnimodularizationTest BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "UnimodularizationTest BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }

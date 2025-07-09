@@ -21,8 +21,6 @@ void testBasicAssertions() {
 }
 
 int main() {
-  "FactorLowerBound BasicAssertions"_test = [] {
-    testBasicAssertions();
-  };
+  "FactorLowerBound BasicAssertions"_test = [] { testBasicAssertions(); };
   return 0;
 }
