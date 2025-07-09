@@ -23,6 +23,11 @@ namespace detail {
 struct NoRowIndex {};
 struct CopyAssign {};
 
+template <typename> constexpr std::ptrdiff_t sizeFactor = 1;
+template <std::ptrdiff_t U>
+constexpr std::ptrdiff_t sizeFactor<simd::index::Unroll<U>> = U;
+// constexpr std::ptrdiff_t sizeFactor<simd::index::Unroll<U>> =1;
+
 template <typename D, typename S, typename Op>
 TRIVIAL constexpr void assign(D &&d, const S &s, Op op) {
   if constexpr (std::same_as<Op, CopyAssign>) d = s;
@@ -188,7 +193,9 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
     //   detail::assign(A, B, row, u, op);
     // }
     std::ptrdiff_t i = 0;
-    static constexpr std::ptrdiff_t vbody = std::min(4 * W, std::ptrdiff_t(64));
+    static constexpr std::ptrdiff_t vbody =
+      W * std::max(1z, 4z / std::ptrdiff_t(std::bit_ceil(
+                              std::size_t(detail::sizeFactor<R>))));
     POLYMATHNOUNROLL
     for (; i <= L - vbody; i += vbody) {
       simd::index::Unroll<vbody / W, W> u{i};
