@@ -8,10 +8,29 @@ module;
 
 export module SIMD:Mask;
 
-import :Vec;
 import std;
 import BaseUtils;
+template <std::ptrdiff_t W, typename T>
+using Vec_ [[gnu::vector_size(W * sizeof(T))]] = T;
 export namespace simd {
+template <std::ptrdiff_t W, typename T>
+using Vec = std::conditional_t<W == 1, T, Vec_<W, T>>;
+#ifdef __x86_64__
+#ifdef __AVX512F__
+inline constexpr std::ptrdiff_t REGISTERS = 32;
+inline constexpr std::ptrdiff_t VECTORWIDTH = 64;
+#else // not __AVX512F__
+inline constexpr std::ptrdiff_t REGISTERS = 16;
+#ifdef __AVX__
+inline constexpr std::ptrdiff_t VECTORWIDTH = 32;
+#else  // no AVX
+inline constexpr std::ptrdiff_t VECTORWIDTH = 16;
+#endif // no AVX
+#endif
+#else  // not __x86_64__
+inline constexpr std::ptrdiff_t REGISTERS = 32;
+inline constexpr std::ptrdiff_t VECTORWIDTH = 16;
+#endif // __x86_64__
 template <std::ptrdiff_t W,
           typename I = std::conditional_t<W == 2, std::int64_t, std::int32_t>>
 consteval auto range() -> Vec<W, I> {

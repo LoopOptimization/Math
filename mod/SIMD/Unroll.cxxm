@@ -4,9 +4,8 @@ module;
 #include "Macros.hxx"
 export module SIMD:Unroll;
 
-import :Vec;
-import :Intrin;
 import :Index;
+import :Intrin;
 import :Mask;
 import AxisTypes;
 import std;
@@ -621,6 +620,23 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 2, T> u)
   return z;
 }
 template <std::ptrdiff_t R4, std::ptrdiff_t C, typename T>
+TRIVIAL constexpr auto transpose(Unroll<2, C, 4, T> u)
+  -> Unroll<4 * C, 1, 2, T> {
+  Unroll<4 * C, 1, 2, T> z;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < C; ++i) {
+    std::ptrdiff_t i4 = 4 * i;
+    Vec<4, T> a{u[0, i]}, b{u[1, i]},
+      e{__builtin_shufflevector(a, b, 0, 4, 2, 6)},
+      f{__builtin_shufflevector(a, b, 1, 5, 3, 7)};
+    z[i4, 0] = __builtin_shufflevector(e, e, 0, 1);
+    z[i4 + 1, 0] = __builtin_shufflevector(f, f, 0, 1);
+    z[i4 + 2, 0] = __builtin_shufflevector(e, e, 2, 3);
+    z[i4 + 3, 0] = __builtin_shufflevector(f, f, 2, 3);
+  }
+  return z;
+}
+template <std::ptrdiff_t R4, std::ptrdiff_t C, typename T>
 TRIVIAL constexpr auto transpose(Unroll<R4, C, 4, T> u)
   -> Unroll<4 * C, R4 / 4, 4, T> requires(R4 % 4 == 0) {
   static constexpr std::ptrdiff_t R = R4 / 4;
@@ -688,7 +704,7 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
           std::ptrdiff_t X, std::size_t NM, typename MT = mask::None<N>>
 TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
                                   std::array<MT, NM> masks)
-  -> Unroll<R, C, N, T> {
+  -> Unroll<R, C, N, T> requires(NM == 0 || NM == 1 || NM == C) {
   if constexpr (R * C == 1) {
     MT msk = masks[0];
     Vec<N, T> x = load<T>(ptr, msk);

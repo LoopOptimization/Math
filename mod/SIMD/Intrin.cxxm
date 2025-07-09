@@ -12,7 +12,6 @@ import AxisTypes;
 import BaseUtils;
 import std;
 import :Mask;
-import :Vec;
 export namespace simd {
 
 // Supported means by this library currently; more types may be added in the
