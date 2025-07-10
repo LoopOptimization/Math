@@ -34,14 +34,14 @@ import BaseUtils;
 
 export namespace alloc {
 
-#ifdef __cpp_lib_allocate_at_least
+// #ifdef __cpp_lib_allocate_at_least
 template <class Pointer> using AllocResult = std::allocation_result<Pointer *>;
-#else
-template <class Pointer> struct AllocResult {
-  Pointer *ptr;
-  std::size_t count;
-};
-#endif
+// #else
+// template <class Pointer> struct AllocResult {
+//   Pointer *ptr;
+//   std::size_t count;
+// };
+// #endif
 
 inline auto good_malloc_size(std::size_t n) -> std::size_t {
 #if USE_MIMALLOC
