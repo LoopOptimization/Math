@@ -1415,4 +1415,5 @@ TRIVIAL constexpr auto tailmask(std::ptrdiff_t i, std::ptrdiff_t m) {
 template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
 inline constexpr bool issimd<Unroll<U, W, M>> = true;
 } // namespace index
+
 } // namespace simd

@@ -1,31 +1,68 @@
 module;
 
 #include "LoopMacros.hxx"
+#include "Macros.hxx"
 
 export module Reductions;
 import ArrayConcepts;
+import SIMD;
 import std;
 
 export namespace math {
-constexpr auto abs2(auto x) { return x * x; }
-template <AbstractTensor B> constexpr auto norm2(const B &A) {
-  utils::eltype_t<B> s = 0;
-  if constexpr (!LinearlyIndexable<B, utils::eltype_t<B>>) {
-    for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) {
-      for (std::ptrdiff_t j = 0; j < A.numCol(); ++j) {
+TRIVIAL constexpr auto abs2(auto x) { return x * x; }
+
+template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A) {
+  using T = utils::eltype_t<B>;
+
+  if constexpr (simd::SIMDSupported<T>) {
+    auto [M, N] = shape(A);
+    constexpr std::ptrdiff_t W = simd::Width<T>;
+    simd::Vec<W, T> vsum{};
+
+    if constexpr (!LinearlyIndexable<B, T>) {
+      // Matrix case with SIMD
+      for (std::ptrdiff_t i = 0; i < M; ++i) {
+        for (std::ptrdiff_t j = 0; j < N; j += W) {
+          POLYMATHFAST
+          auto u = simd::index::unrollmask<1, W>(N, j);
+          if (!u) break;
+          auto vals = A[i, u];
+          vsum += vals * vals;
+        }
+      }
+    } else {
+      // Vector case with SIMD
+      std::ptrdiff_t L = std::ptrdiff_t(A.size());
+      for (std::ptrdiff_t j = 0; j < L; j += W) {
         POLYMATHFAST
-        s += abs2(A[i, j]);
+        auto u = simd::index::unrollmask<1, W>(L, j);
+        if (!u) break;
+        auto vals = A[u];
+        vsum += vals * vals;
       }
     }
-  } else
-    for (std::ptrdiff_t j = 0, L = std::ptrdiff_t(A.size()); j < L; ++j) {
-      POLYMATHFAST
-      s += abs2(A[j]);
-    }
-  return s;
+
+    return simd::reduce::sum<W, T>(vsum);
+  } else {
+    // Fallback to scalar implementation
+    T s = 0;
+    if constexpr (!LinearlyIndexable<B, T>) {
+      for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) {
+        for (std::ptrdiff_t j = 0; j < A.numCol(); ++j) {
+          POLYMATHFAST
+          s += abs2(A[i, j]);
+        }
+      }
+    } else
+      for (std::ptrdiff_t j = 0, L = std::ptrdiff_t(A.size()); j < L; ++j) {
+        POLYMATHFAST
+        s += abs2(A[j]);
+      }
+    return s;
+  }
 }
 
-constexpr auto norm2(const auto &a) {
+TRIVIAL constexpr auto norm2(const auto &a) {
   decltype(a[0] * a[0] + a[1] * a[1]) s{};
   for (auto x : a) {
     POLYMATHFAST
@@ -33,15 +70,33 @@ constexpr auto norm2(const auto &a) {
   }
   return s;
 }
-// TODO: SIMD?
-constexpr auto dot(const auto &a, const auto &b) {
+TRIVIAL constexpr auto dot(const auto &a, const auto &b) {
   std::ptrdiff_t L = a.size();
   invariant(L, b.size());
-  decltype(a[0] * b[0] + a[1] * b[1]) s{};
-  for (std::ptrdiff_t i = 0; i < L; ++i) {
-    POLYMATHFAST
-    s += a[i] * b[i];
+  using T = decltype(a[0] * b[0] + a[1] * b[1]);
+
+  if constexpr (simd::SIMDSupported<std::remove_cvref_t<decltype(a[0])>>) {
+    constexpr std::ptrdiff_t W =
+      simd::Width<std::remove_cvref_t<decltype(a[0])>>;
+    simd::Vec<W, std::remove_cvref_t<decltype(a[0])>> vsum{};
+
+    for (std::ptrdiff_t i = 0; i < L; i += W) {
+      POLYMATHFAST
+      auto u = simd::index::unrollmask<1, W>(L, i);
+      if (!u) break;
+      auto vals_a = a[u];
+      auto vals_b = b[u];
+      vsum += vals_a * vals_b;
+    }
+
+    return simd::reduce::sum<W, T>(vsum);
+  } else {
+    T s{};
+    for (std::ptrdiff_t i = 0; i < L; ++i) {
+      POLYMATHFAST
+      s += a[i] * b[i];
+    }
+    return s;
   }
-  return s;
 }
 } // namespace math

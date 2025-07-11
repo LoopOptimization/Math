@@ -1629,4 +1629,37 @@ TRIVIAL constexpr auto VecWidth() {
   else return Width<T>;
 }
 
+namespace reduce {
+template <std::ptrdiff_t W, typename T, typename Op>
+TRIVIAL constexpr auto reduce_op(simd::Vec<W, T> v) -> T {
+  if constexpr (W == 1) {
+    return v;
+  } else if constexpr (W == 2) {
+    T lo = v[0], hi = v[1];
+    return Op{}(lo, hi);
+  } else if constexpr (W == 4) {
+    Vec<2, T> lo = __builtin_shufflevector(v, v, 0, 1),
+              hi = __builtin_shufflevector(v, v, 2, 3);
+    return reduce_op<2, T, Op>(Op{}(lo, hi));
+  } else if constexpr (W == 8) {
+    Vec<4, T> lo = __builtin_shufflevector(v, v, 0, 1, 2, 3),
+              hi = __builtin_shufflevector(v, v, 4, 5, 6, 7);
+    return reduce_op<4, T, Op>(Op{}(lo, hi));
+  } else if constexpr (W == 16) {
+    Vec<8, T> lo = __builtin_shufflevector(v, v, 0, 1, 2, 3, 4, 5, 6, 7),
+              hi = __builtin_shufflevector(v, v, 8, 9, 10, 11, 12, 13, 14, 15);
+    return reduce_op<8, T, Op>(Op{}(lo, hi));
+  } else {
+    static_assert(false, "Unsupported vector width for reduction");
+  }
+}
+template <std::ptrdiff_t W, typename T>
+TRIVIAL constexpr auto sum(simd::Vec<W, T> v) -> T {
+  return reduce_op<W, T, std::plus<>>(v);
+}
+template <std::ptrdiff_t W, typename T>
+TRIVIAL constexpr auto prod(simd::Vec<W, T> v) -> T {
+  return reduce_op<W, T, std::multiplies<>>(v);
+}
+} // namespace reduce
 } // namespace simd

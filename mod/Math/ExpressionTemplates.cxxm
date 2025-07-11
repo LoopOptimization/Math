@@ -635,8 +635,10 @@ struct MatMatMul : public math::Expr<
     invariant(std::ptrdiff_t(a_.numCol()) > 0);
     decltype(a_[i, 0] * b_[0, j] + a_[i, 1] * b_[1, j]) s{};
     POLYMATHNOVECTORIZE
-    for (std::ptrdiff_t k = 0; k < std::ptrdiff_t(a_.numCol()); ++k)
+    for (std::ptrdiff_t k = 0; k < std::ptrdiff_t(a_.numCol()); ++k) {
+      POLYMATHFAST
       s += a_[i, k] * b_[k, j];
+    }
     return s;
   }
   // If `T isa Dual<Dual<double,7>,2>`, we would not want to construct
