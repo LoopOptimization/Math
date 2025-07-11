@@ -141,6 +141,7 @@ namespace mask {
 /// Treats all elements as unmasked
 template <std::ptrdiff_t W> struct None {
   TRIVIAL static constexpr auto onBegin() -> std::ptrdiff_t { return 0; }
+  /// Values >= W indicate full masks
   TRIVIAL static constexpr auto onEnd() -> std::ptrdiff_t { return W; }
   TRIVIAL static constexpr auto offBegin() -> std::ptrdiff_t { return W; }
   TRIVIAL static constexpr auto offEnd() -> std::ptrdiff_t { return 0; }
@@ -162,6 +163,7 @@ template <std::ptrdiff_t W> struct Bit {
     return std::ptrdiff_t(std::countr_zero(mask_));
   }
   /// Returns the last `idx` where the mask bit is `1`
+  /// Values >= W indicate full masks
   TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
     if constexpr (W < 64z) {
       // could make this `countr_ones` if we decide to only
@@ -209,34 +211,47 @@ private:
     return None<W>{};
   }
 };
+template <std::ptrdiff_t W> struct ExplicitLengthBit : Bit<W> {
+  std::ptrdiff_t explicit_on_end_;
+  TRIVIAL constexpr ExplicitLengthBit(std::uint64_t mask, std::ptrdiff_t on_end)
+    : Bit<W>{mask}, explicit_on_end_(on_end) {}
+  /// Values >= W indicate full masks
+  TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
+    return explicit_on_end_;
+  }
+};
 #endif // AVX512F
 #ifdef __AVX512VL__
 // In: iteration count `i.i` is the total length of the loop
 // Out: mask for the final iteration. Zero indicates no masked iter.
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto create(std::ptrdiff_t i) -> Bit<W> {
+TRIVIAL constexpr auto create(std::ptrdiff_t i) -> ExplicitLengthBit<W> {
   static_assert(std::popcount(std::size_t(W)) == 1);
   utils::invariant(i >= 0);
-  return {
-    _bzhi_u64(0xffffffffffffffff, std::uint64_t(i) & std::uint64_t(W - 1))};
+  std::ptrdiff_t rem = i & (W - 1);
+  return {_bzhi_u64(0xffffffffffffffff, std::uint64_t(rem)), rem};
 };
 // In: index::Vector where `i.i` is for the current iteration, and total loop
 // length. Out: mask for the current iteration, 0 indicates exit loop.
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len) -> Bit<W> {
+TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
+  -> ExplicitLengthBit<W> {
   static_assert(std::popcount(std::size_t(W)) == 1);
   std::uint64_t x;
-  if (__builtin_usubl_overflow(len, i, &x)) return {0};
-  if (x >= 64) return {0xffffffffffffffff};
-  return {_bzhi_u64(0xffffffffffffffff, x)};
+  if (__builtin_usubl_overflow(len, i, &x)) return {0, 0};
+  if (x >= 64) return {0xffffffffffffffff, W};
+  std::ptrdiff_t on_end = std::min(std::ptrdiff_t(x), W);
+  return {_bzhi_u64(0xffffffffffffffff, x), on_end};
 };
 // Requires: 0 <= m <= 255
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto createSmallPositive(std::ptrdiff_t m) -> Bit<W> {
+TRIVIAL constexpr auto createSmallPositive(std::ptrdiff_t m)
+  -> ExplicitLengthBit<W> {
   static_assert(std::popcount(std::size_t(W)) == 1);
   utils::invariant(0 <= m);
   utils::invariant(m <= 255);
-  return {_bzhi_u64(0xffffffffffffffff, std::uint64_t(m))};
+  std::ptrdiff_t on_end = std::min(m, W);
+  return {_bzhi_u64(0xffffffffffffffff, std::uint64_t(m)), on_end};
 };
 
 template <std::ptrdiff_t W> using Mask = Bit<W>;
@@ -246,10 +261,11 @@ template <std::ptrdiff_t W> using Mask = Bit<W>;
 template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   static_assert(Bytes <= 8, "Only at most 8 bytes per element supported.");
   using I = utils::signed_integer_t<Bytes>;
+  using V = Vec<W, I>;
   static_assert(sizeof(I) == Bytes);
   // static_assert(sizeof(I) * W <= VECTORWIDTH);
   // TODO: add support for smaller mask types, we we can use smaller eltypes
-  Vec<W, I> m;
+  V m;
   template <std::size_t newBytes>
   TRIVIAL constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
@@ -327,19 +343,50 @@ private:
 };
 static_assert(!std::convertible_to<Vector<2, 8>, Vector<4, 8>>);
 static_assert(!std::convertible_to<Vector<4, 4>, Vector<8, 4>>);
+template <std::ptrdiff_t W, std::size_t Bytes>
+struct ExplicitLengthVector : Vector<W, Bytes> {
+  std::ptrdiff_t explicit_on_end_;
+  TRIVIAL constexpr ExplicitLengthVector(typename Vector<W, Bytes>::V mask_vec,
+                                         std::ptrdiff_t on_end)
+    : Vector<W, Bytes>{{mask_vec}}, explicit_on_end_(on_end) {}
+  /// Values >= W indicate full masks
+  TRIVIAL constexpr auto onEnd() const -> std::ptrdiff_t {
+    return explicit_on_end_;
+  }
+
+  template <std::size_t newBytes>
+  TRIVIAL constexpr operator ExplicitLengthVector<W, newBytes>() {
+    if constexpr (newBytes == Bytes) return *this;
+    else if constexpr (newBytes == 2 * Bytes)
+      return {sextelts<W>(this->m), explicit_on_end_};
+    else if constexpr (2 * newBytes == Bytes)
+      return {truncelts<W>(this->m), explicit_on_end_};
+    else static_assert(false);
+  }
+};
 #ifdef __AVX512F__
+
 // but no VL!!! xeon phi
 template <std::ptrdiff_t W> TRIVIAL constexpr auto create(std::ptrdiff_t i) {
-  if constexpr (W == 8)
-    return Bit<8>{
-      _bzhi_u64(0xffffffffffffffff, std::uint64_t(i) & std::uint64_t(7))};
-  else return Vector<W>{range<W, std::int64_t>() < (i & (W - 1))};
+  if constexpr (W == 8) {
+    std::ptrdiff_t rem = i & 7;
+    return ExplicitLengthBit<8>{
+      _bzhi_u64(0xffffffffffffffff, std::uint64_t(rem)), rem};
+  } else {
+    std::ptrdiff_t rem = i & (W - 1);
+    return ExplicitLengthVector<W, 8>{range<W, std::int64_t>() < rem, rem};
+  }
 }
 template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len) {
-  if constexpr (W == 8)
-    return Bit<8>{_bzhi_u64(0xffffffffffffffff, std::uint64_t(len - i))};
-  else return Vector<W>{range<W, std::int64_t>() + i < len};
+  if constexpr (W == 8) {
+    std::ptrdiff_t rem = len - i;
+    return ExplicitLengthBit<8>{
+      _bzhi_u64(0xffffffffffffffff, std::uint64_t(rem)), rem};
+  } else {
+    std::ptrdiff_t rem = len - i;
+    return ExplicitLengthVector<W, 8>{range<W, std::int64_t>() < rem, rem};
+  }
 }
 template <std::ptrdiff_t W, typename I = std::int64_t>
 using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
@@ -347,17 +394,19 @@ using Mask = std::conditional_t<sizeof(I) * W == 64, Bit<W>, Vector<W, I>>;
 
 template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i)
-  -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
+  -> ExplicitLengthVector<W, std::min(8z, VECTORWIDTH / W)> {
   static constexpr std::ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
-  return {range<W, I>() < static_cast<I>(i & (W - 1))};
+  std::ptrdiff_t rem = i & (W - 1);
+  return {range<W, I>() < static_cast<I>(rem), rem};
 }
 template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
-  -> Vector<W, std::min(8z, VECTORWIDTH / W)> {
+  -> ExplicitLengthVector<W, std::min(8z, VECTORWIDTH / W)> {
   static constexpr std::ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
-  return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
+  std::ptrdiff_t rem = len - i;
+  return {range<W, I>() < static_cast<I>(rem), rem};
 }
 template <std::ptrdiff_t W, typename I = std::int64_t>
 using Mask = Vector<W, sizeof(I)>;
@@ -369,7 +418,8 @@ using Mask = Vector<W, sizeof(I)>;
 template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   using I = utils::signed_integer_t<Bytes>;
   static_assert(sizeof(I) == Bytes);
-  Vec<W, I> m;
+  using V = Vec<W, I>;
+  V m;
   template <std::size_t newBytes>
   TRIVIAL constexpr operator Vector<W, newBytes>() {
     if constexpr (newBytes == Bytes) return *this;
@@ -434,19 +484,32 @@ private:
     return {};
   }
 };
+template <std::ptrdiff_t W> struct ExplicitLengthBit : Bit<W> {
+  std::ptrdiff_t explicit_on_end_;
+  TRIVIAL constexpr ExplicitLengthBit(std::uint64_t mask, std::ptrdiff_t on_end)
+    : Bit<W>{mask}, explicit_on_end_(on_end) {}
+  /// Values >= W indicate full masks
+  TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
+    return explicit_on_end_;
+  }
+};
 
 template <std::ptrdiff_t W>
-TRIVIAL constexpr auto create(std::ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
+TRIVIAL constexpr auto create(std::ptrdiff_t i)
+  -> ExplicitLengthVector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
-  return {range<W, I>() < static_cast<I>(i & (W - 1))};
+  std::ptrdiff_t rem = i & (W - 1);
+  return {range<W, I>() < static_cast<I>(rem), rem};
 }
 template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
-  -> Vector<W, VECTORWIDTH / W> {
+  -> ExplicitLengthVector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
-  return {range<W, I>() + static_cast<I>(i) < static_cast<I>(len)};
+  std::ptrdiff_t rem = len - i;
+  return {range<W, I>() < static_cast<I>(rem), rem};
 }
 #endif // ifdef __x86_64__; else
+
 } // namespace mask
 
 namespace cmp {
