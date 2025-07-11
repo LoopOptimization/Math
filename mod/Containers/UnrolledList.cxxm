@@ -222,12 +222,13 @@ public:
     return (i < count_) ? data_[i] : next_->operator[](i - count_);
   }
   constexpr auto operator=(const UList &other) -> UList & = default;
-  struct End {};
   struct MutIterator {
 
     UList *list;
     std::ptrdiff_t index;
-    constexpr auto operator==(End) const -> bool { return list == nullptr; }
+    constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return list == nullptr;
+    }
     constexpr auto operator==(MutIterator other) const -> bool {
       return list == other.list && index == other.index;
     }
@@ -254,7 +255,9 @@ public:
   struct Iterator {
     const UList *list;
     std::ptrdiff_t index;
-    constexpr auto operator==(End) const -> bool { return list == nullptr; }
+    constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return list == nullptr;
+    }
     constexpr auto operator==(Iterator other) const -> bool {
       return list == other.list && index == other.index;
     }
@@ -280,7 +283,9 @@ public:
   };
   [[nodiscard]] constexpr auto begin() const -> Iterator { return {this, 0}; }
   [[nodiscard]] constexpr auto begin() -> MutIterator { return {this, 0}; }
-  static constexpr auto end() -> End { return {}; }
+  static constexpr auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
   constexpr auto dbegin() -> T * { return data_; }
   constexpr auto dend() -> T * { return data_ + count_; }
 };

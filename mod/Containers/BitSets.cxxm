@@ -11,17 +11,8 @@ import MatDim;
 import Range;
 import std;
 export namespace containers {
-using utils::invariant;
 
-struct EndSentinel {
-  TRIVIAL [[nodiscard]] constexpr auto operator-(auto it) -> std::ptrdiff_t {
-    std::ptrdiff_t i = 0;
-    for (; it != EndSentinel{}; ++it, ++i) {}
-    return i;
-  }
-  // overloaded operator== cannot be a static member function
-  TRIVIAL constexpr auto operator==(EndSentinel) const -> bool { return true; }
-};
+using utils::invariant;
 
 template <typename T>
 concept CanResize = requires(T t) { t.resize(0); };
@@ -58,20 +49,20 @@ public:
     ++*this;
     return temp;
   }
-  TRIVIAL constexpr auto operator==(EndSentinel) const -> bool {
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
     return it_ == end_ && (istate_ == 0);
   }
-  TRIVIAL constexpr auto operator!=(EndSentinel) const -> bool {
+  TRIVIAL constexpr auto operator!=(std::default_sentinel_t) const -> bool {
     return it_ != end_ || (istate_ != 0);
   }
   TRIVIAL constexpr auto operator==(BitSetIterator j) const -> bool {
     return (it_ == j.it_) && (istate_ == j.istate_);
   }
-  TRIVIAL friend constexpr auto operator==(EndSentinel,
+  TRIVIAL friend constexpr auto operator==(std::default_sentinel_t,
                                            const BitSetIterator &bt) -> bool {
     return bt.it_ == bt.end_ && (bt.istate_ == 0);
   }
-  TRIVIAL friend constexpr auto operator!=(EndSentinel,
+  TRIVIAL friend constexpr auto operator!=(std::default_sentinel_t,
                                            const BitSetIterator &bt) -> bool {
     return bt.it_ != bt.end_ || (bt.istate_ != 0);
   }
@@ -150,8 +141,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     BitSetIterator it{b, e, *b};
     return ++it;
   }
-  TRIVIAL [[nodiscard]] static constexpr auto end() -> EndSentinel {
-    return EndSentinel{};
+  TRIVIAL [[nodiscard]] static constexpr auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
   };
   TRIVIAL [[nodiscard]] constexpr auto front() const -> std::ptrdiff_t {
     for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
@@ -327,10 +318,9 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   void print() const {
     utils::print("BitSet[");
     auto it = begin();
-    constexpr EndSentinel e = BitSet::end();
-    if (it != e) {
+    if (it != std::default_sentinel) {
       utils::print(*(it++));
-      for (; it != e; ++it) utils::print(", ", *it);
+      for (; it != std::default_sentinel; ++it) utils::print(", ", *it);
     }
     utils::print("]");
   }
@@ -370,8 +360,8 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   struct Iterator {
     [[no_unique_address]] math::MutPtrVector<T> a_;
     [[no_unique_address]] BitSetIterator<std::uint64_t> it_;
-    TRIVIAL constexpr auto operator==(EndSentinel) const -> bool {
-      return it_ == EndSentinel{};
+    TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return it_ == std::default_sentinel;
     }
     TRIVIAL constexpr auto operator++() -> Iterator & {
       ++it_;
@@ -391,8 +381,8 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   struct ConstIterator {
     [[no_unique_address]] math::PtrVector<T> a_;
     [[no_unique_address]] BitSetIterator<std::uint64_t> it_;
-    TRIVIAL constexpr auto operator==(EndSentinel) const -> bool {
-      return it_ == EndSentinel{};
+    TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return it_ == std::default_sentinel_t{};
     }
     TRIVIAL constexpr auto operator==(ConstIterator c) const -> bool {
       return (it_ == c.it_) && (a_.data() == c.a_.data());
@@ -412,18 +402,11 @@ template <typename T, typename B = BitSet<>> struct BitSliceView {
   TRIVIAL [[nodiscard]] constexpr auto begin() const -> ConstIterator {
     return {a_, i_.begin()};
   }
-  TRIVIAL [[nodiscard]] constexpr auto end() const -> EndSentinel { return {}; }
+  TRIVIAL [[nodiscard]] constexpr auto end() const -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
   TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
     return i_.size();
-  }
-  TRIVIAL [[nodiscard]] friend constexpr auto operator-(EndSentinel, Iterator v)
-    -> std::ptrdiff_t {
-    return EndSentinel{} - v.it_;
-  }
-  TRIVIAL [[nodiscard]] friend constexpr auto operator-(EndSentinel,
-                                                        ConstIterator v)
-    -> std::ptrdiff_t {
-    return EndSentinel{} - v.it_;
   }
 };
 template <typename T, typename B>
