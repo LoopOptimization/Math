@@ -28,6 +28,9 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M,
 inline constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
 
 } // namespace index
+template <class From, class To>
+concept ConvertibleToAndScalar =
+  std::convertible_to<From, To> && std::is_scalar_v<From>;
 // template <typename T, std::ptrdiff_t W, typename S>
 // TRIVIAL constexpr auto vcvt(Vec<W, S> v) {
 //   if constexpr (std::same_as<T, S>) return v;
@@ -545,21 +548,70 @@ private:
   TRIVIAL friend constexpr auto operator/(VT a, Unroll b) -> Unroll {
     return {a / b.vec_};
   }
-  TRIVIAL friend constexpr auto operator+(T b, Unroll a) -> Unroll
-    requires(W != 1) {
+  TRIVIAL friend constexpr auto operator+(ConvertibleToAndScalar<T> auto b,
+                                          Unroll a) -> Unroll requires(W != 1) {
     return vbroadcast<W, T>(b) + a;
   }
-  TRIVIAL friend constexpr auto operator-(T b, Unroll a) -> Unroll
-    requires(W != 1) {
+  TRIVIAL friend constexpr auto operator-(ConvertibleToAndScalar<T> auto b,
+                                          Unroll a) -> Unroll requires(W != 1) {
     return vbroadcast<W, T>(b) - a;
   }
-  TRIVIAL friend constexpr auto operator*(T b, Unroll a) -> Unroll
-    requires(W != 1) {
+  TRIVIAL friend constexpr auto operator*(ConvertibleToAndScalar<T> auto b,
+                                          Unroll a) -> Unroll requires(W != 1) {
     return vbroadcast<W, T>(b) * a;
   }
-  TRIVIAL friend constexpr auto operator/(T b, Unroll a) -> Unroll
-    requires(W != 1) {
+  TRIVIAL friend constexpr auto operator/(ConvertibleToAndScalar<T> auto b,
+                                          Unroll a) -> Unroll requires(W != 1) {
     return vbroadcast<W, T>(b) / a;
+  }
+
+  TRIVIAL friend constexpr auto operator<(Unroll a,
+                                          std::convertible_to<T> auto b) {
+    return cmp::lt<N, T>(a.vec_, vbroadcast<W, T>(b));
+  }
+  TRIVIAL friend constexpr auto operator>(Unroll a,
+                                          std::convertible_to<T> auto b) {
+    return cmp::gt<N, T>(a.vec_, vbroadcast<W, T>(b));
+  }
+  TRIVIAL friend constexpr auto operator<=(Unroll a,
+                                           std::convertible_to<T> auto b) {
+    return cmp::le<N, T>(a.vec_, vbroadcast<W, T>(b));
+  }
+  TRIVIAL friend constexpr auto operator>=(Unroll a,
+                                           std::convertible_to<T> auto b) {
+    return cmp::ge<N, T>(a.vec_, vbroadcast<W, T>(b));
+  }
+  TRIVIAL friend constexpr auto operator==(Unroll a,
+                                           std::convertible_to<T> auto b) {
+    return cmp::eq<N, T>(a.vec_, vbroadcast<W, T>(b));
+  }
+  TRIVIAL friend constexpr auto operator!=(Unroll a,
+                                           std::convertible_to<T> auto b) {
+    return cmp::ne<N, T>(a.vec_, vbroadcast<W, T>(b));
+  }
+  TRIVIAL friend constexpr auto operator<(std::convertible_to<T> auto a,
+                                          Unroll b) {
+    return cmp::lt<N, T>(vbroadcast<W, T>(a), b.vec_);
+  }
+  TRIVIAL friend constexpr auto operator>(std::convertible_to<T> auto a,
+                                          Unroll b) {
+    return cmp::gt<N, T>(vbroadcast<W, T>(a), b.vec_);
+  }
+  TRIVIAL friend constexpr auto operator<=(std::convertible_to<T> auto a,
+                                           Unroll b) {
+    return cmp::le<N, T>(vbroadcast<W, T>(a), b.vec_);
+  }
+  TRIVIAL friend constexpr auto operator>=(std::convertible_to<T> auto a,
+                                           Unroll b) {
+    return cmp::ge<N, T>(vbroadcast<W, T>(a), b.vec_);
+  }
+  TRIVIAL friend constexpr auto operator==(std::convertible_to<T> auto a,
+                                           Unroll b) {
+    return cmp::eq<N, T>(vbroadcast<W, T>(a), b.vec_);
+  }
+  TRIVIAL friend constexpr auto operator!=(std::convertible_to<T> auto a,
+                                           Unroll b) {
+    return cmp::ne<N, T>(vbroadcast<W, T>(a), b.vec_);
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
@@ -888,7 +940,7 @@ TRIVIAL constexpr auto loadunrollmm(const T *ptr, math::RowStride<X> rowStride,
     return loadunroll<R, C, N>(ptr, rowStride, col_masks);
   } else if constexpr (R * C == 1) {
     Vec<N, T> x =
-      row_masks[0].lastUnmasked() ? load<T>(ptr, col_masks[0]) : Vec<N, T>{};
+      row_masks[0].onEnd() ? load<T>(ptr, col_masks[0]) : Vec<N, T>{};
     return {x};
   } else {
     constexpr auto W = std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
@@ -902,9 +954,9 @@ TRIVIAL constexpr auto loadunrollmm(const T *ptr, math::RowStride<X> rowStride,
         // here, we check whether we ought to continue or break
         if constexpr (NMR == RC) {
           // we mask
-          if (rw >= row_masks[rc].lastUnmasked()) break;
+          if (rw >= row_masks[rc].onEnd()) break;
         } else {
-          if ((rc + 1 == RC) && rw >= row_masks[0].lastUnmasked()) break;
+          if ((rc + 1 == RC) && rw >= row_masks[0].onEnd()) break;
         }
         std::ptrdiff_t r = rw + RW * rc;
         if constexpr (NMC == 0) {

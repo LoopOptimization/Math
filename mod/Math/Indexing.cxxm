@@ -224,7 +224,7 @@ TRIVIAL inline constexpr auto calcOffset(Length<> len,
                                          simd::index::Unroll<U, W, M> i) {
   if constexpr (std::same_as<M, simd::mask::None<W>>)
     invariant((i.index_ + U * W - 1) < len);
-  else invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 < len);
+  else invariant(i.index_ + (U - 1) * W + i.mask_.onEnd() - 1 < len);
   return i.index_;
 }
 template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
@@ -232,7 +232,7 @@ TRIVIAL inline constexpr auto calcOffset(Length<1>,
                                          simd::index::Unroll<U, W, M> i) {
   if constexpr (std::same_as<M, simd::mask::None<W>>)
     invariant((i.index_ + U * W - 1) == 0);
-  else invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 == 0);
+  else invariant(i.index_ + (U - 1) * W + i.mask_.onEnd() - 1 == 0);
   return i.index_;
 }
 template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
@@ -241,7 +241,7 @@ TRIVIAL inline constexpr auto calcOffset(DenseDims<> len,
   if constexpr (std::same_as<M, simd::mask::None<W>>)
     invariant((i.index_ + U * W - 1) < std::ptrdiff_t(len));
   else
-    invariant(i.index_ + (U - 1) * W + i.mask_.lastUnmasked() - 1 <
+    invariant(i.index_ + (U - 1) * W + i.mask_.onEnd() - 1 <
               std::ptrdiff_t(len));
   return i.index_;
 }

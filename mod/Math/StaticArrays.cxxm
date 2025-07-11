@@ -373,10 +373,15 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       (*this) << *list.begin();
       return;
     }
-    static_assert(M == 1);
-    invariant(sz <= L * W);
-    std::memcpy(memory_, list.begin(), sz * sizeof(T));
-    std::memset(memory_ + sz, 0, (L * W - sz) * sizeof(T));
+    invariant(sz == M * N);
+    char *c = reinterpret_cast<char *>(memory_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t m = 0; m < M; ++m) {
+      std::memcpy(c, list.begin() + m * N, N * sizeof(T));
+      if constexpr (N < W * L)
+        std::memset(c + N * sizeof(T), 0, (L * W - N) * sizeof(T));
+      c += L * W * sizeof(T);
+    }
   }
   TRIVIAL constexpr auto data() -> T * {
     return reinterpret_cast<T *>(memory_);

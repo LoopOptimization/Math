@@ -1,6 +1,7 @@
 module;
 
 #include "Macros.hxx"
+#include <version> // for the feature test macro
 
 #ifndef __has_feature      // Optional of course.
 #define __has_feature(x) 0 // Compatibility with non-clang compilers.
@@ -34,14 +35,14 @@ import BaseUtils;
 
 export namespace alloc {
 
-// #ifdef __cpp_lib_allocate_at_least
+#if __cpp_lib_allocate_at_least >= 202302
 template <class Pointer> using AllocResult = std::allocation_result<Pointer *>;
-// #else
-// template <class Pointer> struct AllocResult {
-//   Pointer *ptr;
-//   std::size_t count;
-// };
-// #endif
+#else
+template <class Pointer> struct AllocResult {
+  Pointer *ptr;
+  std::size_t count;
+};
+#endif
 
 inline auto good_malloc_size(std::size_t n) -> std::size_t {
 #if USE_MIMALLOC

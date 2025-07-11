@@ -2,11 +2,12 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-no-simd clang-base-arch clang-release clang-avx2 clang-avx512
+# all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-no-simd clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
 else ifeq ($(HAVE_AVX2),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release gcc-avx2
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-no-simd clang-base-arch clang-release gcc-release gcc-avx2
 else
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-nosimd clang-base-arch clang-release gcc-release
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-no-simd clang-base-arch clang-release gcc-release
 endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
@@ -41,14 +42,17 @@ build-clang/san-libstdcxx/:
 build-gcc/avx2/:
 	CXXFLAGS="-Og -march=x86-64-v3" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
+build-clang/avx2/:
+	CXXFLAGS="-march=x86-64-v3" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+
 build-clang/base-arch/:
-	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/base-arch/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/base-arch/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
 build-clang/avx512/:
-	CXXFLAGS="-Og -march=x86-64-v4 -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx512/ -DCMAKE_BUILD_TYPE=Debug
+	CXXFLAGS="-march=x86-64-v4 -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx512/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
 build-clang/no-simd/:
-	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
 
 build-clang/bench/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
@@ -93,6 +97,10 @@ gcc-avx2: build-gcc/avx2/
 	cmake --build build-gcc/avx2/
 	cmake --build build-gcc/avx2/ --target test
 
+clang-avx2: build-clang/avx2/
+	cmake --build build-clang/avx2/
+	cmake --build build-clang/avx2/ --target test
+
 clang-base-arch: build-clang/base-arch/
 	cmake --build build-clang/base-arch/
 	cmake --build build-clang/base-arch/ --target test
@@ -101,7 +109,7 @@ clang-avx512: build-clang/avx512/
 	cmake --build build-clang/avx512/
 	cmake --build build-clang/avx512/ --target test
 
-clang-nosimd: build-clang/no-simd/
+clang-no-simd: build-clang/no-simd/
 	cmake --build build-clang/no-simd/
 	cmake --build build-clang/no-simd/ --target test
 

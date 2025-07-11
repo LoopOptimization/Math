@@ -138,9 +138,12 @@ TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v)
 #endif
 
 namespace mask {
+/// Treats all elements as unmasked
 template <std::ptrdiff_t W> struct None {
-  TRIVIAL static constexpr auto firstMasked() -> std::ptrdiff_t { return 0; }
-  TRIVIAL static constexpr auto lastUnmasked() -> std::ptrdiff_t { return W; }
+  TRIVIAL static constexpr auto onBegin() -> std::ptrdiff_t { return 0; }
+  TRIVIAL static constexpr auto onEnd() -> std::ptrdiff_t { return W; }
+  TRIVIAL static constexpr auto offBegin() -> std::ptrdiff_t { return W; }
+  TRIVIAL static constexpr auto offEnd() -> std::ptrdiff_t { return 0; }
 };
 
 // Alternatives we can have: BitMask and VectorMask
@@ -154,16 +157,29 @@ template <std::ptrdiff_t W> struct Bit {
     return U(mask_);
   }
   TRIVIAL explicit constexpr operator bool() const { return mask_; }
-  TRIVIAL [[nodiscard]] constexpr auto firstMasked() const -> std::ptrdiff_t {
-    return std::countr_zero(mask_);
+  /// Returns the first `idx` where the mask bit is `0`
+  TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
+    return std::ptrdiff_t(std::countr_zero(mask_));
   }
-  TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> std::ptrdiff_t {
-    if constexpr (W < 64) {
+  /// Returns the last `idx` where the mask bit is `1`
+  TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
+    if constexpr (W < 64z) {
       // could make this `countr_ones` if we decide to only
       // support leading masks
-      std::uint64_t m = mask_ & ((std::uint64_t(1) << W) - std::uint64_t(1));
-      return 64 - std::ptrdiff_t(std::countl_zero(m));
-    } else return 64 - std::ptrdiff_t(std::countl_zero(mask_));
+      std::uint64_t m = mask_ & ((1UL << W) - 1UL);
+      return 64z - std::ptrdiff_t(std::countl_zero(m));
+    } else return 64z - std::ptrdiff_t(std::countl_zero(mask_));
+  }
+  /// Returns the first `idx` where the mask bit is `0`
+  TRIVIAL [[nodiscard]] constexpr auto offBegin() const -> std::ptrdiff_t {
+    return std::ptrdiff_t(std::countr_one(mask_));
+  }
+  /// Returns the last `idx` where the mask bit is `0`
+  TRIVIAL [[nodiscard]] constexpr auto offEnd() const -> std::ptrdiff_t {
+    if constexpr (W < 64z) {
+      std::uint64_t m = (~mask_) & ((1UL << W) - 1UL);
+      return 64z - std::ptrdiff_t(std::countl_zero(m));
+    } else return 64z - std::ptrdiff_t(std::countl_one(mask_));
   }
   template <std::ptrdiff_t S>
   TRIVIAL [[nodiscard]] constexpr auto sub() -> Bit<S> {
@@ -257,11 +273,18 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     else return _mm256_movemask_epi8(std::bit_cast<__m256i>(m));
   }
   TRIVIAL explicit constexpr operator bool() const { return intmask(); }
-  TRIVIAL [[nodiscard]] constexpr auto firstMasked() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
     return std::countr_zero(std::uint32_t(intmask()));
   }
-  TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
     return 32 - std::countl_zero(std::uint32_t(intmask()));
+  }
+  TRIVIAL [[nodiscard]] constexpr auto offBegin() const -> std::ptrdiff_t {
+    return std::countr_one(std::uint32_t(intmask()));
+  }
+  TRIVIAL [[nodiscard]] constexpr auto offEnd() const -> std::ptrdiff_t {
+    std::uint32_t m = (~std::uint32_t(intmask())) & ((1U << W) - 1U);
+    return 32 - std::countl_zero(m);
   }
   TRIVIAL constexpr operator __m128i() requires(sizeof(I) * W == 16) {
     return std::bit_cast<__m128i>(m);
@@ -359,15 +382,26 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     for (std::ptrdiff_t w = 0; w < W; ++w) any |= m[w];
     return any;
   }
-  TRIVIAL [[nodiscard]] constexpr auto firstMasked() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
     for (std::ptrdiff_t w = 0; w < W; ++w)
       if (m[w]) return w;
     return W;
   }
-  TRIVIAL [[nodiscard]] constexpr auto lastUnmasked() const -> std::ptrdiff_t {
+  TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
     std::ptrdiff_t l = 0;
     for (std::ptrdiff_t w = 0; w < W; ++w)
       if (m[w]) l = w;
+    return l;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto offBegin() const -> std::ptrdiff_t {
+    for (std::ptrdiff_t w = 0; w < W; ++w)
+      if (!m[w]) return w;
+    return W;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto offEnd() const -> std::ptrdiff_t {
+    std::ptrdiff_t l = 0;
+    for (std::ptrdiff_t w = 0; w < W; ++w)
+      if (!m[w]) l = w;
     return l;
   }
   TRIVIAL [[nodiscard]] explicit constexpr operator bool() const {

@@ -134,4 +134,80 @@ NODEBUG constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
   return !anyLTZero(A);
 }
 
+/// Returns the idx of the first element for which `f` is true.
+/// Returns `-1` if no such elements are found.
+NODEBUG [[gnu::flatten]] constexpr auto find_if(const AbstractTensor auto &A,
+                                                const auto &f) -> std::ptrdiff_t {
+  auto [M, N] = shape(A);
+  using TA = std::remove_cvref_t<decltype(A)>;
+  using T = utils::eltype_t<TA>;
+  if constexpr (simd::SIMDSupported<T>) {
+    if constexpr (AbstractMatrix<TA>) {
+      if constexpr (StaticInt<decltype(N)>) {
+        constexpr std::array<std::ptrdiff_t, 3> vdr =
+          simd::VectorDivRem<std::ptrdiff_t(N), T>();
+        constexpr std::ptrdiff_t W = vdr[0];
+        constexpr std::ptrdiff_t fulliter = vdr[1];
+        constexpr std::ptrdiff_t remainder = vdr[2];
+        for (std::ptrdiff_t r = 0; r < M; ++r) {
+          std::ptrdiff_t L = W * fulliter;
+          for (std::ptrdiff_t i = 0; i < L; i += W) {
+            auto mask = f(A[r, simd::index::Unroll<1, W>{i}]);
+            if (mask) return r * N + i + mask.onBegin();
+          }
+          if constexpr (remainder > 0) {
+            auto mask = f(A[r, simd::index::unrollmask<1, W>(N, L)]);
+            if (mask) return r * N + L + mask.onBegin();
+          }
+        }
+      } else {
+        constexpr std::ptrdiff_t W = simd::Width<T>;
+        for (std::ptrdiff_t r = 0; r < M; ++r) {
+          for (std::ptrdiff_t i = 0;; i += W) {
+            auto u{simd::index::unrollmask<1, W>(N, i)};
+            if (!u) break;
+            auto mask = f(A[r, u]);
+            if (mask) return r * N + i + mask.onBegin();
+          }
+        }
+      }
+    } else if constexpr (StaticInt<decltype(M)> && StaticInt<decltype(N)>) {
+      std::ptrdiff_t L = RowVector<TA> ? N : M;
+      using SL = std::conditional_t<RowVector<TA>, decltype(N), decltype(M)>;
+      constexpr std::array<std::ptrdiff_t, 3> vdr =
+        simd::VectorDivRem<std::ptrdiff_t(SL{}), T>();
+      constexpr std::ptrdiff_t W = vdr[0];
+      constexpr std::ptrdiff_t fulliter = vdr[1];
+      constexpr std::ptrdiff_t remainder = vdr[2];
+      std::ptrdiff_t K = W * fulliter;
+      for (std::ptrdiff_t i = 0; i < K; i += W) {
+        auto mask = f(A[simd::index::Unroll<1, W>{i}]);
+        if (mask) return i + mask.onBegin();
+      }
+      if constexpr (remainder > 0) {
+        auto mask = f(A[simd::index::unrollmask<1, W>(L, K)]);
+        if (mask) return K + mask.onBegin();
+      }
+    } else {
+      constexpr std::ptrdiff_t W = simd::Width<T>;
+      std::ptrdiff_t L = RowVector<TA> ? N : M;
+      for (std::ptrdiff_t i = 0;; i += W) {
+        auto u{simd::index::unrollmask<1, W>(L, i)};
+        if (!u) break;
+        auto mask = f(A[u]);
+        if (mask) return i + mask.onBegin();
+      }
+    }
+  } else if constexpr (AbstractMatrix<TA>) {
+    for (std::ptrdiff_t r = 0; r < M; ++r)
+      for (std::ptrdiff_t i = 0; i < N; ++i)
+        if (f(A[r, i])) return r * N + i;
+  } else {
+    std::ptrdiff_t L = RowVector<TA> ? N : M;
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      if (f(A[i])) return i;
+  }
+  return -1;
+}
+
 } // namespace math
