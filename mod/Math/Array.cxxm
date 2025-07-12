@@ -212,6 +212,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   static constexpr bool isdense = DenseLayout<S>;
   static constexpr bool flatstride =
     isdense || std::same_as<S, StridedRange<S::nrow, S::nstride>>;
+  static constexpr bool can_flatten = std::is_convertible_v<S, DenseDims<>>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
   TRIVIAL explicit constexpr Array() = default;
@@ -349,10 +350,10 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     requires(MatrixDimension<S>) {
     std::ptrdiff_t N = std::ptrdiff_t(numRow());
     if (N != std::ptrdiff_t(numCol())) return false;
-    for (std::ptrdiff_t i = 0; i < N; ++i) {
+    for (std::ptrdiff_t i = 0; i < N; ++i)
       for (std::ptrdiff_t j = 0; j < N; ++j)
         if ((*this)[i, j] != (i + j == N - 1)) return false;
-    }
+    return true;
   }
   [[nodiscard]] constexpr auto isDiagonal() const -> bool
     requires(MatrixDimension<S>) {
@@ -362,6 +363,9 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return true;
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const noexcept -> Array<T, S> {
+    return *this;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const noexcept -> Array<T, S> {
     return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept

@@ -302,6 +302,7 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
 
   using value_type = T;
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
+  static constexpr bool can_flatten = A::can_flatten;
   [[no_unique_address]] A a_;
   TRIVIAL constexpr auto operator[](auto i) const requires(AbstractVector<A>) {
     return a_[i];
@@ -321,6 +322,9 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
   TRIVIAL [[nodiscard]] constexpr auto view() const {
     return Transpose<T, std::remove_cvref_t<decltype(a_.view())>>(a_.view());
   };
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const {
+    return a_.untransposed_view();
+  }
   TRIVIAL [[nodiscard]] constexpr auto size() const { return a_.size(); }
   TRIVIAL [[nodiscard]] constexpr auto dim() const {
     return DenseDims(numRow(), numCol());
@@ -359,6 +363,8 @@ struct Elementwise : public Expr<decltype(std::declval<Op>()(
   using value_type =
     decltype(std::declval<Op>()(std::declval<utils::eltype_t<A>>()));
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
+  static constexpr bool can_flatten =
+    requires { A::can_flatten; } && A::can_flatten;
   [[no_unique_address]] A a_;
   [[no_unique_address]] Op op_;
   TRIVIAL constexpr auto operator[](auto i) const
@@ -382,6 +388,9 @@ struct Elementwise : public Expr<decltype(std::declval<Op>()(
     return a_.numCol();
   }
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
+  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
+    return *this;
+  }
   template <typename T> TRIVIAL constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a_);
     return Elementwise<decltype(ra), Op>(ra, op_);
@@ -404,6 +413,9 @@ struct ElementwiseBinaryOp
   using concrete = is_concrete_t<A, B>;
   static constexpr bool isvector = AbstractVector<A> || AbstractVector<B>;
   static constexpr bool ismatrix = AbstractMatrix<A> || AbstractMatrix<B>;
+  static constexpr bool can_flatten = requires {
+    A::can_flatten && B::can_flatten;
+  } && A::can_flatten && B::can_flatten;
   static_assert(isvector != ismatrix);
 
   [[no_unique_address]] A a_;
@@ -450,6 +462,12 @@ struct ElementwiseBinaryOp
     return unwrapRow(numRow()) * unwrapCol(numCol());
   }
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
+  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
+    return *this;
+  }
+  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
+    return *this;
+  }
   template <typename T> TRIVIAL constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a_);
     auto rb = reinterpret<T>(b_);
@@ -477,6 +495,8 @@ struct Select : public AbstractSelect<C, A, B>,
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
+  static constexpr bool can_flatten = requires { C::can_flatten && A::can_flatten && B::can_flatten; } && 
+                                      C::can_flatten && A::can_flatten && B::can_flatten;
   TRIVIAL constexpr auto operator[](auto i) const
     requires LinearlyIndexable<C, bool> &&
              LinearlyIndexableOrConvertible<A, value_type> &&
@@ -516,6 +536,8 @@ struct Conditional
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
+  static constexpr bool can_flatten = requires { C::can_flatten && A::can_flatten && B::can_flatten; } && 
+                                      C::can_flatten && A::can_flatten && B::can_flatten;
   [[no_unique_address]] Op op_;
 
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type
@@ -618,6 +640,7 @@ struct MatMatMul : public math::Expr<
   using value_type = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
   using concrete = is_concrete_t<A, B>;
   static constexpr bool has_reduction_loop = true;
+  static constexpr bool can_flatten = false; // is order-dependent
   static constexpr bool ismata = AbstractMatrix<A>;
   static constexpr bool ismatb = AbstractMatrix<B>;
   static_assert((ismata && (ismatb || ColVector<B>)) ||
@@ -697,6 +720,9 @@ struct MatMatMul : public math::Expr<
     else a_.size() * b_.size();
   }
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
+  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
+    return *this;
+  }
   [[nodiscard]] TRIVIAL constexpr auto t() const
     -> Transpose<value_type, MatMatMul> {
     return {*this};

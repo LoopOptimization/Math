@@ -86,6 +86,7 @@ struct MATH_GSL_OWNER StaticArray
   using compressed_type = StaticArray<T, M, N, true>;
   using decompressed_type = StaticArray<value_type, M, N, false>;
   using S = StaticDims<T, M, N, Compress>;
+  static constexpr bool can_flatten = std::is_convertible_v<S, DenseDims<>>;
   using Expr<T, StaticArray<T, M, N, Compress>>::operator==;
   TRIVIAL constexpr StaticArray() = default;
   TRIVIAL constexpr explicit StaticArray(const T &x) noexcept {
@@ -236,6 +237,10 @@ struct MATH_GSL_OWNER StaticArray
     -> Array<T, S, Compress && utils::Compressible<T>> {
     return {data(), S{}};
   }
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const noexcept
+    -> Array<T, S, Compress && utils::Compressible<T>> {
+    return {data(), S{}};
+  }
   TRIVIAL [[nodiscard]] constexpr auto mview() noexcept
     -> MutArray<T, S, Compress && utils::Compressible<T>> {
     return {data(), S{}};
@@ -345,6 +350,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   }
 
   static constexpr std::ptrdiff_t L = (N + W - 1) / W;
+  static constexpr bool can_flatten = L * W == N;
   static_assert(L * W == calcPaddedCols<T, N, Align>());
   using V = simd::Vec<W, T>;
   // simd::Vec<W, T> data[M][L];
@@ -356,6 +362,14 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const noexcept
+    -> Array<T, S, false> requires(M *L > 4) {
+    return {data(), S{}};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const -> StaticArray
+    requires(M *L <= 4) {
+    return *this;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const noexcept
     -> Array<T, S, false> requires(M *L > 4) {
     return {data(), S{}};
   }
@@ -618,6 +632,9 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   }
 
   TRIVIAL [[nodiscard]] constexpr auto view() const -> StaticArray {
+    return *this;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const -> StaticArray {
     return *this;
   }
   // Maybe this should return `StaticArray&`?
