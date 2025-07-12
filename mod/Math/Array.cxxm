@@ -365,14 +365,15 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL [[nodiscard]] constexpr auto view() const noexcept -> Array<T, S> {
     return *this;
   }
-  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const noexcept -> Array<T, S> {
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const noexcept
+    -> Array<T, S> {
     return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept
     requires(flatstride) {
     auto szf = sz_.flat();
     return Array<T, std::remove_reference_t<decltype(szf)>, Compress>{
-      ptr_, sz_.flat()};
+      ptr_, szf};
   }
 
   [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept
@@ -858,6 +859,12 @@ struct MutArray : Array<T, S, Compress>,
   }
   TRIVIAL [[nodiscard]] constexpr auto mview() noexcept -> MutArray<T, S> {
     return *this;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto mflatview() const noexcept
+    requires(BaseT::flatstride) {
+    auto szf = this->sz_.flat();
+    return MutArray<T, std::remove_reference_t<decltype(szf)>, Compress>{
+      this->ptr_, szf};
   }
 
 protected:

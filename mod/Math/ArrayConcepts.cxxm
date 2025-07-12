@@ -111,53 +111,46 @@ template <typename T, typename U> constexpr auto reinterpret(U x) {
 }
 
 // Layout optimization concepts for order-independent operations
-template<typename T>
+template <typename T>
 concept CanFlatten = requires {
-  { T::can_flatten } -> std::convertible_to<bool>;
+  { T::can_flatten } -> std::same_as<bool>;
 } && T::can_flatten;
 
-template<typename T>
-concept HasUntransposedView = requires(const T& t) {
-  t.untransposed_view();
-};
+template <typename T>
+concept HasUntransposedView = requires(const T &t) { t.untransposed_view(); };
 
-// Default untransposed_view - assumes all types with view() also have untransposed_view()
-template<typename T>
-constexpr auto untransposed_view(const T& x) {
+// Default untransposed_view - assumes all types with view() also have
+// untransposed_view()
+template <typename T> constexpr auto untransposed_view(const T &x) {
   return x.untransposed_view();
 }
 
-// Check if arrays can be flattened for linear operations after dimension checking
-template<typename A, typename B>
-constexpr bool can_flatten_together() {
+// Check if arrays can be flattened for linear operations after dimension
+// checking
+template <typename A, typename B>
+constexpr auto can_flatten_together() -> bool {
   return CanFlatten<A> && CanFlatten<B>;
 }
 
-// Get untransposed + flattened view for operations that don't care about layout (any(), dot())
-template<typename T>
-constexpr auto layout_optimized_view(const T& x) {
+// Get untransposed + flattened view for operations that don't care about layout
+// (any(), dot())
+template <typename T> constexpr auto layout_optimized_view(const T &x) {
   if constexpr (CanFlatten<T>) {
     auto untransposed = untransposed_view(x);
-    if constexpr (requires { untransposed.flatview(); }) {
+    if constexpr (requires { untransposed.flatview(); })
       return untransposed.flatview();
-    } else {
-      return untransposed.view();
-    }
+    else return untransposed.view();
   } else {
     return x.view();
   }
 }
 
 // Get flattened view for operations that care about linear order (find_if())
-template<typename T>
-constexpr auto flatten_if_possible(const T& x) {
+template <typename T> constexpr auto flatten_if_possible(const T &x) {
   if constexpr (CanFlatten<T>) {
     auto v = x.view();
-    if constexpr (requires { v.flatview(); }) {
-      return v.flatview();
-    } else {
-      return v;
-    }
+    if constexpr (requires { v.flatview(); }) return v.flatview();
+    else return v;
   } else {
     return x.view();
   }

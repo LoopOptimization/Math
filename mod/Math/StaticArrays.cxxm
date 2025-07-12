@@ -245,6 +245,14 @@ struct MATH_GSL_OWNER StaticArray
     -> MutArray<T, S, Compress && utils::Compressible<T>> {
     return {data(), S{}};
   }
+  TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept
+    requires(can_flatten) {
+    return Array<T, Length<M * N>, Compress>{data(), {}};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto mflatview() const noexcept
+    requires(can_flatten) {
+    return MutArray<T, Length<M * N>, Compress>{data(), {}};
+  }
 
   TRIVIAL [[nodiscard]] constexpr auto begin() noexcept {
     if constexpr (std::is_same_v<S, StridedRange<>>)
@@ -376,6 +384,14 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   TRIVIAL [[nodiscard]] constexpr auto mview() noexcept
     -> MutArray<T, S, false> {
     return {data(), S{}};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept
+    requires(can_flatten) {
+    return Array<T, Length<M * N>, false>{data(), {}};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto mflatview() const noexcept
+    requires(can_flatten) {
+    return MutArray<T, Length<M * N>, false>{data(), {}};
   }
 
   TRIVIAL constexpr StaticArray() = default;
@@ -619,6 +635,7 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
 
   using compressed_type = StaticArray<T, 1, N, true>;
   static constexpr std::ptrdiff_t L = 1;
+  static constexpr bool can_flatten = false; // already flat
 
   constexpr void compress(compressed_type *p) const { *p << *this; }
   static constexpr auto decompress(const compressed_type *p) -> StaticArray {
@@ -634,7 +651,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   TRIVIAL [[nodiscard]] constexpr auto view() const -> StaticArray {
     return *this;
   }
-  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const -> StaticArray {
+  TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const
+    -> StaticArray {
     return *this;
   }
   // Maybe this should return `StaticArray&`?
