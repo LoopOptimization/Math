@@ -511,6 +511,16 @@ int main() {
       }
     }
   };
+  "scaled inversion"_test = [] {
+    auto A{"[2 3 0; 5 7 2; 1 -4 5]"_mat};
+    auto B{"[1 0 0; 0 1 0; 0 0 1]"_mat};
+    NormalForm::solveSystem(A, B);
+    auto [d, u] = lcmNonUnity(A.diag());
+    expect(d == 17_i);
+    expect(u);
+    B *= d / A.diag();
+    expect(B == "[43 -15 6; -23 10 -4; -27 11 -1]"_mat);
+  };
 
   return 0;
 }

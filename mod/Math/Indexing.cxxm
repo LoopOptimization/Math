@@ -190,6 +190,11 @@ template <std::ptrdiff_t L = -1, std::ptrdiff_t X = -1> struct StridedRange {
   TRIVIAL constexpr explicit operator Col<1>() const { return {}; }
   TRIVIAL constexpr explicit operator RowStride<X>() const { return stride_; }
 
+  TRIVIAL inline constexpr operator StridedRange<>() const
+    requires(L != -1 || X != -1) {
+    return {len_, stride_};
+  }
+
 private:
   TRIVIAL [[nodiscard]] friend inline constexpr auto row(StridedRange r)
     -> Row<> {

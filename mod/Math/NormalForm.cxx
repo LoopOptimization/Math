@@ -773,8 +773,8 @@ void solveSystem(MutPtrMatrix<std::int64_t> A) {
   B.diag() << 1;
   solveSystem(A, B);
   auto [s, nonUnity] = lcmNonUnity(A.diag());
-  if (nonUnity)
-    for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
+  if (nonUnity) B *= s / A.diag();
+  // for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) B[i, _] *= s / A[i, i];
   return s;
 }
 /// inv(A) -> (B, s)

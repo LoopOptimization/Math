@@ -281,13 +281,15 @@ struct MATH_GSL_OWNER StaticArray
     std::fill_n(data(), std::ptrdiff_t(dim()), value);
   }
   TRIVIAL [[nodiscard]] constexpr auto diag() noexcept {
-    StridedRange<> r{length(min(Row(S{}), Col(S{}))), RowStride(S{}) + 1};
-    return MutArray<T, StridedRange<>>{data(), r};
+    if constexpr (N <= M)
+      return MutArray<T, StridedRange<N, PaddedCols + 1>>{data(), {}};
+    else return MutArray<T, StridedRange<M, PaddedCols + 1>>{data(), {}};
   }
   TRIVIAL [[nodiscard]] constexpr auto antiDiag() noexcept {
-    Col c = Col(S{});
-    StridedRange<> r{length(min(Row(S{}), c)), RowStride(S{}) - 1};
-    return MutArray<T, StridedRange<>>{data() + std::ptrdiff_t(c) - 1, r};
+    if constexpr (N <= M)
+      return MutArray<T, StridedRange<N, PaddedCols - 1>>{data() + M - 1, {}};
+    else
+      return MutArray<T, StridedRange<M, PaddedCols - 1>>{data() + M - 1, {}};
   }
   template <typename SHAPE>
   TRIVIAL constexpr

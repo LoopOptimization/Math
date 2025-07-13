@@ -147,9 +147,9 @@ TRIVIAL constexpr auto promote_shape(const A &a, const B &b) {
       auto N = unwrapCol(numCols(b));
       if constexpr (IsOne<decltype(M)>)
         if constexpr (IsOne<decltype(N)>) return sa;
-        else return CartesianIndex(sa.row, check_sizes(sa.col, N));
+        else return CartesianIndex(sa.row, check_sizes(sa.col_idx_, N));
       else if constexpr (IsOne<decltype(N)>)
-        return CartesianIndex(check_sizes(sa.row_idx_, M), sa.col);
+        return CartesianIndex(check_sizes(sa.row_idx_, M), sa.col_idx_);
       else
         return CartesianIndex(check_sizes(sa.row_idx_, M),
                               check_sizes(sa.col_idx_, N));
