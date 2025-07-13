@@ -578,6 +578,36 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     TRIVIAL constexpr auto operator/=(const auto &x) -> Ref & {
       return (*this) = simd::Unroll<R, C, W, T>(*this) / x;
     }
+    TRIVIAL constexpr auto operator+(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) + x;
+    }
+    TRIVIAL constexpr auto operator-(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) - x;
+    }
+    TRIVIAL constexpr auto operator*(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) * x;
+    }
+    TRIVIAL constexpr auto operator/(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) / x;
+    }
+    TRIVIAL constexpr auto operator>(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) > x;
+    }
+    TRIVIAL constexpr auto operator<(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) < x;
+    }
+    TRIVIAL constexpr auto operator>=(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) >= x;
+    }
+    TRIVIAL constexpr auto operator<=(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) <= x;
+    }
+    TRIVIAL constexpr auto operator==(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) == x;
+    }
+    TRIVIAL constexpr auto operator!=(const auto &x) {
+      return simd::Unroll<R, C, W, T>(*this) != x;
+    }
   };
   template <std::ptrdiff_t U, typename Mask>
   TRIVIAL auto operator[](std::ptrdiff_t i, simd::index::Unroll<U, W, Mask> j)
@@ -782,6 +812,36 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     }
     TRIVIAL constexpr auto operator/=(const auto &x) -> Ref & {
       return (*this) = simd::Unroll<1, 1, W, T>(*this) / x;
+    }
+    TRIVIAL constexpr auto operator+(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) + x;
+    }
+    TRIVIAL constexpr auto operator-(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) - x;
+    }
+    TRIVIAL constexpr auto operator*(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) * x;
+    }
+    TRIVIAL constexpr auto operator/(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) / x;
+    }
+    TRIVIAL constexpr auto operator>(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) > x;
+    }
+    TRIVIAL constexpr auto operator<(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) < x;
+    }
+    TRIVIAL constexpr auto operator>=(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) >= x;
+    }
+    TRIVIAL constexpr auto operator<=(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) <= x;
+    }
+    TRIVIAL constexpr auto operator==(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) == x;
+    }
+    TRIVIAL constexpr auto operator!=(const auto &x) {
+      return simd::Unroll<1, 1, W, T>(*this) != x;
     }
   };
   template <std::ptrdiff_t U, typename Mask>

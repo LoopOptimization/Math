@@ -20,11 +20,6 @@ using namespace math;
 
 using utils::TriviallyCopyable;
 
-template <typename T, typename I> consteval auto getWidth() -> std::ptrdiff_t {
-  if constexpr (std::same_as<I, std::ptrdiff_t>) return simd::Width<T>;
-  else return simd::VecLen<std::ptrdiff_t(I{}), T>;
-}
-
 template <class T, class C>
 concept Compatible =
   (AbstractTensor<C> && std::convertible_to<T, utils::eltype_t<C>>) ||
@@ -268,7 +263,7 @@ public:
           if (a[i] != b[i]) return false;
       }
     } else if constexpr (AbstractMatrix<A>) {
-      constexpr std::ptrdiff_t W = getWidth<CT, decltype(N)>();
+      constexpr std::ptrdiff_t W = simd::getWidth<CT, decltype(N)>();
       for (std::ptrdiff_t r = 0; r < M; ++r) {
         for (std::ptrdiff_t i = 0;; i += W) {
           auto u{simd::index::unrollmask<1, W>(N, i)};
@@ -277,8 +272,9 @@ public:
         }
       }
     } else {
-      constexpr std::ptrdiff_t W = RowVector<A> ? getWidth<CT, decltype(N)>()
-                                                : getWidth<CT, decltype(M)>();
+      constexpr std::ptrdiff_t W = RowVector<A>
+                                     ? simd::getWidth<CT, decltype(N)>()
+                                     : simd::getWidth<CT, decltype(M)>();
       std::ptrdiff_t L = RowVector<A> ? N : M;
       for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
@@ -302,7 +298,8 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
 
   using value_type = T;
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
-  static constexpr bool can_flatten = A::can_flatten;
+  static constexpr bool can_flatten = false;
+  static constexpr bool is_transposed = true;
   [[no_unique_address]] A a_;
   TRIVIAL constexpr auto operator[](auto i) const requires(AbstractVector<A>) {
     return a_[i];
@@ -324,6 +321,9 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
   };
   TRIVIAL [[nodiscard]] constexpr auto untransposed_view() const {
     return a_.untransposed_view();
+  }
+  TRIVIAL [[nodiscard]] constexpr auto flatview() const -> Transpose {
+    return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto size() const { return a_.size(); }
   TRIVIAL [[nodiscard]] constexpr auto dim() const {
@@ -363,8 +363,8 @@ struct Elementwise : public Expr<decltype(std::declval<Op>()(
   using value_type =
     decltype(std::declval<Op>()(std::declval<utils::eltype_t<A>>()));
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
-  static constexpr bool can_flatten =
-    requires { A::can_flatten; } && A::can_flatten;
+  static constexpr bool can_flatten = CanFlatten<A>;
+  static constexpr bool is_transposed = IsTransposed<A>;
   [[no_unique_address]] A a_;
   [[no_unique_address]] Op op_;
   TRIVIAL constexpr auto operator[](auto i) const
@@ -389,8 +389,17 @@ struct Elementwise : public Expr<decltype(std::declval<Op>()(
   }
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
   [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
-    return *this;
+    if constexpr (is_transposed) {
+      auto ta{untransposed_view(a_)};
+      return Elementwise<decltype(ta), Op>(ta, op_);
+    } else return *this;
   }
+  [[nodiscard]] TRIVIAL constexpr auto flatview() const {
+    if constexpr (can_flatten) {
+      auto fa{flatten_if_possible(a_)};
+      return Elementwise<decltype(fa), Op>(fa, op_);
+    } else return *this;
+  };
   template <typename T> TRIVIAL constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a_);
     return Elementwise<decltype(ra), Op>(ra, op_);
@@ -413,9 +422,8 @@ struct ElementwiseBinaryOp
   using concrete = is_concrete_t<A, B>;
   static constexpr bool isvector = AbstractVector<A> || AbstractVector<B>;
   static constexpr bool ismatrix = AbstractMatrix<A> || AbstractMatrix<B>;
-  static constexpr bool can_flatten = requires {
-    A::can_flatten && B::can_flatten;
-  } && A::can_flatten && B::can_flatten;
+  static constexpr bool can_flatten = CanFlatten<A> && CanFlatten<B>;
+  static constexpr bool is_transposed = IsTransposed<A> && IsTransposed<B>;
   static_assert(isvector != ismatrix);
 
   [[no_unique_address]] A a_;
@@ -463,11 +471,19 @@ struct ElementwiseBinaryOp
   }
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
   [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
-    return *this;
+    if constexpr (is_transposed) {
+      auto ta{untransposed_view(a_)};
+      auto tb{untransposed_view(b_)};
+      return elementwise(ta, tb, op_);
+    } else return *this;
   }
-  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
-    return *this;
-  }
+  [[nodiscard]] TRIVIAL constexpr auto flatview() const {
+    if constexpr (can_flatten) {
+      auto fa{flatten_if_possible(a_)};
+      auto fb{flatten_if_possible(b_)};
+      return elementwise(fa, fb, op_);
+    } else return *this;
+  };
   template <typename T> TRIVIAL constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a_);
     auto rb = reinterpret<T>(b_);
@@ -495,8 +511,9 @@ struct Select : public AbstractSelect<C, A, B>,
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
-  static constexpr bool can_flatten = requires { C::can_flatten && A::can_flatten && B::can_flatten; } && 
-                                      C::can_flatten && A::can_flatten && B::can_flatten;
+  static constexpr bool can_flatten = requires {
+    C::can_flatten && A::can_flatten && B::can_flatten;
+  } && C::can_flatten && A::can_flatten && B::can_flatten;
   TRIVIAL constexpr auto operator[](auto i) const
     requires LinearlyIndexable<C, bool> &&
              LinearlyIndexableOrConvertible<A, value_type> &&
@@ -536,8 +553,9 @@ struct Conditional
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
-  static constexpr bool can_flatten = requires { C::can_flatten && A::can_flatten && B::can_flatten; } && 
-                                      C::can_flatten && A::can_flatten && B::can_flatten;
+  static constexpr bool can_flatten = requires {
+    C::can_flatten && A::can_flatten && B::can_flatten;
+  } && C::can_flatten && A::can_flatten && B::can_flatten;
   [[no_unique_address]] Op op_;
 
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type

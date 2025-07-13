@@ -212,7 +212,9 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   static constexpr bool isdense = DenseLayout<S>;
   static constexpr bool flatstride =
     isdense || std::same_as<S, StridedRange<S::nrow, S::nstride>>;
-  static constexpr bool can_flatten = std::is_convertible_v<S, DenseDims<>>;
+  static constexpr bool is_matrix = MatrixDimension<S>;
+  static constexpr bool can_flatten =
+    is_matrix && std::is_convertible_v<S, DenseDims<>>;
   // static_assert(flatstride != std::same_as<S, StridedDims<>>);
 
   TRIVIAL explicit constexpr Array() = default;
@@ -347,7 +349,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {*this};
   }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool
-    requires(MatrixDimension<S>) {
+    requires(is_matrix) {
     std::ptrdiff_t N = std::ptrdiff_t(numRow());
     if (N != std::ptrdiff_t(numCol())) return false;
     for (std::ptrdiff_t i = 0; i < N; ++i)
@@ -372,8 +374,8 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL [[nodiscard]] constexpr auto flatview() const noexcept
     requires(flatstride) {
     auto szf = sz_.flat();
-    return Array<T, std::remove_reference_t<decltype(szf)>, Compress>{
-      ptr_, szf};
+    return Array<T, std::remove_reference_t<decltype(szf)>, Compress>{ptr_,
+                                                                      szf};
   }
 
   [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept

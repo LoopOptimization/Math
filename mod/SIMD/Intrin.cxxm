@@ -1629,6 +1629,11 @@ TRIVIAL constexpr auto VecWidth() {
   else return Width<T>;
 }
 
+template <typename T, typename I> consteval auto getWidth() -> std::ptrdiff_t {
+  if constexpr (std::same_as<I, std::ptrdiff_t>) return simd::Width<T>;
+  else return simd::VecLen<std::ptrdiff_t(I{}), T>;
+}
+
 namespace reduce {
 template <std::ptrdiff_t W, typename T, typename Op>
 TRIVIAL constexpr auto reduce_op(simd::Vec<W, T> v) -> T {

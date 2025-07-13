@@ -43,6 +43,9 @@ int main() {
     auto idx = find_if(mat, [](auto x) { return x > 7; });
     expect(idx == 7_i); // Should find 8 at linear index 7 (row 1, col 3)
 
+    idx = find_if(mat.t(), [](auto x) { return x > 7; });
+    expect(idx == 2_i); // Should find 8 at linear index 7 (row 1, col 3)
+
     // Find first element == 10
     idx = find_if(mat, [](auto x) { return x == 10; });
     expect(idx == 9_i); // Should find 10 at linear index 9 (row 2, col 1)

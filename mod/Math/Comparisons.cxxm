@@ -25,7 +25,7 @@ export namespace math {
 // }
 NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A_arg,
                                             const auto &f) -> bool {
-  auto A = layout_optimized_view(A_arg);
+  auto A = flatten_if_possible(A_arg);
   auto [M, N] = shape(A);
   using TA = std::remove_cvref_t<decltype(A)>;
   using T = utils::eltype_t<TA>;
@@ -137,8 +137,8 @@ NODEBUG constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
 
 /// Returns the idx of the first element for which `f` is true.
 /// Returns `-1` if no such elements are found.
-NODEBUG [[gnu::flatten]] constexpr auto find_if(const AbstractTensor auto &A_arg,
-                                                const auto &f) -> std::ptrdiff_t {
+NODEBUG [[gnu::flatten]] constexpr auto
+find_if(const AbstractTensor auto &A_arg, const auto &f) -> std::ptrdiff_t {
   auto A = flatten_if_possible(A_arg);
   auto [M, N] = shape(A);
   using TA = std::remove_cvref_t<decltype(A)>;

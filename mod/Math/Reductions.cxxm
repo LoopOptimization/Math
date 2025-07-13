@@ -5,6 +5,7 @@ module;
 
 export module Reductions;
 import ArrayConcepts;
+import ExprTemplateUtils;
 import SIMD;
 import std;
 
@@ -12,7 +13,7 @@ export namespace math {
 TRIVIAL constexpr auto abs2(auto x) { return x * x; }
 
 template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
-  auto A = layout_optimized_view(A_arg);
+  auto A = flatten_if_possible(A_arg);
   using T = utils::eltype_t<decltype(A)>;
 
   if constexpr (simd::SIMDSupported<T>) {
@@ -71,31 +72,36 @@ TRIVIAL constexpr auto norm2(const auto &a) {
   }
   return s;
 }
-TRIVIAL constexpr auto dot(const auto &a_arg, const auto &b_arg) {
-  if constexpr (can_flatten_together<decltype(a_arg), decltype(b_arg)>()) {
-    return dot(layout_optimized_view(a_arg), layout_optimized_view(b_arg));
+template <typename A, typename B>
+TRIVIAL constexpr auto dot(const A &a_arg, const B &b_arg)
+  -> decltype(utils::eltype_t<A>{} * utils::eltype_t<B>{}) {
+  if constexpr (are_both_transposed<decltype(a_arg), decltype(b_arg)>()) {
+    return dot(untransposed_view(a_arg), untransposed_view(b_arg));
+  } else if constexpr (can_flatten_together<decltype(a_arg),
+                                            decltype(b_arg)>()) {
+    return dot(flatten_if_possible(a_arg), flatten_if_possible(b_arg));
   } else {
-    auto a = a_arg.view();
-    auto b = b_arg.view();
-    std::ptrdiff_t L = a.size();
-    invariant(L, b.size());
+    const auto a = a_arg.view();
+    const auto b = b_arg.view();
+    auto L = check_sizes(a.size(), b.size());
     using T = decltype(a[0] * b[0] + a[1] * b[1]);
 
     if constexpr (simd::SIMDSupported<std::remove_cvref_t<decltype(a[0])>>) {
       constexpr std::ptrdiff_t W =
-        simd::Width<std::remove_cvref_t<decltype(a[0])>>;
-      simd::Vec<W, std::remove_cvref_t<decltype(a[0])>> vsum{};
+        simd::getWidth<std::remove_cvref_t<T>, decltype(L)>();
+      if constexpr (W != 1) {
+        simd::Vec<W, std::remove_cvref_t<decltype(a[0])>> vsum{};
 
-      for (std::ptrdiff_t i = 0; i < L; i += W) {
-        POLYMATHFAST
-        auto u = simd::index::unrollmask<1, W>(L, i);
-        if (!u) break;
-        auto vals_a = a[u];
-        auto vals_b = b[u];
-        vsum += vals_a * vals_b;
-      }
-
-      return simd::reduce::sum<W, T>(vsum);
+        for (std::ptrdiff_t i = 0; i < L; i += W) {
+          POLYMATHFAST
+          auto u = simd::index::unrollmask<1, W>(L, i);
+          if (!u) break;
+          auto vals_a = a[u];
+          auto vals_b = b[u];
+          vsum += vals_a * vals_b;
+        }
+        return simd::reduce::sum<W, T>(vsum);
+      } else return a[0] * b[0];
     } else {
       T s{};
       for (std::ptrdiff_t i = 0; i < L; ++i) {

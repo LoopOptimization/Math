@@ -1,4 +1,5 @@
 module;
+#include "Macros.hxx"
 export module ArrayConcepts;
 
 export import MatDim;
@@ -38,16 +39,16 @@ concept ShapelessSize = DefinesSize<T> && (!DefinesShape<T>);
 template <typename T>
 concept PrimitiveScalar = std::integral<T> || std::floating_point<T>;
 
-template <typename T> constexpr auto numRows(const T &A) {
+template <typename T> TRIVIAL constexpr auto numRows(const T &A) {
   if constexpr (DefinesShape<T>) return A.numRow();
   else return Row<1>{};
 }
-template <typename T> constexpr auto numCols(const T &A) {
+template <typename T> TRIVIAL constexpr auto numCols(const T &A) {
   if constexpr (DefinesShape<T>) return A.numCol();
   else if constexpr (ShapelessSize<T>) return col(A.size());
   else return Col<1>{};
 }
-constexpr auto shape(const auto &x) {
+TRIVIAL constexpr auto shape(const auto &x) {
   return CartesianIndex(unwrapRow(numRows(x)), unwrapCol(numCols(x)));
 }
 
@@ -96,16 +97,16 @@ concept DenseTensor = AbstractTensor<T> && requires(T t) {
   { t.begin() } -> std::convertible_to<const utils::eltype_t<T> *>;
 };
 
-template <std::ptrdiff_t M> constexpr auto transpose_dim(Col<M> c) {
+template <std::ptrdiff_t M> TRIVIAL constexpr auto transpose_dim(Col<M> c) {
   if constexpr (M == -1) return row(std::ptrdiff_t(c));
   else return Row<M>{};
 }
-template <std::ptrdiff_t M> constexpr auto transpose_dim(Row<M> r) {
+template <std::ptrdiff_t M> TRIVIAL constexpr auto transpose_dim(Row<M> r) {
   if constexpr (M == -1) return col(std::ptrdiff_t(r));
   else return Col<M>{};
 }
 
-template <typename T, typename U> constexpr auto reinterpret(U x) {
+template <typename T, typename U> TRIVIAL constexpr auto reinterpret(U x) {
   if constexpr (std::same_as<T, U>) return x;
   else return x.template reinterpretImpl<T>();
 }
@@ -113,47 +114,45 @@ template <typename T, typename U> constexpr auto reinterpret(U x) {
 // Layout optimization concepts for order-independent operations
 template <typename T>
 concept CanFlatten = requires {
-  { T::can_flatten } -> std::same_as<bool>;
-} && T::can_flatten;
+  { std::remove_cvref_t<T>::can_flatten } -> std::same_as<const bool &>;
+} && std::remove_cvref_t<T>::can_flatten;
+template <typename T>
+concept IsTransposed = requires {
+  { std::remove_cvref_t<T>::is_transposed } -> std::same_as<const bool &>;
+} && std::remove_cvref_t<T>::is_transposed;
 
 template <typename T>
 concept HasUntransposedView = requires(const T &t) { t.untransposed_view(); };
 
 // Default untransposed_view - assumes all types with view() also have
 // untransposed_view()
-template <typename T> constexpr auto untransposed_view(const T &x) {
+template <typename T> TRIVIAL constexpr auto untransposed_view(const T &x) {
   return x.untransposed_view();
+}
+
+// Check if both arrays are transposed (useful for determining when to
+// untranspose both)
+template <typename A, typename B>
+TRIVIAL constexpr auto are_both_transposed() -> bool {
+  if constexpr (
+    requires { std::remove_cvref_t<A>::is_transposed; } &&
+    requires { std::remove_cvref_t<B>::is_transposed; })
+    return std::remove_cvref_t<A>::is_transposed &&
+           std::remove_cvref_t<B>::is_transposed;
+  else return false;
 }
 
 // Check if arrays can be flattened for linear operations after dimension
 // checking
 template <typename A, typename B>
-constexpr auto can_flatten_together() -> bool {
+TRIVIAL constexpr auto can_flatten_together() -> bool {
   return CanFlatten<A> && CanFlatten<B>;
 }
 
-// Get untransposed + flattened view for operations that don't care about layout
-// (any(), dot())
-template <typename T> constexpr auto layout_optimized_view(const T &x) {
-  if constexpr (CanFlatten<T>) {
-    auto untransposed = untransposed_view(x);
-    if constexpr (requires { untransposed.flatview(); })
-      return untransposed.flatview();
-    else return untransposed.view();
-  } else {
-    return x.view();
-  }
-}
-
 // Get flattened view for operations that care about linear order (find_if())
-template <typename T> constexpr auto flatten_if_possible(const T &x) {
-  if constexpr (CanFlatten<T>) {
-    auto v = x.view();
-    if constexpr (requires { v.flatview(); }) return v.flatview();
-    else return v;
-  } else {
-    return x.view();
-  }
+template <typename T> TRIVIAL constexpr auto flatten_if_possible(const T &x) {
+  if constexpr (CanFlatten<T>) return x.flatview();
+  else return x.view();
 }
 
 } // namespace math
