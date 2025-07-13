@@ -6,11 +6,6 @@ import BaseUtils;
 import MatDim;
 import std;
 
-template <typename T>
-concept ShouldView = requires(const T &x) {
-  { x.view() } -> utils::TriviallyCopyable;
-};
-
 export namespace math {
 using utils::invariant;
 // inputs must be `std::ptrdiff_t` or
@@ -35,11 +30,6 @@ template <typename X, typename Y> TRIVIAL constexpr auto check_sizes(X x, Y y) {
     static_assert(x == y);
     return std::integral_constant<std::ptrdiff_t, std::ptrdiff_t(x)>{};
   }
-}
-
-template <typename T> TRIVIAL constexpr auto view(const T &x) {
-  if constexpr (ShouldView<T>) return x.view();
-  else return x;
 }
 
 template <typename T> struct ScalarizeViaCast {

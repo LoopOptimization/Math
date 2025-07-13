@@ -13,7 +13,7 @@ export namespace math {
 TRIVIAL constexpr auto abs2(auto x) { return x * x; }
 
 template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
-  auto A = flatten_if_possible(A_arg);
+  auto A = flatten_if_possible(untransposed_view(A_arg));
   using T = utils::eltype_t<decltype(A)>;
 
   if constexpr (simd::SIMDSupported<T>) {
@@ -75,7 +75,7 @@ TRIVIAL constexpr auto norm2(const auto &a) {
 template <typename A, typename B>
 TRIVIAL constexpr auto dot(const A &a_arg, const B &b_arg)
   -> decltype(utils::eltype_t<A>{} * utils::eltype_t<B>{}) {
-  if constexpr (are_both_transposed<decltype(a_arg), decltype(b_arg)>()) {
+  if constexpr (are_all_transposed<decltype(a_arg), decltype(b_arg)>()) {
     return dot(untransposed_view(a_arg), untransposed_view(b_arg));
   } else if constexpr (can_flatten_together<decltype(a_arg),
                                             decltype(b_arg)>()) {

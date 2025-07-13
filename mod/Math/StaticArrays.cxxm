@@ -113,7 +113,7 @@ struct MATH_GSL_OWNER StaticArray
   }
   template <AbstractSimilar<S> V>
   TRIVIAL constexpr StaticArray(const V &b) noexcept {
-    this->vcopyTo(b, detail::CopyAssign{});
+    vcopyTo(mview(), b, detail::CopyAssign{});
   }
 
   TRIVIAL constexpr void compress(compressed_type *p) const
@@ -445,7 +445,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   }
   template <AbstractSimilar<S> V>
   TRIVIAL constexpr StaticArray(const V &b) noexcept {
-    this->vcopyTo(b, detail::CopyAssign{});
+    vcopyTo(mview(), b, detail::CopyAssign{});
   }
   TRIVIAL constexpr explicit StaticArray(T x) {
     simd::Vec<W, T> v = simd::vbroadcast<W, T>(x);

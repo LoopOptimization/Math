@@ -360,6 +360,7 @@ template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 struct Elementwise : public Expr<decltype(std::declval<Op>()(
                                    std::declval<utils::eltype_t<A>>())),
                                  Elementwise<A, Op>> {
+  static_assert(AbstractTensor<A>);
   using value_type =
     decltype(std::declval<Op>()(std::declval<utils::eltype_t<A>>()));
   static constexpr bool has_reduction_loop = HasInnerReduction<A>;
@@ -422,8 +423,8 @@ struct ElementwiseBinaryOp
   using concrete = is_concrete_t<A, B>;
   static constexpr bool isvector = AbstractVector<A> || AbstractVector<B>;
   static constexpr bool ismatrix = AbstractMatrix<A> || AbstractMatrix<B>;
-  static constexpr bool can_flatten = CanFlatten<A> && CanFlatten<B>;
-  static constexpr bool is_transposed = IsTransposed<A> && IsTransposed<B>;
+  static constexpr bool can_flatten = can_flatten_together<A, B>();
+  static constexpr bool is_transposed = are_all_transposed<A, B>();
   static_assert(isvector != ismatrix);
 
   [[no_unique_address]] A a_;
@@ -511,9 +512,8 @@ struct Select : public AbstractSelect<C, A, B>,
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
-  static constexpr bool can_flatten = requires {
-    C::can_flatten && A::can_flatten && B::can_flatten;
-  } && C::can_flatten && A::can_flatten && B::can_flatten;
+  static constexpr bool can_flatten = can_flatten_together<A, B, C>();
+  static constexpr bool is_transposed = are_all_transposed<A, B, C>();
   TRIVIAL constexpr auto operator[](auto i) const
     requires LinearlyIndexable<C, bool> &&
              LinearlyIndexableOrConvertible<A, value_type> &&
@@ -553,9 +553,8 @@ struct Conditional
   using value_type = AbstractSelect<C, A, B>::value_type;
   static constexpr bool has_reduction_loop =
     HasInnerReduction<A> || HasInnerReduction<B>;
-  static constexpr bool can_flatten = requires {
-    C::can_flatten && A::can_flatten && B::can_flatten;
-  } && C::can_flatten && A::can_flatten && B::can_flatten;
+  static constexpr bool can_flatten = can_flatten_together<A, B, C>();
+  static constexpr bool is_transposed = are_all_transposed<A, B, C>();
   [[no_unique_address]] Op op_;
 
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type
@@ -659,6 +658,7 @@ struct MatMatMul : public math::Expr<
   using concrete = is_concrete_t<A, B>;
   static constexpr bool has_reduction_loop = true;
   static constexpr bool can_flatten = false; // is order-dependent
+  static constexpr bool is_transposed = are_all_transposed<A, B>();
   static constexpr bool ismata = AbstractMatrix<A>;
   static constexpr bool ismatb = AbstractMatrix<B>;
   static_assert((ismata && (ismatb || ColVector<B>)) ||
@@ -738,8 +738,11 @@ struct MatMatMul : public math::Expr<
     else a_.size() * b_.size();
   }
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
-  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
-    return *this;
+  [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const
+    requires(is_transposed) {
+    auto at{a_.untransposed_view()};
+    auto bt{b_.untransposed_view()};
+    return MatMatMul<decltype(bt), decltype(at)>{bt, at};
   }
   [[nodiscard]] TRIVIAL constexpr auto t() const
     -> Transpose<value_type, MatMatMul> {

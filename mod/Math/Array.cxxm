@@ -448,7 +448,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
         if constexpr (StaticInt<decltype(c)>)
           return Array<U, std::integral_constant<std::ptrdiff_t, c * ratio>>{
             p, {}};
-        else return Array<U, std::ptrdiff_t>{p, c * ratio};
+        else return Array<U, Length<>>{p, length(c * ratio)};
       } else if constexpr (DenseLayout<S>) {
         return Array<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
       } else {
@@ -844,7 +844,7 @@ struct MutArray : Array<T, S, Compress>,
         if constexpr (StaticInt<decltype(c)>)
           return MutArray<U, std::integral_constant<std::ptrdiff_t, c * ratio>>(
             p, std::integral_constant<std::ptrdiff_t, c * ratio>{});
-        else return MutArray<U, std::ptrdiff_t>{p, c * ratio};
+        else return MutArray<U, Length<>>{p, length(c * ratio)};
       } else if constexpr (DenseLayout<S>) {
         return MutArray<U, DenseDims<>>(p, DenseDims(row(r), col(c * ratio)));
       } else {

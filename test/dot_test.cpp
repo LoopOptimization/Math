@@ -45,7 +45,7 @@ int main() {
     StaticArray<int, 2, 2> a{1, 2, 3, 4};
     StaticArray<int, 2, 2> b{2, 3, 4, 5};
     static_assert(StaticArray<int, 2, 2>::can_flatten);
-    static_assert(!are_both_transposed<decltype(a), decltype(b)>());
+    static_assert(!are_all_transposed<decltype(a), decltype(b)>());
     static_assert(can_flatten_together<decltype(a), decltype(b)>());
     static_assert(CanFlatten<decltype(a)>);
     expect(dot(a.flatview(), b.flatview()) == 40); // 1*2 + 2*3 + 3*4 + 4*5 = 40

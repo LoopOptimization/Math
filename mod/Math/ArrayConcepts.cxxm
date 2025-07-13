@@ -4,8 +4,20 @@ export module ArrayConcepts;
 
 export import MatDim;
 import AxisTypes;
+import BaseUtils;
 import std;
+
+template <typename T>
+concept ShouldView = requires(const T &x) {
+  { x.view() } -> utils::TriviallyCopyable;
+};
+
 export namespace math {
+
+template <typename T> TRIVIAL constexpr auto view(const T &x) {
+  if constexpr (ShouldView<T>) return x.view();
+  else return x;
+}
 
 template <typename T, typename S = utils::eltype_t<T>>
 concept LinearlyIndexable = requires(T t, std::ptrdiff_t i) {
@@ -121,38 +133,33 @@ concept IsTransposed = requires {
   { std::remove_cvref_t<T>::is_transposed } -> std::same_as<const bool &>;
 } && std::remove_cvref_t<T>::is_transposed;
 
-template <typename T>
-concept HasUntransposedView = requires(const T &t) { t.untransposed_view(); };
+// template <typename T>
+// concept HasUntransposedView = requires(const T &t) { t.untransposed_view();
+// };
 
 // Default untransposed_view - assumes all types with view() also have
 // untransposed_view()
 template <typename T> TRIVIAL constexpr auto untransposed_view(const T &x) {
-  return x.untransposed_view();
+  if constexpr (IsTransposed<T>) return x.untransposed_view();
+  else return view(x);
 }
 
 // Check if both arrays are transposed (useful for determining when to
 // untranspose both)
-template <typename A, typename B>
-TRIVIAL constexpr auto are_both_transposed() -> bool {
-  if constexpr (
-    requires { std::remove_cvref_t<A>::is_transposed; } &&
-    requires { std::remove_cvref_t<B>::is_transposed; })
-    return std::remove_cvref_t<A>::is_transposed &&
-           std::remove_cvref_t<B>::is_transposed;
-  else return false;
+template <typename... A> TRIVIAL constexpr auto are_all_transposed() -> bool {
+  return (... && (IsTransposed<A> || !AbstractTensor<A>));
 }
 
 // Check if arrays can be flattened for linear operations after dimension
 // checking
-template <typename A, typename B>
-TRIVIAL constexpr auto can_flatten_together() -> bool {
-  return CanFlatten<A> && CanFlatten<B>;
+template <typename... A> TRIVIAL constexpr auto can_flatten_together() -> bool {
+  return (... && (CanFlatten<A> || !AbstractTensor<A>));
 }
 
 // Get flattened view for operations that care about linear order (find_if())
 template <typename T> TRIVIAL constexpr auto flatten_if_possible(const T &x) {
   if constexpr (CanFlatten<T>) return x.flatview();
-  else return x.view();
+  else return view(x);
 }
 
 } // namespace math

@@ -1216,6 +1216,36 @@ struct UnrollRef {
   TRIVIAL constexpr auto operator/=(const auto &x) -> UnrollRef & {
     return (*this) = Unroll<R, C, N, T>(*this) / x;
   }
+  TRIVIAL constexpr auto operator+(const auto &x) -> simd::Unroll<R, C, N, T> {
+    return simd::Unroll<R, C, N, T>(*this) + x;
+  }
+  TRIVIAL constexpr auto operator-(const auto &x) -> simd::Unroll<R, C, N, T> {
+    return simd::Unroll<R, C, N, T>(*this) - x;
+  }
+  TRIVIAL constexpr auto operator*(const auto &x) -> simd::Unroll<R, C, N, T> {
+    return simd::Unroll<R, C, N, T>(*this) * x;
+  }
+  TRIVIAL constexpr auto operator/(const auto &x) -> simd::Unroll<R, C, N, T> {
+    return simd::Unroll<R, C, N, T>(*this) / x;
+  }
+  TRIVIAL constexpr auto operator>(const auto &x) {
+    return simd::Unroll<R, C, N, T>(*this) > x;
+  }
+  TRIVIAL constexpr auto operator<(const auto &x) {
+    return simd::Unroll<R, C, N, T>(*this) < x;
+  }
+  TRIVIAL constexpr auto operator>=(const auto &x) {
+    return simd::Unroll<R, C, N, T>(*this) >= x;
+  }
+  TRIVIAL constexpr auto operator<=(const auto &x) {
+    return simd::Unroll<R, C, N, T>(*this) <= x;
+  }
+  TRIVIAL constexpr auto operator==(const auto &x) {
+    return simd::Unroll<R, C, N, T>(*this) == x;
+  }
+  TRIVIAL constexpr auto operator!=(const auto &x) {
+    return simd::Unroll<R, C, N, T>(*this) != x;
+  }
 };
 template <typename T, std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W,
           typename M, bool Transposed, std::ptrdiff_t X>
