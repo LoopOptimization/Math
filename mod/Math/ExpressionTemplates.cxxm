@@ -268,7 +268,7 @@ public:
         for (std::ptrdiff_t i = 0;; i += W) {
           auto u{simd::index::unrollmask<1, W>(N, i)};
           if (!u) break;
-          if (simd::cmp::ne<W, CT>(a[r, u], b[r, u])) return false;
+          if (simd::cmp::ne<W, CT>(a[r, u], b[r, u]).any()) return false;
         }
       }
     } else {
@@ -279,7 +279,7 @@ public:
       for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
-        if (simd::cmp::ne<W, CT>(a[u], b[u])) return false;
+        if (simd::cmp::ne<W, CT>(a[u], b[u]).any()) return false;
       }
     }
     return true;

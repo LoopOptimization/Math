@@ -634,7 +634,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   TRIVIAL constexpr auto operator==(const StaticArray &other) const -> bool {
     // masks return `true` if `any` are on
     for (std::ptrdiff_t i = 0z; i < M * L; ++i)
-      if (simd::cmp::ne<W, T>(memory_[i], other.memory_[i])) return false;
+      if (simd::cmp::ne<W, T>(memory_[i], other.memory_[i]).any()) return false;
     return true;
   }
   template <std::size_t I>
@@ -867,7 +867,7 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     return {data_};
   }
   TRIVIAL constexpr auto operator==(const StaticArray &other) const -> bool {
-    return bool(simd::cmp::eq<W, T>(data_, other.data_));
+    return simd::cmp::eq<W, T>(data_, other.data_).any();
   }
   template <std::size_t I>
   TRIVIAL [[nodiscard]] constexpr auto get() const -> T {

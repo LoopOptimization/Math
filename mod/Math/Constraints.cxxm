@@ -16,12 +16,12 @@ import std;
 export namespace math {
 inline void printConstraint(PtrVector<std::int64_t> a, std::ptrdiff_t numSyms,
                             bool inequality) {
-  std::ptrdiff_t numVar = a.size();
-  bool hasPrinted = false, allVarNonNegative = allGEZero(a[_(numSyms, numVar)]);
-  std::int64_t sign = allVarNonNegative ? 1 : -1;
-  for (std::ptrdiff_t v = numSyms; v < numVar; ++v) {
+  std::ptrdiff_t num_var = a.size();
+  bool has_printed = false, all_non_neg = allGEZero(a[_(numSyms, num_var)]);
+  std::int64_t sign = all_non_neg ? 1 : -1;
+  for (std::ptrdiff_t v = numSyms; v < num_var; ++v) {
     if (std::int64_t Acv = sign * a[v]) {
-      if (hasPrinted) {
+      if (has_printed) {
         if (Acv > 0) {
           utils::print(" + ");
         } else {
@@ -34,11 +34,11 @@ inline void printConstraint(PtrVector<std::int64_t> a, std::ptrdiff_t numSyms,
         else utils::print(Acv);
       }
       utils::print("v_", v - numSyms);
-      hasPrinted = true;
+      has_printed = true;
     }
   }
-  if (!hasPrinted) utils::print('0');
-  if (inequality) utils::print(allVarNonNegative ? " >= " : " <= ");
+  if (!has_printed) utils::print('0');
+  if (inequality) utils::print(all_non_neg ? " >= " : " <= ");
   else utils::print(" == ");
   utils::print(-sign * a[0]);
 }
@@ -47,28 +47,26 @@ inline void printConstraint(PtrVector<std::int64_t> a, std::ptrdiff_t numSyms,
 /// in which case, we have to remove `currentToOriginalPerm`,
 /// which means either change printing, or move prints `<<` into
 /// the derived classes.
-void printConstraints(DensePtrMatrix<std::int64_t> A,
-                      bool inequality = true);
+void printConstraints(DensePtrMatrix<std::int64_t> A, bool inequality = true);
 
 constexpr void eraseConstraintImpl(MutDensePtrMatrix<std::int64_t> A, Row<> i) {
-  std::ptrdiff_t lastRow = std::ptrdiff_t(A.numRow()) - 1;
-  invariant(i <= lastRow);
-  if (lastRow != i) A[i, _] << A[lastRow, _];
+  std::ptrdiff_t last_row = std::ptrdiff_t(A.numRow()) - 1;
+  invariant(i <= last_row);
+  if (last_row != i) A[i, _] << A[last_row, _];
 }
 constexpr void eraseConstraint(MutDensePtrMatrix<std::int64_t> &A, Row<> i) {
   eraseConstraintImpl(A, i);
   A.truncate(--auto{A.numRow()});
 }
-void eraseConstraintImpl(MutDensePtrMatrix<std::int64_t> A,
-                         std::ptrdiff_t _i, std::ptrdiff_t _j);
+void eraseConstraintImpl(MutDensePtrMatrix<std::int64_t> A, std::ptrdiff_t _i,
+                         std::ptrdiff_t _j);
 constexpr void eraseConstraint(MutDensePtrMatrix<std::int64_t> &A,
                                std::ptrdiff_t i, std::ptrdiff_t j) {
   eraseConstraintImpl(A, i, j);
   A.truncate(row(std::ptrdiff_t(A.numRow()) - 2));
 }
 
-auto substituteEquality(DenseMatrix<std::int64_t> &E, const std::ptrdiff_t i)
-  -> bool;
+auto substituteEquality(DenseMatrix<std::int64_t> &E, std::ptrdiff_t i) -> bool;
 
 constexpr auto substituteEquality(MutDensePtrMatrix<std::int64_t> &,
                                   EmptyMatrix<std::int64_t>, std::ptrdiff_t)
@@ -77,8 +75,8 @@ constexpr auto substituteEquality(MutDensePtrMatrix<std::int64_t> &,
 }
 
 auto substituteEquality(MutDensePtrMatrix<std::int64_t> &A,
-                        MutDensePtrMatrix<std::int64_t> &E,
-                        const std::ptrdiff_t i) -> bool;
+                        MutDensePtrMatrix<std::int64_t> &E, std::ptrdiff_t i)
+  -> bool;
 
 // C = [ I A
 //       0 B ]
@@ -92,19 +90,19 @@ void slackEqualityConstraints(MutPtrMatrix<std::int64_t> C,
 constexpr auto countNonZeroSign(DensePtrMatrix<std::int64_t> A,
                                 std::ptrdiff_t i)
   -> std::array<std::ptrdiff_t, 2> {
-  std::ptrdiff_t numNeg = 0;
-  std::ptrdiff_t numPos = 0;
-  Row numRow = A.numRow();
-  for (std::ptrdiff_t j = 0; j < numRow; ++j) {
+  std::ptrdiff_t num_neg = 0;
+  std::ptrdiff_t num_pos = 0;
+  Row num_row = A.numRow();
+  for (std::ptrdiff_t j = 0; j < num_row; ++j) {
     std::int64_t Aij = A[j, i];
-    numNeg += (Aij < 0);
-    numPos += (Aij > 0);
+    num_neg += (Aij < 0);
+    num_pos += (Aij > 0);
   }
-  return {numNeg, numPos};
+  return {num_neg, num_pos};
 }
 
 /// x == 0 -> 0, x < 0 -> 1, x > 0 -> 2
-inline constexpr auto orderedCmp(auto x) -> std::ptrdiff_t {
+constexpr auto orderedCmp(auto x) -> std::ptrdiff_t {
   return (x < 0) | (2 * (x > 0));
 }
 /// returns three bitsets, indicating indices that are 0, negative, and positive
@@ -120,8 +118,7 @@ static_assert(sizeof(std::array<Vector<unsigned, 4>, 2>) == 80);
 
 template <bool NonNegative>
 auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
-                        DensePtrMatrix<std::int64_t> A,
-                        std::ptrdiff_t v,
+                        DensePtrMatrix<std::int64_t> A, std::ptrdiff_t v,
                         std::array<containers::BitSet64, 3> znp) -> Row<>;
 
 // template <bool nonnegative>
@@ -130,21 +127,25 @@ auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
 //   -> mutdenseptrmatrix<std::int64_t>;
 
 // Explicit instantiation declarations
-extern template auto fourierMotzkinCore<true>(MutDensePtrMatrix<std::int64_t> B,
-                                       DensePtrMatrix<std::int64_t> A,
-                                       std::ptrdiff_t v,
-                                       std::array<containers::BitSet64, 3> znp) -> Row<>;
+extern template auto
+fourierMotzkinCore<true>(MutDensePtrMatrix<std::int64_t> B,
+                         DensePtrMatrix<std::int64_t> A, std::ptrdiff_t v,
+                         std::array<containers::BitSet64, 3> znp) -> Row<>;
 
-extern template auto fourierMotzkinCore<false>(MutDensePtrMatrix<std::int64_t> B,
-                                        DensePtrMatrix<std::int64_t> A,
-                                        std::ptrdiff_t v,
-                                        std::array<containers::BitSet64, 3> znp) -> Row<>;
+extern template auto
+fourierMotzkinCore<false>(MutDensePtrMatrix<std::int64_t> B,
+                          DensePtrMatrix<std::int64_t> A, std::ptrdiff_t v,
+                          std::array<containers::BitSet64, 3> znp) -> Row<>;
 
 // extern template auto fourierMotzkin<true>(Alloc<std::int64_t> auto &alloc,
-//                                    DensePtrMatrix<std::int64_t> A, std::ptrdiff_t v)  -> MutDensePtrMatrix<std::int64_t>;
+//                                    DensePtrMatrix<std::int64_t> A,
+//                                    std::ptrdiff_t v)  ->
+//                                    MutDensePtrMatrix<std::int64_t>;
 
 // extern template auto fourierMotzkin<false>(Alloc<std::int64_t> auto &alloc,
-//                                     DensePtrMatrix<std::int64_t> A, std::ptrdiff_t v)  -> MutDensePtrMatrix<std::int64_t>;
+//                                     DensePtrMatrix<std::int64_t> A,
+//                                     std::ptrdiff_t v)  ->
+//                                     MutDensePtrMatrix<std::int64_t>;
 
 void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
                         std::array<std::ptrdiff_t, 2> negPos);
@@ -176,28 +177,17 @@ dropEmptyConstraints(MutDensePtrMatrix<std::int64_t> &A) {
     if (allZero(A[--c, _])) eraseConstraint(A, c);
 }
 
-constexpr auto uniqueConstraint(DensePtrMatrix<std::int64_t> A,
-                                std::ptrdiff_t C) -> bool {
-  for (std::ptrdiff_t c = 0; c < C; ++c) {
-    bool allEqual = true;
-    for (std::ptrdiff_t r = 0; r < A.numCol(); ++r)
-      allEqual &= (A[c, r] == A[C, r]);
-    if (allEqual) return false;
-  }
-  return true;
-}
-
 TRIVIAL constexpr auto countSigns(DensePtrMatrix<std::int64_t> A,
                                   std::ptrdiff_t i)
   -> std::array<std::ptrdiff_t, 2> {
-  std::ptrdiff_t numNeg = 0;
-  std::ptrdiff_t numPos = 0;
+  std::ptrdiff_t num_neg = 0;
+  std::ptrdiff_t num_pos = 0;
   for (std::ptrdiff_t j = 0; j < A.numRow(); ++j) {
     std::int64_t Aij = A[j, i];
-    numNeg += (Aij < 0);
-    numPos += (Aij > 0);
+    num_neg += (Aij < 0);
+    num_pos += (Aij > 0);
   }
-  return {numNeg, numPos};
+  return {num_neg, num_pos};
 }
 
 TRIVIAL constexpr void deleteBounds(MutDensePtrMatrix<std::int64_t> &A,

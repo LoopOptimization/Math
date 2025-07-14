@@ -544,12 +544,12 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k,
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
       simd::Vec<W, std::int64_t> Ail =
-        vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
+        (vAjk * B[i, u].vec_) - (vAik * B[j, u].vec_);
       A[i, u] = Ail;
       vg = gcd<W>(Ail, vg);
       l += W;
       // if none are `> 1`, we break and take the route that skips gcd
-      if (!bool(simd::cmp::gt<W, std::int64_t>(vg, one))) break;
+      if (!simd::cmp::gt<W, std::int64_t>(vg, one).any()) break;
     }
   }
   if (l < L) {
@@ -557,9 +557,9 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k,
     for (;; l += W) {
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
-      A[i, u] = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
+      A[i, u] = (vAjk * B[i, u].vec_) - (vAik * B[j, u].vec_);
     }
-  } else if (simd::cmp::gt<W, std::int64_t>(vg, one)) {
+  } else if (simd::cmp::gt<W, std::int64_t>(vg, one).any()) {
     // gcd isn't one, so we can scale
     g = gcdreduce<W>(vg);
     if (g > 1) {
@@ -595,12 +595,12 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
       simd::Vec<W, std::int64_t> Ail =
-        vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
+        (vAjk * B[i, u].vec_) - (vAik * B[j, u].vec_);
       A[i, u] = Ail;
       vg = gcd<W>(Ail, vg);
       l += W;
       // if none are `> 1`, we break and take the route that skips gcd
-      if (!bool(simd::cmp::gt<W, std::int64_t>(vg, one))) break;
+      if (!simd::cmp::gt<W, std::int64_t>(vg, one).any()) break;
     }
   }
   if (l < L) {
@@ -608,9 +608,9 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
     for (;; l += W) {
       auto u{simd::index::unrollmask<1, W>(L, l)};
       if (!u) break;
-      A[i, u] = vAjk * B[i, u].vec_ - vAik * B[j, u].vec_;
+      A[i, u] = (vAjk * B[i, u].vec_) - (vAik * B[j, u].vec_);
     }
-  } else if (simd::cmp::gt<W, std::int64_t>(vg, one)) {
+  } else if (simd::cmp::gt<W, std::int64_t>(vg, one).any()) {
     // gcd isn't one, so we can scale
     if (g = gcdreduce<W>(vg); g > 1) {
       for (std::ptrdiff_t ll = 0; ll < L; ++ll)

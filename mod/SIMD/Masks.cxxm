@@ -155,9 +155,9 @@ template <std::ptrdiff_t W> struct None {
 #ifdef __AVX512F__
 template <std::ptrdiff_t W> struct Bit {
   std::uint64_t mask_;
-  template <std::unsigned_integral U> TRIVIAL explicit constexpr operator U() {
-    return U(mask_);
-  }
+  // template <std::unsigned_integral U> TRIVIAL explicit constexpr operator U() {
+  //   return U(mask_);
+  // }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool { return mask_; }
   /// Returns the first `idx` where the mask bit is `0`
   TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {

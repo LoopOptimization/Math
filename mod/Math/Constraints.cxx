@@ -15,47 +15,47 @@ import std;
 
 namespace math {
 
-auto substituteEqualityImpl(MutDensePtrMatrix<std::int64_t> E,
-                            const std::ptrdiff_t i) -> Row<> {
+auto substituteEqualityImpl(MutDensePtrMatrix<std::int64_t> E, std::ptrdiff_t i)
+  -> Row<> {
   const auto [numConstraints, numVar] = shape(E);
-  std::ptrdiff_t minNonZero = numVar + 1;
-  std::ptrdiff_t rowMinNonZero = numConstraints;
+  std::ptrdiff_t min_non_zero = numVar + 1;
+  std::ptrdiff_t row_min_non_zero = numConstraints;
   for (std::ptrdiff_t j = 0; j < numConstraints; ++j)
     if (E[j, i]) {
-      std::ptrdiff_t nonZero = 0;
-      for (std::ptrdiff_t v = 0; v < numVar; ++v) nonZero += (E[j, v] != 0);
-      if (nonZero < minNonZero) {
-        minNonZero = nonZero;
-        rowMinNonZero = j;
+      std::ptrdiff_t non_zero = 0;
+      for (std::ptrdiff_t v = 0; v < numVar; ++v) non_zero += (E[j, v] != 0);
+      if (non_zero < min_non_zero) {
+        min_non_zero = non_zero;
+        row_min_non_zero = j;
       }
     }
-  if (rowMinNonZero == numConstraints) return row(rowMinNonZero);
-  auto Es = E[rowMinNonZero, _];
+  if (row_min_non_zero == numConstraints) return row(row_min_non_zero);
+  auto Es = E[row_min_non_zero, _];
   std::int64_t Eis = Es[i];
   // we now substitute the equality expression with the minimum number
   // of terms.
   if (constexpr_abs(Eis) == 1) {
     for (std::ptrdiff_t j = 0; j < numConstraints; ++j) {
-      if (j == rowMinNonZero) continue;
+      if (j == row_min_non_zero) continue;
       if (std::int64_t Eij = E[j, i]) E[j, _] << Eis * E[j, _] - Eij * Es;
     }
   } else {
     for (std::ptrdiff_t j = 0; j < numConstraints; ++j) {
-      if (j == rowMinNonZero) continue;
+      if (j == row_min_non_zero) continue;
       if (std::int64_t Eij = E[j, i]) {
         std::int64_t g = gcd(Eij, Eis);
         E[j, _] << (Eis / g) * E[j, _] - (Eij / g) * Es;
       }
     }
   }
-  return row(rowMinNonZero);
+  return row(row_min_non_zero);
 }
 
-auto substituteEquality(DenseMatrix<std::int64_t> &E, const std::ptrdiff_t i)
+auto substituteEquality(DenseMatrix<std::int64_t> &E, std::ptrdiff_t i)
   -> bool {
-  Row minNonZero = substituteEqualityImpl(E, i);
-  if (minNonZero == E.numRow()) return true;
-  eraseConstraint(E, minNonZero);
+  Row min_non_zero = substituteEqualityImpl(E, i);
+  if (min_non_zero == E.numRow()) return true;
+  eraseConstraint(E, min_non_zero);
   return false;
 }
 
@@ -64,21 +64,21 @@ auto substituteEqualityPairImpl(
   -> Row<> {
   auto [A, E] = AE;
   const auto [numConstraints, numVar] = shape(E);
-  std::ptrdiff_t minNonZero = numVar + 1;
-  std::ptrdiff_t rowMinNonZero = numConstraints;
+  std::ptrdiff_t min_non_zero = numVar + 1;
+  std::ptrdiff_t row_min_non_zero = numConstraints;
   for (std::ptrdiff_t j = 0; j < numConstraints; ++j) {
     if (E[j, i]) {
-      std::ptrdiff_t nonZero = 0;
-      for (std::ptrdiff_t v = 0; v < numVar; ++v) nonZero += (E[j, v] != 0);
-      if (nonZero < minNonZero) {
-        minNonZero = nonZero;
-        rowMinNonZero = j;
+      std::ptrdiff_t non_zero = 0;
+      for (std::ptrdiff_t v = 0; v < numVar; ++v) non_zero += (E[j, v] != 0);
+      if (non_zero < min_non_zero) {
+        min_non_zero = non_zero;
+        row_min_non_zero = j;
       }
     }
   }
-  if (rowMinNonZero == numConstraints) return row(rowMinNonZero);
-  auto Es = E[rowMinNonZero, _];
-  std::int64_t Eis = Es[i], s = 2 * (Eis > 0) - 1;
+  if (row_min_non_zero == numConstraints) return row(row_min_non_zero);
+  auto Es = E[row_min_non_zero, _];
+  std::int64_t Eis = Es[i], s = (2 * (Eis > 0)) - 1;
   // we now substitute the equality expression with the minimum number
   // of terms.
   if (constexpr_abs(Eis) == 1) {
@@ -86,7 +86,7 @@ auto substituteEqualityPairImpl(
       if (std::int64_t Aij = A[j, i])
         A[j, _] << (s * Eis) * A[j, _] - (s * Aij) * Es;
     for (std::ptrdiff_t j = 0; j < numConstraints; ++j) {
-      if (j == rowMinNonZero) continue;
+      if (j == row_min_non_zero) continue;
       if (std::int64_t Eij = E[j, i]) E[j, _] << Eis * E[j, _] - Eij * Es;
     }
   } else {
@@ -99,23 +99,23 @@ auto substituteEqualityPairImpl(
       }
     }
     for (std::ptrdiff_t j = 0; j < numConstraints; ++j) {
-      if (j == rowMinNonZero) continue;
+      if (j == row_min_non_zero) continue;
       if (std::int64_t Eij = E[j, i]) {
         std::int64_t g = gcd(Eij, Eis);
         E[j, _] << (Eis / g) * E[j, _] - (Eij / g) * Es;
       }
     }
   }
-  return row(rowMinNonZero);
+  return row(row_min_non_zero);
 }
 
 auto substituteEquality(MutDensePtrMatrix<std::int64_t> &A,
                         MutDensePtrMatrix<std::int64_t> &E,
                         const std::ptrdiff_t i) -> bool {
 
-  Row minNonZero = substituteEqualityPairImpl({A, E}, i);
-  if (minNonZero == E.numRow()) return true;
-  eraseConstraint(E, minNonZero);
+  Row min_non_zero = substituteEqualityPairImpl({A, E}, i);
+  if (min_non_zero == E.numRow()) return true;
+  eraseConstraint(E, min_non_zero);
   return false;
 }
 
@@ -126,46 +126,45 @@ void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
   // read from two constraints we're deleting; we can't write into
   // both of them. Thus, we use a little extra memory here,
   // and then truncate.
-  const Row numRowsOld = A.numRow(),
-            numRowsNew = row(std::ptrdiff_t(numRowsOld) - numNeg - numPos +
-                             numNeg * numPos + 1);
-  A.resize(numRowsNew);
+  Row num_rows_old = A.numRow(),
+      num_rows_new = row(std::ptrdiff_t(num_rows_old) - numNeg - numPos +
+                         (numNeg * numPos) + 1);
+  A.resize(num_rows_new);
   // plan is to replace
-  for (std::ptrdiff_t i = 0, numRows = std::ptrdiff_t(numRowsOld),
-                      posCount = numPos;
-       posCount; ++i) {
+  for (std::ptrdiff_t i = 0, num_rows = std::ptrdiff_t(num_rows_old),
+                      pos_count = numPos;
+       pos_count; ++i) {
     std::int64_t Aiv = A[i, v];
     if (Aiv <= 0) continue;
-    --posCount;
-    for (std::ptrdiff_t negCount = numNeg, j = 0; negCount; ++j) {
+    --pos_count;
+    for (std::ptrdiff_t neg_count = numNeg, j = 0; neg_count; ++j) {
       std::int64_t Ajv = A[j, v];
       if (Ajv >= 0) continue;
       // for the last `negCount`, we overwrite `A(i, k)`
       // last posCount does not get overwritten
-      --negCount;
-      std::ptrdiff_t c =
-        posCount ? (negCount ? numRows++ : std::ptrdiff_t(i)) : j;
+      --neg_count;
+      std::ptrdiff_t c = pos_count ? (neg_count ? num_rows++ : i) : j;
       std::int64_t Ai = Aiv, Aj = Ajv;
       std::int64_t g = gcd(Aiv, Ajv);
       if (g != 1) {
         Ai /= g;
         Aj /= g;
       }
-      bool allZero = true;
+      bool all_zero = true;
       for (std::ptrdiff_t k = 0; k < A.numCol(); ++k) {
-        std::int64_t Ack = Ai * A[j, k] - Aj * A[i, k];
+        std::int64_t Ack = (Ai * A[j, k]) - (Aj * A[i, k]);
         A[c, k] = Ack;
-        allZero &= (Ack == 0);
+        all_zero &= (Ack == 0);
       }
-      if (allZero) {
+      if (all_zero) {
         eraseConstraint(A, row(c));
-        if (posCount)
-          if (negCount) --numRows;
+        if (pos_count)
+          if (neg_count) --num_rows;
           else --i;
         else --j;
       }
     }
-    if (posCount == 0) // last posCount not overwritten, so we erase
+    if (pos_count == 0) // last posCount not overwritten, so we erase
       eraseConstraint(A, row(i));
   }
 }
@@ -173,10 +172,10 @@ void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
 void fourierMotzkin(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v) {
   invariant(v < A.numCol());
   const auto [numNeg, numPos] = countNonZeroSign(A, v);
-  const Row numRowsOld = A.numRow();
+  const Row num_rows_old = A.numRow();
   if ((numNeg == 0) | (numPos == 0)) {
     if ((numNeg == 0) & (numPos == 0)) return;
-    for (Row i = numRowsOld; i != 0;)
+    for (Row i = num_rows_old; i != 0;)
       if (A[--i, v]) eraseConstraint(A, i);
     return;
   }
@@ -197,8 +196,8 @@ auto removeRedundantRows(MutDensePtrMatrix<std::int64_t> A,
 }
 
 void printConstraints(DensePtrMatrix<std::int64_t> A, bool inequality) {
-  Row numConstraints = A.numRow();
-  for (std::ptrdiff_t c = 0; c < numConstraints; ++c) {
+  Row num_constraints = A.numRow();
+  for (std::ptrdiff_t c = 0; c < num_constraints; ++c) {
     printConstraint(A[c, _], 1, inequality);
     utils::print('\n');
   }
@@ -209,17 +208,16 @@ void eraseConstraintImpl(MutDensePtrMatrix<std::int64_t> A, std::ptrdiff_t _i,
   invariant(_i != _j);
   std::ptrdiff_t i = std::min(_i, _j), j = std::max(_i, _j);
   const auto [M, N] = shape(A);
-  std::ptrdiff_t lastRow = M - 1;
-  std::ptrdiff_t penuRow = lastRow - 1;
-  if (j == penuRow) {
+  std::ptrdiff_t last_row = M - 1, penu_row = last_row - 1;
+  if (j == penu_row) {
     // then we only need to copy one column (i to lastCol)
     eraseConstraintImpl(A, row(i));
-  } else if ((i != penuRow) && (i != lastRow)) {
+  } else if ((i != penu_row) && (i != last_row)) {
     // if i == penuCol, then j == lastCol
     // and we thus don't need to copy
     for (std::ptrdiff_t n = 0; n < N; ++n) {
-      A[i, n] = A[penuRow, n];
-      A[j, n] = A[lastRow, n];
+      A[i, n] = A[penu_row, n];
+      A[j, n] = A[last_row, n];
     }
   }
 }
@@ -227,39 +225,39 @@ void eraseConstraintImpl(MutDensePtrMatrix<std::int64_t> A, std::ptrdiff_t _i,
 void slackEqualityConstraints(MutPtrMatrix<std::int64_t> C,
                               PtrMatrix<std::int64_t> A,
                               PtrMatrix<std::int64_t> B) {
-  const Col numVar = A.numCol();
-  invariant(numVar, B.numCol());
-  const Row numSlack = A.numRow(), numStrict = B.numRow();
-  invariant(C.numRow(), numSlack + numStrict);
-  std::ptrdiff_t slackAndVar =
-    std::ptrdiff_t(numSlack) + std::ptrdiff_t(numVar);
-  invariant(std::ptrdiff_t(C.numCol()), slackAndVar);
+  const Col num_var = A.numCol();
+  invariant(num_var, B.numCol());
+  const Row num_slack = A.numRow(), num_strict = B.numRow();
+  invariant(C.numRow(), num_slack + num_strict);
+  std::ptrdiff_t slack_and_var =
+    std::ptrdiff_t(num_slack) + std::ptrdiff_t(num_var);
+  invariant(std::ptrdiff_t(C.numCol()), slack_and_var);
   // [I A]
-  for (std::ptrdiff_t s = 0; s < numSlack; ++s) {
-    C[s, _(begin, numSlack)] << 0;
+  for (std::ptrdiff_t s = 0; s < num_slack; ++s) {
+    C[s, _(begin, num_slack)] << 0;
     C[s, s] = 1;
-    C[s, _(numSlack, slackAndVar)] << A[s, _(begin, numVar)];
+    C[s, _(num_slack, slack_and_var)] << A[s, _(begin, num_var)];
   }
   // [0 B]
-  for (std::ptrdiff_t s = 0; s < numStrict; ++s) {
-    C[s + std::ptrdiff_t(numSlack), _(begin, numSlack)] << 0;
-    C[s + std::ptrdiff_t(numSlack), _(numSlack, slackAndVar)]
-      << B[s, _(begin, numVar)];
+  for (std::ptrdiff_t s = 0; s < num_strict; ++s) {
+    C[s + std::ptrdiff_t(num_slack), _(begin, num_slack)] << 0;
+    C[s + std::ptrdiff_t(num_slack), _(num_slack, slack_and_var)]
+      << B[s, _(begin, num_var)];
   }
 }
 
 void slackEqualityConstraints(MutPtrMatrix<std::int64_t> C,
                               PtrMatrix<std::int64_t> A) {
-  const Col numVar = A.numCol();
-  const Row numSlack = A.numRow();
-  std::ptrdiff_t slackAndVar =
-    std::ptrdiff_t(numSlack) + std::ptrdiff_t(numVar);
-  invariant(std::ptrdiff_t(C.numCol()), slackAndVar);
+  const Col num_var = A.numCol();
+  const Row num_slack = A.numRow();
+  std::ptrdiff_t slack_and_var =
+    std::ptrdiff_t(num_slack) + std::ptrdiff_t(num_var);
+  invariant(std::ptrdiff_t(C.numCol()), slack_and_var);
   // [I A]
-  for (std::ptrdiff_t s = 0; s < numSlack; ++s) {
-    C[s, _(begin, numSlack)] << 0;
+  for (std::ptrdiff_t s = 0; s < num_slack; ++s) {
+    C[s, _(begin, num_slack)] << 0;
     C[s, s] = 1;
-    C[s, _(numSlack, slackAndVar)] << A[s, _(begin, numVar)];
+    C[s, _(num_slack, slack_and_var)] << A[s, _(begin, num_var)];
   }
 }
 
@@ -276,11 +274,11 @@ auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
   // we have the additional v >= 0
   if constexpr (NonNegative)
     invariant(B.numRow() == std::ptrdiff_t(A.numRow()) - pos.size() +
-                              std::ptrdiff_t(neg.size()) * pos.size());
+                              (std::ptrdiff_t(neg.size()) * pos.size()));
   else
     invariant(B.numRow() == std::ptrdiff_t(A.numRow()) - pos.size() -
                               neg.size() +
-                              std::ptrdiff_t(neg.size()) * pos.size());
+                              (std::ptrdiff_t(neg.size()) * pos.size()));
   invariant(++auto{B.numCol()}, A.numCol());
   std::ptrdiff_t r = 0;
   // x - v >= 0 -> x >= v

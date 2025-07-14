@@ -377,7 +377,7 @@ TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y)
   if constexpr (std::same_as<T, double>) {
     __m512d xd = std::bit_cast<__m512d>(x), yd = std::bit_cast<__m512d>(y);
     return std::bit_cast<Vec<8, T>>(
-      _mm512_mask_mov_pd(yd, std::uint8_t(m), xd));
+      _mm512_mask_mov_pd(yd, std::uint8_t(m.mask_), xd));
   } else if constexpr (sizeof(T) == 8) {
     __m512i xi = std::bit_cast<__m512i>(x), yi = std::bit_cast<__m512i>(y);
     return std::bit_cast<Vec<8, T>>(
@@ -386,7 +386,7 @@ TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y)
   } else if constexpr (std::same_as<T, float>) {
     __m256 xf = std::bit_cast<__m256>(x), yf = std::bit_cast<__m256>(y);
     return std::bit_cast<Vec<8, T>>(
-      _mm256_mask_mov_ps(yf, std::uint8_t(m), xf));
+      _mm256_mask_mov_ps(yf, std::uint8_t(m.mask_), xf));
   } else if constexpr (sizeof(T) == 4) {
     __m256i xi = std::bit_cast<__m256i>(x), yi = std::bit_cast<__m256i>(y);
     return std::bit_cast<Vec<8, T>>(
@@ -401,7 +401,7 @@ TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, T> x, Vec<16, T> y)
   if constexpr (std::same_as<T, float>) {
     __m512 xf = std::bit_cast<__m512>(x), yf = std::bit_cast<__m512>(y);
     return std::bit_cast<Vec<16, T>>(
-      _mm512_mask_mov_ps(yf, std::uint16_t(m), xf));
+      _mm512_mask_mov_ps(yf, std::uint16_t(m.mask_), xf));
   } else if constexpr (sizeof(T) == 4) {
     __m512i xi = std::bit_cast<__m512i>(x), yi = std::bit_cast<__m512i>(y);
     return std::bit_cast<Vec<16, T>>(
@@ -822,14 +822,14 @@ TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, T> x, Vec<4, T> y)
   -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<4, T>>(_mm256_mask_mov_pd(
-      std::bit_cast<__m256d>(y), std::uint8_t(m), std::bit_cast<__m256d>(x)));
+      std::bit_cast<__m256d>(y), std::uint8_t(m.mask_), std::bit_cast<__m256d>(x)));
   else if constexpr (sizeof(T) == 8)
     return std::bit_cast<Vec<4, T>>(
       _mm256_mask_mov_epi64(std::bit_cast<__m256i>(y), std::uint8_t(m.mask_),
                             std::bit_cast<__m256i>(x)));
   else if constexpr (std::same_as<T, float>)
     return std::bit_cast<Vec<4, T>>(_mm_mask_mov_ps(
-      std::bit_cast<__m128>(y), std::uint8_t(m), std::bit_cast<__m128>(x)));
+      std::bit_cast<__m128>(y), std::uint8_t(m.mask_), std::bit_cast<__m128>(x)));
   else if constexpr (sizeof(T) == 4)
     return std::bit_cast<Vec<4, T>>(
       _mm_mask_mov_epi32(std::bit_cast<__m128i>(y), std::uint8_t(m.mask_),
@@ -841,7 +841,7 @@ TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, T> x, Vec<2, T> y)
   -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
     return std::bit_cast<Vec<2, T>>(_mm_mask_mov_pd(
-      std::bit_cast<__m128d>(y), std::uint8_t(m), std::bit_cast<__m128d>(x)));
+      std::bit_cast<__m128d>(y), std::uint8_t(m.mask_), std::bit_cast<__m128d>(x)));
   else if constexpr (sizeof(T) == 8)
     return std::bit_cast<Vec<2, T>>(
       _mm_mask_mov_epi64(std::bit_cast<__m128i>(y), std::uint8_t(m.mask_),

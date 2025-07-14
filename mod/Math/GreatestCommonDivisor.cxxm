@@ -47,15 +47,15 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
   constexpr simd::Vec<W, std::int64_t> invalid =
     zero + std::numeric_limits<std::int64_t>::min();
 
-  invariant(!bool(simd::cmp::eq<W, std::int64_t>(x, invalid)));
-  invariant(!bool(simd::cmp::eq<W, std::int64_t>(y, invalid)));
+  invariant(!(simd::cmp::eq<W, std::int64_t>(x, invalid)).any());
+  invariant(!(simd::cmp::eq<W, std::int64_t>(y, invalid)).any());
   simd::Vec<W, std::int64_t> b = constexpr_abs<W, std::int64_t>(y),
                              a = constexpr_abs<W, std::int64_t>(x),
                              bz = simd::crz<W, std::int64_t>(y),
                              az = simd::crz<W, std::int64_t>(x);
   auto on = ((a > 1) & (b > 1));
   simd::Vec<W, std::int64_t> offb = (x == 0 ? b : (y == 0 ? a : one));
-  if (!bool(simd::cmp::ne<W, std::int64_t>(on, zero))) return offb;
+  if (!(simd::cmp::ne<W, std::int64_t>(on, zero)).any()) return offb;
   b = on ? (b >> bz) : offb;
   simd::Vec<W, std::int64_t> k = on ? (az > bz ? bz : az) : zero;
   for (;;) {
@@ -64,7 +64,7 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
     az = simd::crz<W, std::int64_t>(d);
     b = (on & (a <= b)) ? a : b;
     on = on ? (d != zero) : on;
-    if (!bool(simd::cmp::ne<W, std::int64_t>(on, zero))) break;
+    if (!(simd::cmp::ne<W, std::int64_t>(on, zero)).any()) break;
     a = constexpr_abs<W, std::int64_t>(d);
   }
   return b << k;
