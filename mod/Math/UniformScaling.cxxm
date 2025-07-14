@@ -14,7 +14,8 @@ import BaseUtils;
 export namespace math {
 
 template <class T> struct UniformScaling {
-  using value_type = T;
+  using value_type =
+    std::conditional_t<std::is_empty_v<T>, utils::eltype_t<T>, T>;
   T value_;
   TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const

@@ -65,7 +65,7 @@ template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
 }
 
 TRIVIAL constexpr auto norm2(const auto &a) {
-  decltype(a[0] * a[0] + a[1] * a[1]) s{};
+  decltype((a[0] * a[0]) + (a[1] * a[1])) s{};
   for (auto x : a) {
     POLYMATHFAST
     s += abs2(x, x);
@@ -84,7 +84,7 @@ TRIVIAL constexpr auto dot(const A &a_arg, const B &b_arg)
     const auto a = a_arg.view();
     const auto b = b_arg.view();
     auto L = check_sizes(a.size(), b.size());
-    using T = decltype(a[0] * b[0] + a[1] * b[1]);
+    using T = decltype((a[1] * b[1]) + (a[0] * b[0]));
 
     if constexpr (simd::SIMDSupported<std::remove_cvref_t<decltype(a[0])>>) {
       constexpr std::ptrdiff_t W =

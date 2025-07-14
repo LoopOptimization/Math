@@ -94,7 +94,7 @@ NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
                    decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
-      return bool(v != simd::Vec<W, T>{});
+      return (v != simd::Vec<W, T>{}).any();
     });
   else return any(A, [](T x) -> bool { return x != T{}; });
 }
@@ -105,7 +105,7 @@ NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
                    decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
-      return bool(v < simd::Vec<W, T>{});
+      return (v < simd::Vec<W, T>{}).any();
     });
   else return any(A, [](T x) -> bool { return x < T{}; });
 }
@@ -116,7 +116,7 @@ NODEBUG constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
                    decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
     return any(A, [](simd::Unroll<1, 1, W, T> v) -> bool {
-      return bool(v > simd::Vec<W, T>{});
+      return (v > simd::Vec<W, T>{}).any();
     });
   else return any(A, [](T x) -> bool { return x > T{}; });
 }
@@ -155,11 +155,11 @@ find_if(const AbstractTensor auto &A_arg, const auto &f) -> std::ptrdiff_t {
           std::ptrdiff_t L = W * fulliter;
           for (std::ptrdiff_t i = 0; i < L; i += W) {
             auto mask = f(A[r, simd::index::Unroll<1, W>{i}]);
-            if (mask) return r * N + i + mask.onBegin();
+            if (mask.any()) return (r * N) + i + mask.onBegin();
           }
           if constexpr (remainder > 0) {
             auto mask = f(A[r, simd::index::unrollmask<1, W>(N, L)]);
-            if (mask) return r * N + L + mask.onBegin();
+            if (mask.any()) return (r * N) + L + mask.onBegin();
           }
         }
       } else {
@@ -169,7 +169,7 @@ find_if(const AbstractTensor auto &A_arg, const auto &f) -> std::ptrdiff_t {
             auto u{simd::index::unrollmask<1, W>(N, i)};
             if (!u) break;
             auto mask = f(A[r, u]);
-            if (mask) return r * N + i + mask.onBegin();
+            if (mask) return (r * N) + i + mask.onBegin();
           }
         }
       }
@@ -184,11 +184,11 @@ find_if(const AbstractTensor auto &A_arg, const auto &f) -> std::ptrdiff_t {
       std::ptrdiff_t K = W * fulliter;
       for (std::ptrdiff_t i = 0; i < K; i += W) {
         auto mask = f(A[simd::index::Unroll<1, W>{i}]);
-        if (mask) return i + mask.onBegin();
+        if (mask.any()) return i + mask.onBegin();
       }
       if constexpr (remainder > 0) {
         auto mask = f(A[simd::index::unrollmask<1, W>(L, K)]);
-        if (mask) return K + mask.onBegin();
+        if (mask.any()) return K + mask.onBegin();
       }
     } else {
       constexpr std::ptrdiff_t W = simd::Width<T>;
@@ -196,14 +196,13 @@ find_if(const AbstractTensor auto &A_arg, const auto &f) -> std::ptrdiff_t {
       for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
-        auto mask = f(A[u]);
-        if (mask) return i + mask.onBegin();
+        if (auto mask = f(A[u]); mask.any()) return i + mask.onBegin();
       }
     }
   } else if constexpr (AbstractMatrix<TA>) {
     for (std::ptrdiff_t r = 0; r < M; ++r)
       for (std::ptrdiff_t i = 0; i < N; ++i)
-        if (f(A[r, i])) return r * N + i;
+        if (f(A[r, i])) return (r * N) + i;
   } else {
     std::ptrdiff_t L = RowVector<TA> ? N : M;
     for (std::ptrdiff_t i = 0; i < L; ++i)

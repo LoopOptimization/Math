@@ -50,14 +50,14 @@ struct Unroll {
   }
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c)
     -> VT & {
-    return data_[r * C + c];
+    return data_[(r * C) + c];
   }
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> VT {
     return data_[i];
   }
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const
     -> VT {
-    return data_[r * C + c];
+    return data_[(r * C) + c];
   }
   template <typename U>
   TRIVIAL constexpr operator Unroll<R, C, N, U>() const
@@ -135,27 +135,64 @@ private:
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop(a, b, std::plus<>{});
+    return applyop<false>(a, b, std::plus<>{});
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop(a, b, std::minus<>{});
+    return applyop<false>(a, b, std::minus<>{});
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
-    return applyop(a, b, std::multiplies<>{});
+    return applyop<false>(a, b, std::multiplies<>{});
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
-    return applyop(a, b, std::divides<>{});
+    return applyop<false>(a, b, std::divides<>{});
+  }
+
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator==(Unroll a,
+                                           const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x == y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator!=(Unroll a,
+                                           const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x != y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator<(Unroll a,
+                                          const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x < y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator>(Unroll a,
+                                          const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x > y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator<=(Unroll a,
+                                           const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x <= y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator>=(Unroll a,
+                                           const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x >= y; });
   }
 
   TRIVIAL friend constexpr auto operator+(Unroll a, VT b) -> Unroll {
@@ -244,8 +281,8 @@ private:
     return vbroadcast<W, T>(b) / a;
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
-            typename T1, typename Op>
+  template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1,
+            std::ptrdiff_t W1, typename T1, typename Op>
   TRIVIAL friend constexpr auto applyop(Unroll a, Unroll<R1, C1, W1, T1> b,
                                         Op op) {
     // Possibilities:
@@ -255,21 +292,26 @@ private:
     // In the latter case, we could have arrays indexed by rows, cols, or both.
     if constexpr (!std::same_as<T, T1>) {
       using PT = std::common_type_t<T, T1>;
-      return applyop(Unroll<R, C, W, PT>(a), Unroll<R1, C1, W1, PT>(b), op);
+      return applyop<IsMask>(Unroll<R, C, W, PT>(a), Unroll<R1, C1, W1, PT>(b),
+                             op);
     } else if constexpr (W == W1) {
       // both were indexed by cols, and `C2`s should also match
       // or neither were, and they should still match.
       static_assert(C == C1);
       if constexpr (R == R1) {
         // Both have the same index across rows
-        Unroll<R, C, W, T> c;
+        std::conditional_t<IsMask, mask::Unroll<R, C, W, sizeof(T)>,
+                           Unroll<R, C, W, T>>
+          c;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t i = 0; i < R * C; ++i)
           c.data_[i] = op(a.data_[i], b.data_[i]);
         return c;
       } else if constexpr (R == 1) { // R1 > 0
         // `a` was indexed across cols only
-        Unroll<R1, C, W, T> z;
+        std::conditional_t<IsMask, mask::Unroll<R1, C, W, sizeof(T)>,
+                           Unroll<R1, C, W, T>>
+          z;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R1; ++r) {
           POLYMATHFULLUNROLL
@@ -280,7 +322,9 @@ private:
       } else {
         static_assert(R1 == 1); // R > 0
         // `b` was indexed across cols only
-        Unroll<R, C, W, T> z;
+        std::conditional_t<IsMask, mask::Unroll<R, C, W, sizeof(T)>,
+                           Unroll<R, C, W, T>>
+          z;
         if constexpr (C == 1) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t r = 0; r < R; ++r)
@@ -299,7 +343,9 @@ private:
       static_assert(R == 1 || C == 1);
       static constexpr std::ptrdiff_t R2 = R == 1 ? C : R;
       // `a` was indexed by row only
-      Unroll<R2, C1, W1, T> z;
+      std::conditional_t<IsMask, mask::Unroll<R2, C1, W1, sizeof(T)>,
+                         Unroll<R2, C1, W1, T>>
+        z;
       static_assert(R1 == R2 || R1 == 1);
       static_assert(R2 != 1);
       if constexpr (C1 == 1) {
@@ -322,7 +368,9 @@ private:
       static_assert(R1 == 1 || C1 == 1);
       constexpr std::ptrdiff_t R2 = R1 == 1 ? C1 : R1;
       // `b` was indexed by row only
-      Unroll<R2, C, W, T> z;
+      std::conditional_t<IsMask, mask::Unroll<R2, C, W, sizeof(T)>,
+                         Unroll<R2, C, W, T>>
+        z;
       static_assert(R == R2 || R == 1);
       if constexpr (R2 == 1) {
         POLYMATHFULLUNROLL
@@ -425,82 +473,130 @@ private:
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop(a, b, std::plus<>{});
+    return applyop<false>(a, b, std::plus<>{});
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator-(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop(a, b, std::minus<>{});
+    return applyop<false>(a, b, std::minus<>{});
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
-    return applyop(a, b, std::multiplies<>{});
+    return applyop<false>(a, b, std::multiplies<>{});
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
-    return applyop(a, b, std::divides<>{});
+    return applyop<false>(a, b, std::divides<>{});
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator>(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x > y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator<(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x < y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator==(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x == y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator!=(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x != y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator>=(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x >= y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator<=(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<true>(a, b, [](auto x, auto y) { return x <= y; });
   }
 
-  TRIVIAL friend constexpr auto operator<(Unroll a, Unroll b) {
-    return cmp::lt<N, T>(a.vec_, b.vec_);
+  TRIVIAL friend constexpr auto operator<(Unroll a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::lt<W, T>(a.vec_, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator>(Unroll a, Unroll b) {
-    return cmp::gt<N, T>(a.vec_, b.vec_);
+  TRIVIAL friend constexpr auto operator>(Unroll a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::gt<W, T>(a.vec_, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator<=(Unroll a, Unroll b) {
-    return cmp::le<N, T>(a.vec_, b.vec_);
+  TRIVIAL friend constexpr auto operator<=(Unroll a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::le<W, T>(a.vec_, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator>=(Unroll a, Unroll b) {
-    return cmp::ge<N, T>(a.vec_, b.vec_);
+  TRIVIAL friend constexpr auto operator>=(Unroll a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ge<W, T>(a.vec_, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator==(Unroll a, Unroll b) {
-    return cmp::eq<N, T>(a.vec_, b.vec_);
+  TRIVIAL friend constexpr auto operator==(Unroll a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::eq<W, T>(a.vec_, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator!=(Unroll a, Unroll b) {
-    return cmp::ne<N, T>(a.vec_, b.vec_);
+  TRIVIAL friend constexpr auto operator!=(Unroll a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ne<W, T>(a.vec_, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator<(Unroll a, VT b) {
-    return cmp::lt<N, T>(a.vec_, b);
+  TRIVIAL friend constexpr auto operator<(Unroll a, VT b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::lt<W, T>(a.vec_, b)};
   }
-  TRIVIAL friend constexpr auto operator>(Unroll a, VT b) {
-    return cmp::gt<N, T>(a.vec_, b);
+  TRIVIAL friend constexpr auto operator>(Unroll a, VT b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::gt<W, T>(a.vec_, b)};
   }
-  TRIVIAL friend constexpr auto operator<=(Unroll a, VT b) {
-    return cmp::le<N, T>(a.vec_, b);
+  TRIVIAL friend constexpr auto operator<=(Unroll a, VT b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::le<W, T>(a.vec_, b)};
   }
-  TRIVIAL friend constexpr auto operator>=(Unroll a, VT b) {
-    return cmp::ge<N, T>(a.vec_, b);
+  TRIVIAL friend constexpr auto operator>=(Unroll a, VT b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ge<W, T>(a.vec_, b)};
   }
-  TRIVIAL friend constexpr auto operator==(Unroll a, VT b) {
-    return cmp::eq<N, T>(a.vec_, b);
+  TRIVIAL friend constexpr auto operator==(Unroll a, VT b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::eq<W, T>(a.vec_, b)};
   }
-  TRIVIAL friend constexpr auto operator!=(Unroll a, VT b) {
-    return cmp::ne<N, T>(a.vec_, b);
+  TRIVIAL friend constexpr auto operator!=(Unroll a, VT b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ne<W, T>(a.vec_, b)};
   }
-  TRIVIAL friend constexpr auto operator<(VT a, Unroll b) {
-    return cmp::lt<N, T>(a, b.vec_);
+  TRIVIAL friend constexpr auto operator<(VT a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::lt<W, T>(a, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator>(VT a, Unroll b) {
-    return cmp::gt<N, T>(a, b.vec_);
+  TRIVIAL friend constexpr auto operator>(VT a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::gt<W, T>(a, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator<=(VT a, Unroll b) {
-    return cmp::le<N, T>(a, b.vec_);
+  TRIVIAL friend constexpr auto operator<=(VT a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::le<W, T>(a, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator>=(VT a, Unroll b) {
-    return cmp::ge<N, T>(a, b.vec_);
+  TRIVIAL friend constexpr auto operator>=(VT a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ge<W, T>(a, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator==(VT a, Unroll b) {
-    return cmp::eq<N, T>(a, b.vec_);
+  TRIVIAL friend constexpr auto operator==(VT a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::eq<W, T>(a, b.vec_)};
   }
-  TRIVIAL friend constexpr auto operator!=(VT a, Unroll b) {
-    return cmp::ne<N, T>(a, b.vec_);
+  TRIVIAL friend constexpr auto operator!=(VT a, Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ne<W, T>(a, b.vec_)};
   }
 
   TRIVIAL friend constexpr auto operator+(Unroll a, VT b) -> Unroll {
@@ -566,56 +662,68 @@ private:
   }
 
   TRIVIAL friend constexpr auto operator<(Unroll a,
-                                          std::convertible_to<T> auto b) {
-    return cmp::lt<N, T>(a.vec_, vbroadcast<W, T>(b));
+                                          std::convertible_to<T> auto b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::lt<W, T>(a.vec_, vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator>(Unroll a,
-                                          std::convertible_to<T> auto b) {
-    return cmp::gt<N, T>(a.vec_, vbroadcast<W, T>(b));
+                                          std::convertible_to<T> auto b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::gt<W, T>(a.vec_, vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator<=(Unroll a,
-                                           std::convertible_to<T> auto b) {
-    return cmp::le<N, T>(a.vec_, vbroadcast<W, T>(b));
+                                           std::convertible_to<T> auto b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::le<W, T>(a.vec_, vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator>=(Unroll a,
-                                           std::convertible_to<T> auto b) {
-    return cmp::ge<N, T>(a.vec_, vbroadcast<W, T>(b));
+                                           std::convertible_to<T> auto b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ge<W, T>(a.vec_, vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator==(Unroll a,
-                                           std::convertible_to<T> auto b) {
-    return cmp::eq<N, T>(a.vec_, vbroadcast<W, T>(b));
+                                           std::convertible_to<T> auto b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::eq<W, T>(a.vec_, vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator!=(Unroll a,
-                                           std::convertible_to<T> auto b) {
-    return cmp::ne<N, T>(a.vec_, vbroadcast<W, T>(b));
+                                           std::convertible_to<T> auto b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ne<W, T>(a.vec_, vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator<(std::convertible_to<T> auto a,
-                                          Unroll b) {
-    return cmp::lt<N, T>(vbroadcast<W, T>(a), b.vec_);
+                                          Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::lt<W, T>(vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>(std::convertible_to<T> auto a,
-                                          Unroll b) {
-    return cmp::gt<N, T>(vbroadcast<W, T>(a), b.vec_);
+                                          Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::gt<W, T>(vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator<=(std::convertible_to<T> auto a,
-                                           Unroll b) {
-    return cmp::le<N, T>(vbroadcast<W, T>(a), b.vec_);
+                                           Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::le<W, T>(vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>=(std::convertible_to<T> auto a,
-                                           Unroll b) {
-    return cmp::ge<N, T>(vbroadcast<W, T>(a), b.vec_);
+                                           Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ge<W, T>(vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator==(std::convertible_to<T> auto a,
-                                           Unroll b) {
-    return cmp::eq<N, T>(vbroadcast<W, T>(a), b.vec_);
+                                           Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::eq<W, T>(vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator!=(std::convertible_to<T> auto a,
-                                           Unroll b) {
-    return cmp::ne<N, T>(vbroadcast<W, T>(a), b.vec_);
+                                           Unroll b)
+    -> mask::Unroll<1, 1, N, sizeof(T)> {
+    return {cmp::ne<W, T>(vbroadcast<W, T>(a), b.vec_)};
   }
 
-  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
-            typename T1, typename Op>
+  template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1,
+            std::ptrdiff_t W1, typename T1, typename Op>
   TRIVIAL friend constexpr auto applyop(Unroll a, Unroll<R1, C1, W1, T1> b,
                                         Op op) {
     // Possibilities:
@@ -625,14 +733,17 @@ private:
     // In the latter case, we could have arrays indexed by rows, cols, or both.
     if constexpr (!std::same_as<T, T1>) {
       using PT = std::common_type_t<T, T1>;
-      return applyop(Unroll<1, 1, W, PT>(a), Unroll<R1, C1, W1, PT>(b), op);
+      return applyop<IsMask>(Unroll<1, 1, W, PT>(a), Unroll<R1, C1, W1, PT>(b),
+                             op);
     } else if constexpr (W == W1) {
       // both were indexed by cols, and `C`s should also match
       // or neither were, and they should still match.
       static_assert(C1 == 1);
       if constexpr (R1 != 1) {
         // `a` was indexed across cols only
-        Unroll<R1, 1, W, T> z;
+        std::conditional_t<IsMask, mask::Unroll<R1, 1, W, sizeof(T)>,
+                           Unroll<R1, 1, W, T>>
+          z;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R1; ++r)
           z.data_[r] = op(a.vec_, b.data_[r]);
@@ -642,7 +753,9 @@ private:
       // `a` was indexed by row only
       static_assert(R1 == 1);
       if constexpr (C1 != 1) {
-        Unroll<1, C1, W1, T> z;
+        std::conditional_t<IsMask, mask::Unroll<1, C1, W1, sizeof(T)>,
+                           Unroll<1, C1, W1, T>>
+          z;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C1; ++c)
           z.data_[c] = op(a.vec_, b.data_[c]);
@@ -654,7 +767,9 @@ private:
       constexpr std::ptrdiff_t R = R1 == 1 ? C1 : R1;
       // `b` was indexed by row only
       if constexpr (R != 1) {
-        Unroll<R, 1, W, T> z;
+        std::conditional_t<IsMask, mask::Unroll<R, 1, W, sizeof(T)>,
+                           Unroll<R, 1, W, T>>
+          z;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R; ++r)
           z.data_[r] = op(a.vec_, b.data_[r]);
@@ -676,7 +791,7 @@ TRIVIAL constexpr auto transpose(Unroll<1, C, W, T> u)
     for (std::ptrdiff_t i = 0; i < C; ++i) {
       Vec<W, T> v{u[i]};
       POLYMATHFULLUNROLL
-      for (std::ptrdiff_t w = 0; w < W; ++w) z[w + W * i] = v[w];
+      for (std::ptrdiff_t w = 0; w < W; ++w) z[w + (W * i)] = v[w];
     }
   }
   return z;
@@ -1270,7 +1385,7 @@ struct Unroll {
   std::ptrdiff_t index_;
   [[no_unique_address]] M mask_{};
   TRIVIAL explicit constexpr operator std::ptrdiff_t() const { return index_; }
-  TRIVIAL explicit constexpr operator bool() const { return bool(mask_); }
+  TRIVIAL explicit constexpr operator bool() const { return mask_.any(); }
 
   template <std::integral I>
   TRIVIAL constexpr operator ::simd::Unroll<1, U, W, I>() const {
@@ -1414,7 +1529,7 @@ private:
       Vec<W, std::int64_t> v = vbroadcast<W, std::int64_t>(y - x.index_);
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        ret.data[u] = range<W, std::int64_t>() >= (v - u * W);
+        ret.data[u] = range<W, std::int64_t>() >= (v - (u * W));
       return ret;
     } else
       return ::simd::Unroll<1, 1, W, std::int64_t>{
@@ -1426,7 +1541,7 @@ TRIVIAL constexpr auto unrollmask(std::ptrdiff_t L, std::ptrdiff_t i) {
   // mask applies to last iter
   // We can't check that the last iter is non-empty, because that
   // could be the loop exit condition
-  auto m{mask::create<W>(i + (U - 1) * W, L)};
+  auto m{mask::create<W>(i + ((U - 1) * W), L)};
   return Unroll<U, W, decltype(m)>{i, m};
 };
 #ifdef __AVX512VL__
