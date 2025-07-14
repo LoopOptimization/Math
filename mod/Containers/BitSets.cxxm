@@ -299,7 +299,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   emptyIntersection(const BitSet &other) const -> bool {
     for (std::ptrdiff_t i = 0, L = std::min(other.data_.size(), data_.size());
          i < L; ++i)
-      if (data_[i] & other.data_[i]) return true;
+      if (data_[i] & other.data_[i]) return false;
     return true;
   }
   // Ranks higher elements as more important, thus iterating

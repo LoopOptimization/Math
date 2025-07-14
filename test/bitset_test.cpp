@@ -153,6 +153,33 @@ int main() {
     utils::print('\n');
     expect(fatal(i == sz));
   };
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet EmptyIntersection"_test = [] {
+    BitSet bs1, bs2;
+    expect(bs1.emptyIntersection(bs2));
+
+    bs1[4] = true;
+    bs1[10] = true;
+    expect(bs1.emptyIntersection(bs2));
+    expect(bs2.emptyIntersection(bs1));
+
+    bs2[5] = true;
+    bs2[11] = true;
+    expect(bs1.emptyIntersection(bs2));
+    expect(bs2.emptyIntersection(bs1));
+
+    bs2[4] = true;
+    expect(!bs1.emptyIntersection(bs2));
+    expect(!bs2.emptyIntersection(bs1));
+
+    BitSet<std::array<std::uint64_t, 4>> bs3, bs4;
+    bs3[100] = true;
+    bs4[200] = true;
+    expect(bs3.emptyIntersection(bs4));
+
+    bs4[100] = true;
+    expect(!bs3.emptyIntersection(bs4));
+  };
 
   return 0;
 }
