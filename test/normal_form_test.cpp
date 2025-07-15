@@ -305,8 +305,14 @@ int main() {
     }
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "NullSpaceTests BasicAssertions"_test = [] {
+  "NullSpace Trivial"_test = [] -> void {
+    auto a{"[1; 0]"_mat};
+    auto b{"[0 0; 0 0]"_mat};
+    auto NS{NormalForm::nullSpace(b, a)};
+    expect(NS == "[0 1]"_mat);
+  };
+
+  "NullSpace Basic"_test = [] -> void {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distrib(-10, 100);

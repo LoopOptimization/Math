@@ -44,9 +44,11 @@ class BaseMatrixPrinter:
         self.stride = stride
 
     def to_string(self):
-        header = "Matrix, {} x {}, stride {}:\n".format(
+        header = "Matrix, {} x {}, stride {}".format(
             self.rows, self.cols, self.stride
         )
+        if self.rows * self.cols > 100:
+            return header
         s = [
             [
                 str((self.begin + (c + r * self.stride)).dereference())
@@ -62,7 +64,7 @@ class BaseMatrixPrinter:
         except Exception as exc:
             gdb.write("Exception: {}\n".format(exc))
         table = [fmt.format(*row) for row in s]
-        return header + '\n'.join(table)
+        return header + ":\n" + '\n'.join(table)
 
 class SquareMatrixPrinter(BaseMatrixPrinter):
     """Print a Matrix<>"""
