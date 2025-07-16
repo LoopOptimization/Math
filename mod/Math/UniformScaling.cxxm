@@ -13,9 +13,112 @@ import std;
 import BaseUtils;
 export namespace math {
 
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename D>
+struct UniformScalingMaskedOp {
+  static constexpr bool is_known_identity =
+    std::is_same_v<std::remove_cvref_t<D>, std::true_type>;
+  static constexpr std::size_t mask_bytes = is_known_identity ? 4 : sizeof(D);
+  simd::mask::Unroll<R, C, W, mask_bytes> mask_;
+  [[no_unique_address]] D value_;
+
+  TRIVIAL constexpr UniformScalingMaskedOp(
+    simd::mask::Unroll<R, C, W, mask_bytes> mask, D value)
+    : mask_(mask), value_(value) {}
+
+  template <typename T>
+  TRIVIAL constexpr auto operator+(const simd::Unroll<R, C, W, T> &unroll) const
+    -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result[i] = simd::select<T>(mask_[i], unroll[i] + vv, unroll[i]);
+    return result;
+  }
+
+  template <typename T>
+  TRIVIAL constexpr auto operator-(const simd::Unroll<R, C, W, T> &unroll) const
+    -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result[i] = simd::select<T>(mask_[i], vv - unroll[i], -unroll[i]);
+    return result;
+  }
+
+  template <typename T>
+  TRIVIAL constexpr auto operator*(const simd::Unroll<R, C, W, T> &unroll) const
+    -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      if constexpr (is_known_identity)
+        result[i] = simd::select<T>(mask_[i], unroll[i], simd::Vec<W, T>{});
+      else
+        result[i] =
+          simd::select<T>(mask_[i], vv * unroll[i], simd::Vec<W, T>{});
+    return result;
+  }
+
+  template <typename T>
+  TRIVIAL constexpr auto operator/(const simd::Unroll<R, C, W, T> &unroll) const
+    -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result[i] = simd::select<T>(mask_[i], vv / unroll[i], simd::Vec<W, T>{});
+    return result;
+  }
+
+  template <typename T>
+  TRIVIAL friend constexpr auto
+  operator+(const simd::Unroll<R, C, W, T> &unroll,
+            const UniformScalingMaskedOp &op) -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(op.value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result[i] = simd::select<T>(op.mask_[i], unroll[i] + vv, unroll[i]);
+    return result;
+  }
+
+  template <typename T>
+  TRIVIAL friend constexpr auto
+  operator-(const simd::Unroll<R, C, W, T> &unroll,
+            const UniformScalingMaskedOp &op) -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(op.value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result[i] = simd::select<T>(op.mask_[i], unroll[i] - vv, unroll[i]);
+    return result;
+  }
+
+  template <typename T>
+  TRIVIAL friend constexpr auto
+  operator*(const simd::Unroll<R, C, W, T> &unroll,
+            const UniformScalingMaskedOp &op) -> simd::Unroll<R, C, W, T> {
+    simd::Unroll<R, C, W, T> result;
+    auto vv = simd::vbroadcast<W, T>(op.value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      if constexpr (is_known_identity)
+        result[i] = simd::select<T>(op.mask_[i], unroll[i], simd::Vec<W, T>{});
+      else
+        result[i] =
+          simd::select<T>(op.mask_[i], unroll[i] * vv, simd::Vec<W, T>{});
+    return result;
+  }
+};
+
 template <class T> struct UniformScaling {
+  static constexpr bool is_known_identity =
+    std::is_same_v<std::remove_cvref_t<T>, std::true_type>;
   using value_type =
-    std::conditional_t<std::is_empty_v<T>, utils::eltype_t<T>, T>;
+    std::conditional_t<is_known_identity, utils::eltype_t<T>, T>;
   T value_;
   TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const
@@ -25,32 +128,38 @@ template <class T> struct UniformScaling {
   template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M>
   TRIVIAL constexpr auto operator[](simd::index::Unroll<R> r,
                                     simd::index::Unroll<C, W, M> c) const
-    -> simd::Unroll<R, C, W, T> {
+    -> UniformScalingMaskedOp<R, C, W, T> {
     using I = utils::signed_integer_t<sizeof(T)>;
     using VI = simd::Vec<W, I>;
-    simd::Vec<W, T> vz{}, vv = simd::vbroadcast<W, T>(value_);
+    simd::mask::Unroll<R, C, W, sizeof(T)> mask_result;
+
     if constexpr (R * C == 1) {
-      return {
-        (simd::vbroadcast<W, I>(r.index_ - c.index_) == simd::range<W, I>())
-          ? vv
-          : vz};
+      auto diagonal_mask = simd::cmp::eq<W, I>(
+        simd::vbroadcast<W, I>(r.index_ - c.index_), simd::range<W, I>());
+      if constexpr (std::same_as<M, simd::mask::None<W>>)
+        mask_result.mask_ = diagonal_mask;
+      else mask_result.mask_ = diagonal_mask & c.mask_;
     } else {
-      simd::Unroll<R, C, W, T> ret;
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t i = 0; i < R; ++i) {
         VI vr = simd::vbroadcast<W, I>(i + r.index_),
            vc = simd::range<W, I>() + c.index_;
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t j = 0; j < C; ++j, vc += W)
-          ret[i, j] = (vr == vc) ? vv : vz;
+        for (std::ptrdiff_t j = 0; j < C; ++j, vc += W) {
+          auto diagonal_mask = simd::cmp::eq<W, I>(vr, vc);
+          if constexpr (std::same_as<M, simd::mask::None<W>>)
+            mask_result[i, j] = diagonal_mask;
+          else mask_result[i, j] = diagonal_mask & c.mask_;
+        }
       }
-      return ret;
     }
+
+    return {mask_result, value_};
   }
   template <std::ptrdiff_t C, std::ptrdiff_t W, typename M>
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r,
                                     simd::index::Unroll<C, W, M> c) const
-    -> simd::Unroll<1, C, W, T> {
+    -> UniformScalingMaskedOp<1, C, W, T> {
     return (*this)[simd::index::Unroll<1>{.index_ = r}, c];
   }
   // template <std::ptrdiff_t C, std::ptrdiff_t W, typename M>
@@ -73,8 +182,7 @@ template <class T> struct UniformScaling {
   TRIVIAL static constexpr auto dim() -> DenseDims<0, 0> { return {{}, {}}; }
   [[nodiscard]] TRIVIAL constexpr auto view() const -> auto { return *this; };
   template <class U> TRIVIAL constexpr auto operator*(const U &x) const {
-    if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::true_type>)
-      return UniformScaling<U>{x};
+    if constexpr (is_known_identity) return UniformScaling<U>{x};
     else return UniformScaling<U>{value_ * x};
   }
   TRIVIAL constexpr auto isEqual(const AbstractMatrix auto &A) const -> bool {
