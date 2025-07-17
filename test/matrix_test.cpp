@@ -611,5 +611,41 @@ int main() {
     }
   };
 
+  "MutPtrMatrixBool BasicAssertions"_test = [] {
+    // Test MutPtrMatrix<bool> functionality
+    ManagedArray<bool, DenseDims<>> boolArray{DenseDims<>{row(3), col(4)}, false};
+    MutPtrMatrix<bool> boolMatrix = boolArray;
+    
+    // Test assignment and access
+    boolMatrix[0, 0] = true;
+    boolMatrix[1, 2] = true;
+    boolMatrix[2, 3] = true;
+    
+    expect(boolMatrix[0, 0] == true);
+    expect(boolMatrix[1, 2] == true);
+    expect(boolMatrix[2, 3] == true);
+    expect(boolMatrix[0, 1] == false);
+    expect(boolMatrix[1, 1] == false);
+    
+    // Test row and column access
+    expect(boolMatrix.numRow() == 3);
+    expect(boolMatrix.numCol() == 4);
+    
+    // Test setting entire row
+    boolMatrix[2, _] << true;
+    for (std::ptrdiff_t j = 0; j < 4; ++j) {
+      expect(boolMatrix[2, j] == true);
+    }
+    
+    // Test copying from another matrix
+    ManagedArray<bool, DenseDims<>> boolArray2{DenseDims<>{row(3), col(4)}, true};
+    MutPtrMatrix<bool> boolMatrix2 = boolArray2;
+    boolMatrix2[1, 1] = false;
+    
+    expect(boolMatrix2[0, 0] == true);
+    expect(boolMatrix2[1, 1] == false);
+    expect(boolMatrix2[2, 2] == true);
+  };
+
   return 0;
 }
