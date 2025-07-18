@@ -155,7 +155,8 @@ template <std::ptrdiff_t W> struct None {
 #ifdef __AVX512F__
 template <std::ptrdiff_t W> struct Bit {
   std::uint64_t mask_;
-  // template <std::unsigned_integral U> TRIVIAL explicit constexpr operator U() {
+  // template <std::unsigned_integral U> TRIVIAL explicit constexpr operator U()
+  // {
   //   return U(mask_);
   // }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool { return mask_; }
@@ -268,7 +269,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   // TODO: add support for smaller mask types, we we can use smaller eltypes
   V m;
   template <std::size_t newBytes>
-  TRIVIAL constexpr operator Vector<W, newBytes>() {
+  TRIVIAL constexpr operator Vector<W, newBytes>() const {
     if constexpr (newBytes == Bytes) return *this;
     else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
@@ -422,7 +423,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   using V = Vec<W, I>;
   V m;
   template <std::size_t newBytes>
-  TRIVIAL constexpr operator Vector<W, newBytes>() {
+  TRIVIAL constexpr operator Vector<W, newBytes>() const {
     if constexpr (newBytes == Bytes) return *this;
     else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};

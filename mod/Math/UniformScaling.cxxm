@@ -17,10 +17,26 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename D>
 struct UniformScalingMaskedOp {
   static constexpr bool is_known_identity =
     std::is_same_v<std::remove_cvref_t<D>, std::true_type>;
-  static constexpr std::size_t mask_bytes = is_known_identity ? 4 : sizeof(D);
+  static constexpr std::size_t mask_bytes = is_known_identity ? 8 : sizeof(D);
   simd::mask::Unroll<R, C, W, mask_bytes> mask_;
   [[no_unique_address]] D value_;
 
+  template <typename O>
+  TRIVIAL constexpr operator UniformScalingMaskedOp<R, C, W, O>() const {
+    return {mask_, value_};
+  }
+  template <typename T>
+  TRIVIAL explicit constexpr operator ::simd::Unroll<R, C, W, T>() const {
+    ::simd::Unroll<R, C, W, T> ret;
+    auto vv = ::simd::vbroadcast<W, T>(value_);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t r = 0; r < R; ++r) {
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t c = 0; c < C; ++c)
+        ret[r, c] = ::simd::select<T>(mask_[r, c], vv, ::simd::Vec<W, T>{});
+    }
+    return ret;
+  }
   TRIVIAL constexpr UniformScalingMaskedOp(
     simd::mask::Unroll<R, C, W, mask_bytes> mask, D value)
     : mask_(mask), value_(value) {}
@@ -117,8 +133,7 @@ struct UniformScalingMaskedOp {
 template <class T> struct UniformScaling {
   static constexpr bool is_known_identity =
     std::is_same_v<std::remove_cvref_t<T>, std::true_type>;
-  using value_type =
-    std::conditional_t<is_known_identity, utils::eltype_t<T>, T>;
+  using value_type = std::conditional_t<is_known_identity, std::int64_t, T>;
   T value_;
   TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const
@@ -129,9 +144,10 @@ template <class T> struct UniformScaling {
   TRIVIAL constexpr auto operator[](simd::index::Unroll<R> r,
                                     simd::index::Unroll<C, W, M> c) const
     -> UniformScalingMaskedOp<R, C, W, T> {
-    using I = utils::signed_integer_t<sizeof(T)>;
+    using I = utils::signed_integer_t<sizeof(value_type)>;
     using VI = simd::Vec<W, I>;
-    simd::mask::Unroll<R, C, W, sizeof(T)> mask_result;
+    simd::mask::Unroll<R, C, W, UniformScalingMaskedOp<R, C, W, T>::mask_bytes>
+      mask_result;
 
     if constexpr (R * C == 1) {
       auto diagonal_mask = simd::cmp::eq<W, I>(

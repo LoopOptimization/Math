@@ -463,11 +463,16 @@ TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
         dst.apply(
           src.map([=](const auto &s) { return math::detail::get<T>(s, u); }),
           [=](auto &d, const auto &s) { d[u] = s; });
-      else
+      else {
+        static constexpr std::ptrdiff_t RUF = math::detail::sizeFactor<R>;
         dst.apply(src.map([=](const auto &s) {
           return math::detail::get<T>(s, row, u);
         }),
-                  [=](auto &d, const auto &s) { d[row, u] = s; });
+                  [=](auto &d, const auto &s) {
+                    d[row, u] =
+                      simd::Unroll<RUF, 1, W, utils::eltype_t<decltype(d)>>(s);
+                  });
+      }
     }
   }
 }
