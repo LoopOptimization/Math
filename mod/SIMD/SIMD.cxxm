@@ -4,7 +4,6 @@ module;
 export module SIMD;
 
 export import :Intrin;
-export import :Mask;
 import std;
 export namespace simd {
 
