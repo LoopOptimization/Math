@@ -70,16 +70,11 @@ inline void println() { std::putchar('\n'); }
 
 inline void print(std::integral auto x) {
   // if (__builtin_constant_p(x)) {
-  if (x >= 0 && x < 10) std::putchar('0' + x);
+  if constexpr (std::same_as<decltype(x), bool>) std::putchar('0' + x);
+  else if (x >= 0 && x < 10) std::putchar('0' + x);
   else print(TinyString{x});
 }
 inline void print(std::floating_point auto x) { print(TinyString{x}); }
-
-inline void print(bool b) { std::putchar('0' + b); }
-inline void println(bool b) {
-  std::putchar('0' + b);
-  std::putchar('\n');
-}
 
 // Print function for types with .print() member function
 template <HasPrintMethod T> inline void print(const T &x) { x.print(); }
