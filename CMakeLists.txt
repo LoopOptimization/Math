@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
+cmake_policy(SET CMP0167 NEW) # new find boost
+# Dependencies; Boost:
+find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
+
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(ENABLE_RTTI "Use RTTI? Off by default." OFF)
@@ -176,6 +180,14 @@ if(ENABLE_NATIVE_COMPILATION)
     endif()
   endif()
 endif()
+
+# --- Boost Unordered ---
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_EXCEPTION_DISABLE)
+find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
+target_link_libraries(${PROJECT_NAME} PUBLIC Boost::headers)
+
+
 # ---- Create an installable target ----
 # this allows users to install and find the library via `find_package()`.
 

@@ -4,11 +4,31 @@ module;
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
+#include <boost/container_hash/hash.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
+
 export module SIMD;
 
+import Allocator;
 import AxisTypes;
 import BaseUtils;
 import std;
+
+export namespace boost {
+using ::boost::hash;
+using ::boost::hash_combine;
+using ::boost::unordered_flat_map;
+using ::boost::unordered_flat_set;
+
+template <typename K>
+using set = boost::unordered_flat_set<K, boost::hash<K>, std::equal_to<K>,
+                                      alloc::Mallocator<K>>;
+template <typename K, typename V>
+using map = boost::unordered_flat_map<K, V, boost::hash<K>, std::equal_to<K>,
+                                      alloc::Mallocator<std::pair<const K, V>>>;
+
+} // namespace boost
 
 template <std::ptrdiff_t W, typename T>
 using Vec_ [[gnu::vector_size(W * sizeof(T))]] = T;
