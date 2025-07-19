@@ -5,31 +5,14 @@ find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
 
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
-option(ENABLE_RTTI "Use RTTI? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
-# option(ENABLE_RTTI "Use RTTI" OFF) option(ENABLE_STACK_PROTECTOR "Use stack
-# protection" OFF)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 # option(FOR_TESTING "Build for testing" OFF)
 
-if(ENABLE_RTTI)
-  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>")
-else()
-  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
-endif()
-# if(ENABLE_STACK_PROTECTOR) if(ENABLE_RTTI)
-# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong>")
-# else()
-# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
-# endif() else() if(ENABLE_RTTI)
-# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
-# else()
-# add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti;-fstack-protector-strong;-fno-rtti>")
-# endif() endif() set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-# "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # This specific value changes as experimental support evolves. See
     # `Help/dev/experimental.rst` in the CMake source corresponding to

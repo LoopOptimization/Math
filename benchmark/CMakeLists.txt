@@ -37,9 +37,6 @@ include(FetchContent)
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# if("${CMAKE_CXX_FLAGS}" STREQUAL "") set(has_libcpp -1) else() string(FIND
-# ${CMAKE_CXX_FLAGS} "-stdlib=libc++" has_libcpp) endif() if(has_libcpp
-# GREATER_EQUAL 0) main doesn't support -fno-exceptions or -fno-rtti
 FetchContent_Declare(
   nanobench
   GIT_REPOSITORY https://github.com/Spartan322/nanobench
