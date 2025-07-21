@@ -7,7 +7,8 @@ option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>")
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>"
+)
 # add_compile_options("-save-temps") # for preprocessed source
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
                                                 "([Aa]ddress);([Uu]ndefined)"))
@@ -21,8 +22,7 @@ if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
   endif()
 else()
-  add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
 endif()
 if(USE_TYPE_SANITIZER)
   set(USE_MI_MALLOC
@@ -73,8 +73,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(BOOST_UT_DISABLE_MODULE OFF)
 add_subdirectory("${CMAKE_SOURCE_DIR}/.." "extern_build/math")
 add_subdirectory("${CMAKE_SOURCE_DIR}/../extern/ut" "extern_build/ut")
-set(utdir "${CMAKE_SOURCE_DIR}/.." "${CMAKE_SOURCE_DIR}/../extern/ut")
-message(STATUS "adding dir ${utdir}")
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
@@ -116,9 +114,6 @@ foreach(test_source ${test_sources})
                                                 "GNU")
       target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra
                                                  -Wshadow -Werror)
-    elseif(MSVC)
-      target_compile_definitions(${test_name}
-                                 PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
     endif()
   endif()
 
