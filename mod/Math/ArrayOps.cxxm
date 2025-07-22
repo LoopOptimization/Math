@@ -368,7 +368,7 @@ public:
     -> P & {
     static_assert(MatrixDimension<S>);
     std::memset(data_(), 0, std::ptrdiff_t(this->dim_()) * sizeof(T));
-    static_cast<P *>(this)->diag() << B.value;
+    static_cast<P *>(this)->diag() << T(B.value_);
     return *static_cast<P *>(this);
   }
 
