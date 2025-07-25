@@ -1,13 +1,6 @@
 module;
 #include "Macros.hxx"
 
-#if __has_builtin(__builtin_trap)
-#define TRAP() __builtin_trap()
-#else
-#include <cstdlib>
-#define TRAP() std::abort()
-#endif
-
 export module BaseUtils;
 import std;
 export namespace math {
@@ -169,23 +162,23 @@ constexpr auto lower_bound_factor(double N, double x) -> std::array<double, 2> {
 export namespace utils {
 
 #ifndef NDEBUG
-TRIVIAL constexpr inline void invariant(bool condition) {
+TRIVIAL constexpr void invariant(bool condition) {
   if (!condition) [[unlikely]]
-    TRAP();
+    __builtin_trap();
 }
-template <typename T> TRIVIAL constexpr inline void invariant(T x, T y) {
+template <typename T> TRIVIAL constexpr void invariant(T x, T y) {
   if (x != y) [[unlikely]]
-    TRAP();
+    __builtin_trap();
 }
 #else
 template <typename T> TRIVIAL constexpr inline void invariant(T, T) {}
 TRIVIAL constexpr inline void invariant(bool) {}
 #endif
 
-TRIVIAL constexpr inline void assume(bool condition) {
+TRIVIAL constexpr void assume(bool condition) {
 #ifndef NDEBUG
   if (!condition) [[unlikely]]
-    TRAP();
+    __builtin_trap();
 #else
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
   [[assume(condition)]];
@@ -204,10 +197,10 @@ TRIVIAL constexpr inline void assume(bool condition) {
 #endif // assume
 #endif // NDEBUG
 }
-template <typename T> TRIVIAL constexpr inline void assumeeq(T x, T y) {
+template <typename T> TRIVIAL constexpr void assumeeq(T x, T y) {
 #ifndef NDEBUG
   if (x != y) [[unlikely]]
-    TRAP();
+    __builtin_trap();
 #else
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
   [[assume(x == y)]];
