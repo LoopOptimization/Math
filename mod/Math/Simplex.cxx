@@ -85,15 +85,14 @@ auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
   return static_cast<std::ptrdiff_t>(sizeof(Simplex::value_type)) *
          ((cons + 1) * vars);
 }
+template <std::ptrdiff_t N> auto align(std::ptrdiff_t x) -> std::ptrdiff_t {
+  return (x + (N - 1z)) & (-N);
+}
 template <std::integral T>
 auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
-  --x;
-  std::ptrdiff_t W = simd::VECTORWIDTH / sizeof(T); // simd::Width<T>;
-  std::ptrdiff_t nW = -W;
-  x += W;
-  x &= nW;
-  return x;
-  // return (--x + simd::Width<T>)&(-simd::Width<T>);
+  static constexpr std::ptrdiff_t W =
+    std::ptrdiff_t(std::max(simd::VECTORWIDTH / sizeof(T), alignof(T)));
+  return align<W>(x);
 }
 // offset in bytes
 auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
@@ -108,7 +107,9 @@ auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::size_t {
   std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
                  indices = tableauOffset(cons, vars),
                  tableau = reservedTableau(cons, vars);
-  return static_cast<std::size_t>(base + indices + tableau);
+  static constexpr std::ptrdiff_t A = std::ptrdiff_t(
+    std::max(simd::VECTORWIDTH / sizeof(std::int64_t), alignof(Simplex)));
+  return static_cast<std::size_t>(align<A>(base + indices + tableau));
 }
 } // namespace
 

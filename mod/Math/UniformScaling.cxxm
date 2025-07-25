@@ -137,8 +137,8 @@ template <class T> struct UniformScaling {
   T value_;
   TRIVIAL constexpr UniformScaling(T x) : value_(x) {}
   TRIVIAL constexpr auto operator[](std::ptrdiff_t r, std::ptrdiff_t c) const
-    -> T {
-    return r == c ? value_ : T{};
+    -> value_type {
+    return r == c ? value_ : value_type{};
   }
   template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M>
   TRIVIAL constexpr auto operator[](simd::index::Unroll<R> r,
