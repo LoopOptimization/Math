@@ -371,7 +371,7 @@ Simplex::initiateFeasible() -> bool {
   // only a single non-0 element.
   for (std::ptrdiff_t c = 0; c < C.numRow(); ++c) {
     std::int64_t &Ceq = C[c, 0];
-    std::int64_t sign = 2 * (Ceq >= 0) - 1;
+    std::int64_t sign = (2 * (Ceq >= 0)) - 1;
     Ceq *= sign;
     // was initialized to -2
     // if unset here (i.e. == -2) and >1, try to make basic
@@ -385,7 +385,7 @@ Simplex::initiateFeasible() -> bool {
   // indicating which row contains the only non-zero element; we'll
   // now fill basicVars.
   //
-  auto basic_vars{getBasicVariables()};
+  MutPtrVector<Simplex::index_t> basic_vars{getBasicVariables()};
   basic_vars << -1;
   for (std::ptrdiff_t v = 0; v < num_var; ++v) {
     if (std::int64_t r = basic_cons[v]; r >= 0) {

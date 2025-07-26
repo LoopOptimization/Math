@@ -16,7 +16,7 @@ using namespace math;
 using utils::operator""_mat;
 using namespace boost::ut;
 
-auto simplexFromTableau(alloc::Arena<> *alloc, IntMatrix<> &tableau)
+auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
   -> Valid<Simplex> {
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
   std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
@@ -32,15 +32,17 @@ auto simplexFromTableau(alloc::Arena<> *alloc, IntMatrix<> &tableau)
   return simp;
 }
 
-int main() {
+auto main(int argc, const char **argv) -> int {
+  cfg<override> = {.filter = argc > 1 ? argv[1] : ""};
+  alloc::OwningArena<> managed_alloc;
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "SimplexTest BasicAssertions"_test = [] {
+  "SimplexTest BasicAssertions"_test = [&managed_alloc] {
     // 10 >= 3x + 2y + z
     // 15 >= 2x + 5y + 3z
+    alloc::Arena<> alloc = managed_alloc;
     IntMatrix<> A{"[10 3 2 1; 15 2 5 3]"_mat};
     IntMatrix<> B{DenseDims<>{row(0), col(4)}};
     IntMatrix<> D{"[0 0 0 -2 -3 -4; 10 1 0  3  2  1; 15 0 1  2  5  3 ]"_mat};
-    alloc::OwningArena<> alloc;
     Optional<Simplex *> optS0{Simplex::positiveVariables(&alloc, A)};
     expect(fatal(optS0.hasValue()));
     Optional<Simplex *> optS1{Simplex::positiveVariables(&alloc, A, B)};
@@ -64,8 +66,8 @@ int main() {
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "LexMinSmallTest BasicAssertions"_test = [] {
-    alloc::OwningArena alloc;
+  "LexMinSmallTest BasicAssertions"_test = [&managed_alloc] {
+    alloc::Arena<> alloc = managed_alloc;
     // -10 == -3x - 2y - z  + s0
     // -15 == -2x - 5y - 3z + s1
     IntMatrix<> tableau{"[-10 0 1 -1 -2 -3; -15 1 0 -3 -5 -2]"_mat};
@@ -144,9 +146,9 @@ int main() {
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "LexMinSimplexTest BasicAssertions"_test = [] {
+  "LexMinSimplexTest BasicAssertions"_test = [&managed_alloc] {
     // clang-format off
-  IntMatrix<> tableau{
+  auto tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;"
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 -1 1 0 1 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;"
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;"
@@ -294,7 +296,7 @@ int main() {
     "1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ]"_mat};
     // clang-format on
     tableau[0, _] << -5859553999884210514;
-    alloc::OwningArena<> alloc;
+    alloc::Arena<> alloc = managed_alloc;
     Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
     Vector<Rational> sol(length(37));
     expect(sol.size() == 37);
@@ -359,9 +361,9 @@ int main() {
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "LexMinSimplexTest2 BasicAssertions"_test = [] {
+  "LexMinSimplexTest2 BasicAssertions"_test = [&managed_alloc] {
     // clang-format off
-  IntMatrix<> tableau{
+  auto tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 -1 0 725849473193 94205055277312 6 6 1 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 ;"
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;"
     "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;"
@@ -417,7 +419,7 @@ int main() {
     "0 0 2 0 1 0 -2 0 -1 0 1 -1 0 0 0 0 0 0 0 -2 0 0 -1 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 ;"
     "1 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 ]"_mat};
     // clang-format on
-    alloc::OwningArena<> alloc;
+    alloc::Arena<> alloc = managed_alloc;
     Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
     Vector<Rational> sol(length(15));
     expect(sol.size() == 15);
@@ -491,7 +493,7 @@ int main() {
     }
   };
 
-  "Infeasible BasicAssertions"_test = [] {
+  "Infeasible BasicAssertions"_test = [&managed_alloc] {
     IntMatrix<> C{DenseDims<>{row(220), col(383)}, 0};
     C[0, 0] = -1;
     C[0, 1] = 1;
@@ -1333,9 +1335,17 @@ int main() {
     C[219, 288] = -1;
     C[219, 294] = 1;
     C[219, 295] = 1;
-    alloc::OwningArena<> alloc;
+    alloc::Arena<> alloc = managed_alloc;
     Valid<Simplex> simp{simplexFromTableau(&alloc, C)};
     expect(simp->initiateFeasible());
+  };
+  "DynsolveDebugging"_test = [&managed_alloc] {
+    // clang-format off
+    IntMatrix<> tableau{"[0 1 -1 0 -1 0 -1 -1 -1 0 0 0 0 0 -1 1 0 0 0 0 0 -1 0 0 0 0 0; 0 0 1 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0 0; 0 0 0 0 1 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0 0; 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 0 0; 0 0 0 0 0 0 0 0 0 0 1 0 -1 0 0 0 -1 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 1 0 -1 0 0 0 -1 0 0 0 0 0 0 0 0 0; 0 0 0 0 -1 1 -1 0 0 0 0 -1 0 1 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 -1 1 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0; 0 0 -1 1 0 0 0 -1 0 0 -1 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0; 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0 -1 0; 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 -1]"_mat};
+    // clang-format on
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
+    expect(!simp->initiateFeasible());
   };
 
   return 0;
