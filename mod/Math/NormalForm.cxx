@@ -426,8 +426,6 @@ auto numNonZeroRows(PtrMatrix<std::int64_t> A) -> Row<> {
   while (newM && allZero(A[std::ptrdiff_t(newM) - 1, _])) --newM;
   return newM;
 }
-// update a reduced matrix for a new row
-// doesn't reduce last row (assumes you're solving for it)
 auto updateForNewRow(MutPtrMatrix<std::int64_t> A) -> std::ptrdiff_t {
   // use existing rows to reduce
   std::ptrdiff_t M = std::ptrdiff_t(A.numRow()), N = std::ptrdiff_t(A.numCol()),

@@ -85,7 +85,8 @@ auto nullSpace(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
 auto orthogonalize(IntMatrix<> A)
   -> containers::Pair<SquareMatrix<std::int64_t>, Vector<unsigned>>;
 
-// Template and general functions
+/// update a reduced matrix for a new row
+/// doesn't reduce last row (assumes you're solving for it)
 auto updateForNewRow(MutPtrMatrix<std::int64_t> A) -> std::ptrdiff_t;
 void simplifySystemsImpl(std::array<MutPtrMatrix<std::int64_t>, 2> AB);
 void reduceColumnStack(MutPtrMatrix<std::int64_t> A,
