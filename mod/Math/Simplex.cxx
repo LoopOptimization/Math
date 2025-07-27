@@ -21,7 +21,7 @@ namespace math {
 // Private module fragment - static utility functions
 namespace {
 struct NoFilter {
-  static auto operator()(std::int64_t) -> bool { return false; }
+  static constexpr auto operator()(std::int64_t) -> bool { return false; }
 };
 
 // 1 based to match getBasicConstraints
@@ -53,7 +53,9 @@ getLeavingVariable(PtrMatrix<std::int64_t> C, std::ptrdiff_t entering_variable,
   Simplex::index_t j = 0;
   StridedVector<std::int64_t> cv{C[_, entering_variable + 1]};
   for (Simplex::index_t i = 1; i < C.numRow(); ++i) {
-    if (filter(i)) continue;
+    if constexpr (!std::same_as<std::remove_cvref_t<decltype(filter)>,
+                                NoFilter>)
+      if (filter(i)) continue;
     std::int64_t di = cv[i];
     if (di <= 0) continue;
     std::int64_t ni = C[i, 0];
@@ -76,26 +78,29 @@ getLeavingVariable(PtrMatrix<std::int64_t> C, std::ptrdiff_t entering_variable)
   return getLeavingVariable(C, entering_variable, NoFilter{});
 }
 // (varCapacity+1)%simd::Width<std::int64_t>==0
-auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
+TRIVIAL constexpr auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
   static std::ptrdiff_t W = simd::Width<std::int64_t>;
   return stride((std::ptrdiff_t(rs) + W) & -W);
 }
-[[nodiscard]] auto reservedTableau(std::ptrdiff_t cons, std::ptrdiff_t vars)
+[[nodiscard]] TRIVIAL constexpr auto reservedTableau(std::ptrdiff_t cons,
+                                                     std::ptrdiff_t vars)
   -> std::ptrdiff_t {
   return static_cast<std::ptrdiff_t>(sizeof(Simplex::value_type)) *
          ((cons + 1) * vars);
 }
-template <std::ptrdiff_t N> auto align(std::ptrdiff_t x) -> std::ptrdiff_t {
+template <std::ptrdiff_t N>
+TRIVIAL constexpr auto align(std::ptrdiff_t x) -> std::ptrdiff_t {
   return (x + (N - 1z)) & (-N);
 }
 template <std::integral T>
-auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
+TRIVIAL constexpr auto alignOffset(std::ptrdiff_t x) -> std::ptrdiff_t {
   static constexpr std::ptrdiff_t W =
     std::ptrdiff_t(std::max(simd::VECTORWIDTH / sizeof(T), alignof(T)));
   return align<W>(x);
 }
 // offset in bytes
-auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
+TRIVIAL constexpr auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars)
+  -> std::ptrdiff_t {
   std::ptrdiff_t coff = alignOffset<Simplex::index_t>(cons);
   std::ptrdiff_t voff = alignOffset<Simplex::index_t>(vars);
   std::ptrdiff_t offset = coff + voff;
@@ -103,7 +108,8 @@ auto tableauOffset(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::ptrdiff_t {
   //   alignOffset<index_t>(cons) + alignOffset<index_t>(vars);
   return static_cast<std::ptrdiff_t>(sizeof(Simplex::index_t)) * offset;
 }
-auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars) -> std::size_t {
+TRIVIAL constexpr auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
+  -> std::size_t {
   std::ptrdiff_t base = static_cast<std::ptrdiff_t>(sizeof(Simplex)),
                  indices = tableauOffset(cons, vars),
                  tableau = reservedTableau(cons, vars);
@@ -664,6 +670,7 @@ auto Simplex::rLexMinStop(std::ptrdiff_t skip_first, std::ptrdiff_t skip_last)
   assertCanonical();
 #endif
   std::ptrdiff_t num_v = getNumVars() - skip_last;
+  invariant(num_v > skip_first);
   for (std::ptrdiff_t v = num_v; v != skip_first;) rLexMin(--v);
 #ifndef NDEBUG
   assertCanonical();
