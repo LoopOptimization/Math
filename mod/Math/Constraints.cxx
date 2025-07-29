@@ -119,21 +119,16 @@ auto substituteEquality(MutDensePtrMatrix<std::int64_t> &A,
   return false;
 }
 
-void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
-                        std::array<std::ptrdiff_t, 2> negPos) {
+auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> A, std::ptrdiff_t v,
+                        std::array<std::ptrdiff_t, 2> negPos,
+                        std::ptrdiff_t num_rows) -> Row<> {
   auto [numNeg, numPos] = negPos;
   // we need one extra, as on the last overwrite, we still need to
   // read from two constraints we're deleting; we can't write into
   // both of them. Thus, we use a little extra memory here,
   // and then truncate.
-  Row num_rows_old = A.numRow(),
-      num_rows_new = row(std::ptrdiff_t(num_rows_old) - numNeg - numPos +
-                         (numNeg * numPos) + 1);
-  A.resize(num_rows_new);
   // plan is to replace
-  for (std::ptrdiff_t i = 0, num_rows = std::ptrdiff_t(num_rows_old),
-                      pos_count = numPos;
-       pos_count; ++i) {
+  for (std::ptrdiff_t i = 0, pos_count = numPos; pos_count; ++i) {
     std::int64_t Aiv = A[i, v];
     if (Aiv <= 0) continue;
     --pos_count;
@@ -144,12 +139,8 @@ void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
       // last posCount does not get overwritten
       --neg_count;
       std::ptrdiff_t c = pos_count ? (neg_count ? num_rows++ : i) : j;
-      std::int64_t Ai = Aiv, Aj = Ajv;
-      std::int64_t g = gcd(Aiv, Ajv);
-      if (g != 1) {
-        Ai /= g;
-        Aj /= g;
-      }
+      std::int64_t Ai = Aiv, Aj = Ajv, g = gcd(Aiv, Ajv);
+      if (g != 1) Ai /= g, Aj /= g;
       bool all_zero = true;
       for (std::ptrdiff_t k = 0; k < A.numCol(); ++k) {
         std::int64_t Ack = (Ai * A[j, k]) - (Aj * A[i, k]);
@@ -167,6 +158,20 @@ void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
     if (pos_count == 0) // last posCount not overwritten, so we erase
       eraseConstraint(A, row(i));
   }
+  return A.numRow();
+}
+void fourierMotzkinCore(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v,
+                        std::array<std::ptrdiff_t, 2> negPos) {
+  auto [numNeg, numPos] = negPos;
+  // we need one extra, as on the last overwrite, we still need to
+  // read from two constraints we're deleting; we can't write into
+  // both of them. Thus, we use a little extra memory here,
+  // and then truncate.
+  Row num_rows_old = A.numRow(),
+      num_rows_new = row(std::ptrdiff_t(num_rows_old) - numNeg - numPos +
+                         (numNeg * numPos) + 1);
+  A.resize(num_rows_new);
+  A.resize(fourierMotzkinCore(A, v, negPos, std::ptrdiff_t(num_rows_old)));
 }
 
 void fourierMotzkin(DenseMatrix<std::int64_t> &A, std::ptrdiff_t v) {

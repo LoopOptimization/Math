@@ -2462,6 +2462,64 @@ template void store<std::int64_t>(std::int64_t *, mask::None<8>,
                                   Vec<8, std::int64_t>, std::int32_t);
 template void store<std::int64_t>(std::int64_t *, mask::Bit<8>,
                                   Vec<8, std::int64_t>, std::int32_t);
+
+// Compress store intrinsics for AVX512
+#ifdef __AVX512F__
+template <typename T>
+TRIVIAL inline void compressstore(T *p, mask::Bit<8> m, Vec<8, T> x) {
+  if constexpr (std::same_as<T, double>) {
+    _mm512_mask_compressstoreu_pd(p, std::uint8_t(m.mask_), std::bit_cast<__m512d>(x));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    _mm512_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_), std::bit_cast<__m512i>(x));
+  } else if constexpr (std::same_as<T, float>) {
+    _mm512_mask_compressstoreu_ps(p, std::uint16_t(m.mask_), std::bit_cast<__m512>(x));
+  } else if constexpr (std::same_as<T, std::int32_t>) {
+    _mm512_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_), std::bit_cast<__m512i>(x));
+  }
+}
+
+template <typename T>
+TRIVIAL inline auto compressload(const T *p, mask::Bit<8> m) -> Vec<8, T> {
+  if constexpr (std::same_as<T, double>) {
+    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_pd(_mm512_setzero_pd(), 
+                                   std::uint8_t(m.mask_), _mm512_loadu_pd(p)));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_epi64(_mm512_setzero_si512(), 
+                                   std::uint8_t(m.mask_), _mm512_loadu_si512(p)));
+  } else if constexpr (std::same_as<T, float>) {
+    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_ps(_mm512_setzero_ps(), 
+                                   std::uint16_t(m.mask_), _mm512_loadu_ps(p)));
+  } else if constexpr (std::same_as<T, std::int32_t>) {
+    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_epi32(_mm512_setzero_si512(), 
+                                   std::uint16_t(m.mask_), _mm512_loadu_si512(p)));
+  }
+}
+#endif
+
+// Generic compress store/load for non-AVX512 or different widths
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w) {
+    if (mask & (1ULL << w)) {
+      p[idx++] = x[w];
+    }
+  }
+}
+
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline auto compressload(const T *p, std::uint64_t mask) -> Vec<W, T> {
+  Vec<W, T> ret{};
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w) {
+    if (mask & (1ULL << w)) {
+      ret[w] = p[idx++];
+    }
+  }
+  return ret;
+}
 #endif
 
 #else // not __x86_64__

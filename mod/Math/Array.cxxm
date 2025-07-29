@@ -27,6 +27,16 @@ import Valid;
 export namespace math {
 using utils::compressed_t, utils::decompressed_t;
 
+template <typename MaskType>
+struct Compress {
+  using mask_type = MaskType;
+  MaskType mask;
+  TRIVIAL constexpr Compress(MaskType m) : mask(m) {}
+};
+
+template <typename T>
+Compress(T) -> Compress<T>;
+
 static_assert(Dimension<Length<>>);
 static_assert(Dimension<DenseDims<3, 2>>);
 static_assert(
@@ -43,6 +53,9 @@ struct MATH_GSL_POINTER Array;
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct MATH_GSL_POINTER MutArray;
 
+template <class T, Dimension S, typename MaskType, bool Compress = utils::Compressible<T>>
+struct MATH_GSL_POINTER CompressView;
+
 // Cases we need to consider:
 // 1. Slice-indexing
 // 2.a. `std::ptrdiff_t` indexing, not compressed
@@ -55,20 +68,30 @@ struct MATH_GSL_POINTER MutArray;
 template <typename T, typename P, typename S, typename I>
 TRIVIAL [[gnu::flatten]] constexpr auto index(P *ptr, S shape, I i) noexcept
   -> decltype(auto) {
-  auto offset = calcOffset(shape, i);
-  auto new_dim = calcNewDim(shape, i);
-  invariant(ptr != nullptr);
-  using D = decltype(new_dim);
-  if constexpr (!simd::index::issimd<D>) {
+  if constexpr (requires { typename I::mask_type; }) {
+    // Handle Compress indexing
     constexpr bool compress = !std::same_as<T, std::remove_const_t<P>>;
-    if constexpr (!std::same_as<D, Empty>)
-      if constexpr (std::is_const_v<P>)
-        return Array<T, D, compress>{ptr + offset, new_dim};
-      else return MutArray<T, D, compress>{ptr + offset, new_dim};
-    else if constexpr (!compress) return ptr[offset];
-    else if constexpr (std::is_const_v<P>) return T::decompress(ptr + offset);
-    else return utils::Reference<T>{ptr + offset};
-  } else return simd::ref(ptr + offset, new_dim);
+    if constexpr (std::is_const_v<P>)
+      return CompressView<T, S, typename I::mask_type, compress>{
+        const_cast<std::remove_const_t<P>*>(ptr), shape, i.mask};
+    else 
+      return CompressView<T, S, typename I::mask_type, compress>{ptr, shape, i.mask};
+  } else {
+    auto offset = calcOffset(shape, i);
+    auto new_dim = calcNewDim(shape, i);
+    invariant(ptr != nullptr);
+    using D = decltype(new_dim);
+    if constexpr (!simd::index::issimd<D>) {
+      constexpr bool compress = !std::same_as<T, std::remove_const_t<P>>;
+      if constexpr (!std::same_as<D, Empty>)
+        if constexpr (std::is_const_v<P>)
+          return Array<T, D, compress>{ptr + offset, new_dim};
+        else return MutArray<T, D, compress>{ptr + offset, new_dim};
+      else if constexpr (!compress) return ptr[offset];
+      else if constexpr (std::is_const_v<P>) return T::decompress(ptr + offset);
+      else return utils::Reference<T>{ptr + offset};
+    } else return simd::ref(ptr + offset, new_dim);
+  }
 }
 // for (row/col)vectors, we drop the row/col, essentially broadcasting
 template <typename T, typename P, typename S, typename R, typename C>
@@ -872,6 +895,117 @@ struct MutArray : Array<T, S, Compress>,
 protected:
   TRIVIAL constexpr MutArray(S s) : BaseT(s) {}
 };
+
+/// CompressView: Array view with compress store/load capabilities
+template <class T, Dimension S, typename MaskType, bool Compress>
+struct CompressView : public Expr<T, CompressView<T, S, MaskType, Compress>> {
+  static_assert(!std::is_const_v<T>, "T shouldn't be const");
+  static_assert(VectorDimension<S>, "CompressView only supports vector dimensions");
+  
+  using storage_type = std::conditional_t<Compress, compressed_t<T>, T>;
+  using value_type = T;
+  using reference = T &;
+  using const_reference = const T &;
+  using size_type = std::ptrdiff_t;
+  using difference_type = int;
+  using iterator = storage_type *;
+  using const_iterator = const storage_type *;
+  using concrete = std::true_type;
+  
+  TRIVIAL constexpr CompressView(storage_type *p, S s, MaskType mask) 
+    : ptr_{p}, sz_{s}, mask_{mask} {}
+  
+  TRIVIAL constexpr CompressView(MutArray<T, S, Compress> arr, MaskType mask)
+    : ptr_{arr.data()}, sz_{arr.dim()}, mask_{mask} {}
+    
+  TRIVIAL [[nodiscard]] constexpr auto data() const noexcept -> const storage_type * {
+    invariant(ptr_ != nullptr || std::ptrdiff_t(sz_) == 0);
+    return ptr_;
+  }
+  
+  TRIVIAL [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
+    invariant(ptr_ != nullptr || std::ptrdiff_t(sz_) == 0);
+    return ptr_;
+  }
+  
+  TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz_; }
+  TRIVIAL [[nodiscard]] constexpr auto mask() const noexcept -> MaskType { return mask_; }
+  TRIVIAL [[nodiscard]] constexpr auto size() const noexcept -> std::ptrdiff_t {
+    return std::ptrdiff_t(sz_);
+  }
+  
+  // Element access with compression awareness
+  TRIVIAL [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const -> T {
+    return compressLoad(*this, i);
+  }
+  
+  // TODO: Add SIMD indexing support for expression templates later
+  
+  // Begin/end for iteration
+  TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept -> const storage_type * {
+    return ptr_;
+  }
+  
+  TRIVIAL [[nodiscard]] constexpr auto end() const noexcept -> const storage_type * {
+    return ptr_ + size();
+  }
+  
+  // Methods needed for AbstractVector concept
+  TRIVIAL [[nodiscard]] constexpr auto view() const noexcept -> CompressView<T, S, MaskType, Compress> {
+    return *this;
+  }
+  
+  TRIVIAL [[nodiscard]] constexpr auto numRow() const noexcept -> Row<1> {
+    return Row<1>{};
+  }
+  
+  TRIVIAL [[nodiscard]] constexpr auto numCol() const noexcept -> Col<> {
+    return col(sz_);
+  }
+
+  // Assignment operator for compress store
+  template<typename Expr>
+  constexpr auto operator<<(const Expr& expr) -> CompressView& 
+    requires(AbstractVector<Expr> && std::same_as<utils::eltype_t<Expr>, T>) {
+    compressStore(*this, expr);
+    return *this;
+  }
+
+private:
+  storage_type *ptr_;
+  [[no_unique_address]] S sz_;
+  [[no_unique_address]] MaskType mask_;
+};
+
+// Compress store implementation
+// v[Compress(mask)] << source
+// Takes elements from source at positions specified by mask bits and stores them contiguously in v
+template <class T, Dimension S, typename MaskType, bool Compress, typename Expr>
+constexpr void compressStore(CompressView<T, S, MaskType, Compress>& dst, const Expr& src) 
+  requires(AbstractVector<Expr> && std::same_as<utils::eltype_t<Expr>, T>) {
+  std::uint64_t mask = dst.mask();
+  std::ptrdiff_t dst_idx = 0;
+  
+  // Iterate through source positions, selecting those specified by mask bits
+  for (std::ptrdiff_t src_pos = 0; src_pos < std::ptrdiff_t(src.size()) && dst_idx < dst.size(); ++src_pos) {
+    if (mask & (1ULL << src_pos)) {
+      // This source position is selected by mask, store it in dst contiguously
+      dst.data()[dst_idx] = src[src_pos];
+      dst_idx++;
+    }
+  }
+}
+
+// Compress load implementation for individual element access
+// When accessing x[Compress(mask)][i], we want the i-th element from the compressed representation
+template <class T, Dimension S, typename MaskType, bool Compress>
+constexpr auto compressLoad(const CompressView<T, S, MaskType, Compress>& src, std::ptrdiff_t compressed_idx) -> T {
+  // The compressed view stores elements contiguously, so just access directly
+  if (compressed_idx >= 0 && compressed_idx < src.size()) {
+    return src.data()[compressed_idx];
+  }
+  return T{}; // Return zero for out-of-bounds access
+}
 
 template <typename T, typename S> Array(T *, S) -> Array<decompressed_t<T>, S>;
 template <typename T, typename S>

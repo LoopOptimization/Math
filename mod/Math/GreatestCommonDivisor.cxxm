@@ -116,8 +116,8 @@ TRIVIAL constexpr auto dgcdx(T a, T b)
   T s_old = 1, s = 0;
   T t_old = 0, t = 1;
   while (r) {
-    T quotient = r_old / r, r_next = r_old - quotient * r,
-      s_next = s_old - quotient * s, t_next = t_old - quotient * t;
+    T quotient = r_old / r, r_next = r_old - (quotient * r),
+      s_next = s_old - (quotient * s), t_next = t_old - (quotient * t);
     r_old = r, s_old = s, t_old = t;
     r = r_next, s = s_next, t = t_next;
   }

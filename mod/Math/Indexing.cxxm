@@ -300,12 +300,15 @@ TRIVIAL constexpr auto calcOffset(ColVectorDimension auto d, I i)
   return unwrapStride(stride(d)) * calcOffset(length(unwrapRow(Row(d))), i);
 }
 
+template <typename T>
+concept CompressIndex = requires { typename T::mask_type; };
+
 // Concept for aligning array dimensions with indices.
 template <class I, class D>
 concept Index =
   (VectorDimension<D> &&
-   (ScalarIndex<I> || AbstractSlice<I> || simd::index::issimd<I>)) ||
-  (DenseLayout<D> && (ScalarIndex<I> || simd::index::issimd<I>)) ||
+   (ScalarIndex<I> || AbstractSlice<I> || simd::index::issimd<I> || CompressIndex<I>)) ||
+  (DenseLayout<D> && (ScalarIndex<I> || simd::index::issimd<I> || CompressIndex<I>)) ||
   (MatrixDimension<D> && requires(I i) {
     { i.row_idx_ };
     { i.col_idx_ };
