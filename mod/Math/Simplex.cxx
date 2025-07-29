@@ -29,10 +29,8 @@ struct NoFilter {
 getEnteringVariable(PtrVector<std::int64_t> costs)
   -> std::optional<Simplex::index_t> {
   // Bland's algorithm; guaranteed to terminate
-  auto f = costs.begin(), l = costs.end();
-  const auto *neg =
-    std::find_if(f, l, [](std::int64_t c) -> bool { return c < 0; });
-  return neg != l ? std::distance(f, neg) : std::optional<Simplex::index_t>{};
+  std::ptrdiff_t idx = find_if(costs, [](auto c) { return c < 0; });
+  return idx >= 0 ? idx : std::optional<Simplex::index_t>{};
 }
 
 // Searches rows (constraints) for the one to make non-zero for

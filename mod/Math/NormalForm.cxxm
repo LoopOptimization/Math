@@ -81,6 +81,8 @@ auto nullSpace(MutDensePtrMatrix<std::int64_t> B,
   -> MutDensePtrMatrix<std::int64_t>;
 auto nullSpace(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
   -> MutDensePtrMatrix<std::int64_t>;
+auto nullSpace(Arena<> *alloc, MutPtrMatrix<std::int64_t> A)
+  -> MutDensePtrMatrix<std::int64_t>;
 
 auto orthogonalize(IntMatrix<> A)
   -> containers::Pair<SquareMatrix<std::int64_t>, Vector<unsigned>>;

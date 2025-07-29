@@ -376,6 +376,15 @@ auto orthogonalizeBang(MutDensePtrMatrix<std::int64_t> &A)
   }
   return {std::move(K), std::move(included)};
 }
+auto nullSpace(MutDensePtrMatrix<std::int64_t> B, MutPtrMatrix<std::int64_t> A)
+  -> MutDensePtrMatrix<std::int64_t> {
+  B << 0;
+  B.diag() << 1;
+  math::NormalForm::solveSystem(A, B);
+  Row R = math::NormalForm::numNonZeroRows(A); // rank
+  // we discard first R columns
+  return B[_(R, end), _];
+}
 
 } // namespace
 namespace math {
@@ -809,6 +818,12 @@ auto nullSpace(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
   Row M = A.numRow();
   return nullSpace(matrix<std::int64_t>(alloc, M, math::col(std::ptrdiff_t(M))),
                    A);
+}
+auto nullSpace(Arena<> *alloc, MutPtrMatrix<std::int64_t> A)
+  -> MutDensePtrMatrix<std::int64_t> {
+  Row M = A.numRow();
+  return ::nullSpace(
+    matrix<std::int64_t>(alloc, M, math::col(std::ptrdiff_t(M))), A);
 }
 
 // FIXME: why do we have two?

@@ -1341,6 +1341,7 @@ auto main(int argc, const char **argv) -> int {
   };
   "DynsolveDebugging"_test = [&managed_alloc] {
     // clang-format off
+    // Problem: mismatched dims require bounding constraints.
     auto t{"[0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
             "0 1 -1 0 -1 0 -1 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 -1 0  0  0  0;"
             "0 0  1 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
@@ -1372,6 +1373,7 @@ auto main(int argc, const char **argv) -> int {
 
   "DynsolveDebugging_sol0"_test = [&managed_alloc] {
     // clang-format off
+    // Approach 0: append dims so they match
     auto t{"[0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
             "0 1 -1 0 -1 0 -1 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 -1 0  0  0  0;"
             "0 0  1 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
@@ -1421,6 +1423,37 @@ auto main(int argc, const char **argv) -> int {
     Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
     expect(fatal(!simp->initiateFeasible()));
     std::ptrdiff_t num_nuisance = 28+2;
+    Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+    sol.print();
+    expect(allZero(sol));
+  };
+
+  "DynsolveDebugging_sol1"_test = [&managed_alloc] {
+    // clang-format off
+    // Approach 1: drop dims so they match
+    auto t{"[0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 1 -1 0 -1 0 -1 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 -1 0  0  0  0;"
+            "0 0  1 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  1 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  1 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0  1  0 -1  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0  0  1  0 -1 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0 -1 1  0 0  0 -1  0  1 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0 -1 1  0 0  0 0 -1  0  1  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 1 -1 0 -1 0 -1 0  0  0  0  0 0 -1  0  0  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0  1 0  0 0  0 0  0  0  0  0 0  0 -1  0  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  1 0  0 0  0  0  0  0 0  0  0 -1  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  1 0  0  0  0  0 0  0  0  0 -1;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  1  0 -1  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  1  0 -1 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0  0 0 -1 1  0 0  0 -1  0  1 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0  0  0  0  0 0 -1 1  0 0  0 0 -1  0  1  0 0  0  0  0  0]"_mat};
+
+    // clang-format on
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp->initiateFeasible()));
+    std::ptrdiff_t num_nuisance = 22;
     Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
     sol.print();
     expect(allZero(sol));
