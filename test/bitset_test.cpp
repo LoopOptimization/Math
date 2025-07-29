@@ -1,5 +1,6 @@
 import boost.ut;
 
+import ArrayParse;
 import BitSet;
 import CorePrint;
 import ManagedArray;
@@ -7,7 +8,7 @@ import std;
 
 #define STRINGIZE_DETAIL(x) #x
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
-using containers::BitSet, ::math::Vector;
+using containers::BitSet, ::math::Vector, utils::operator""_mat;
 
 int main() {
   using namespace boost::ut;
@@ -179,6 +180,244 @@ int main() {
 
     bs4[100] = true;
     expect(!bs3.emptyIntersection(bs4));
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet ExpressionTemplate"_test = [] {
+    // Test basic expression template assignment with PtrVector
+    auto v{"[5 0 -3 7 0 -1 8 0 2]"_mat};
+
+    BitSet<std::array<std::uint16_t, 1>> bs{};
+    
+    // Test bs << (x != 0) pattern
+    bs << (v != 0);
+    
+    // Verify bits are set correctly for non-zero elements
+    expect(bs[0]);  // 5 != 0
+    expect(!bs[1]); // 0 == 0
+    expect(bs[2]);  // -3 != 0
+    expect(bs[3]);  // 7 != 0
+    expect(!bs[4]); // 0 == 0
+    expect(bs[5]);  // -1 != 0
+    expect(bs[6]);  // 8 != 0
+    expect(!bs[7]); // 0 == 0
+    expect(bs[8]);  // 2 != 0
+    
+    expect(bs.size() == 6); // 6 non-zero elements
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet ExpressionTemplate GreaterThan"_test = [] {
+    // Test with different comparison operators
+    auto data{"[5 -2 3 -7 0 1 8 -1 2]"_mat};
+    ::math::PtrVector<std::int64_t> vec{data};
+    
+    BitSet<std::array<std::uint16_t, 1>> bs{};
+    
+    // Test bs << (x > 0) pattern
+    bs << (vec > 0);
+    
+    // Verify bits are set correctly for positive elements
+    expect(bs[0]);  // 5 > 0
+    expect(!bs[1]); // -2 <= 0
+    expect(bs[2]);  // 3 > 0
+    expect(!bs[3]); // -7 <= 0
+    expect(!bs[4]); // 0 <= 0
+    expect(bs[5]);  // 1 > 0
+    expect(bs[6]);  // 8 > 0
+    expect(!bs[7]); // -1 <= 0
+    expect(bs[8]);  // 2 > 0
+    
+    expect(bs.size() == 5); // 5 positive elements
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet ExpressionTemplate Complex"_test = [] {
+    // Test with more complex expressions
+    auto data{"[10 5 -3 15 2 8 -1 20 0]"_mat};
+    ::math::PtrVector<std::int64_t> vec{data};
+    
+    BitSet<std::array<std::uint16_t, 1>> bs1{}, bs2{};
+    
+    // Test bs << (x >= 5)
+    bs1 << (vec >= 5);
+    expect(bs1[0]);  // 10 >= 5
+    expect(bs1[1]);  // 5 >= 5
+    expect(!bs1[2]); // -3 < 5
+    expect(bs1[3]);  // 15 >= 5
+    expect(!bs1[4]); // 2 < 5
+    expect(bs1[5]);  // 8 >= 5
+    expect(!bs1[6]); // -1 < 5
+    expect(bs1[7]);  // 20 >= 5
+    expect(!bs1[8]); // 0 < 5
+    
+    // Test bs << (x < 0)
+    bs2 << (vec < 0);
+    expect(!bs2[0]); // 10 >= 0
+    expect(!bs2[1]); // 5 >= 0
+    expect(bs2[2]);  // -3 < 0
+    expect(!bs2[3]); // 15 >= 0
+    expect(!bs2[4]); // 2 >= 0
+    expect(!bs2[5]); // 8 >= 0
+    expect(bs2[6]);  // -1 < 0
+    expect(!bs2[7]); // 20 >= 0
+    expect(!bs2[8]); // 0 >= 0
+    
+    expect(bs1.size() == 5); // 5 elements >= 5
+    expect(bs2.size() == 2); // 2 elements < 0
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet ExpressionTemplate DynamicSize"_test = [] {
+    // Test with dynamic size BitSet
+    auto vec{"[1 0 3 0 5 6 0 8]"_mat};
+    
+    BitSet<> bs{}; // Dynamic size BitSet
+    
+    // Test assignment with dynamic resize
+    bs << (vec != 0);
+    
+    expect(bs[0]);  // 1 != 0
+    expect(!bs[1]); // 0 == 0
+    expect(bs[2]);  // 3 != 0
+    expect(!bs[3]); // 0 == 0
+    expect(bs[4]);  // 5 != 0
+    expect(bs[5]);  // 6 != 0
+    expect(!bs[6]); // 0 == 0
+    expect(bs[7]);  // 8 != 0
+    
+    expect(bs.size() == 5); // 5 non-zero elements
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet CompoundAssignment OR"_test = [] {
+    // Test |= operator with expression templates
+    auto vec1{"[1 0 1 0 1 0]"_mat};
+    auto vec2{"[0 1 1 1 0 0]"_mat};
+    
+    BitSet<std::array<std::uint16_t, 1>> bs{};
+    
+    // Start with vec1 != 0: [1,0,1,0,1,0] -> bits 0,2,4 set
+    bs << (vec1 != 0);
+    expect(bs[0]);  expect(!bs[1]); expect(bs[2]);
+    expect(!bs[3]); expect(bs[4]);  expect(!bs[5]);
+    expect(bs.size() == 3);
+    
+    // OR with vec2 != 0: [0,1,1,1,0,0] -> bits 1,2,3 set
+    // Result should be: bits 0,1,2,3,4 set
+    bs |= (vec2 != 0);
+    expect(bs[0]);  expect(bs[1]);  expect(bs[2]);
+    expect(bs[3]);  expect(bs[4]);  expect(!bs[5]);
+    expect(bs.size() == 5);
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet CompoundAssignment AND"_test = [] {
+    // Test &= operator with expression templates
+    auto vec1{"[1 1 1 1 1 0]"_mat};
+    auto vec2{"[1 0 1 0 1 1]"_mat};
+    
+    BitSet<std::array<std::uint16_t, 1>> bs{};
+    
+    // Start with vec1 != 0: [1,1,1,1,1,0] -> bits 0,1,2,3,4 set
+    bs << (vec1 != 0);
+    expect(bs[0]);  expect(bs[1]);  expect(bs[2]);
+    expect(bs[3]);  expect(bs[4]);  expect(!bs[5]);
+    expect(bs.size() == 5);
+    
+    // AND with vec2 != 0: [1,0,1,0,1,1] -> bits 0,2,4,5 set
+    // Result should be: bits 0,2,4 set (intersection)
+    bs &= (vec2 != 0);
+    expect(bs[0]);  expect(!bs[1]); expect(bs[2]);
+    expect(!bs[3]); expect(bs[4]);  expect(!bs[5]);
+    expect(bs.size() == 3);
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet CompoundAssignment XOR"_test = [] {
+    // Test ^= operator with expression templates
+    auto vec1{"[1 1 0 1 0 1]"_mat};
+    auto vec2{"[1 0 1 1 1 0]"_mat};
+    
+    BitSet<std::array<std::uint16_t, 1>> bs{};
+    
+    // Start with vec1 != 0: [1,1,0,1,0,1] -> bits 0,1,3,5 set
+    bs << (vec1 != 0);
+    expect(bs[0]);  expect(bs[1]);  expect(!bs[2]);
+    expect(bs[3]);  expect(!bs[4]); expect(bs[5]);
+    expect(bs.size() == 4);
+    
+    // XOR with vec2 != 0: [1,0,1,1,1,0] -> bits 0,2,3,4 set
+    // Result should be: bits 1,2,4,5 set (symmetric difference)
+    bs ^= (vec2 != 0);
+    expect(!bs[0]); expect(bs[1]);  expect(bs[2]);
+    expect(!bs[3]); expect(bs[4]);  expect(bs[5]);
+    expect(bs.size() == 4);
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet CompoundAssignment Complex"_test = [] {
+    // Test compound assignment with more complex expressions
+    auto data{"[5 -2 3 -7 0 1 8 -1]"_mat};
+    ::math::PtrVector<std::int64_t> vec{data};
+    
+    BitSet<std::array<std::uint16_t, 1>> bs{};
+    
+    // Start with positive elements: vec > 0 -> bits 0,2,5,6 set
+    bs << (vec > 0);
+    expect(bs[0]);  expect(!bs[1]); expect(bs[2]);
+    expect(!bs[3]); expect(!bs[4]); expect(bs[5]);
+    expect(bs[6]);  expect(!bs[7]);
+    expect(bs.size() == 4);
+    
+    // OR with elements >= 3: [5>=3, -2>=3, 3>=3, -7>=3, 0>=3, 1>=3, 8>=3, -1>=3] 
+    // -> bits 0,2,6 set
+    // Result should be: bits 0,2,5,6 set (union)
+    bs |= (vec >= 3);
+    expect(bs[0]);  expect(!bs[1]); expect(bs[2]);
+    expect(!bs[3]); expect(!bs[4]); expect(bs[5]);
+    expect(bs[6]);  expect(!bs[7]);
+    expect(bs.size() == 4);
+    
+    // AND with elements != -2: all except bit 1 -> bits 0,2,5,6 set (no change)
+    bs &= (vec != -2);
+    expect(bs[0]);  expect(!bs[1]); expect(bs[2]);
+    expect(!bs[3]); expect(!bs[4]); expect(bs[5]);
+    expect(bs[6]);  expect(!bs[7]);
+    expect(bs.size() == 4);
+    
+    // XOR with elements < 0: bits 1,3,7 set
+    // Result should be: bits 0,1,2,3,5,6,7 set
+    bs ^= (vec < 0);
+    expect(bs[0]);  expect(bs[1]);  expect(bs[2]);
+    expect(bs[3]);  expect(!bs[4]); expect(bs[5]);
+    expect(bs[6]);  expect(bs[7]);
+    expect(bs.size() == 7);
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSet CompoundAssignment DynamicSize"_test = [] {
+    // Test compound assignment with dynamic size BitSet
+    auto vec1{"[1 0 1 0 1]"_mat};
+    auto vec2{"[0 1 1 1 0]"_mat};
+    
+    BitSet<> bs{}; // Dynamic size BitSet
+    
+    // Start with vec1
+    bs << (vec1 != 0);
+    expect(bs.size() == 3);
+    
+    // OR with vec2
+    bs |= (vec2 != 0);
+    expect(bs[0]);  expect(bs[1]);  expect(bs[2]);
+    expect(bs[3]);  expect(bs[4]);
+    expect(bs.size() == 5);
+    
+    // AND to keep only common elements with vec1 again
+    bs &= (vec1 != 0);
+    expect(bs[0]);  expect(!bs[1]); expect(bs[2]);
+    expect(!bs[3]); expect(bs[4]);
+    expect(bs.size() == 3);
   };
 
   return 0;

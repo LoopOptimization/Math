@@ -213,6 +213,9 @@ template <std::ptrdiff_t W> struct Bit {
     mask_ >>= S;
     return {s};
   }
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::int64_t {
+    return mask_;
+  }
 
 private:
   TRIVIAL friend inline constexpr auto operator&(Bit<W> a, Bit<W> b) -> Bit<W> {
@@ -296,7 +299,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
     else static_assert(false);
   }
-  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::int32_t {
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
     if constexpr (sizeof(I) == 8)
       if constexpr (W == 2) {
         __m128d arg = std::bit_cast<__m128d>(m);
@@ -313,16 +316,16 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool { return intmask(); }
   TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
-    return std::countr_zero(std::uint32_t(intmask()));
+    return std::countr_zero(intmask());
   }
   TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
-    return 32 - std::countl_zero(std::uint32_t(intmask()));
+    return 32 - std::countl_zero(intmask());
   }
   TRIVIAL [[nodiscard]] constexpr auto offBegin() const -> std::ptrdiff_t {
-    return std::countr_one(std::uint32_t(intmask()));
+    return std::countr_one(intmask());
   }
   TRIVIAL [[nodiscard]] constexpr auto offEnd() const -> std::ptrdiff_t {
-    std::uint32_t m = (~std::uint32_t(intmask())) & ((1U << W) - 1U);
+    std::uint32_t m = (~intmask()) & ((1U << W) - 1U);
     return 32 - std::countl_zero(m);
   }
   TRIVIAL constexpr operator __m128i() requires(sizeof(I) * W == 16) {
@@ -485,6 +488,11 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
         if (m[w]) return true;
       return false;
     }
+  }
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
+    std::uint32_t mask{};
+    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= stati_cast<bool>(m[w]) << w;
+    return mask;
   }
 
 private:
@@ -2464,65 +2472,161 @@ template void store<std::int64_t>(std::int64_t *, mask::Bit<8>,
                                   Vec<8, std::int64_t>, std::int32_t);
 
 // Compress store intrinsics for AVX512
-#ifdef __AVX512F__
 template <typename T>
-TRIVIAL inline void compressstore(T *p, mask::Bit<8> m, Vec<8, T> x) {
-  if constexpr (std::same_as<T, double>) {
-    _mm512_mask_compressstoreu_pd(p, std::uint8_t(m.mask_), std::bit_cast<__m512d>(x));
-  } else if constexpr (std::same_as<T, std::int64_t>) {
-    _mm512_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_), std::bit_cast<__m512i>(x));
-  } else if constexpr (std::same_as<T, float>) {
-    _mm512_mask_compressstoreu_ps(p, std::uint16_t(m.mask_), std::bit_cast<__m512>(x));
+TRIVIAL inline void compressstore(T *p, mask::Bit<16> m, Vec<16, T> x) {
+  if constexpr (std::same_as<T, float>) {
+    _mm512_mask_compressstoreu_ps(p, std::uint16_t(m.mask_),
+                                  std::bit_cast<__m512>(x));
   } else if constexpr (std::same_as<T, std::int32_t>) {
-    _mm512_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_), std::bit_cast<__m512i>(x));
-  }
+    _mm512_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_),
+                                     std::bit_cast<__m512i>(x));
+  } else static_assert("type not supported");
 }
 
 template <typename T>
-TRIVIAL inline auto compressload(const T *p, mask::Bit<8> m) -> Vec<8, T> {
-  if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_pd(_mm512_setzero_pd(), 
-                                   std::uint8_t(m.mask_), _mm512_loadu_pd(p)));
-  } else if constexpr (std::same_as<T, std::int64_t>) {
-    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_epi64(_mm512_setzero_si512(), 
-                                   std::uint8_t(m.mask_), _mm512_loadu_si512(p)));
-  } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_ps(_mm512_setzero_ps(), 
-                                   std::uint16_t(m.mask_), _mm512_loadu_ps(p)));
+TRIVIAL inline auto expandload(const T *p, mask::Bit<16> m) -> Vec<16, T> {
+  if constexpr (std::same_as<T, float>) {
+    return std::bit_cast<Vec<16, T>>(
+      _mm512_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int32_t>) {
-    return std::bit_cast<Vec<8, T>>(_mm512_mask_expand_epi32(_mm512_setzero_si512(), 
-                                   std::uint16_t(m.mask_), _mm512_loadu_si512(p)));
-  }
+    return std::bit_cast<Vec<16, T>>(
+      _mm512_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
+  } else static_assert("type not supported");
 }
+
+template <typename T>
+TRIVIAL inline void compressstore(T *p, mask::Bit<8> m, Vec<8, T> x) {
+  if constexpr (std::same_as<T, double>) {
+    _mm512_mask_compressstoreu_pd(p, std::uint8_t(m.mask_),
+                                  std::bit_cast<__m512d>(x));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    _mm512_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_),
+                                     std::bit_cast<__m512i>(x));
+  } else if constexpr (std::same_as<T, float>) {
+    _mm256_mask_compressstoreu_ps(p, std::uint16_t(m.mask_),
+                                  std::bit_cast<__m256>(x));
+  } else if constexpr (std::same_as<T, std::int32_t>) {
+    _mm256_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_),
+                                     std::bit_cast<__m256i>(x));
+  } else static_assert("type not supported");
+}
+
+template <typename T>
+TRIVIAL inline auto expandload(const T *p, mask::Bit<8> m) -> Vec<8, T> {
+  if constexpr (std::same_as<T, double>) {
+    return std::bit_cast<Vec<8, T>>(
+      _mm512_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    return std::bit_cast<Vec<8, T>>(
+      _mm512_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, float>) {
+    return std::bit_cast<Vec<8, T>>(
+      _mm256_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, std::int32_t>) {
+    return std::bit_cast<Vec<8, T>>(
+      _mm256_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
+  } else static_assert("type not supported");
+}
+
+template <typename T>
+TRIVIAL inline void compressstore(T *p, mask::Bit<4> m, Vec<4, T> x) {
+  if constexpr (std::same_as<T, double>) {
+    _mm256_mask_compressstoreu_pd(p, std::uint8_t(m.mask_),
+                                  std::bit_cast<__m256d>(x));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    _mm256_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_),
+                                     std::bit_cast<__m256i>(x));
+  } else if constexpr (std::same_as<T, float>) {
+    _mm128_mask_compressstoreu_ps(p, std::uint16_t(m.mask_),
+                                  std::bit_cast<__m128>(x));
+  } else if constexpr (std::same_as<T, std::int32_t>) {
+    _mm128_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_),
+                                     std::bit_cast<__m128i>(x));
+  } else static_assert("type not supported");
+}
+
+template <typename T>
+TRIVIAL inline auto expandload(const T *p, mask::Bit<4> m) -> Vec<4, T> {
+  if constexpr (std::same_as<T, double>) {
+    return std::bit_cast<Vec<4, T>>(
+      _mm256_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    return std::bit_cast<Vec<4, T>>(
+      _mm256_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, float>) {
+    return std::bit_cast<Vec<4, T>>(
+      _mm128_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, std::int32_t>) {
+    return std::bit_cast<Vec<4, T>>(
+      _mm128_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
+  } else static_assert("type not supported");
+}
+
+template <typename T>
+TRIVIAL inline void compressstore(T *p, mask::Bit<2> m, Vec<2, T> x) {
+  if constexpr (std::same_as<T, double>) {
+    _mm128_mask_compressstoreu_pd(p, std::uint8_t(m.mask_),
+                                  std::bit_cast<__m128d>(x));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    _mm128_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_),
+                                     std::bit_cast<__m128i>(x));
+  } else static_assert("type not supported");
+}
+
+template <typename T>
+TRIVIAL inline auto expandload(const T *p, mask::Bit<2> m) -> Vec<2, T> {
+  if constexpr (std::same_as<T, double>) {
+    return std::bit_cast<Vec<2, T>>(
+      _mm128_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
+  } else if constexpr (std::same_as<T, std::int64_t>) {
+    return std::bit_cast<Vec<2, T>>(
+      _mm128_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
+  } else static_assert("type not supported");
+}
+
+#else
+// Generic compress store/load for non-AVX512 or different widths
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (mask & (1ULL << w)) p[idx++] = x[w];
+}
+
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
+  Vec<W, T> ret{};
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (mask & (1ULL << w)) ret[w] = p[idx++];
+  return ret;
+}
+
 #endif
+
+#else // not __x86_64__
 
 // Generic compress store/load for non-AVX512 or different widths
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
   std::ptrdiff_t idx = 0;
   POLYMATHFULLUNROLL
-  for (std::ptrdiff_t w = 0; w < W; ++w) {
-    if (mask & (1ULL << w)) {
-      p[idx++] = x[w];
-    }
-  }
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (mask & (1ULL << w)) p[idx++] = x[w];
 }
 
 template <typename T, std::ptrdiff_t W>
-TRIVIAL inline auto compressload(const T *p, std::uint64_t mask) -> Vec<W, T> {
+TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
   Vec<W, T> ret{};
   std::ptrdiff_t idx = 0;
   POLYMATHFULLUNROLL
-  for (std::ptrdiff_t w = 0; w < W; ++w) {
-    if (mask & (1ULL << w)) {
-      ret[w] = p[idx++];
-    }
-  }
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (mask & (1ULL << w)) ret[w] = p[idx++];
   return ret;
 }
-#endif
 
-#else // not __x86_64__
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline auto load(const T *p, mask::None<W>) -> Vec<W, T> {
   Vec<W, T> ret;

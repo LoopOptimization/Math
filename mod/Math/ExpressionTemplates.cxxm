@@ -288,6 +288,30 @@ public:
   operator==(const AbstractTensor auto &B) const -> bool {
     return isEqual(B);
   }
+  
+  // Scalar comparison operators
+  TRIVIAL constexpr auto operator!=(std::convertible_to<T> auto b) const {
+    return elementwise(v(), b, std::not_equal_to<>{});
+  }
+  TRIVIAL constexpr auto operator==(std::convertible_to<T> auto b) const {
+    return elementwise(v(), b, std::equal_to<>{});
+  }
+  template <Compatible<A> B>
+  TRIVIAL constexpr auto operator<(const B &b) const {
+    return elementwise(v(), view(b), std::less<>{});
+  }
+  template <Compatible<A> B>
+  TRIVIAL constexpr auto operator>(const B &b) const {
+    return elementwise(v(), view(b), std::greater<>{});
+  }
+  template <Compatible<A> B>
+  TRIVIAL constexpr auto operator<=(const B &b) const {
+    return elementwise(v(), view(b), std::less_equal<>{});
+  }
+  template <Compatible<A> B>
+  TRIVIAL constexpr auto operator>=(const B &b) const {
+    return elementwise(v(), view(b), std::greater_equal<>{});
+  }
 };
 template <typename T, typename A>
 struct Transpose : public Expr<T, Transpose<T, A>> {

@@ -88,6 +88,11 @@ struct MATH_GSL_OWNER StaticArray
   using S = StaticDims<T, M, N, Compress>;
   static constexpr bool can_flatten = std::is_convertible_v<S, DenseDims<>>;
   using Expr<T, StaticArray<T, M, N, Compress>>::operator==;
+  using Expr<T, StaticArray<T, M, N, Compress>>::operator!=;
+  using Expr<T, StaticArray<T, M, N, Compress>>::operator<;
+  using Expr<T, StaticArray<T, M, N, Compress>>::operator>;
+  using Expr<T, StaticArray<T, M, N, Compress>>::operator<=;
+  using Expr<T, StaticArray<T, M, N, Compress>>::operator>=;
   TRIVIAL constexpr StaticArray() = default;
   TRIVIAL constexpr explicit StaticArray(const T &x) noexcept {
     if consteval {
@@ -328,6 +333,12 @@ requires((M * (N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) > 1)
 struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   : ArrayOps<T, StaticDims<T, M, N, false>, StaticArray<T, M, N, false>>,
     Expr<T, StaticArray<T, M, N, false>> {
+  using Expr<T, StaticArray<T, M, N, false>>::operator==;
+  using Expr<T, StaticArray<T, M, N, false>>::operator!=;
+  using Expr<T, StaticArray<T, M, N, false>>::operator<;
+  using Expr<T, StaticArray<T, M, N, false>>::operator>;
+  using Expr<T, StaticArray<T, M, N, false>>::operator<=;
+  using Expr<T, StaticArray<T, M, N, false>>::operator>=;
   // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
   //   : ArrayOps<T, StaticDims<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
   //   T>)>,
@@ -648,6 +659,12 @@ requires((N > 1) && ((N + simd::VecLen<N, T> - 1) / simd::VecLen<N, T>) == 1)
 struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   : ArrayOps<T, StaticDims<T, 1, N, false>, StaticArray<T, 1, N, false>>,
     Expr<T, StaticArray<T, 1, N, false>> {
+  using Expr<T, StaticArray<T, 1, N, false>>::operator==;
+  using Expr<T, StaticArray<T, 1, N, false>>::operator!=;
+  using Expr<T, StaticArray<T, 1, N, false>>::operator<;
+  using Expr<T, StaticArray<T, 1, N, false>>::operator>;
+  using Expr<T, StaticArray<T, 1, N, false>>::operator<=;
+  using Expr<T, StaticArray<T, 1, N, false>>::operator>=;
   // struct StaticArray<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>, T>)>
   //   : ArrayOps<T, StaticDims<T, M, N, alignof(simd::Vec<simd::VecLen<N, T>,
   //   T>)>,
