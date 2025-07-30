@@ -13,8 +13,8 @@ import ManagedArray;
 import NormalForm;
 import std;
 
-namespace math {
-
+using namespace math;
+namespace {
 auto substituteEqualityImpl(MutDensePtrMatrix<std::int64_t> E, std::ptrdiff_t i)
   -> Row<> {
   const auto [numConstraints, numVar] = shape(E);
@@ -50,15 +50,6 @@ auto substituteEqualityImpl(MutDensePtrMatrix<std::int64_t> E, std::ptrdiff_t i)
   }
   return row(row_min_non_zero);
 }
-
-auto substituteEquality(DenseMatrix<std::int64_t> &E, std::ptrdiff_t i)
-  -> bool {
-  Row min_non_zero = substituteEqualityImpl(E, i);
-  if (min_non_zero == E.numRow()) return true;
-  eraseConstraint(E, min_non_zero);
-  return false;
-}
-
 auto substituteEqualityPairImpl(
   std::array<MutDensePtrMatrix<std::int64_t>, 2> AE, std::ptrdiff_t i)
   -> Row<> {
@@ -107,6 +98,51 @@ auto substituteEqualityPairImpl(
     }
   }
   return row(row_min_non_zero);
+}
+constexpr auto substituteEquality(MutDensePtrMatrix<std::int64_t> &,
+                                  EmptyMatrix<std::int64_t>, std::ptrdiff_t)
+  -> bool {
+  return false;
+}
+
+} // namespace
+
+namespace math {
+void printConstraint(PtrVector<std::int64_t> a, std::ptrdiff_t numSyms,
+                     bool inequality) {
+  std::ptrdiff_t num_var = a.size();
+  bool has_printed = false, all_non_neg = allGEZero(a[_(numSyms, num_var)]);
+  std::int64_t sign = all_non_neg ? 1 : -1;
+  for (std::ptrdiff_t v = numSyms; v < num_var; ++v) {
+    if (std::int64_t Acv = sign * a[v]) {
+      if (has_printed) {
+        if (Acv > 0) {
+          utils::print(" + ");
+        } else {
+          utils::print(" - ");
+          Acv *= -1;
+        }
+      }
+      if (Acv != 1) {
+        if (Acv == -1) utils::print("-");
+        else utils::print(Acv);
+      }
+      utils::print("v_", v - numSyms);
+      has_printed = true;
+    }
+  }
+  if (!has_printed) utils::print('0');
+  if (inequality) utils::print(all_non_neg ? " >= " : " <= ");
+  else utils::print(" == ");
+  utils::print(-sign * a[0]);
+}
+
+auto substituteEquality(DenseMatrix<std::int64_t> &E, std::ptrdiff_t i)
+  -> bool {
+  Row min_non_zero = substituteEqualityImpl(E, i);
+  if (min_non_zero == E.numRow()) return true;
+  eraseConstraint(E, min_non_zero);
+  return false;
 }
 
 auto substituteEquality(MutDensePtrMatrix<std::int64_t> &A,
@@ -288,7 +324,7 @@ auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
   std::ptrdiff_t r = 0;
   // x - v >= 0 -> x >= v
   // x + v >= 0 -> v >= -x
-  for (auto i : neg) {
+  for (std::ptrdiff_t i : neg) {
     // we  have implicit v >= 0, matching x >= v
     if constexpr (NonNegative) {
       B[r, _(0, v)] << A[i, _(0, v)];
@@ -297,7 +333,7 @@ auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
     }
     std::int64_t Aiv = A[i, v];
     invariant(Aiv < 0);
-    for (auto j : pos) {
+    for (std::ptrdiff_t j : pos) {
       std::int64_t Ajv = A[j, v];
       invariant(Ajv > 0);
       auto [ai, aj] = divgcd(Aiv, Ajv);
@@ -306,7 +342,7 @@ auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
       r += anyNEZero(B[r, _(0, end)]);
     }
   }
-  for (auto i : zero) {
+  for (std::ptrdiff_t i : zero) {
     B[r, _(0, v)] << A[i, _(0, v)];
     B[r, _(v, end)] << A[i, _(v + 1, end)];
     r += anyNEZero(B[r, _(0, end)]);

@@ -30,8 +30,8 @@ using utils::compressed_t, utils::decompressed_t;
 
 template <typename MaskType> struct Compress {
   using mask_type = MaskType;
-  MaskType mask;
-  TRIVIAL constexpr Compress(MaskType m) : mask(m) {}
+  MaskType mask_;
+  TRIVIAL constexpr Compress(MaskType m) : mask_(m) {}
 };
 
 template <typename T> Compress(T) -> Compress<T>;
@@ -73,10 +73,10 @@ TRIVIAL [[gnu::flatten]] constexpr auto index(P *ptr, S shape, I i) noexcept
     constexpr bool compress = !std::same_as<T, std::remove_const_t<P>>;
     if constexpr (std::is_const_v<P>)
       return CompressView<T, S, typename I::mask_type, compress>{
-        const_cast<std::remove_const_t<P> *>(ptr), shape, i.mask};
+        const_cast<std::remove_const_t<P> *>(ptr), shape, i.mask_};
     else
       return CompressView<T, S, typename I::mask_type, compress>{ptr, shape,
-                                                                 i.mask};
+                                                                 i.mask_};
   } else {
     auto offset = calcOffset(shape, i);
     auto new_dim = calcNewDim(shape, i);
@@ -1051,7 +1051,8 @@ constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
 #else
         // Generic version using std::uint64_t mask
         if constexpr (requires {
-                        simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
+                        simd::compressstore(dst.data() + dst_idx, chunk_mask,
+                                            vec);
                       }) {
           simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
           dst_idx += bits_set;
@@ -1112,7 +1113,8 @@ constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
 #else
         // Generic version using std::uint64_t mask
         if constexpr (requires {
-                        simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
+                        simd::compressstore(dst.data() + dst_idx, chunk_mask,
+                                            vec);
                       }) {
           simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
           dst_idx += bits_set;
