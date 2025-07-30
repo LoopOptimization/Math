@@ -1,5 +1,6 @@
 module;
 
+#include "LoopMacros.hxx"
 #include "Macros.hxx"
 #include "Owner.hxx"
 export module Array;
@@ -27,15 +28,13 @@ import Valid;
 export namespace math {
 using utils::compressed_t, utils::decompressed_t;
 
-template <typename MaskType>
-struct Compress {
+template <typename MaskType> struct Compress {
   using mask_type = MaskType;
   MaskType mask;
   TRIVIAL constexpr Compress(MaskType m) : mask(m) {}
 };
 
-template <typename T>
-Compress(T) -> Compress<T>;
+template <typename T> Compress(T) -> Compress<T>;
 
 static_assert(Dimension<Length<>>);
 static_assert(Dimension<DenseDims<3, 2>>);
@@ -53,7 +52,8 @@ struct MATH_GSL_POINTER Array;
 template <class T, Dimension S, bool Compress = utils::Compressible<T>>
 struct MATH_GSL_POINTER MutArray;
 
-template <class T, Dimension S, typename MaskType, bool Compress = utils::Compressible<T>>
+template <class T, Dimension S, typename MaskType,
+          bool Compress = utils::Compressible<T>>
 struct MATH_GSL_POINTER CompressView;
 
 // Cases we need to consider:
@@ -73,9 +73,10 @@ TRIVIAL [[gnu::flatten]] constexpr auto index(P *ptr, S shape, I i) noexcept
     constexpr bool compress = !std::same_as<T, std::remove_const_t<P>>;
     if constexpr (std::is_const_v<P>)
       return CompressView<T, S, typename I::mask_type, compress>{
-        const_cast<std::remove_const_t<P>*>(ptr), shape, i.mask};
-    else 
-      return CompressView<T, S, typename I::mask_type, compress>{ptr, shape, i.mask};
+        const_cast<std::remove_const_t<P> *>(ptr), shape, i.mask};
+    else
+      return CompressView<T, S, typename I::mask_type, compress>{ptr, shape,
+                                                                 i.mask};
   } else {
     auto offset = calcOffset(shape, i);
     auto new_dim = calcNewDim(shape, i);
@@ -900,8 +901,9 @@ protected:
 template <class T, Dimension S, typename MaskType, bool Compress>
 struct CompressView : public Expr<T, CompressView<T, S, MaskType, Compress>> {
   static_assert(!std::is_const_v<T>, "T shouldn't be const");
-  static_assert(VectorDimension<S>, "CompressView only supports vector dimensions");
-  
+  static_assert(VectorDimension<S>,
+                "CompressView only supports vector dimensions");
+
   using storage_type = std::conditional_t<Compress, compressed_t<T>, T>;
   using value_type = T;
   using reference = T &;
@@ -911,62 +913,69 @@ struct CompressView : public Expr<T, CompressView<T, S, MaskType, Compress>> {
   using iterator = storage_type *;
   using const_iterator = const storage_type *;
   using concrete = std::true_type;
-  
-  TRIVIAL constexpr CompressView(storage_type *p, S s, MaskType mask) 
+
+  TRIVIAL constexpr CompressView(storage_type *p, S s, MaskType mask)
     : ptr_{p}, sz_{s}, mask_{mask} {}
-  
+
   TRIVIAL constexpr CompressView(MutArray<T, S, Compress> arr, MaskType mask)
     : ptr_{arr.data()}, sz_{arr.dim()}, mask_{mask} {}
-    
-  TRIVIAL [[nodiscard]] constexpr auto data() const noexcept -> const storage_type * {
+
+  TRIVIAL [[nodiscard]] constexpr auto data() const noexcept
+    -> const storage_type * {
     invariant(ptr_ != nullptr || std::ptrdiff_t(sz_) == 0);
     return ptr_;
   }
-  
+
   TRIVIAL [[nodiscard]] constexpr auto data() noexcept -> storage_type * {
     invariant(ptr_ != nullptr || std::ptrdiff_t(sz_) == 0);
     return ptr_;
   }
-  
+
   TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz_; }
-  TRIVIAL [[nodiscard]] constexpr auto mask() const noexcept -> MaskType { return mask_; }
+  TRIVIAL [[nodiscard]] constexpr auto mask() const noexcept -> MaskType {
+    return mask_;
+  }
   TRIVIAL [[nodiscard]] constexpr auto size() const noexcept -> std::ptrdiff_t {
     return std::ptrdiff_t(sz_);
   }
-  
+
   // Element access with compression awareness
   TRIVIAL [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const -> T {
     return compressLoad(*this, i);
   }
-  
+
   // TODO: Add SIMD indexing support for expression templates later
-  
+
   // Begin/end for iteration
-  TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept -> const storage_type * {
+  TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
+    -> const storage_type * {
     return ptr_;
   }
-  
-  TRIVIAL [[nodiscard]] constexpr auto end() const noexcept -> const storage_type * {
+
+  TRIVIAL [[nodiscard]] constexpr auto end() const noexcept
+    -> const storage_type * {
     return ptr_ + size();
   }
-  
+
   // Methods needed for AbstractVector concept
-  TRIVIAL [[nodiscard]] constexpr auto view() const noexcept -> CompressView<T, S, MaskType, Compress> {
+  TRIVIAL [[nodiscard]] constexpr auto view() const noexcept
+    -> CompressView<T, S, MaskType, Compress> {
     return *this;
   }
-  
+
   TRIVIAL [[nodiscard]] constexpr auto numRow() const noexcept -> Row<1> {
     return Row<1>{};
   }
-  
+
   TRIVIAL [[nodiscard]] constexpr auto numCol() const noexcept -> Col<> {
     return col(sz_);
   }
 
   // Assignment operator for compress store
-  template<typename Expr>
-  constexpr auto operator<<(const Expr& expr) -> CompressView& 
-    requires(AbstractVector<Expr> && std::same_as<utils::eltype_t<Expr>, T>) {
+  template <typename Expr>
+  constexpr auto operator<<(const Expr &expr)
+    -> CompressView & requires(AbstractVector<Expr> &&
+                               std::same_as<utils::eltype_t<Expr>, T>) {
     compressStore(*this, expr);
     return *this;
   }
@@ -977,33 +986,169 @@ private:
   [[no_unique_address]] MaskType mask_;
 };
 
-// Compress store implementation
+// SIMD-optimized compress store implementation
 // v[Compress(mask)] << source
-// Takes elements from source at positions specified by mask bits and stores them contiguously in v
+// Takes elements from source at positions specified by mask bits and stores
+// them contiguously in v
 template <class T, Dimension S, typename MaskType, bool Compress, typename Expr>
-constexpr void compressStore(CompressView<T, S, MaskType, Compress>& dst, const Expr& src) 
+constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
+                             const Expr &src)
   requires(AbstractVector<Expr> && std::same_as<utils::eltype_t<Expr>, T>) {
   std::uint64_t mask = dst.mask();
+  std::ptrdiff_t src_size = std::ptrdiff_t(src.size());
   std::ptrdiff_t dst_idx = 0;
-  
-  // Iterate through source positions, selecting those specified by mask bits
-  for (std::ptrdiff_t src_pos = 0; src_pos < std::ptrdiff_t(src.size()) && dst_idx < dst.size(); ++src_pos) {
+
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
+  // Use SIMD when possible
+  if constexpr (simd::SIMDSupported<T>) {
+    constexpr std::ptrdiff_t W = simd::Width<T>;
+
+    // Process elements in SIMD chunks
+    std::ptrdiff_t i = 0;
+    for (; i <= src_size - W; i += W) {
+      simd::index::Unroll<1, W> u{i};
+      auto vec = src[u]; // SIMD load - this is an unrolled object
+
+      // Extract mask bits for this chunk
+      std::uint64_t chunk_mask = (mask >> i) & ((1ULL << W) - 1);
+
+      // Mask off any excess bits to ensure we don't go beyond dst.size()
+      std::ptrdiff_t bits_set = std::popcount(chunk_mask);
+      std::ptrdiff_t remaining_space = dst.size() - dst_idx;
+      if (bits_set > remaining_space) {
+        // Mask off excess bits that would overflow the destination
+        std::uint64_t limited_mask = 0;
+        std::ptrdiff_t count = 0;
+        for (std::ptrdiff_t b = 0; b < W && count < remaining_space; ++b) {
+          if (chunk_mask & (1ULL << b)) {
+            limited_mask |= (1ULL << b);
+            ++count;
+          }
+        }
+        chunk_mask = limited_mask;
+        bits_set = count;
+      }
+
+      // Use SIMD compressstore if we have a non-zero mask
+      if (chunk_mask != 0) {
+#ifdef __AVX512F__
+        // AVX512 version using mask::Bit
+        if constexpr (requires {
+                        simd::compressstore(dst.data() + dst_idx,
+                                            simd::mask::Bit<W>{chunk_mask},
+                                            vec);
+                      }) {
+          simd::compressstore(dst.data() + dst_idx,
+                              simd::mask::Bit<W>{chunk_mask}, vec);
+          dst_idx += bits_set;
+        } else {
+          // Fallback for AVX512 when specific width not supported
+          POLYMATHFULLUNROLL
+          for (std::ptrdiff_t w = 0; w < W; ++w)
+            if (chunk_mask & (1ULL << w))
+              dst.data()[dst_idx++] = src[i + w]; // Access source directly
+        }
+#else
+        // Generic version using std::uint64_t mask
+        if constexpr (requires {
+                        simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
+                      }) {
+          simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
+          dst_idx += bits_set;
+        } else {
+          // Fallback: element-wise store
+          POLYMATHFULLUNROLL
+          for (std::ptrdiff_t w = 0; w < W; ++w)
+            if (chunk_mask & (1ULL << w))
+              dst.data()[dst_idx++] = src[i + w]; // Access source directly
+        }
+#endif
+      }
+    }
+
+    // Handle remaining elements using tailmask
+    if (std::ptrdiff_t M = src_size - i) {
+      auto u{simd::index::tailmask<W>(i, M)};
+      auto vec = src[u]; // SIMD load with tailmask
+
+      // Extract mask bits for remaining elements
+      std::uint64_t chunk_mask = (mask >> i) & ((1ULL << M) - 1);
+
+      // Mask off any excess bits to ensure we don't go beyond dst.size()
+      std::ptrdiff_t bits_set = std::popcount(chunk_mask);
+      std::ptrdiff_t remaining_space = dst.size() - dst_idx;
+      if (bits_set > remaining_space) {
+        // Mask off excess bits that would overflow the destination
+        std::uint64_t limited_mask = 0;
+        std::ptrdiff_t count = 0;
+        for (std::ptrdiff_t b = 0; b < M && count < remaining_space; ++b) {
+          if (chunk_mask & (1ULL << b)) {
+            limited_mask |= (1ULL << b);
+            ++count;
+          }
+        }
+        chunk_mask = limited_mask;
+        bits_set = count;
+      }
+
+      if (chunk_mask != 0) {
+#ifdef __AVX512F__
+        // AVX512 version using mask::Bit
+        if constexpr (requires {
+                        simd::compressstore(dst.data() + dst_idx,
+                                            simd::mask::Bit<W>{chunk_mask},
+                                            vec);
+                      }) {
+          simd::compressstore(dst.data() + dst_idx,
+                              simd::mask::Bit<W>{chunk_mask}, vec);
+          dst_idx += bits_set;
+        } else {
+          // Fallback for tail elements on AVX512
+          POLYMATHFULLUNROLL
+          for (std::ptrdiff_t w = 0; w < M; ++w)
+            if (chunk_mask & (1ULL << w))
+              dst.data()[dst_idx++] = src[i + w]; // Access source directly
+        }
+#else
+        // Generic version using std::uint64_t mask
+        if constexpr (requires {
+                        simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
+                      }) {
+          simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
+          dst_idx += bits_set;
+        } else {
+          // Fallback for tail elements
+          POLYMATHFULLUNROLL
+          for (std::ptrdiff_t w = 0; w < M; ++w)
+            if (chunk_mask & (1ULL << w))
+              dst.data()[dst_idx++] = src[i + w]; // Access source directly
+        }
+#endif
+      }
+    }
+    return;
+  }
+#endif
+
+  // Fallback to scalar processing
+  for (std::ptrdiff_t src_pos = 0; src_pos < src_size && dst_idx < dst.size();
+       ++src_pos) {
     if (mask & (1ULL << src_pos)) {
       // This source position is selected by mask, store it in dst contiguously
-      dst.data()[dst_idx] = src[src_pos];
-      dst_idx++;
+      dst.data()[dst_idx++] = src[src_pos];
     }
   }
 }
 
 // Compress load implementation for individual element access
-// When accessing x[Compress(mask)][i], we want the i-th element from the compressed representation
+// When accessing x[Compress(mask)][i], we want the i-th element from the
+// compressed representation
 template <class T, Dimension S, typename MaskType, bool Compress>
-constexpr auto compressLoad(const CompressView<T, S, MaskType, Compress>& src, std::ptrdiff_t compressed_idx) -> T {
+constexpr auto compressLoad(const CompressView<T, S, MaskType, Compress> &src,
+                            std::ptrdiff_t compressed_idx) -> T {
   // The compressed view stores elements contiguously, so just access directly
-  if (compressed_idx >= 0 && compressed_idx < src.size()) {
+  if (compressed_idx >= 0 && compressed_idx < src.size())
     return src.data()[compressed_idx];
-  }
   return T{}; // Return zero for out-of-bounds access
 }
 

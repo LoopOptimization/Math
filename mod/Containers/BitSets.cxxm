@@ -355,8 +355,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
 
   // Expression template assignment operator for BitSet
   template <typename Expr>
-  TRIVIAL constexpr auto operator<<(const Expr &expr) -> BitSet &
-    requires requires {
+  TRIVIAL constexpr auto operator<<(const Expr &expr)
+    -> BitSet & requires requires {
       { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
       { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
     } {
@@ -366,8 +366,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
 
   // Expression template OR assignment operator for BitSet
   template <typename Expr>
-  TRIVIAL constexpr auto operator|=(const Expr &expr) -> BitSet &
-    requires requires {
+  TRIVIAL constexpr auto operator|=(const Expr &expr)
+    -> BitSet & requires requires {
       { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
       { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
     } {
@@ -377,8 +377,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
 
   // Expression template AND assignment operator for BitSet
   template <typename Expr>
-  TRIVIAL constexpr auto operator&=(const Expr &expr) -> BitSet &
-    requires requires {
+  TRIVIAL constexpr auto operator&=(const Expr &expr)
+    -> BitSet & requires requires {
       { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
       { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
     } {
@@ -388,8 +388,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
 
   // Expression template XOR assignment operator for BitSet
   template <typename Expr>
-  TRIVIAL constexpr auto operator^=(const Expr &expr) -> BitSet &
-    requires requires {
+  TRIVIAL constexpr auto operator^=(const Expr &expr)
+    -> BitSet & requires requires {
       { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
       { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
     } {
@@ -471,7 +471,7 @@ static_assert(std::movable<BitSliceView<std::int64_t>::ConstIterator>);
 
 // SIMD-optimized expression template assignment function for BitSet
 template <BitCollection T, typename Expr, typename Op>
-TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op) 
+TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op)
   requires requires {
     { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
     { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
@@ -479,85 +479,71 @@ TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op)
   using U = utils::eltype_t<T>;
   static constexpr std::ptrdiff_t usize = 8 * sizeof(U);
   static constexpr U ushift = std::countr_zero(U(usize));
-  
+
   std::ptrdiff_t size = expr.size();
-  
+
   // Resize the bitset if needed to accommodate the expression size
   bitset.maybeResize(size);
-  
-  std::ptrdiff_t num_words = (size + usize - 1) >> ushift; 
-  
+
+  std::ptrdiff_t num_words = (size + usize - 1) >> ushift;
+
   // Resize data if needed to accommodate all words
   if constexpr (requires { bitset.data_.resize(num_words); }) {
-    if (bitset.data_.size() < num_words) {
-      bitset.data_.resize(num_words);
-    }
+    if (bitset.data_.size() < num_words) bitset.data_.resize(num_words);
   }
 
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
   // Use SIMD when expression supports vectorized evaluation
-  if constexpr (requires(std::ptrdiff_t i) { 
-    { expr[simd::index::Unroll<1, 4>{i}] }; 
-  }) {
-    using T_eval = decltype(expr[std::ptrdiff_t{}]);
-    if constexpr (simd::SIMDSupported<T_eval>) {
-      constexpr std::ptrdiff_t W = simd::Width<T_eval>;
-      
-      // Process elements in SIMD chunks word by word
-      for (std::ptrdiff_t word_idx = 0; word_idx < num_words; ++word_idx) {
-        U new_word = 0;
-        std::ptrdiff_t base = word_idx << ushift;
-        std::ptrdiff_t end = std::min(base + usize, size);
-        std::ptrdiff_t word_size = end - base;
-        
-        // Process the word using SIMD when possible
-        std::ptrdiff_t i = 0;
-        for (; i <= word_size - W; i += W) {
-          simd::index::Unroll<1, W> u{base + i};
-          auto mask = expr[u];  // SIMD evaluation
-          
-          // Use intmask() to get integer bitmask for bulk operations
-          if constexpr (requires { mask.intmask(); }) {
-            auto intmask = mask.intmask();
-            // Shift the mask to the correct position within the word
-            new_word |= U(intmask) << i;
-          } else {
-            // Fallback: extract individual bits
-            for (std::ptrdiff_t j = 0; j < W; ++j) {
-              if (mask.data_[j]) {
-                new_word |= (U(1) << (i + j));
-              }
-            }
-          }
-        }
-        
-        // Handle remaining elements using tailmask
-        if (std::ptrdiff_t M = word_size - i) {
-          auto u{simd::index::tailmask<W>(base + i, M)};
-          auto mask = expr[u];  // SIMD evaluation with tailmask
-          
-          if constexpr (requires { mask.intmask(); }) {
-            auto intmask = mask.intmask();
-            new_word |= U(intmask) << i;
-          } else {
-            // Fallback: extract individual bits for remaining elements
-            for (std::ptrdiff_t j = 0; j < M; ++j) {
-              if (mask.data_[j]) {
-                new_word |= (U(1) << (i + j));
-              }
-            }
-          }
-        }
-        
-        // Apply the operation
-        if constexpr (std::same_as<Op, math::detail::CopyAssign>) {
-          bitset.data_[word_idx] = new_word;
+  using T_eval = decltype(expr[std::ptrdiff_t{}]);
+  if constexpr (simd::SIMDSupported<T_eval>) {
+    constexpr std::ptrdiff_t W = simd::Width<T_eval>;
+
+    // Process elements in SIMD chunks word by word
+    for (std::ptrdiff_t word_idx = 0; word_idx < num_words; ++word_idx) {
+      U new_word = 0;
+      std::ptrdiff_t base = word_idx << ushift;
+      std::ptrdiff_t end = std::min(base + usize, size);
+      std::ptrdiff_t word_size = end - base;
+
+      // Process the word using SIMD when possible
+      std::ptrdiff_t i = 0;
+      for (; i <= word_size - W; i += W) {
+        simd::index::Unroll<1, W> u{base + i};
+        auto mask = expr[u]; // SIMD evaluation
+
+        // Use intmask() to get integer bitmask for bulk operations
+        if constexpr (requires { mask.intmask(); }) {
+          auto intmask = mask.intmask();
+          // Shift the mask to the correct position within the word
+          new_word |= U(intmask) << i;
         } else {
-          bitset.data_[word_idx] = op(bitset.data_[word_idx], new_word);
+          // Fallback: extract individual bits
+          for (std::ptrdiff_t j = 0; j < W; ++j)
+            if (mask.data_[j]) new_word |= (U(1) << (i + j));
         }
       }
-      return;
+
+      // Handle remaining elements using tailmask
+      if (std::ptrdiff_t M = word_size - i) {
+        auto u{simd::index::tailmask<W>(base + i, M)};
+        auto mask = expr[u]; // SIMD evaluation with tailmask
+
+        if constexpr (requires { mask.intmask(); }) {
+          auto intmask = mask.intmask();
+          new_word |= U(intmask) << i;
+        } else {
+          // Fallback: extract individual bits for remaining elements
+          for (std::ptrdiff_t j = 0; j < M; ++j)
+            if (mask.data_[j]) new_word |= (U(1) << (i + j));
+        }
+      }
+
+      // Apply the operation
+      if constexpr (std::same_as<Op, math::detail::CopyAssign>)
+        bitset.data_[word_idx] = new_word;
+      else bitset.data_[word_idx] = op(bitset.data_[word_idx], new_word);
     }
+    return;
   }
 #endif
 
@@ -566,26 +552,21 @@ TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op)
     U new_word = 0;
     std::ptrdiff_t base = word_idx << ushift;
     std::ptrdiff_t end = std::min(base + usize, size);
-    
+
     // Build up the word bit by bit
-    for (std::ptrdiff_t bit_pos = 0, idx = base; idx < end; ++bit_pos, ++idx) {
-      if (expr[idx]) {
-        new_word |= (U(1) << bit_pos);
-      }
-    }
-    
+    for (std::ptrdiff_t bit_pos = 0, idx = base; idx < end; ++bit_pos, ++idx)
+      if (expr[idx]) new_word |= (U(1) << bit_pos);
+
     // Apply the operation
-    if constexpr (std::same_as<Op, math::detail::CopyAssign>) {
+    if constexpr (std::same_as<Op, math::detail::CopyAssign>)
       bitset.data_[word_idx] = new_word;
-    } else {
-      bitset.data_[word_idx] = op(bitset.data_[word_idx], new_word);
-    }
+    else bitset.data_[word_idx] = op(bitset.data_[word_idx], new_word);
   }
 }
 
 // Expression template assignment function for BitSet
 template <BitCollection T, typename Expr>
-TRIVIAL constexpr void assignFromExpression(BitSet<T> &bitset, const Expr &expr) 
+TRIVIAL constexpr void assignFromExpression(BitSet<T> &bitset, const Expr &expr)
   requires requires {
     { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
     { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
@@ -595,7 +576,8 @@ TRIVIAL constexpr void assignFromExpression(BitSet<T> &bitset, const Expr &expr)
 
 // Expression template OR assignment function for BitSet
 template <BitCollection T, typename Expr>
-TRIVIAL constexpr void orAssignFromExpression(BitSet<T> &bitset, const Expr &expr) 
+TRIVIAL constexpr void orAssignFromExpression(BitSet<T> &bitset,
+                                              const Expr &expr)
   requires requires {
     { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
     { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
@@ -605,7 +587,8 @@ TRIVIAL constexpr void orAssignFromExpression(BitSet<T> &bitset, const Expr &exp
 
 // Expression template AND assignment function for BitSet
 template <BitCollection T, typename Expr>
-TRIVIAL constexpr void andAssignFromExpression(BitSet<T> &bitset, const Expr &expr) 
+TRIVIAL constexpr void andAssignFromExpression(BitSet<T> &bitset,
+                                               const Expr &expr)
   requires requires {
     { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
     { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
@@ -615,7 +598,8 @@ TRIVIAL constexpr void andAssignFromExpression(BitSet<T> &bitset, const Expr &ex
 
 // Expression template XOR assignment function for BitSet
 template <BitCollection T, typename Expr>
-TRIVIAL constexpr void xorAssignFromExpression(BitSet<T> &bitset, const Expr &expr) 
+TRIVIAL constexpr void xorAssignFromExpression(BitSet<T> &bitset,
+                                               const Expr &expr)
   requires requires {
     { expr[std::ptrdiff_t{}] } -> std::convertible_to<bool>;
     { expr.size() } -> std::convertible_to<std::ptrdiff_t>;
