@@ -899,7 +899,7 @@ protected:
 
 /// CompressView: Array view with compress store/load capabilities
 template <class T, Dimension S, typename MaskType, bool Compress>
-struct CompressView : public Expr<T, CompressView<T, S, MaskType, Compress>> {
+struct CompressView {
   static_assert(!std::is_const_v<T>, "T shouldn't be const");
   static_assert(VectorDimension<S>,
                 "CompressView only supports vector dimensions");
@@ -939,41 +939,9 @@ struct CompressView : public Expr<T, CompressView<T, S, MaskType, Compress>> {
     return std::ptrdiff_t(sz_);
   }
 
-  // Element access with compression awareness
-  TRIVIAL [[nodiscard]] constexpr auto operator[](std::ptrdiff_t i) const -> T {
-    return compressLoad(*this, i);
-  }
-
-  // TODO: Add SIMD indexing support for expression templates later
-
-  // Begin/end for iteration
-  TRIVIAL [[nodiscard]] constexpr auto begin() const noexcept
-    -> const storage_type * {
-    return ptr_;
-  }
-
-  TRIVIAL [[nodiscard]] constexpr auto end() const noexcept
-    -> const storage_type * {
-    return ptr_ + size();
-  }
-
-  // Methods needed for AbstractVector concept
-  TRIVIAL [[nodiscard]] constexpr auto view() const noexcept
-    -> CompressView<T, S, MaskType, Compress> {
-    return *this;
-  }
-
-  TRIVIAL [[nodiscard]] constexpr auto numRow() const noexcept -> Row<1> {
-    return Row<1>{};
-  }
-
-  TRIVIAL [[nodiscard]] constexpr auto numCol() const noexcept -> Col<> {
-    return col(sz_);
-  }
-
   // Assignment operator for compress store
   template <typename Expr>
-  constexpr auto operator<<(const Expr &expr)
+  [[gnu::flatten]] constexpr auto operator<<(const Expr &expr)
     -> CompressView & requires(AbstractVector<Expr> &&
                                std::same_as<utils::eltype_t<Expr>, T>) {
     compressStore(*this, expr);
@@ -991,8 +959,8 @@ private:
 // Takes elements from source at positions specified by mask bits and stores
 // them contiguously in v
 template <class T, Dimension S, typename MaskType, bool Compress, typename Expr>
-constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
-                             const Expr &src)
+TRIVIAL constexpr void
+compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
   requires(AbstractVector<Expr> && std::same_as<utils::eltype_t<Expr>, T>) {
   std::uint64_t mask = dst.mask();
   std::ptrdiff_t src_size = std::ptrdiff_t(src.size());
@@ -1042,26 +1010,13 @@ constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
                               simd::mask::Bit<W>{chunk_mask}, vec);
           dst_idx += bits_set;
         } else {
+#endif
           // Fallback for AVX512 when specific width not supported
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t w = 0; w < W; ++w)
             if (chunk_mask & (1ULL << w))
               dst.data()[dst_idx++] = src[i + w]; // Access source directly
-        }
-#else
-        // Generic version using std::uint64_t mask
-        if constexpr (requires {
-                        simd::compressstore(dst.data() + dst_idx, chunk_mask,
-                                            vec);
-                      }) {
-          simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
-          dst_idx += bits_set;
-        } else {
-          // Fallback: element-wise store
-          POLYMATHFULLUNROLL
-          for (std::ptrdiff_t w = 0; w < W; ++w)
-            if (chunk_mask & (1ULL << w))
-              dst.data()[dst_idx++] = src[i + w]; // Access source directly
+#ifdef __AVX512F__
         }
 #endif
       }
@@ -1104,26 +1059,13 @@ constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
                               simd::mask::Bit<W>{chunk_mask}, vec);
           dst_idx += bits_set;
         } else {
+#endif
           // Fallback for tail elements on AVX512
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t w = 0; w < M; ++w)
             if (chunk_mask & (1ULL << w))
               dst.data()[dst_idx++] = src[i + w]; // Access source directly
-        }
-#else
-        // Generic version using std::uint64_t mask
-        if constexpr (requires {
-                        simd::compressstore(dst.data() + dst_idx, chunk_mask,
-                                            vec);
-                      }) {
-          simd::compressstore(dst.data() + dst_idx, chunk_mask, vec);
-          dst_idx += bits_set;
-        } else {
-          // Fallback for tail elements
-          POLYMATHFULLUNROLL
-          for (std::ptrdiff_t w = 0; w < M; ++w)
-            if (chunk_mask & (1ULL << w))
-              dst.data()[dst_idx++] = src[i + w]; // Access source directly
+#ifdef __AVX512F__
         }
 #endif
       }
@@ -1140,18 +1082,6 @@ constexpr void compressStore(CompressView<T, S, MaskType, Compress> &dst,
       dst.data()[dst_idx++] = src[src_pos];
     }
   }
-}
-
-// Compress load implementation for individual element access
-// When accessing x[Compress(mask)][i], we want the i-th element from the
-// compressed representation
-template <class T, Dimension S, typename MaskType, bool Compress>
-constexpr auto compressLoad(const CompressView<T, S, MaskType, Compress> &src,
-                            std::ptrdiff_t compressed_idx) -> T {
-  // The compressed view stores elements contiguously, so just access directly
-  if (compressed_idx >= 0 && compressed_idx < src.size())
-    return src.data()[compressed_idx];
-  return T{}; // Return zero for out-of-bounds access
 }
 
 template <typename T, typename S> Array(T *, S) -> Array<decompressed_t<T>, S>;
