@@ -432,12 +432,14 @@ auto Simplex::removeAugmentVars(
     }
   }
 #ifndef NDEBUG
-  if (!std::ranges::all_of(basic_vars, [](std::int64_t i) { return i >= 0; }))
-    __builtin_trap();
+  if (anyLTZero(basic_vars)) __builtin_trap();
 #endif
   // false/0 means feasible
   // true/non-zero infeasible
-  if (runCore()) return true;
+  if (runCore()) {
+    num_vars_ = col(old_num_var);
+    return true;
+  }
   // check for any basic vars set to augment vars, and set them to some
   // other variable (column) instead.
   for (std::ptrdiff_t c = 0; c < C.numRow(); ++c) {
