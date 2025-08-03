@@ -43,6 +43,11 @@ template <class T, std::ptrdiff_t N, bool Compress = false> struct Dual {
     -> const SVector<T, N, true> & {
     return partials_;
   }
+  void print() const {
+    utils::print("Dual<", N, ">{", value());
+    for (std::ptrdiff_t n = 0; n < N; ++n) utils::print(", ", gradient()[n]);
+    utils::print("}");
+  };
 
   // TRIVIAL constexpr auto operator-() const & -> Dual {
   //   return {-val_, -partials};

@@ -110,7 +110,8 @@ concept ColumnPrintable =
 static_assert(ColumnPrintable<math::Rational>);
 static_assert(ColumnPrintable<std::int64_t>);
 
-inline void printVector(auto B, auto E) {
+inline void printVector(auto B, auto E)
+  requires(Printable<std::remove_reference_t<decltype(*B)>>) {
   print("[ ");
   if (B != E) {
     print(*B);

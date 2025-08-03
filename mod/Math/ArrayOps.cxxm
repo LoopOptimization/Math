@@ -488,8 +488,11 @@ TRIVIAL constexpr auto promote_shape(const Tuple<A, As...> &a,
                                      const Tuple<B, Bs...> &b)
   requires(sizeof...(As) == sizeof...(Bs)) {
   return a.map_reduce(
-    b, [](const auto &x, const auto &y) { return ::math::promote_shape(x, y); },
-    [](const auto &x, const auto &y) {
+    b,
+    [] TRIVIAL(const auto &x, const auto &y) {
+      return ::math::promote_shape(x, y);
+    },
+    [] TRIVIAL(const auto &x, const auto &y) {
       auto [Mx, Nx] = x;
       auto [My, Ny] = y;
       return math::CartesianIndex(math::check_sizes(Mx, My),

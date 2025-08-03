@@ -507,11 +507,23 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {data(), aslength(row(this->sz_)), stride(this->sz_),
             std::ptrdiff_t(col(this->sz_))};
   }
-  void print() const requires(utils::ColumnPrintable<T>) {
-    if constexpr (MatrixDimension<S>)
-      utils::printMatrix(data(), std::ptrdiff_t(numRow()),
-                         std::ptrdiff_t(numCol()), std::ptrdiff_t(rowStride()));
-    else utils::printVector(begin(), end());
+  DEBUGUSED void print() const requires(utils::ColumnPrintable<T>) {
+    if constexpr (utils::Printable<T>) {
+      if constexpr (MatrixDimension<S>)
+        utils::printMatrix(data(), std::ptrdiff_t(numRow()),
+                           std::ptrdiff_t(numCol()),
+                           std::ptrdiff_t(rowStride()));
+      else utils::printVector(begin(), end());
+    }
+  }
+  DEBUGUSED void print(int rlb, int rub, int clb, int cub) const
+    requires(utils::ColumnPrintable<T>) {
+    if constexpr (utils::Printable<T>) {
+      if constexpr (MatrixDimension<S> || !isdense) {
+        std::ptrdiff_t x = std::ptrdiff_t(rowStride());
+        utils::printMatrix(data() + (x * rlb) + clb, rub - rlb, cub - clb, x);
+      } else utils::printVector(begin() + clb, end());
+    }
   }
   TRIVIAL [[nodiscard]] constexpr auto split(std::ptrdiff_t at) const
     -> containers::Pair<Array<T, Length<>>, Array<T, Length<>>>
