@@ -238,14 +238,14 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
     std::ptrdiff_t s = 0;
-    for (auto u : data_) s += std::popcount(u);
+    for (U u : data_) s += std::popcount(u);
     return s;
   }
   TRIVIAL [[nodiscard]] constexpr auto empty() const -> bool {
-    return std::ranges::all_of(data_, [](auto u) { return u == 0; });
+    return std::ranges::all_of(data_, [] TRIVIAL(auto u) { return u == 0; });
   }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool {
-    return std::ranges::any_of(data_, [](auto u) { return u != 0; });
+    return std::ranges::any_of(data_, [] TRIVIAL(auto u) { return u != 0; });
     // for (auto u : data)
     //   if (u) return true;
     // return false;
