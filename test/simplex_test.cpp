@@ -12,7 +12,7 @@ import Rational;
 import Simplex;
 import std;
 
-using namespace math;
+using namespace ::math;
 using utils::operator""_mat;
 using namespace boost::ut;
 
@@ -36,7 +36,7 @@ auto main(int argc, const char **argv) -> int {
   cfg<override> = {.filter = argc > 1 ? argv[1] : ""};
   alloc::OwningArena<> managed_alloc;
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "SimplexTest BasicAssertions"_test = [&managed_alloc] {
+  "SimplexTest"_test = [&managed_alloc] {
     // 10 >= 3x + 2y + z
     // 15 >= 2x + 5y + 3z
     alloc::Arena<> alloc = managed_alloc;
@@ -49,7 +49,7 @@ auto main(int argc, const char **argv) -> int {
     expect(fatal(optS1.hasValue()));
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       Simplex *S{i ? *optS1 : *optS0};
-      auto C{S->getCost()};
+      MutPtrVector<Simplex::value_type> C{S->getCost()};
       // minimize -2x - 3y - 4z
       C[0] = 0;
       C[1] = 0;
@@ -66,7 +66,7 @@ auto main(int argc, const char **argv) -> int {
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "LexMinSmallTest BasicAssertions"_test = [&managed_alloc] {
+  "LexMinSmallTest"_test = [&managed_alloc] {
     alloc::Arena<> alloc = managed_alloc;
     // -10 == -3x - 2y - z  + s0
     // -15 == -2x - 5y - 3z + s1
@@ -146,7 +146,7 @@ auto main(int argc, const char **argv) -> int {
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "LexMinSimplexTest BasicAssertions"_test = [&managed_alloc] {
+  "LexMinSimplexTest"_test = [&managed_alloc] {
     // clang-format off
   auto tableau{
     "[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;"
@@ -361,7 +361,7 @@ auto main(int argc, const char **argv) -> int {
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "LexMinSimplexTest2 BasicAssertions"_test = [&managed_alloc] {
+  "LexMinSimplexTest2"_test = [&managed_alloc] {
     // clang-format off
   auto tableau{
     "[0 0 0 1 0 -1 0 0 0 0 0 0 0 0 0 -1 0 0 0 0 0 0 1 0 -1 0 0 725849473193 94205055327856 11 11 11 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 -1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 -1 0 725849473193 94205055277312 6 6 1 0 0 0 0 0 -1 0 0 0 0 0 0 0 0 0 0 ;"
@@ -493,7 +493,7 @@ auto main(int argc, const char **argv) -> int {
     }
   };
 
-  "Infeasible BasicAssertions"_test = [&managed_alloc] {
+  "Infeasible"_test = [&managed_alloc] {
     IntMatrix<> C{DenseDims<>{row(220), col(383)}, 0};
     C[0, 0] = -1;
     C[0, 1] = 1;
@@ -1422,7 +1422,7 @@ auto main(int argc, const char **argv) -> int {
     alloc::Arena<> alloc = managed_alloc;
     Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
     expect(fatal(!simp->initiateFeasible()));
-    std::ptrdiff_t num_nuisance = 28+2;
+    std::ptrdiff_t num_nuisance = 28 + 2;
     Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
     sol.print();
     expect(allZero(sol));
@@ -1458,6 +1458,95 @@ auto main(int argc, const char **argv) -> int {
     sol.print();
     expect(allZero(sol));
   };
+  "OrderedComparison"_test = [&managed_alloc] {
+    // clang-format off
+    //          m  a  b  x  y s0 s1 s2 s3
+    auto t{"[0  0  0  0  0  0  0  0  0  0;"
+            "0  1 -1  0  0  0 -1  0  0  0;"
+            "0  1  0 -1  0  0  0 -1  0  0;"
+            "0 -1  0  0  1  0  0  0 -1  0;"
+            "0 -1  0  0  0  1  0  0  0 -1]"_mat};
+    // clang-format on
 
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> S{simplexFromTableau(&alloc, t)};
+    expect(fatal(!S->initiateFeasible()));
+    MutPtrVector<Simplex::value_type> C{S->getCost()};
+    static constexpr std::ptrdiff_t a = 2;
+    static constexpr std::ptrdiff_t x = 4;
+    static constexpr std::ptrdiff_t y = 5;
+    C.zero();
+    // minimize x - a
+    C[a] = -1;
+    C[x] = 1;
+    // means x-a >= 0, i.e. x >= a
+    expect(S->run() == 0);
+    C.zero();
+    // minimize x - y
+    C[x] = 1;
+    C[y] = -1;
+    expect(S->run() == std::numeric_limits<std::int64_t>::max());
+  };
+  "CheckEmptyFarkas"_test = [&managed_alloc] {
+    // for (int i = 0; i < I; ++i)
+    //   for (int j = 0; j < i; ++j)
+    //     A[i,j] = A[j,i]
+    // clang-format off
+    //         
+    auto t0{"[0 1 0  1  0  0  0  0  0;" 
+            "0 -1 1  0  0  1  0 -1  0;"
+            "0 0 -1  0  0  0  1  0 -1;"
+            "0 0  0 -1  1  0 -1  0  1;"
+            "0 0  0  0 -1 -1  0  1  0]"_mat};
+    // y
+    // check psi = x - y >= 0 everywhere in polyhedra
+    // auto t1{"[0  0  0  0  0  0;"       // cost
+    //         "0  1  1 -1 -1  0;"       // m
+    //         "0 -1  0  0  0  0;"       // a
+    //         "0  0 -1  0  0  0;"       // b
+    //         "0  0  0  1  0 -1;"       // x
+    //         "0  0  0  0  1  1]"_mat}; // y
+    // clang-format on
+
+    alloc::Arena<> alloc = managed_alloc;
+    Simplex *S{simplexFromTableau(&alloc, t0)};
+    expect(!S->initiateFeasible());
+    // S->run() returns the negative answer (fix that?)
+    // if b'y < 0, A'y=0, y>=0, then there is no solution Ax<=b
+    // Thus, we minimize b'y, if a value < 0 (s a return >0),
+    // then there is no feasible solution
+    expect(S->run() > 0);
+    S->getSolution().print();
+    // S = simplexFromTableau(&alloc, t1);
+    // expect(S->initiateFeasible());
+  };
+  "InfeasibleEmpty"_test = [&managed_alloc] {
+    // clang-format off
+    //          I i0 j0 i1 j1 s0 s1 s2 s3
+    auto t0{"[0 0  0  0  0  0  0  0  0  0;"
+            "-1 1 -1  0  0  0 -1  0  0  0;"
+            "-1 0  1 -1  0  0  0 -1  0  0;"
+            "-1 1  0  0 -1  0  0  0 -1  0;"
+            "-1 0  0  0  1 -1  0  0  0 -1;"
+            " 0 0  1  0  0 -1  0  0  0  0;"
+            " 0 0  0  1 -1  0  0  0  0  0]"_mat};
+    auto t1{"[0 0  0  0  0  0  0  0  0  0  0  0  0  0;"
+            "-1 1 -1  0  0  0 -1  0  0  0  0  0  0  0;"
+            "-1 0  1 -1  0  0  0 -1  0  0  0  0  0  0;"
+            "-1 1  0  0 -1  0  0  0 -1  0  0  0  0  0;"
+            "-1 0  0  0  1 -1  0  0  0 -1  0  0  0  0;"
+            " 0 0  1  0  0 -1  0  0  0  0 -1  0  0  0;"
+            " 0 0  0  1 -1  0  0  0  0  0  0 -1  0  0;"
+            " 0 0 -1  0  0  1  0  0  0  0  0  0 -1  0;"
+            " 0 0  0 -1  1  0  0  0  0  0  0  0  0 -1]"_mat};
+    // clang-format on
+
+    for (DensePtrMatrix<std::int64_t> t :
+         std::array<DensePtrMatrix<std::int64_t>, 2>{t0, t1}) {
+      alloc::Arena<> alloc = managed_alloc;
+      Valid<Simplex> S{simplexFromTableau(&alloc, t)};
+      expect(S->initiateFeasible());
+    }
+  };
   return 0;
 }

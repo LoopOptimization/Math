@@ -2,7 +2,6 @@ module;
 #include "Macros.hxx"
 export module Simplex;
 
-import Allocator;
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -65,7 +64,10 @@ public:
   [[nodiscard]] auto reservedBasicConstraints() const -> std::ptrdiff_t;
   [[nodiscard]] auto reservedBasicVariables() const -> std::ptrdiff_t;
   [[nodiscard]] auto getNumConstraints() const -> std::ptrdiff_t;
-  [[nodiscard]] auto getNumVars() const -> std::ptrdiff_t;
+  [[nodiscard]] auto getNumVars() const -> std::ptrdiff_t {
+    invariant(num_vars_ >= 0);
+    return std::ptrdiff_t(num_vars_);
+  }
 
   // Tableau access
   [[nodiscard]] auto getTableau() const -> PtrMatrix<value_type>;
@@ -107,12 +109,30 @@ public:
   [[nodiscard]] auto getConstants() const -> StridedVector<std::int64_t>;
 
   // Size and capacity management
-  void setNumCons(std::ptrdiff_t i);
-  void setNumVars(std::ptrdiff_t i);
-  void truncateVars(std::ptrdiff_t i);
-  [[nodiscard]] auto getNumCons() const -> std::ptrdiff_t;
-  [[nodiscard]] auto getConCap() const -> Capacity<>;
-  [[nodiscard]] auto getVarCap() const -> RowStride<>;
+  TRIVIAL constexpr void setNumCons(std::ptrdiff_t i) {
+    invariant(i <= constraint_capacity_);
+    num_constraints_ = row(i);
+  }
+  TRIVIAL constexpr void setNumVars(std::ptrdiff_t i) {
+    invariant(i < var_capacity_p1_);
+    num_vars_ = col(i);
+  }
+  TRIVIAL constexpr void truncateVars(std::ptrdiff_t i) {
+    invariant(i <= num_vars_);
+    num_vars_ = col(i);
+  }
+  [[nodiscard]] TRIVIAL constexpr auto getNumCons() const -> std::ptrdiff_t {
+    invariant(num_constraints_ >= 0);
+    return std::ptrdiff_t(num_constraints_);
+  }
+  [[nodiscard]] TRIVIAL constexpr auto getConCap() const -> Capacity<> {
+    invariant(constraint_capacity_ >= 0);
+    return constraint_capacity_;
+  }
+  [[nodiscard]] TRIVIAL constexpr auto getVarCap() const -> RowStride<> {
+    invariant(var_capacity_p1_ > 0);
+    return --auto{var_capacity_p1_};
+  }
 
   // Constraint management
   void deleteConstraint(std::ptrdiff_t c);
@@ -239,10 +259,8 @@ public:
 
   // Simplex algorithm core functions
   [[nodiscard]] auto initiateFeasible() -> bool;
-  auto removeAugmentVars(
-    const containers::BitSet<math::Vector<std::uint64_t, 8>> &augmentVars)
-    -> bool;
   auto runCore(std::int64_t f = 1) -> Rational;
+  /// runs, minimizing the system. Returns the negative answer
   auto run() -> Rational;
   auto makeBasic(MutPtrMatrix<std::int64_t> C, index_t ev) -> bool;
   auto makeBasic(MutPtrMatrix<std::int64_t> C, Simplex::index_t enteringVar,

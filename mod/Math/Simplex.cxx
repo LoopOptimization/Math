@@ -1,7 +1,7 @@
 module;
 #include "Macros.hxx"
 module Simplex;
-// Implementation unit for Simplex module
+import Allocator;
 
 namespace math {
 
@@ -114,6 +114,68 @@ TRIVIAL constexpr auto requiredMemory(std::ptrdiff_t cons, std::ptrdiff_t vars)
   static constexpr std::ptrdiff_t A = std::ptrdiff_t(
     std::max(simd::VECTORWIDTH / sizeof(std::int64_t), alignof(Simplex)));
   return static_cast<std::size_t>(align<A>(base + indices + tableau));
+}
+auto removeAugmentVars(
+  Simplex *S,
+  const containers::BitSet<math::Vector<std::uint64_t, 8>> &augmentVars)
+  -> bool {
+  // TODO: try to avoid reallocating, via reserving enough ahead of time
+  std::ptrdiff_t num_augment = augmentVars.size(),
+                 old_num_var = std::ptrdiff_t(S->getNumVars());
+  S->setNumVars(old_num_var + num_augment);
+  MutPtrMatrix<Simplex::value_type> C{S->getConstraints()};
+  MutPtrVector<Simplex::index_t> basic_vars{S->getBasicVariables()};
+  MutPtrVector<Simplex::index_t> basic_cons{S->getBasicConstraints()};
+  MutPtrVector<Simplex::value_type> costs{S->getCost()};
+  costs << 0;
+  C[_, _(old_num_var + 1, end)] << 0;
+  {
+    std::ptrdiff_t i = 0;
+    for (std::ptrdiff_t a : augmentVars) {
+      basic_vars[a] = Simplex::index_t(i) + Simplex::index_t(old_num_var);
+      basic_cons[i + old_num_var] = Simplex::index_t(a);
+      C[a, old_num_var + (++i)] = 1;
+      // we now zero out the implicit cost of `1`
+      costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
+    }
+  }
+#ifndef NDEBUG
+  if (anyLTZero(basic_vars)) __builtin_trap();
+#endif
+  // false/0 means feasible
+  // true/non-zero infeasible
+  if (S->runCore()) {
+    S->truncateVars(old_num_var);
+    return true;
+  }
+  // check for any basic vars set to augment vars, and set them to some
+  // other variable (column) instead.
+  for (std::ptrdiff_t c = 0; c < C.numRow(); ++c) {
+    if (std::ptrdiff_t(basic_vars[c]) >= old_num_var) {
+      invariant(C[c, 0] == 0);
+      invariant(c == basic_cons[basic_vars[c]]);
+      invariant(C[c, basic_vars[c] + 1] >= 0);
+      // find var to make basic in its place
+      for (std::ptrdiff_t v = old_num_var; v != 0;) {
+        // search for a non-basic variable
+        // (basicConstraints<0)
+        std::int64_t Ccv = C[c, v--];
+        if (Ccv == 0 || (basic_cons[v] >= 0)) continue;
+        if (Ccv < 0) C[c, _] *= -1;
+        for (std::ptrdiff_t i = 0; i < C.numRow(); ++i)
+          if (i != c) NormalForm::zeroWithRowOp(C, row(i), row(c), ++col(v));
+        basic_vars[c] = Simplex::index_t(v);
+        basic_cons[v] = Simplex::index_t(c);
+        break;
+      }
+    }
+  }
+  // all augment vars are now 0
+  S->truncateVars(old_num_var);
+#ifndef NDEBUG
+  S->assertCanonical();
+#endif
+  return false;
 }
 } // namespace
 
@@ -302,34 +364,6 @@ void Simplex::truncateConstraints(std::ptrdiff_t i) {
   invariant(i <= num_constraints_);
   num_constraints_ = row(i);
 }
-void Simplex::setNumCons(std::ptrdiff_t i) {
-  invariant(i <= constraint_capacity_);
-  num_constraints_ = row(i);
-}
-void Simplex::setNumVars(std::ptrdiff_t i) {
-  invariant(i < var_capacity_p1_);
-  num_vars_ = col(i);
-}
-void Simplex::truncateVars(std::ptrdiff_t i) {
-  invariant(i <= num_vars_);
-  num_vars_ = col(i);
-}
-[[nodiscard]] auto Simplex::getNumCons() const -> std::ptrdiff_t {
-  invariant(num_constraints_ >= 0);
-  return std::ptrdiff_t(num_constraints_);
-}
-[[nodiscard]] auto Simplex::getNumVars() const -> std::ptrdiff_t {
-  invariant(num_vars_ >= 0);
-  return std::ptrdiff_t(num_vars_);
-}
-[[nodiscard]] auto Simplex::getConCap() const -> Capacity<> {
-  invariant(constraint_capacity_ >= 0);
-  return constraint_capacity_;
-}
-[[nodiscard]] auto Simplex::getVarCap() const -> RowStride<> {
-  invariant(var_capacity_p1_ > 0);
-  return --auto{var_capacity_p1_};
-}
 void Simplex::deleteConstraint(std::ptrdiff_t c) {
   auto basic_cons = getBasicConstraints();
   auto basic_vars = getBasicVariables();
@@ -405,69 +439,7 @@ Simplex::initiateFeasible() -> bool {
   // we push augment vars
   for (std::ptrdiff_t i = 0; i < basic_vars.size(); ++i)
     if (basic_vars[i] == -1) aug_vars.uncheckedInsert(i);
-  return (!aug_vars.empty() && removeAugmentVars(aug_vars));
-}
-auto Simplex::removeAugmentVars(
-  const containers::BitSet<math::Vector<std::uint64_t, 8>> &augmentVars)
-  -> bool {
-  // TODO: try to avoid reallocating, via reserving enough ahead of time
-  std::ptrdiff_t num_augment = augmentVars.size(),
-                 old_num_var = std::ptrdiff_t(num_vars_);
-  invariant(num_augment + std::ptrdiff_t(num_vars_) < var_capacity_p1_);
-  num_vars_ = col(std::ptrdiff_t(num_vars_) + num_augment);
-  MutPtrMatrix<value_type> C{getConstraints()};
-  MutPtrVector<Simplex::index_t> basic_vars{getBasicVariables()};
-  MutPtrVector<Simplex::index_t> basic_cons{getBasicConstraints()};
-  MutPtrVector<value_type> costs{getCost()};
-  costs << 0;
-  C[_, _(old_num_var + 1, end)] << 0;
-  {
-    std::ptrdiff_t i = 0;
-    for (std::ptrdiff_t a : augmentVars) {
-      basic_vars[a] = Simplex::index_t(i) + Simplex::index_t(old_num_var);
-      basic_cons[i + old_num_var] = Simplex::index_t(a);
-      C[a, old_num_var + (++i)] = 1;
-      // we now zero out the implicit cost of `1`
-      costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
-    }
-  }
-#ifndef NDEBUG
-  if (anyLTZero(basic_vars)) __builtin_trap();
-#endif
-  // false/0 means feasible
-  // true/non-zero infeasible
-  if (runCore()) {
-    num_vars_ = col(old_num_var);
-    return true;
-  }
-  // check for any basic vars set to augment vars, and set them to some
-  // other variable (column) instead.
-  for (std::ptrdiff_t c = 0; c < C.numRow(); ++c) {
-    if (std::ptrdiff_t(basic_vars[c]) >= old_num_var) {
-      invariant(C[c, 0] == 0);
-      invariant(c == basic_cons[basic_vars[c]]);
-      invariant(C[c, basic_vars[c] + 1] >= 0);
-      // find var to make basic in its place
-      for (std::ptrdiff_t v = old_num_var; v != 0;) {
-        // search for a non-basic variable
-        // (basicConstraints<0)
-        std::int64_t Ccv = C[c, v--];
-        if (Ccv == 0 || (basic_cons[v] >= 0)) continue;
-        if (Ccv < 0) C[c, _] *= -1;
-        for (std::ptrdiff_t i = 0; i < C.numRow(); ++i)
-          if (i != c) NormalForm::zeroWithRowOp(C, row(i), row(c), ++col(v));
-        basic_vars[c] = Simplex::index_t(v);
-        basic_cons[v] = Simplex::index_t(c);
-        break;
-      }
-    }
-  }
-  // all augment vars are now 0
-  num_vars_ = col(old_num_var);
-#ifndef NDEBUG
-  assertCanonical();
-#endif
-  return false;
+  return (!aug_vars.empty() && removeAugmentVars(this, aug_vars));
 }
 
 auto Simplex::makeBasic(MutPtrMatrix<std::int64_t> C,
@@ -519,9 +491,6 @@ auto Simplex::runCore(std::int64_t f) -> Rational {
 #ifndef NDEBUG
   if (!in_canonical_form_) __builtin_trap();
 #endif
-  //     return runCore(getCostsAndConstraints(), f);
-  // }
-  // Rational runCore(MutPtrMatrix<std::int64_t> C, std::int64_t f = 1) {
   MutPtrMatrix<std::int64_t> C{getTableau()};
   do {
     // entering variable is the column
@@ -532,7 +501,8 @@ auto Simplex::runCore(std::int64_t f) -> Rational {
   } while (f);
   return std::numeric_limits<std::int64_t>::max(); // unbounded
 }
-// set basicVar's costs to 0, and then runCore()
+/// Set basicVar's costs to 0, and then runCore()
+/// Essentially, minize the `getCost()` expression
 auto Simplex::run() -> Rational {
 #ifndef NDEBUG
   if (!in_canonical_form_) __builtin_trap();
