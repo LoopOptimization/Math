@@ -319,7 +319,7 @@ void Simplex::simplifySystem() {
 #ifndef NDEBUG
   in_canonical_form_ = false;
 #endif
-  auto C{getConstraints()};
+  MutPtrMatrix<value_type> C{getConstraints()};
 #ifndef NDEBUG
   for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(C)); r < R; ++r)
     for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(C)); c < N; ++c)

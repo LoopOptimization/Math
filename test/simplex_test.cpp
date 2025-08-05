@@ -1375,7 +1375,7 @@ auto main(int argc, const char **argv) -> int {
     expect(sol[::math::last] == 1);
   };
 
-  "DynsolveDebugging_sol0"_test = [&managed_alloc] {
+  "DynsolveDebugging_sol0"_test = [&managed_alloc] -> void {
     // clang-format off
     // Approach 0: append dims so they match
     auto t{"[0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
@@ -1432,7 +1432,7 @@ auto main(int argc, const char **argv) -> int {
     expect(allZero(sol));
   };
 
-  "DynsolveDebugging_sol1"_test = [&managed_alloc] {
+  "DynsolveDebugging_sol1"_test = [&managed_alloc] -> void {
     // clang-format off
     // Approach 1: drop dims so they match
     auto t{"[0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
@@ -1462,68 +1462,44 @@ auto main(int argc, const char **argv) -> int {
     // sol.print();
     expect(allZero(sol));
   };
-  "OrderedComparison"_test = [&managed_alloc] {
+  "OrderedComparison"_test = [&managed_alloc] -> void {
     // clang-format off
     //          m  a  b  x  y s0 s1 s2 s3
-    auto t{"[0  0  0  0  0  0  0  0  0  0;"
+    auto t0{"[0  0  0  0  0  0  0  0  0  0;"
             "0  1 -1  0  0  0 -1  0  0  0;"
             "0  1  0 -1  0  0  0 -1  0  0;"
             "0 -1  0  0  1  0  0  0 -1  0;"
             "0 -1  0  0  0  1  0  0  0 -1]"_mat};
-    // clang-format on
-
-    alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> S{simplexFromTableau(&alloc, t)};
-    expect(fatal(!S->initiateFeasible()));
-    MutPtrVector<Simplex::value_type> C{S->getCost()};
-    static constexpr std::ptrdiff_t a = 2;
-    static constexpr std::ptrdiff_t x = 4;
-    static constexpr std::ptrdiff_t y = 5;
-    C.zero();
-    // minimize x - a
-    C[a] = -1;
-    C[x] = 1;
-    // means x-a >= 0, i.e. x >= a 
-    // run returns negative, so value <= 0 means proven
-    expect(S->run() == 0);
-    C.zero();
-    // minimize x - y
-    C[x] = 1;
-    C[y] = -1;
-    expect(S->run() == std::numeric_limits<std::int64_t>::max());
-  };
-  "OrderedComparison2"_test = [&managed_alloc] {
-    // clang-format off
-    //          m  a  b  x  y s0 s1 s2 s3
-    auto t{"[0  0  0  0  0  0  0  0  0  0;"
+    auto t1{"[0  0  0  0  0  0  0  0  0  0;"
             "0  1 -1  0  0  0 -1  0  0  0;"
             "0  1  0 -1  0  0  0 -1  0  0;"
             "1 -1  0  0  1  0  0  0 -1  0;"
             "0 -1  0  0  0  1  0  0  0 -1]"_mat};
-    // 1 = x - m - slack, i.e. x >= m + 1
     // clang-format on
-
-    alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> S{simplexFromTableau(&alloc, t)};
-    expect(fatal(!S->initiateFeasible()));
-    MutPtrVector<Simplex::value_type> C{S->getCost()};
     static constexpr std::ptrdiff_t a = 2;
     static constexpr std::ptrdiff_t x = 4;
     static constexpr std::ptrdiff_t y = 5;
-    C.zero();
-    // minimize x - a
-    C[a] = -1;
-    C[x] = 1;
-    // means x-a >= 0, i.e. x >= a 
-    // run returns negative, so value <= 0 means proven
-    expect(S->run() == -1);
-    C.zero();
-    // minimize x - y
-    C[x] = 1;
-    C[y] = -1;
-    expect(S->run() == std::numeric_limits<std::int64_t>::max());
+
+    for (int i = 0; i < 2; ++i) {
+      alloc::Arena<> alloc = managed_alloc;
+      Valid<Simplex> S{simplexFromTableau(&alloc, i ? t1 : t0)};
+      expect(fatal(!S->initiateFeasible()));
+      MutPtrVector<Simplex::value_type> C{S->getCost()};
+      C.zero();
+      // minimize x - a
+      C[a] = -1;
+      C[x] = 1;
+      // means x-a >= 0, i.e. x >= a
+      // run returns negative, so value <= 0 means proven
+      expect(S->run() == -i);
+      C.zero();
+      // minimize x - y
+      C[x] = 1;
+      C[y] = -1;
+      expect(S->run() == std::numeric_limits<std::int64_t>::max());
+    }
   };
-  "CheckEmptyFarkas"_test = [&managed_alloc] {
+  "CheckEmptyFarkas"_test = [&managed_alloc] -> void {
     // for (int i = 0; i < I; ++i)
     //   for (int j = 0; j < i; ++j)
     //     A[i,j] = A[j,i]
