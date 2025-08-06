@@ -151,7 +151,7 @@ inline void printMatrix(const bool *A, std::ptrdiff_t M, std::ptrdiff_t N,
     if (i) print("  ");
     else print("\n[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
-      print('0' + A[(i * X) + j]);
+      print(static_cast<char>('0' + A[(i * X) + j]));
       if (j != N - 1) print(' ');
       else if (i != M - 1) print('\n');
     }

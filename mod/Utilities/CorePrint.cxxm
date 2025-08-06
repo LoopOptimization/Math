@@ -23,16 +23,39 @@ struct TinyString {
     return *this;
   }
   constexpr TinyString() = default;
-  template <std::integral T>
-  explicit constexpr TinyString(T x, bool ptr = false) {
+  template <std::integral T> explicit constexpr TinyString(T x) {
     static constexpr int base = std::is_unsigned_v<T> ? 16 : 10;
-    if (ptr) push_back('0').push_back('x');
+    auto ec = std::to_chars(end(), lastValid(), x, base);
+    if (ec.ec == std::errc::value_too_large) __builtin_trap();
+    setLength(ec.ptr);
+  }
+  template <std::integral T> explicit constexpr TinyString(char a, T x) {
+    static constexpr int base = std::is_unsigned_v<T> ? 16 : 10;
+    push_back(a);
+    auto ec = std::to_chars(end(), lastValid(), x, base);
+    if (ec.ec == std::errc::value_too_large) __builtin_trap();
+    setLength(ec.ptr);
+  }
+  template <std::integral T>
+  explicit constexpr TinyString(char a, char b, T x) {
+    static constexpr int base = std::is_unsigned_v<T> ? 16 : 10;
+    push_back(a).push_back(b);
+    auto ec = std::to_chars(end(), lastValid(), x, base);
+    if (ec.ec == std::errc::value_too_large) __builtin_trap();
+    setLength(ec.ptr);
+  }
+  template <std::integral T>
+  explicit constexpr TinyString(char a, char b, char c, T x) {
+    static constexpr int base = std::is_unsigned_v<T> ? 16 : 10;
+    push_back(a).push_back(b).push_back(c);
     auto ec = std::to_chars(end(), lastValid(), x, base);
     if (ec.ec == std::errc::value_too_large) __builtin_trap();
     setLength(ec.ptr);
   }
   explicit constexpr TinyString(const void *ptr)
-    : TinyString(std::bit_cast<std::uintptr_t>(ptr), true) {}
+    : TinyString('0', 'x', std::bit_cast<std::uintptr_t>(ptr)) {}
+  explicit constexpr TinyString(char a, const void *ptr)
+    : TinyString(a, '0', 'x', std::bit_cast<std::uintptr_t>(ptr)) {}
   explicit constexpr TinyString(double x) {
     setLength(std::to_chars(begin(), lastValid(), x).ptr);
   }
