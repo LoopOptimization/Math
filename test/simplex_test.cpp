@@ -1343,7 +1343,7 @@ auto main(int argc, const char **argv) -> int {
     Valid<Simplex> simp{simplexFromTableau(&alloc, C)};
     expect(simp->initiateFeasible());
   };
-  "DynsolveDebugging"_test = [&managed_alloc] {
+  "DynsolveDynamicDistance"_test = [&managed_alloc] {
     // clang-format off
     // Problem: mismatched dims require bounding constraints.
     auto t{"[0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
@@ -1375,9 +1375,10 @@ auto main(int argc, const char **argv) -> int {
     expect(sol[::math::last] == 1);
   };
 
-  "DynsolveDebugging_sol0"_test = [&managed_alloc] -> void {
+  "DynsolveAppendEqual"_test = [&managed_alloc] -> void {
     // clang-format off
     // Approach 0: append dims so they match
+    // We also muset set the new dims equal to the old, which seems wrong.
     auto t{"[0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
             "0 1 -1 0 -1 0 -1 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 -1 0  0  0  0;"
             "0 0  1 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
@@ -1400,9 +1401,17 @@ auto main(int argc, const char **argv) -> int {
            "-1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 -1 1  1 -1  0  0  0  0 0  0  0  0  0;"
             "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0 -1 1  0 0  0 0  0  0 -1  0  1  0 0  0  0  0  0]"_mat};
 
-           //  "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0  0 0 -1  0  0  0  0 0  0  0  0  0;"
-           // "-1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 -1 1  1  0  0  0  0 0  0  0  0  0;"
-           //  "0 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 -1 1  0  0  0  0  0 0  0  0  0  0;"
+           // "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  1 0  0  0  0  0  0  0 0  0  0  0 -1;"
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0 -1  1  0  0  0  0 0  0  0  0  0;"
+           //"-1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 -1 1  1 -1  0  0  0  0 0  0  0  0  0;"
+
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 0  0  0  0  0  0  0  0 0  0  0  0 1;"
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 0  0 -1  1  0  0  0  0 0  0  0  0 0;"
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 1 -1 -1  1  0  0  0  0 0  0  0  0 0;"
+
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 0  0  0  0  0  0  0  0 0  0  0  0 1;"
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 0  0 -1  1  0  0  0  0 0  0  0  0 0;"
+           // "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 1 -1 -1  1  0  0  0  0 0  0  0  0 0;"
 
            //  "0 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0  1 0  0  0  0  0  0 0  0  0  0 -1;"
            //  "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0  0 0 -1  0  0  0  0 0  0  0  0  0;"
@@ -1422,6 +1431,56 @@ auto main(int argc, const char **argv) -> int {
            // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 0 -1 -1  0  0  0  0 0  0  0  0  1;"
            // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 0  0 -1  0  0  0  0 0  0  0  0  0;"
            // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 1 -1 -1  0  0  0  0 0  0  0  0  0;"
+
+           // Run through alg:                                e                               
+           // "0 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 -1  0  0 0  0  0  0  0 0  0  0  0  1;" costs
+           // "0 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0  1  0  0 0  0  0  0  0 0  0  0  0 -1;" n = 0
+           // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0  0  0 -1 1  0  0  0  0 0  0  0  0  0;"
+           // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0  1 -1 -1 1  0  0  0  0 0  0  0  0  0;"
+
+
+           // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 0 -1 -1 0  0  0  0  0 0  0  0  0  1;" costs
+           // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 0 -1 -1 1  0  0  0  0 0  0  0  0  1;"
+           // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 0  0 -1 1  0  0  0  0 0  0  0  0  0;"
+           // "1 0  0 0  0 0  0 0  0  0  0  0  0 0  0 0  0 0 1 -1 -1 1  0  0  0  0 0  0  0  0  0;"
+           // The k_src >= k_dst equation can be made basic          ^  in place of the bound  ^
+           // What about k_dst == 0? What if we add this constraint?
+    // clang-format on
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp->initiateFeasible()));
+    std::ptrdiff_t num_nuisance = 28 + 2;
+    Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+    // sol.print();
+    expect(allZero(sol));
+  };
+
+  "DynsolveAppend"_test = [&managed_alloc] -> void {
+    // clang-format off
+    // Approach 0: append dims so they match
+    // We also muset set the new dims equal to the old, which seems wrong.
+    auto t{"[0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 1 -1 0 -1 0 -1 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 -1 0  0  0  0;"
+            "0 0  1 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  1 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  1 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  1  0 -1  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  1  0 -1 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+           "-1 0  0 0  0 0  0 0  -1  1  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0 -1 1  0 0   0  0  0 -1  0  1 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "1 0  0 0  0 0 -1 1   1 -1  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0 -1 1  0 0  0 0   0  0 -1  0  1  0 0  0 0  0 0  0 0  0  0  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 1 -1 0 -1 0 -1 0  0  0  0  0  0  0 0 -1  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  1 0  0 0  0 0  0  0  0  0  0  0 0  0 -1  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  1 0  0 0  0  0  0  0  0  0 0  0  0 -1  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  1 0  0  0  0  0  0  0 0  0  0  0 -1;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  1  0 -1  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  1  0 -1 0  0  0  0  0;"
+            "1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0  0 0 -1  1  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0 -1 1  0 0  0  0  0 -1  0  1 0  0  0  0  0;"
+           "-1 0  0 0  0 0  0 0   0  0  0  0  0  0 0  0 0  0 0 -1 1  1 -1  0  0  0  0 0  0  0  0  0;"
+            "0 0  0 0  0 0  0 0   0  0  0  0  0  0 0 -1 1  0 0  0 0  0  0 -1  0  1  0 0  0  0  0  0]"_mat};
+
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
     Valid<Simplex> simp{simplexFromTableau(&alloc, t)};

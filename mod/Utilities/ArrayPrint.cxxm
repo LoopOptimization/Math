@@ -1,4 +1,3 @@
-module;
 export module ArrayPrint;
 
 import Allocator;
@@ -40,8 +39,8 @@ inline constexpr struct DigitsCounter {
       }
       T digits;
       if constexpr (std::same_as<T, char>)
-        digits =
-          bits[8 * sizeof(unsigned char) - std::countl_zero((unsigned char)x)];
+        digits = bits[(8 * sizeof(unsigned char)) -
+                      std::countl_zero((unsigned char)x)];
       else digits = bits[(8 * sizeof(T)) - std::countl_zero(x)];
       return int(digits - (x < powers[digits - 1]));
     } else return 1;
@@ -118,7 +117,6 @@ inline void printVector(auto B, auto E)
     for (; ++B != E;) print(", ", *B);
   }
   print(" ]");
-  flush();
 }
 
 template <typename T>
@@ -140,7 +138,6 @@ inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
     }
   }
   print(" ]");
-  flush();
 }
 
 inline void printMatrix(const bool *A, std::ptrdiff_t M, std::ptrdiff_t N,
@@ -157,7 +154,6 @@ inline void printMatrix(const bool *A, std::ptrdiff_t M, std::ptrdiff_t N,
     }
   }
   print(" ]");
-  flush();
 }
 // We mirror `A` with a matrix of integers indicating sizes, and a vectors of
 // chars. We fill the matrix with the number of digits of each element, and
@@ -177,16 +173,16 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
   char *p0 = smem, *ptr = p0, *p_end = p0 + 512;
   for (std::ptrdiff_t m = 0; m < M; m++) {
     for (std::ptrdiff_t n = 0; n < N; n++) {
-      auto Aij = A[m * X + n];
+      auto Aij = A[(m * X) + n];
       while (true) {
         auto [p, ec] = std::to_chars(ptr, p_end, Aij);
         if (ec == std::errc()) [[likely]] {
-          num_digits[m * N + n] = std::distance(ptr, p);
+          num_digits[(m * N) + n] = std::distance(ptr, p);
           ptr = p;
           break;
         }
         // we need more space
-        std::ptrdiff_t elem_so_far = m * N + n,
+        std::ptrdiff_t elem_so_far = (m * N) + n,
                        char_so_far = std::distance(p0, ptr),
                        char_per_elem = // cld
                        (char_so_far + elem_so_far - 1) / elem_so_far,
@@ -205,14 +201,14 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
   Flat<std::uint8_t> max_digits{num_digits.begin(), num_digits.begin() + N};
   for (std::ptrdiff_t m = 0; ++m < M;)
     for (std::ptrdiff_t n = 0; n < N; n++)
-      max_digits[n] = std::max(max_digits[n], num_digits[m * N + n]);
+      max_digits[n] = std::max(max_digits[n], num_digits[(m * N) + n]);
   // we will allocate 512 bytes at a time
   ptr = p0;
   for (std::ptrdiff_t i = 0; i < M; i++) {
     if (i) print("  ");
     else print("[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
-      std::ptrdiff_t nD = num_digits[i * N + j];
+      std::ptrdiff_t nD = num_digits[(i * N) + j];
       for (std::ptrdiff_t k = 0; k < max_digits[j] - nD; k++) print(' ');
       for (std::ptrdiff_t n = 0; n < nD; ++n) print(ptr[n]);
       if (j != N - 1) print(' ');
@@ -223,6 +219,9 @@ inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
   if (smem != p0)
     alloc::Mallocator<char>::deallocate(p0, std::distance(p0, p_end));
   print(" ]");
-  flush();
 }
+
+template void printMatrix<std::int64_t>(const std::int64_t *A, std::ptrdiff_t M,
+                                        std::ptrdiff_t N, std::ptrdiff_t X);
+
 } // namespace utils
