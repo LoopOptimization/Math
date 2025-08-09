@@ -322,9 +322,12 @@ struct MATH_GSL_OWNER StaticArray
     memory_[(r * N) + c] = x;
   }
 
-  void print() const requires(utils::ColumnPrintable<T>) {
-    if constexpr (MatrixDimension<S>) utils::printMatrix(data(), M, N, N);
-    else utils::printVector(begin(), end());
+  DEBUGUSED void print() const requires(utils::ColumnPrintable<T>) {
+    if constexpr (utils::Printable<T>) {
+      if constexpr (MatrixDimension<S>) utils::printMatrix(data(), M, N, N);
+      else utils::printVector(begin(), end());
+      utils::flush();
+    }
   }
 };
 
@@ -494,7 +497,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   TRIVIAL auto operator[](std::ptrdiff_t i,
                           simd::index::Unroll<U, W, Mask> j) const
     -> simd::Unroll<1, U, W, T> {
-    return (*this)[simd::index::Unroll<1>{i}, j];
+    return (*this)[simd::index::Unroll<1>{.index_ = i}, j];
   }
   template <std::ptrdiff_t R = 1>
   TRIVIAL static constexpr void checkinds(std::ptrdiff_t i, std::ptrdiff_t j) {

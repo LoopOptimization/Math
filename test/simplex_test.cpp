@@ -1496,6 +1496,132 @@ auto main(int argc, const char **argv) -> int {
     expect(allZero(sol));
     expect(eq(sol.size(), 5));
   };
+  "Dynsolve0"_test = [&managed_alloc] -> void {
+    // clang-format off
+    // Approach 0: append dims so they match
+    // We also muset set the new dims equal to the old, which seems wrong.
+    //                                          sat
+    auto t{"[  0 0  0  0  0  0  0  0  0  0  0  0  0  0;"
+            "  0 1 -1 -1 -1  0 -1 -1 -1  0  0  0  0  0;" // 1
+            "  0 0  1  0  1  0  1  0  1  0  0  0  0  0;" // N
+            "  0 0 -1 -1  0  1  0  0  0  0  0  0  1  0;" // n
+            "  0 0  0  1 -1  0  0  0  0  0  1 -1  0  1;" // k
+            "  0 0  0  0  0  0 -1 -1  0  1 -1  1 -1  0;" // n'
+            "  0 0  0  0  0  0  0  1 -1  0  0  0  0 -1;" // k'
+            "  1 0  0  0  0  0  0  0  0  0  0  0  1  1]"_mat};
+
+    // clang-format on
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp->initiateFeasible()));
+    Simplex::Solution sol = simp->rLexMinStop(11);
+    expect(eq(sol.size(), 2));
+    expect(sol[last - 1] == 1);
+    expect(sol[last] == 0);
+  };
+  "DynsolveCheckEmpty"_test = [&managed_alloc] -> void {
+    // clang-format off
+    // Approach 0: append dims so they match
+    // We also muset set the new dims equal to the old, which seems wrong.
+    //                                          sat
+    auto d{"[  0 -1 -1 -1  0 -1 -1 -1  0  0  0;"       // 1
+            "  0  1  0  1  0  1  0  1  0  0  0;"       // N
+            "  0 -1 -1  0  1  0  0  0  0  0  0;"       // n
+            "  0  0  1 -1  0  0  0  0  0  1 -1;"       // k
+            "  0  0  0  0  0 -1 -1  0  1 -1  1;"       // n'
+            "  0  0  0  0  0  0  1 -1  0  0  0]"_mat}; // k'
+    // here, we let n = n'
+    auto n{"[  0 -1 -1 -1  0 -1 -1 -1  0  0  0  0  0;"       // 1
+            "  0  1  0  1  0  1  0  1  0  0  0  0  0;"       // N
+            "  0 -1 -1  0  1  0  0  0  0  0  0  1 -1;"       // n
+            "  0  0  1 -1  0  0  0  0  0  1 -1  0  0;"       // k
+            "  0  0  0  0  0 -1 -1  0  1 -1  1 -1  1;"       // n'
+            "  0  0  0  0  0  0  1 -1  0  0  0  0  0]"_mat}; // k'
+    // here, we let n = n'
+    auto k{"[  0 -1 -1 -1  0 -1 -1 -1  0  0  0  0  0;"       // 1
+            "  0  1  0  1  0  1  0  1  0  0  0  0  0;"       // N
+            "  0 -1 -1  0  1  0  0  0  0  0  0  0  0;"       // n
+            "  0  0  1 -1  0  0  0  0  0  1 -1  1 -1;"       // k
+            "  0  0  0  0  0 -1 -1  0  1 -1  1  0  0;"       // n'
+            "  0  0  0  0  0  0  1 -1  0  0  0 -1  1]"_mat}; // k'
+
+    // clang-format on
+    for (int i = 0; i < 3; ++i) {
+      alloc::Arena<> alloc = managed_alloc;
+      PtrMatrix<std::int64_t> tableau;
+      switch (i) {
+      case 0: tableau = d; break;
+      case 1: tableau = n; break;
+      default: tableau = k; break;
+      }
+      Valid<Simplex> S{simplexFromTableau(&alloc, tableau)};
+      expect(fatal(!S->initiateFeasible()));
+      MutPtrVector<Simplex::value_type> C{S->getCost()};
+      C.zero();
+      C[_(1, 4)] << -1;
+      C[_(5, 8)] << -1;
+      if (i) expect(S->run() > 0); // means infeasible
+      else expect(S->run() <= 0);  // means feasible
+    }
+  };
+  "Dynsolve1"_test = [&managed_alloc] -> void {
+    // clang-format off
+    // Approach 0: append dims so they match
+    // We also muset set the new dims equal to the old, which seems wrong.
+    //                                          sat
+    auto t{"[0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;"
+            "0  1  0 -1 -1  0 -1 -1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;" // 1
+            "0  0  0  0  1  0  0  1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;" // N
+            "0  0  1 -1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1  0  0  0;" // n  src
+            "0  0  0  1 -1  0  0  0  1 -1  0  0  0  0  0  0  0  0  0  0  1  0  0;" // k  src
+            "0  0  0  0  0  1 -1  0 -1  1  0  0  0  0  0  0  0  0  0 -1  0  0  0;" // n' dst
+            "0  0  0  0  0  0  1 -1  0  0  0  0  0  0  0  0  0  0  0  0 -1  0  0;" // k' dst
+            "0  0  0  0  0  0  0  0  0  0  1  0 -1 -1  0 -1 -1  0  0  0  0 -1  0;" // 1
+            "0  0  0  0  0  0  0  0  0  0  0  0  0  1  0  0  1  0  0  0  0  0 -1;" // N
+            "0  0  0  0  0  0  0  0  0  0  0  1 -1  0  0  0  0  0  0 -1  0  0  0;" // n
+            "0  0  0  0  0  0  0  0  0  0  0  0  1 -1  0  0  0  1 -1  0 -1  0  0;" // k
+            "0  0  0  0  0  0  0  0  0  0  0  0  0  0  1 -1  0 -1  1  1  0  0  0;" // n'
+            "0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1 -1  0  0  0  1  0  0;" // k'
+            "1  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1  1  0  0]"_mat};
+
+    // clang-format on
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp->initiateFeasible()));
+    Simplex::Solution sol = simp->rLexMinStop(18);
+    expect(eq(sol.size(), 4));
+    expect(sol[last - 3] == 1);
+    expect(sol[last - 2] == 0);
+    expect(sol[last - 1] == 0);
+    expect(sol[last] == 1);
+  };
+  "Dynsolve2"_test = [&managed_alloc] -> void {
+    // clang-format off
+    // Approach 0: append dims so they match
+    // We also muset set the new dims equal to the old, which seems wrong.
+    //                                         phi   sat
+    auto t{"[0  0  0  0  0  0  0  0  0  0  0  0  0  0  0;"
+            "0  1 -1 -2  0  0  0  0  0  0  0  0  0  0  0;" // 1
+            "0  0  0  1  0  0  0  0  0  0  0  0  0  0  0;" // N
+            "0  0  1 -1  1 -1  0  0  0  0  0  0  1  0  0;" // k  src
+            "0  0  0  0 -1  1  0  0  0  0  0 -1  0  0  0;" // n' dst
+            "0  0  0  0  0  0  1 -1 -2  0  0  0  0 -1  0;" // 1
+            "0  0  0  0  0  0  0  0  1  0  0  0  0  0 -1;" // N
+            "0  0  0  0  0  0  0  1 -1  1 -1  0 -1  0  0;" // k  src
+            "0  0  0  0  0  0  0  0  0 -1  1  1  0  0  0;" // n' dst
+            "1  0  0  0  0  0  0  0  0  0  0  1  1  0  0]"_mat};
+
+    // clang-format on
+    alloc::Arena<> alloc = managed_alloc;
+    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp->initiateFeasible()));
+    Simplex::Solution sol = simp->rLexMinStop(10);
+    expect(eq(sol.size(), 4));
+    expect(2 * sol[last - 3] == 1);
+    expect(2 * sol[last - 2] == 1);
+    expect(sol[last - 1] == 0);
+    expect(sol[last] == 0);
+  };
 
   "DynsolveDropExtra"_test = [&managed_alloc] -> void {
     // clang-format off
