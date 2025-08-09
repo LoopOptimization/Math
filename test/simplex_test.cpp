@@ -21,14 +21,13 @@ auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
   std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
   Simplex *simp{Simplex::create(alloc, row(numCon), col(numVar))};
-  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(tableau)); r < R; ++r)
-    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(tableau)); c < N; ++c)
-      invariant(tableau[r, c] != std::numeric_limits<std::int64_t>::min());
+  static constexpr auto check_invalid = [](auto x) {
+    return x == std::numeric_limits<std::int64_t>::min();
+  };
+  invariant(find_if(tableau, check_invalid) < 0);
   simp->getTableau() << tableau;
-  auto C{simp->getConstraints()};
-  for (std::ptrdiff_t r = 0, R = std::ptrdiff_t(numRows(C)); r < R; ++r)
-    for (std::ptrdiff_t c = 0, N = std::ptrdiff_t(numCols(C)); c < N; ++c)
-      invariant(C[r, c] != std::numeric_limits<std::int64_t>::min());
+  PtrMatrix<Simplex::value_type> C{simp->getConstraints()};
+  invariant(find_if(C, check_invalid) < 0);
   return simp;
 }
 
@@ -1343,7 +1342,7 @@ auto main(int argc, const char **argv) -> int {
     Valid<Simplex> simp{simplexFromTableau(&alloc, C)};
     expect(simp->initiateFeasible());
   };
-  "DynsolveDynamicDistance"_test = [&managed_alloc] {
+  "DynsolveDynamicDistance"_test = [&managed_alloc] -> void {
     // clang-format off
     // Problem: mismatched dims require bounding constraints.
     auto t{"[0 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
@@ -1366,17 +1365,35 @@ auto main(int argc, const char **argv) -> int {
            "-1 0  0 0  0 0  0 0  0  0  0  0 0  0 0  0 0 -1 1  0  0  0  0 0  0  0  0  0;"
             "0 0  0 0  0 0  0 0  0  0  0  0 0 -1 1  0 0  0 0 -1  0  1  0 0  0  0  0  0]"_mat};
     // clang-format on
-    alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
-    std::ptrdiff_t num_nuisance = 22;
-    Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
-    // sol.print();
-    expect(sol[::math::last] == 1);
-    expect(eq(sol.size(), 5));
+    {
+      alloc::Arena<> alloc = managed_alloc;
+      Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
+      expect(fatal(!simp->initiateFeasible()));
+      std::ptrdiff_t num_nuisance = 22;
+      Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+      // sol.print();
+      expect(sol[::math::last] == 1);
+      expect(eq(sol.size(), 5));
+    }
+    {
+      alloc::Arena<> alloc = managed_alloc;
+      Simplex *S{Simplex::create(&alloc, row(8), col(11))};
+      MutPtrMatrix<Simplex::value_type> C{S->getConstraints()};
+      C[_, 0] << 0;
+      C[_, _(1, 10)] << t[_(2, 10), _(2, 11)];
+      C[_, _(10, 12)] << 0;
+      C[6, 10] = -1;
+      C[6, 11] = 1;
+      expect(fatal(!S->initiateFeasible()));
+      MutPtrVector<Simplex::value_type> c{S->getCost()};
+      c.zero();
+      c[1] = -1;
+      c[3] = -1;
+      c[5] = -1;
+      expect(S->run() <= 0);
+    }
   };
-
-  "DynsolveAppendMatching"_test = [&managed_alloc] -> void {
+  "DynsolveAppendEqualMatching"_test = [&managed_alloc] -> void {
     // clang-format off
     // Approach 0: append dims so they match
     // We also muset set the new dims equal to the old, which seems wrong.

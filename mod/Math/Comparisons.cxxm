@@ -169,7 +169,7 @@ find_if(const AbstractTensor auto &A_arg, const auto &f) -> std::ptrdiff_t {
             auto u{simd::index::unrollmask<1, W>(N, i)};
             if (!u) break;
             auto mask = f(A[r, u]);
-            if (mask) return (r * N) + i + mask.onBegin();
+            if (mask.any()) return (r * N) + i + mask.onBegin();
           }
         }
       }

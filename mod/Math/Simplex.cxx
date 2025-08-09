@@ -119,7 +119,6 @@ auto removeAugmentVars(
   Simplex *S,
   const containers::BitSet<math::Vector<std::uint64_t, 8>> &augmentVars)
   -> bool {
-  // TODO: try to avoid reallocating, via reserving enough ahead of time
   std::ptrdiff_t num_augment = augmentVars.size(),
                  old_num_var = std::ptrdiff_t(S->getNumVars());
   S->setNumVars(old_num_var + num_augment);
@@ -256,6 +255,7 @@ void Simplex::zeroConstraints() {
   }
     .zero();
 }
+/// num constraints x hcat(LHS, vars)
 // NOLINTNEXTLINE(readability-make-member-function-const)
 [[nodiscard]] auto Simplex::getConstraints() -> MutPtrMatrix<value_type> {
   return {tableauPointer() + std::ptrdiff_t(var_capacity_p1_),
@@ -878,21 +878,22 @@ void Simplex::printResult(std::ptrdiff_t numSlack) {
     }
   }
 }
-auto Simplex::create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar)
+auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var)
   -> Valid<Simplex> {
-  return create(alloc, numCon, numVar, capacity(std::ptrdiff_t(numCon)),
-                stride(std::ptrdiff_t(numVar) + std::ptrdiff_t(numCon)));
+  return create(alloc, num_con, num_var, capacity(std::ptrdiff_t(num_con)),
+                stride(std::ptrdiff_t(num_var) + std::ptrdiff_t(num_con)));
 }
-auto Simplex::create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-                     Capacity<> conCap, RowStride<> varCap) -> Valid<Simplex> {
-  varCap = alignVarCapacity(varCap);
-  auto c_cap = std::ptrdiff_t(conCap), v_cap = std::ptrdiff_t(varCap);
+auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var,
+                     Capacity<> con_cap, RowStride<> var_cap)
+  -> Valid<Simplex> {
+  var_cap = alignVarCapacity(var_cap);
+  auto c_cap = std::ptrdiff_t(con_cap), v_cap = std::ptrdiff_t(var_cap);
   std::size_t mem_needed = requiredMemory(c_cap, v_cap);
   auto *mem = (Simplex *)alloc->allocate<alignof(Simplex)>(mem_needed);
-  mem->num_constraints_ = numCon;
-  mem->num_vars_ = numVar;
-  mem->constraint_capacity_ = conCap;
-  mem->var_capacity_p1_ = varCap;
+  mem->num_constraints_ = num_con;
+  mem->num_vars_ = num_var;
+  mem->constraint_capacity_ = con_cap;
+  mem->var_capacity_p1_ = var_cap;
   return mem;
 }
 

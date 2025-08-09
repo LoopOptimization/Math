@@ -288,7 +288,7 @@ public:
   operator==(const AbstractTensor auto &B) const -> bool {
     return isEqual(B);
   }
-  
+
   // Scalar comparison operators
   TRIVIAL constexpr auto operator!=(std::convertible_to<T> auto b) const {
     return elementwise(v(), b, std::not_equal_to<>{});
