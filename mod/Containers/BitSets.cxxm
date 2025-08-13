@@ -88,7 +88,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   // std::ptrdiff_t operator[](std::ptrdiff_t i) const {
   //     return data[i];
   // } // allow `getindex` but not `setindex`
-  TRIVIAL constexpr explicit BitSet() = default;
+  TRIVIAL constexpr BitSet() = default;
   TRIVIAL constexpr explicit BitSet(T &&_data) : data_{std::move(_data)} {}
   TRIVIAL constexpr explicit BitSet(const T &_data) : data_{_data} {}
   TRIVIAL static constexpr auto numElementsNeeded(std::ptrdiff_t N)
