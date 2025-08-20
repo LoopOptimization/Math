@@ -43,13 +43,6 @@ public:
   }
 };
 
-class End {
-public:
-  template <typename T> TRIVIAL constexpr operator T *() const noexcept {
-    return nullptr;
-  }
-};
-
 /// Safe for removing current iter from `list` while iterating.
 template <typename T, class Op, class Proj> class ListIterator {
   T *state_;
@@ -63,11 +56,9 @@ public:
     invariant(state_ != next_);
     return p_(state_);
   }
-  TRIVIAL // constexpr auto operator->() const noexcept -> T * { return state_;
-          // }
-    TRIVIAL constexpr auto getState() const noexcept -> T * {
-    return state_;
-  }
+  // TRIVIAL constexpr auto operator->() const noexcept -> T * { return state_;
+  // }
+  TRIVIAL constexpr auto getState() const noexcept -> T * { return state_; }
   TRIVIAL constexpr auto operator++() noexcept -> ListIterator & {
     invariant(state_ != next_);
     state_ = next_;
@@ -91,7 +82,8 @@ public:
     -> bool {
     return state_ == other.state_;
   }
-  TRIVIAL constexpr auto operator==(End) const noexcept -> bool {
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const noexcept
+    -> bool {
     invariant((state_ == nullptr) || (state_ != next_));
     return state_ == nullptr;
   }
@@ -127,7 +119,9 @@ public:
     -> ListIterator<const T, Op, Proj> {
     return {begin_, next_, projection_};
   }
-  TRIVIAL static constexpr auto end() noexcept -> End { return {}; }
+  TRIVIAL static constexpr auto end() noexcept -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
   TRIVIAL constexpr ListRange(T *begin, Op next, Proj projection) noexcept
     : begin_{begin}, next_{next}, projection_{projection} {}
   TRIVIAL constexpr ListRange(T *begin, Op next) noexcept
@@ -195,7 +189,7 @@ class NestedIterator {
     ::new (&innerend_) J{innerobj_.end()};
     if ((inner_ == innerend_) && (++outer_ != outerend_)) initInner();
   }
-  TRIVIAL constexpr void destroyInner() {
+  constexpr void destroyInner() {
     if constexpr (!std::is_trivially_destructible_v<J>) innerend_.~J();
     if constexpr (!std::is_trivially_destructible_v<I>) inner_.~I();
     if constexpr (!std::is_trivially_destructible_v<L>) innerobj_.~L();
@@ -211,7 +205,8 @@ public:
     -> bool {
     return outer_ == other.outer_ && inner_ == other.inner_;
   }
-  TRIVIAL constexpr auto operator==(End) const noexcept -> bool {
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const noexcept
+    -> bool {
     return outer_ == outerend_;
   }
   TRIVIAL constexpr auto operator++() noexcept -> NestedIterator & {
@@ -324,7 +319,9 @@ public:
   TRIVIAL constexpr auto begin() noexcept -> IteratorType {
     return IteratorType(outer_, inner_);
   }
-  TRIVIAL static constexpr auto end() noexcept -> End { return {}; }
+  TRIVIAL static constexpr auto end() noexcept -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
   TRIVIAL constexpr NestedList(O out, F inn) noexcept
     : outer_{std::move(out)}, inner_{std::move(inn)} {}
   TRIVIAL constexpr NestedList(const NestedList &) noexcept = default;
