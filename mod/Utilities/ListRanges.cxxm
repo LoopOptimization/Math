@@ -104,7 +104,7 @@ ListIterator(T *, Op, Proj) -> ListIterator<T, Op, Proj>;
 template <typename T, class Op>
 ListIterator(T *, Op) -> ListIterator<T, Op, Identity>;
 
-template <typename T, class Op, class Proj>
+template <typename T, class Op = GetChild, class Proj = Identity>
 class ListRange
   : public std::ranges::view_interface<ListIterator<T, Op, Proj>> {
   T *begin_;
