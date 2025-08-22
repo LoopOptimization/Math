@@ -2,11 +2,12 @@ module;
 #include "Macros.hxx"
 export module BitSet;
 
+import Arena;
 import Array;
 import AssignExprTemplates;
 import AxisTypes;
-import CorePrint;
 import BaseUtils;
+import CorePrint;
 import ManagedArray;
 import MatDim;
 import Range;
@@ -612,5 +613,43 @@ TRIVIAL constexpr void xorAssignFromExpression(BitSet<T> &bitset,
   } {
   vopToBitSet(bitset, expr, [](auto a, auto b) { return a ^ b; });
 }
+
+struct BitSets {
+  using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
+  std::uint64_t *data_;
+  std::uint32_t num_sets_, num_chunks_per_;
+
+  static constexpr auto undef(alloc::Arena<> *alloc, std::uint32_t num_sets,
+                              std::uint32_t num_elts) -> BitSets {
+    std::uint32_t num_chunks = (num_elts + 63) >> 6;
+    std::ptrdiff_t total_chunks = std::ptrdiff_t(num_sets) * num_chunks;
+    return {.data_ = alloc->allocate<std::uint64_t>(total_chunks),
+            .num_sets_ = num_sets,
+            .num_chunks_per_ = num_chunks};
+  }
+  static constexpr auto empty(alloc::Arena<> *alloc, std::uint32_t num_sets,
+                             std::uint32_t num_elts) -> BitSets {
+    std::uint32_t num_chunks = (num_elts + 63) >> 6;
+    std::ptrdiff_t total_chunks = std::ptrdiff_t(num_sets) * num_chunks;
+    auto *d = alloc->allocate<std::uint64_t>(total_chunks);
+    std::memset(d, 0, 8 * total_chunks);
+    return {.data_ = d, .num_sets_ = num_sets, .num_chunks_per_ = num_chunks};
+  }
+
+  [[nodiscard]] constexpr auto numSets() const -> std::ptrdiff_t {
+    return num_sets_;
+  }
+  /// returns maximum size // 64
+  [[nodiscard]] constexpr auto maximumNumChunks() const -> std::ptrdiff_t {
+    return num_chunks_per_;
+  }
+  [[nodiscard]] constexpr auto maximumSize() const -> std::ptrdiff_t {
+    return 64z * maximumNumChunks();
+  }
+  constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
+    std::ptrdiff_t sz = num_chunks_per_;
+    return value_type{{data_ + (sz * i), math::length(sz)}};
+  }
+};
 
 } // namespace containers
