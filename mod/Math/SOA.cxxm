@@ -42,6 +42,7 @@ static_assert(CanConstructFromMembers<containers::Tuple<int, double>>::value);
 
 namespace CapacityCalculators {
 
+/// Indicates that capacity == length
 struct Length {
   static constexpr auto operator()(auto sz) -> std::ptrdiff_t {
     return static_cast<std::ptrdiff_t>(sz);
@@ -278,10 +279,9 @@ struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
     return {*this, std::ptrdiff_t(sz_)};
   }
 
+  static constexpr std::size_t total_size_per = CumSizeOf_v<sizeof...(II), T>;
+
 protected:
-  static constexpr auto totalSizePer() -> std::size_t {
-    return CumSizeOf_v<sizeof...(II), T>;
-  }
   void destroy(std::ptrdiff_t i) {
     char *p = std::assume_aligned<16>(data_);
     std::ptrdiff_t stride = capacity_(sz_);
@@ -319,7 +319,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
   }
 
   static auto alloc(std::ptrdiff_t stride) -> char * {
-    return A::allocate(stride * Base::totalSizePer());
+    return A::allocate(stride * Base::total_size_per);
   }
   ~ManagedSOA() { free(this->capacity_(this->sz_)); }
   constexpr ManagedSOA(ManagedSOA &&other)
@@ -348,7 +348,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     this->sz_ = nsz;
     if (ocap >= ncap) return;
     free(ocap);
-    this->data_ = A::allocate(ncap * this->totalSizePer());
+    this->data_ = A::allocate(ncap * Base::total_size_per);
     this->capacity_ = ncap;
   }
   void reserve(S nsz) {
@@ -404,7 +404,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
 
 private:
   void free(std::ptrdiff_t stride) {
-    if (this->data_) A::deallocate(this->data_, stride * Base::totalSizePer());
+    if (this->data_) A::deallocate(this->data_, stride * Base::total_size_per);
   }
 };
 template <typename T, typename S>
