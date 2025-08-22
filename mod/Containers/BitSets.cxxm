@@ -251,7 +251,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     //   if (u) return true;
     // return false;
   }
-  TRIVIAL constexpr void setUnion(const BitSet &bs) {
+  template <typename U> TRIVIAL constexpr void setUnion(const BitSet<U> &bs) {
     std::ptrdiff_t O = std::ssize(bs.data_), N = std::ssize(data_);
     if (O > N) resizeData(O);
     for (std::ptrdiff_t i = 0; i < O; ++i) {
@@ -259,7 +259,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
       data_[i] = d;
     }
   }
-  TRIVIAL constexpr auto operator&=(const BitSet &bs) -> BitSet & {
+  template <typename O>
+  TRIVIAL constexpr auto operator&=(const BitSet<O> &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
     for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
@@ -267,7 +268,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return *this;
   }
   /// a -= b is the same as a &= ~b
-  TRIVIAL constexpr auto operator-=(const BitSet &bs) -> BitSet & {
+  template <typename U>
+  TRIVIAL constexpr auto operator-=(const BitSet<U> &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
     for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
@@ -275,27 +277,32 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return *this;
   }
   /// a - b is the same as a & ~b
-  TRIVIAL constexpr auto operator-(const BitSet &bs) const -> BitSet {
+  template <typename U>
+  TRIVIAL constexpr auto operator-(const BitSet<U> &bs) const -> BitSet {
     BitSet cpy(*this); // TODO: avoid 2 passes
     cpy -= bs;
     return cpy;
   }
-  TRIVIAL constexpr auto operator|=(const BitSet &bs) -> BitSet & {
+  template <typename U>
+  TRIVIAL constexpr auto operator|=(const BitSet<U> &bs) -> BitSet & {
     if (std::ssize(bs.data_) > std::ssize(data_))
       resizeData(std::ssize(bs.data_));
     for (std::ptrdiff_t i = 0; i < std::ssize(bs.data_); ++i)
       data_[i] |= bs.data_[i];
     return *this;
   }
-  TRIVIAL constexpr auto operator&(const BitSet &bs) const -> BitSet {
+  template <typename U>
+  TRIVIAL constexpr auto operator&(const BitSet<U> &bs) const -> BitSet {
     BitSet r = *this;
     return r &= bs;
   }
-  TRIVIAL constexpr auto operator|(const BitSet &bs) const -> BitSet {
+  template <typename U>
+  TRIVIAL constexpr auto operator|(const BitSet<U> &bs) const -> BitSet {
     BitSet r = *this;
     return r |= bs;
   }
-  TRIVIAL constexpr auto operator==(const BitSet &bs) const -> bool {
+  template <typename U>
+  TRIVIAL constexpr auto operator==(const BitSet<U> &bs) const -> bool {
     return data_ == bs.data_;
   }
   TRIVIAL constexpr auto operator~() const -> BitSet {
@@ -304,8 +311,9 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return r;
   }
 
+  template <typename U>
   TRIVIAL [[nodiscard]] constexpr auto
-  emptyIntersection(const BitSet &other) const -> bool {
+  emptyIntersection(const BitSet<U> &other) const -> bool {
     for (std::ptrdiff_t i = 0, L = std::min(other.data_.size(), data_.size());
          i < L; ++i)
       if (data_[i] & other.data_[i]) return false;
@@ -313,7 +321,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   // Ranks higher elements as more important, thus iterating
   // backwards.
-  TRIVIAL constexpr auto operator<=>(const BitSet &other) const
+  template <typename U>
+  TRIVIAL constexpr auto operator<=>(const BitSet<U> &other) const
     -> std::strong_ordering {
     std::ptrdiff_t ntd = data_.size(), nod = other.data_.size();
     if (ntd != nod) {
@@ -332,7 +341,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return std::strong_ordering::equal;
   }
 
-  void print() const {
+  DEBUGUSED void print() const {
     utils::print("BitSet[");
     auto it = begin();
     if (it != std::default_sentinel) {
@@ -340,6 +349,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
       for (; it != std::default_sentinel; ++it) utils::print(", ", *it);
     }
     utils::print("]");
+    utils::flush();
   }
   TRIVIAL constexpr void clear() {
     std::fill_n(data_.begin(), std::ssize(data_), 0);
@@ -628,7 +638,7 @@ struct BitSets {
             .num_chunks_per_ = num_chunks};
   }
   static constexpr auto empty(alloc::Arena<> *alloc, std::uint32_t num_sets,
-                             std::uint32_t num_elts) -> BitSets {
+                              std::uint32_t num_elts) -> BitSets {
     std::uint32_t num_chunks = (num_elts + 63) >> 6;
     std::ptrdiff_t total_chunks = std::ptrdiff_t(num_sets) * num_chunks;
     auto *d = alloc->allocate<std::uint64_t>(total_chunks);
