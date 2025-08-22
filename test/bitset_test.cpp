@@ -479,13 +479,13 @@ int main() {
 
     // Test empty factory method with small collection
     BitSets bs_empty = BitSets::empty(&alloc, 3, 100);
-    expect(bs_empty.numSets() == 3);
+    expect(bs_empty.size() == 3);
     expect(bs_empty.maximumSize() == 128);    // Rounded up to 64-bit boundaries
     expect(bs_empty.maximumNumChunks() == 2); // (100 + 63) / 64 = 2
 
     // Test undef factory method with larger collection
     BitSets bs_undef = BitSets::undef(&alloc, 5, 200);
-    expect(bs_undef.numSets() == 5);
+    expect(bs_undef.size() == 5);
     expect(bs_undef.maximumSize() == 256);    // Rounded up to 64-bit boundaries
     expect(bs_undef.maximumNumChunks() == 4); // (200 + 63) / 64 = 4
 
@@ -525,18 +525,18 @@ int main() {
     // Verify each BitSet has correct bits set
     expect(bs0[5] && bs0[10]);
     expect(!bs0[3] && !bs0[15] && !bs0[0] && !bs0[63]);
-    expect(bs0.size() == 2);
+    expect(eq(bs0.size(), 2));
 
     expect(bs1[3] && bs1[15]);
     expect(!bs1[5] && !bs1[10] && !bs1[0] && !bs1[63]);
-    expect(bs1.size() == 2);
+    expect(eq(bs1.size(), 2));
 
     expect(bs2[0] && bs2[63]);
     expect(!bs2[3] && !bs2[5] && !bs2[10] && !bs2[15]);
-    expect(bs2.size() == 2);
+    expect(eq(bs2.size(), 2));
 
     expect(bs3.empty());
-    expect(bs3.size() == 0);
+    expect(eq(bs3.size(), 0));
 
     // Test contains method
     expect(bs0.contains(5));
@@ -549,13 +549,13 @@ int main() {
     expect(!bs3.insert(42)); // Should return false (wasn't there)
     expect(bs3.insert(42));  // Should return true (now it's there)
     expect(bs3.contains(42));
-    expect(bs3.size() == 1);
+    expect(eq(bs3.size(), 1));
 
     // Test remove method
     expect(bs0.remove(5));  // Should return true (was there)
     expect(!bs0.remove(5)); // Should return false (not there anymore)
     expect(!bs0.contains(5));
-    expect(bs0.size() == 1);
+    expect(eq(bs0.size(), 1));
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -564,7 +564,7 @@ int main() {
 
     // Test edge case: 1 element per set
     BitSets bs_tiny = BitSets::empty(&alloc, 2, 1);
-    expect(bs_tiny.numSets() == 2);
+    expect(eq(bs_tiny.size(), 2));
     expect(bs_tiny.maximumSize() == 64); // Minimum 1 chunk = 64 bits
     expect(bs_tiny.maximumNumChunks() == 1);
 
@@ -580,7 +580,7 @@ int main() {
 
     // Test large collection
     BitSets bs_large = BitSets::empty(&alloc, 10, 1000);
-    expect(bs_large.numSets() == 10);
+    expect(eq(bs_large.size(), 10));
     expect(bs_large.maximumSize() == 1024); // (1000 + 63) / 64 * 64 = 16 * 64
     expect(bs_large.maximumNumChunks() == 16);
 
@@ -684,6 +684,291 @@ int main() {
     expect(bs0[0] && !bs0[1] && !bs0[2] && !bs0[3]);
     expect(!bs0[4] && bs0[5] && !bs0[6] && !bs0[7] && !bs0[8]);
     expect(bs0.size() == 2);
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSets Iterator Basic"_test = [] {
+    alloc::OwningArena<> alloc;
+
+    // Test with non-empty collection
+    BitSets bs_coll = BitSets::empty(&alloc, 4, 50);
+
+    auto begin_it = bs_coll.begin();
+    auto end_it = bs_coll.end();
+
+    // Test basic iterator properties
+    expect(begin_it != end_it);
+    expect(!(begin_it == end_it));
+
+    // Test iterator dereferencing
+    auto first_bitset = *begin_it;
+    expect(first_bitset.empty());
+    expect(eq(first_bitset.size(), 0));
+
+    // Test that we can modify through dereferenced iterator
+    first_bitset[10] = true;
+    expect(first_bitset.contains(10));
+    expect(eq(first_bitset.size(), 1));
+
+    // Test iterator increment
+    auto second_it = begin_it;
+    ++second_it;
+    expect(second_it != begin_it);
+    expect(second_it != end_it);
+
+    auto second_bitset = *second_it;
+    expect(second_bitset.empty()); // Should be different from first_bitset
+
+    // Test postfix increment
+    auto third_it = second_it++;
+    expect(third_it != second_it);
+    expect(third_it == begin_it + 1); // third_it should be the old position
+
+    // Test iterator comparison and ordering
+    expect(begin_it < second_it);
+    expect(second_it < end_it);
+    expect(begin_it <= second_it);
+    expect(second_it >= begin_it);
+
+    // Test empty collection
+    BitSets empty_coll = BitSets::empty(&alloc, 0, 10);
+    expect(empty_coll.begin() == empty_coll.end());
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSets Iterator RangeFor"_test = [] {
+    alloc::OwningArena<> alloc;
+    BitSets bs_coll = BitSets::empty(&alloc, 5, 100);
+
+    // Test range-based for loop
+    std::ptrdiff_t count = 0;
+    for (auto bitset : bs_coll) {
+      expect(bitset.empty());
+      expect(eq(bitset.size(), 0));
+
+      // Set different bits in each BitSet
+      bitset[count * 10] = true;
+      bitset[count * 10 + 5] = true;
+
+      expect(eq(bitset.size(), 2));
+      expect(bitset.contains(count * 10));
+      expect(bitset.contains(count * 10 + 5));
+
+      ++count;
+    }
+
+    expect(eq(count, 5)); // Should have iterated over all 5 BitSets
+
+    // Verify each BitSet maintains its data independently
+    count = 0;
+    for (auto bitset : bs_coll) {
+      expect(eq(bitset.size(), 2));
+      expect(bitset.contains(count * 10));
+      expect(bitset.contains(count * 10 + 5));
+      ++count;
+    }
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSets Iterator STL"_test = [] {
+    alloc::OwningArena<> alloc;
+    BitSets bs_coll = BitSets::empty(&alloc, 7, 64);
+
+    // Test std::distance
+    auto distance = std::distance(bs_coll.begin(), bs_coll.end());
+    expect(eq(distance, 7));
+
+    // Test with std::for_each (or ranges equivalent)
+    std::ptrdiff_t counter = 0;
+    std::for_each(bs_coll.begin(), bs_coll.end(), [&counter](auto bitset) {
+      bitset[counter * 5] = true;
+      expect(bitset.contains(counter * 5));
+      ++counter;
+    });
+    expect(eq(counter, 7));
+
+    // Test iterator satisfies bidirectional iterator requirements
+    auto it = bs_coll.begin();
+    static_assert(std::bidirectional_iterator<decltype(it)>);
+
+    // Test with std::advance
+    std::advance(it, 3);
+    expect(it != bs_coll.begin());
+    expect(it != bs_coll.end());
+
+    auto advanced_bitset = *it;
+    expect(!advanced_bitset.contains(63));
+    advanced_bitset[63] = true;
+    expect(advanced_bitset.contains(63));
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSets Iterator Bidirectional"_test = [] {
+    alloc::OwningArena<> alloc;
+    BitSets bs_coll = BitSets::empty(&alloc, 6, 128);
+
+    // Test forward iteration
+    auto it = bs_coll.begin();
+    std::ptrdiff_t forward_count = 0;
+    while (it != bs_coll.end()) {
+      auto bitset = *it;
+      bitset[forward_count] = true;
+      ++forward_count;
+      ++it;
+    }
+    expect(eq(forward_count, 6));
+
+    // Test backward iteration
+    it = bs_coll.end();
+    std::ptrdiff_t backward_count = 0;
+    while (it-- != bs_coll.begin()) {
+      auto bitset = *it;
+      expect(bitset.contains(5 - backward_count));
+      ++backward_count;
+    }
+    expect(eq(backward_count, 6));
+
+    // Test postfix decrement
+    it = bs_coll.end();
+    --it; // Move to last valid position
+    auto last_it = it--;
+    expect(last_it != it);
+    auto bitset_at_it = *it;
+    auto bitset_at_last = *last_it;
+
+    // They should be different BitSets
+    bitset_at_it[100] = true;
+    bitset_at_last[101] = true;
+    expect(bitset_at_it.contains(100) && !bitset_at_it.contains(101));
+    expect(bitset_at_last.contains(101) && !bitset_at_last.contains(100));
+
+    // Test mixed forward/backward
+    it = bs_coll.begin();
+    ++it;
+    ++it; // Move forward 2
+    --it; // Move back 1
+    ++it;
+    ++it; // Move forward 2 more
+
+    std::ptrdiff_t expected_distance = 3;
+    std::ptrdiff_t actual_distance = std::distance(bs_coll.begin(), it);
+    expect(eq(actual_distance, expected_distance));
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSets Iterator Sizes"_test = [] {
+    alloc::OwningArena<> alloc;
+
+    // Test empty collection
+    BitSets empty_coll = BitSets::empty(&alloc, 0, 10);
+    expect(empty_coll.begin() == empty_coll.end());
+    expect(eq(std::distance(empty_coll.begin(), empty_coll.end()), 0));
+
+    std::ptrdiff_t empty_count = 0;
+    for ([[maybe_unused]] auto bs : empty_coll) ++empty_count;
+    expect(eq(empty_count, 0));
+
+    // Test single BitSet collection
+    BitSets single_coll = BitSets::empty(&alloc, 1, 32);
+    expect(single_coll.begin() != single_coll.end());
+    expect(eq(std::distance(single_coll.begin(), single_coll.end()), 1));
+
+    std::ptrdiff_t single_count = 0;
+    for (auto bs : single_coll) {
+      bs[15] = true;
+      expect(bs.contains(15));
+      ++single_count;
+    }
+    expect(eq(single_count, 1));
+
+    // Test large collection
+    BitSets large_coll = BitSets::empty(&alloc, 15, 200);
+    expect(eq(std::distance(large_coll.begin(), large_coll.end()), 15));
+
+    std::ptrdiff_t large_count = 0;
+    for (auto bs : large_coll) {
+      bs[large_count] = true;
+      expect(bs.contains(large_count));
+      ++large_count;
+    }
+    expect(eq(large_count, 15));
+
+    // Test different num_elts values
+    BitSets small_elts = BitSets::empty(&alloc, 3, 1);   // 1 element per BitSet
+    BitSets med_elts = BitSets::empty(&alloc, 3, 64);    // Exactly 1 chunk
+    BitSets large_elts = BitSets::empty(&alloc, 3, 129); // Multiple chunks
+
+    for (auto &coll : {small_elts, med_elts, large_elts}) {
+      expect(eq(std::distance(coll.begin(), coll.end()), 3));
+      std::ptrdiff_t iter_count = 0;
+      for (auto bs : coll) {
+        bs[0] = true;
+        expect(bs.contains(0));
+        ++iter_count;
+      }
+      expect(eq(iter_count, 3));
+    }
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSets Iterator Independence"_test = [] {
+    alloc::OwningArena<> alloc;
+    BitSets bs_coll = BitSets::empty(&alloc, 4, 80);
+
+    // Create multiple iterators
+    auto it1 = bs_coll.begin();
+    auto it2 = bs_coll.begin();
+    auto it3 = bs_coll.begin();
+
+    // Advance them to different positions
+    ++it2;
+    ++it3;
+    ++it3;
+
+    // Get BitSets through different iterators
+    auto bs1 = *it1;
+    auto bs2 = *it2;
+    auto bs3 = *it3;
+
+    // Modify each BitSet differently
+    bs1[10] = true;
+    bs2[20] = true;
+    bs3[30] = true;
+
+    // Verify independence
+    expect(bs1.contains(10) && !bs1.contains(20) && !bs1.contains(30));
+    expect(!bs2.contains(10) && bs2.contains(20) && !bs2.contains(30));
+    expect(!bs3.contains(10) && !bs3.contains(20) && bs3.contains(30));
+
+    // Test that advancing one iterator doesn't affect others
+    ++it1;
+    auto bs1_new = *it1;
+    bs1_new[15] = true;
+
+    // Original BitSet references should still be independent
+    expect(bs1.contains(10) && !bs1.contains(15));
+    expect(bs1_new.contains(15) && !bs1_new.contains(10));
+
+    // Verify iterator positions remain correct
+    expect(it2 == bs_coll.begin() + 1);
+    expect(it3 == bs_coll.begin() + 2);
+    expect(it1 == bs_coll.begin() + 1);
+
+    // Test iterator stability during BitSet operations
+    auto stable_it = bs_coll.begin();
+    auto stable_bs = *stable_it;
+
+    // Perform operations on the BitSet
+    stable_bs[40] = true;
+    stable_bs[50] = true;
+    stable_bs.remove(40);
+
+    // Iterator should still be valid and point to same position
+    auto stable_bs_again = *stable_it;
+    expect(stable_bs_again.contains(10));
+    expect(!stable_bs_again.contains(40));
+    expect(stable_bs_again.contains(50));
+    expect(eq(stable_bs_again.size(), 2));
   };
 
   return 0;

@@ -111,7 +111,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL constexpr void maybeResize(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) {
       math::Length<> M = numElementsNeeded(N);
-      if (M > std::ssize(data_)) data_.resize(M);
+      if (M > std::ssize(data_)) data_.resize(std::ptrdiff_t(M));
     } else invariant(N <= std::ssize(data_) * std::ptrdiff_t(usize));
   }
   TRIVIAL static constexpr auto dense(std::ptrdiff_t N) -> BitSet {
@@ -626,8 +626,66 @@ TRIVIAL constexpr void xorAssignFromExpression(BitSet<T> &bitset,
 
 struct BitSets {
   using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
+  using reference = BitSet<math::MutPtrVector<std::uint64_t>>;
   std::uint64_t *data_;
   std::uint32_t num_sets_, num_chunks_per_;
+
+  struct Iterator {
+    using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
+    std::uint64_t *data_;
+    std::uint32_t num_chunks_per_;
+    constexpr auto operator*() const -> value_type {
+      return value_type{{data_, math::length(num_chunks_per_)}};
+    }
+    constexpr auto operator+(std::ptrdiff_t i) -> Iterator {
+      return {.data_ = data_ + (num_chunks_per_ * i),
+              .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator-(std::ptrdiff_t i) -> Iterator {
+      return {.data_ = data_ - (num_chunks_per_ * i),
+              .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator-(Iterator i) const -> std::ptrdiff_t {
+      std::ptrdiff_t diff = data_ - i.data_, nc = diff / num_chunks_per_;
+      utils::assume(nc * num_chunks_per_ == diff);
+      return nc;
+    }
+    constexpr auto operator++() -> Iterator & {
+      data_ += num_chunks_per_;
+      return *this;
+    }
+    constexpr auto operator++(int) -> Iterator {
+      std::uint64_t *data = data_;
+      data_ += num_chunks_per_;
+      return {.data_ = data, .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator--() -> Iterator & {
+      data_ -= num_chunks_per_;
+      return *this;
+    }
+    constexpr auto operator--(int) -> Iterator {
+      std::uint64_t *data = data_;
+      data_ -= num_chunks_per_;
+      return {.data_ = data, .num_chunks_per_ = num_chunks_per_};
+    }
+    constexpr auto operator==(Iterator other) const -> bool {
+      return data_ == other.data_;
+    }
+    constexpr auto operator<=>(Iterator other) const -> std::strong_ordering {
+      return data_ <=> other.data_;
+    }
+  };
+  [[nodiscard]] constexpr auto begin() const -> Iterator {
+    return {.data_ = data_, .num_chunks_per_ = num_chunks_per_};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto totalElements() const -> std::ptrdiff_t {
+    std::ptrdiff_t num_sets = num_sets_, num_chunks = num_chunks_per_;
+    return num_sets * num_chunks;
+  }
+  [[nodiscard]] constexpr auto end() const -> Iterator {
+    return {.data_ = data_ + totalElements(),
+            .num_chunks_per_ = num_chunks_per_};
+  }
 
   static constexpr auto undef(alloc::Arena<> *alloc, std::uint32_t num_sets,
                               std::uint32_t num_elts) -> BitSets {
@@ -646,7 +704,7 @@ struct BitSets {
     return {.data_ = d, .num_sets_ = num_sets, .num_chunks_per_ = num_chunks};
   }
 
-  [[nodiscard]] constexpr auto numSets() const -> std::ptrdiff_t {
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
     return num_sets_;
   }
   /// returns maximum size // 64
@@ -660,6 +718,20 @@ struct BitSets {
     std::ptrdiff_t sz = num_chunks_per_;
     return value_type{{data_ + (sz * i), math::length(sz)}};
   }
+  void resize(std::uint32_t new_size) {
+    invariant(new_size <= num_sets_);
+    num_sets_ = new_size;
+  }
+  TRIVIAL constexpr auto mview() -> BitSets { return *this; }
+  constexpr auto operator==(BitSets other) const -> bool {
+    if (num_sets_ != other.num_sets_ ||
+        num_chunks_per_ != other.num_chunks_per_)
+      return false;
+    std::ptrdiff_t len = totalElements();
+    return math::PtrVector<std::uint64_t>(data_, math::length(len)) ==
+           math::PtrVector<std::uint64_t>(other.data_, math::length(len));
+  }
 };
+static_assert(std::bidirectional_iterator<BitSets::Iterator>);
 
 } // namespace containers

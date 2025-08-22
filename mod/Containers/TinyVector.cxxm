@@ -22,6 +22,7 @@ class MATH_GSL_OWNER TinyVector {
 
 public:
   using value_type = T;
+  using reference = T &;
 
   void print() const requires(utils::Printable<T>) {
     using ::utils::print;
@@ -154,6 +155,9 @@ public:
   TRIVIAL constexpr ~TinyVector() requires(!std::is_trivially_destructible_v<T>)
   {
     std::destroy_n(data_.data(), size());
+  }
+  TRIVIAL constexpr auto mview() -> std::span<T> {
+    return {data(), std::size_t(std::ptrdiff_t(len_))};
   }
 };
 } // namespace containers

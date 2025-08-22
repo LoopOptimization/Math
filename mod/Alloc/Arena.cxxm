@@ -400,7 +400,7 @@ protected:
 #if MATH_ADDRESS_SANITIZER_BUILD
     __asan_poison_memory_region(c, q - c);
 #elifndef NDEBUG
-    fillWithJunk(c, sz - 2 * MetaSize);
+    fillWithJunk(c, sz - (2z * MetaSize));
 #endif
   }
 };

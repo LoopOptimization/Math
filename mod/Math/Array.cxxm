@@ -372,6 +372,11 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL [[nodiscard]] constexpr auto t() const -> Transpose<T, Array> {
     return {*this};
   }
+  TRIVIAL void reserve(std::ptrdiff_t n) const { invariant(n <= size()); }
+  constexpr void resize(std::ptrdiff_t nz) requires(std::same_as<S, Length<>>) {
+    reserve(nz);
+    sz_ = length(nz);
+  }
   [[nodiscard]] constexpr auto isExchangeMatrix() const -> bool
     requires(is_matrix) {
     std::ptrdiff_t N = std::ptrdiff_t(numRow());
@@ -597,6 +602,8 @@ struct MutArray : Array<T, S, Compress>,
   using BaseT::operator[], BaseT::data, BaseT::begin, BaseT::end, BaseT::rbegin,
     BaseT::rend, BaseT::front, BaseT::back;
   using storage_type = typename BaseT::storage_type;
+  using value_type = T;
+  using reference = T &;
 
   TRIVIAL explicit constexpr MutArray() = default;
   TRIVIAL explicit constexpr MutArray(const MutArray &) = default;
