@@ -57,9 +57,8 @@ struct Length {
   }
   constexpr auto operator=(std::ptrdiff_t) -> Length & { return *this; }
 };
-constexpr auto nextpow2(std::ptrdiff_t x) -> std::ptrdiff_t {
-  return static_cast<std::ptrdiff_t>(
-    std::bit_ceil(static_cast<std::size_t>(x)));
+template <std::signed_integral I> constexpr auto nextpow2(I x) -> I {
+  return static_cast<I>(std::bit_ceil(static_cast<std::make_unsigned_t<I>>(x)));
 }
 struct NextPow2 {
   static constexpr auto operator()(auto sz) -> std::ptrdiff_t {
@@ -77,13 +76,13 @@ struct NextPow2 {
   constexpr auto operator=(std::ptrdiff_t) -> NextPow2 & { return *this; }
 };
 struct Explicit {
-  std::ptrdiff_t capacity_{0z};
+  std::int32_t capacity_{0};
   constexpr Explicit() = default;
-  constexpr Explicit(std::ptrdiff_t sz)
-    : capacity_{((sz > 8z) ? nextpow2(sz) : 8z * (sz > 0))} {}
+  constexpr Explicit(std::int32_t sz)
+    : capacity_{((sz > 8) ? nextpow2(sz) : 8 * (sz > 0))} {}
   constexpr Explicit(::math::Length<> sz) : Explicit(std::ptrdiff_t(sz)) {}
   constexpr auto operator()(auto) const -> std::ptrdiff_t { return capacity_; }
-  constexpr auto operator=(std::ptrdiff_t cap) -> Explicit & {
+  constexpr auto operator=(std::int32_t cap) -> Explicit & {
     capacity_ = cap;
     return *this;
   }
@@ -162,7 +161,7 @@ template <ConstructibleFromMembers T, std::size_t... II> struct SOAReference {
 // std::conditional_t<MatrixDimension<S>, CapacityCalculators::Length,
 //                                CapacityCalculators::NextPow2>
 /// requires 16 byte alignment of allocated pointer
-template <typename T, Dimension S = Length<>,
+template <typename T, Dimension S = Length<-1, std::int32_t>,
           typename C = CapacityCalculators::Explicit,
           typename TT = TupleTypes_t<T>,
           typename II = std::make_index_sequence<std::tuple_size_v<T>>>
@@ -305,7 +304,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
   constexpr ManagedSOA() : Base{nullptr, S{}, C{}} {}
   ManagedSOA(S nsz) {
     this->sz_ = nsz;
-    this->capacity_ = C{std::ptrdiff_t(nsz)};
+    this->capacity_ = C(nsz);
     std::ptrdiff_t stride = this->capacity_(std::ptrdiff_t(this->sz_));
     this->data_ = nsz ? alloc(stride) : nullptr;
   }
