@@ -122,13 +122,13 @@ template <ConstructibleFromMembers T, std::size_t... II> struct SOAReference {
   std::ptrdiff_t stride_;
   std::ptrdiff_t i_;
   operator T() const {
-    char *p = std::assume_aligned<16>(ptr_);
+    char *p = std::assume_aligned<8>(ptr_);
     return T(*reinterpret_cast<std::tuple_element_t<II, T> *>(
       p + (CumSizeOf_v<II, T> * stride_) +
       (sizeof(std::tuple_element_t<II, T>) * i_))...);
   }
   template <std::size_t I> void assign(const T &x) {
-    char *p = std::assume_aligned<16>(ptr_);
+    char *p = std::assume_aligned<8>(ptr_);
     *reinterpret_cast<std::tuple_element_t<I, T> *>(
       p + (CumSizeOf_v<I, T> * stride_) +
       (sizeof(std::tuple_element_t<I, T>) * i_)) = x.template get<I>();
@@ -184,7 +184,7 @@ struct [[gnu::packed]] SOA<T, S, C, Types<Elts...>,
   using value_type = T;
   using reference_type = SOAReference<T, II...>;
   auto operator[](std::ptrdiff_t i) const -> T {
-    char *p = std::assume_aligned<16>(data_);
+    char *p = std::assume_aligned<8>(data_);
     std::ptrdiff_t stride = capacity_(sz_);
     return T(*reinterpret_cast<std::tuple_element_t<II, T> *>(
       p + (CumSizeOf_v<II, T> * stride) +
@@ -280,11 +280,12 @@ struct [[gnu::packed]] SOA<T, S, C, Types<Elts...>,
     return {*this, std::ptrdiff_t(sz_)};
   }
 
-  static constexpr std::size_t total_size_per = CumSizeOf_v<sizeof...(II), T>;
+  static constexpr std::ptrdiff_t total_size_per =
+    CumSizeOf_v<sizeof...(II), T>;
 
 protected:
   void destroy(std::ptrdiff_t i) {
-    char *p = std::assume_aligned<16>(data_);
+    char *p = std::assume_aligned<8>(data_);
     std::ptrdiff_t stride = capacity_(sz_);
     (std::destroy_at(reinterpret_cast<std::tuple_element_t<II, T> *>(
        p + (CumSizeOf_v<II, T> * stride) +
