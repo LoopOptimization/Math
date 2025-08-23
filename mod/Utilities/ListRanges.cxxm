@@ -296,6 +296,8 @@ public:
 /// range level is the head of the next iteration, i.e. it is useful
 /// for nested list-like data structures, rather than (for example)
 /// cartesian product iterators.
+///
+/// The outer iterator expects...
 template <std::ranges::forward_range O, class F>
 class NestedList : public std::ranges::view_interface<NestedList<O, F>> {
   static_assert(std::ranges::view<O>);

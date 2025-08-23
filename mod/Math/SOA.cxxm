@@ -172,7 +172,8 @@ struct SOA {
 template <typename T, typename S, typename C, typename... Elts,
           std::size_t... II>
 requires(CanConstructFromMembers<T>::value)
-struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
+struct [[gnu::packed]] SOA<T, S, C, Types<Elts...>,
+                           std::index_sequence<II...>> {
   char *data_;
   [[no_unique_address]] S sz_;
   [[no_unique_address]] C capacity_;
