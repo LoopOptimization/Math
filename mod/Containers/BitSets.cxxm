@@ -79,10 +79,24 @@ public:
     std::ptrdiff_t pct = std::popcount(istate_),
                    pco = std::popcount(other.istate_), diff = pco - pct;
     if (it_ > other.it_)
-      for (U it = other.it_; it < it_; ++it) diff += std::popcount(*it);
+      for (const U *it = other.it_; it < it_;) diff += std::popcount(*++it);
     else if (it_ < other.it_)
-      for (U it = it_; it < other.it_; ++it) diff -= std::popcount(*it);
+      for (const U *it = it_; it < other.it_;) diff -= std::popcount(*++it);
     return diff;
+  }
+  constexpr auto operator+(std::ptrdiff_t n) -> BitSetIterator {
+    if (n <= 0) return *this;
+
+    BitSetIterator result = *this;
+
+    // Simply use the existing operator++ n times - it's correct and handles all
+    // edge cases
+    for (std::ptrdiff_t i = 0; i < n; ++i) {
+      ++result;
+      if (result == std::default_sentinel) return result;
+    }
+
+    return result;
   }
 };
 

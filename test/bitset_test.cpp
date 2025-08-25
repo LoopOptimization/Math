@@ -972,5 +972,200 @@ auto main() -> int {
     expect(eq(stable_bs_again.size(), 2));
   };
 
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSetIterator Plus Operator"_test = [] {
+    // Test operator+(std::ptrdiff_t) on BitSetIterator
+    BitSet bs(200);
+
+    // Set some scattered bits: 5, 12, 20, 35, 64, 100, 150
+    bs[5] = true;
+    bs[12] = true;
+    bs[20] = true;
+    bs[35] = true;
+    bs[64] = true;
+    bs[100] = true;
+    bs[150] = true;
+
+    auto it = bs.begin();
+    expect(eq(*it, 5)); // First element
+
+    // Test advancing by 0 (should return same position)
+    auto same_it = it + 0;
+    expect(eq(*same_it, 5));
+
+    // Test advancing by 1
+    auto next_it = it + 1;
+    expect(eq(*next_it, 12));
+
+    // Test advancing by 3
+    auto third_it = it + 3;
+    expect(eq(*third_it, 35));
+
+    // Test advancing by 3
+    auto fourth_it = it + 4;
+    expect(eq(*fourth_it, 64));
+
+    // Test advancing by all elements
+    auto all_it = it + 7;
+    expect(all_it == std::default_sentinel);
+
+    // Test advancing beyond end
+    auto beyond_it = it + 10;
+    expect(beyond_it == std::default_sentinel);
+
+    // Test from middle position
+    auto mid_it = bs.begin() + 2; // Should be at position 20
+    expect(eq(*mid_it, 20));
+
+    auto from_mid = mid_it + 3; // Should advance to 100
+    expect(eq(*from_mid, 100));
+
+    // Test with negative value (should return same iterator)
+    auto neg_it = it + (-5);
+    expect(eq(*neg_it, 5)); // Should be same as original
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSetIterator Minus Operator"_test = [] {
+    // Test operator-(const BitSetIterator &other)
+    BitSet bs(100);
+
+    // Set bits at positions: 10, 25, 40, 55, 70, 85
+    bs[10] = true;
+    bs[25] = true;
+    bs[40] = true;
+    bs[55] = true;
+    bs[70] = true;
+    bs[85] = true;
+
+    auto it_begin = bs.begin();
+    expect(eq(*it_begin, 10));
+
+    auto it_2nd = it_begin + 1;
+    expect(eq(*it_2nd, 25));
+
+    auto it_4th = it_begin + 3;
+    expect(eq(*it_4th, 55));
+
+    auto it_end = bs.begin() + 6;
+    expect(it_end == std::default_sentinel);
+
+    // Test difference calculation
+    expect(eq(it_2nd - it_begin, 1));
+    expect(eq(it_4th - it_begin, 3));
+    expect(eq(it_4th - it_2nd, 2));
+    expect(eq(it_begin - it_2nd, -1));
+    expect(eq(it_2nd - it_4th, -2));
+
+    // Test same iterator
+    expect(eq(it_begin - it_begin, 0));
+    expect(eq(it_2nd - it_2nd, 0));
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSetIterator Large Jump Performance"_test = [] {
+    // Test that operator+ efficiently handles large jumps using popcount
+    BitSet bs(10000);
+
+    // Set every 100th bit: 0, 100, 200, ..., 9900 (100 bits total)
+    for (std::ptrdiff_t i = 0; i < 10000; i += 100) bs[i] = true;
+    expect(eq(bs.size(), 100));
+
+    auto it = bs.begin();
+    expect(eq(*it, 0));
+
+    // Test large jumps that should use popcount optimization
+    auto jump_10 = it + 10;
+    expect(eq(*jump_10,
+              1000)); // 10th set bit (0-indexed) should be at position 1000
+
+    auto jump_50 = it + 50;
+    expect(eq(*jump_50,
+              5000)); // 50th set bit (0-indexed) should be at position 5000
+
+    auto jump_99 = it + 99;
+    expect(eq(*jump_99,
+              9900)); // 99th set bit (0-indexed) should be at position 9900
+
+    auto jump_100 = it + 100;
+    expect(jump_100 == std::default_sentinel); // Beyond end
+
+    // Test from middle position
+    auto mid_it = it + 25; // Should be at position 2500
+    expect(eq(*mid_it, 2500));
+
+    auto from_mid_jump = mid_it + 25; // Should jump to position 5000
+    expect(eq(*from_mid_jump, 5000));
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSetIterator Dense BitSet"_test = [] {
+    // Test with a dense bitset to verify word-boundary handling
+    BitSet bs = BitSet<>::dense(200);
+    expect(eq(bs.size(), 200));
+
+    auto it = bs.begin();
+    expect(eq(*it, 0));
+
+    // Test jumps that cross word boundaries (64-bit words)
+    auto jump_63 = it + 63;
+    expect(eq(*jump_63, 63));
+
+    auto jump_64 = it + 64;
+    expect(eq(*jump_64, 64));
+
+    auto jump_65 = it + 65;
+    expect(eq(*jump_65, 65));
+
+    auto jump_128 = it + 128;
+    expect(eq(*jump_128, 128));
+
+    auto jump_199 = it + 199;
+    expect(eq(*jump_199, 199));
+
+    auto jump_200 = it + 200;
+    expect(jump_200 == std::default_sentinel);
+
+    // Test difference calculations with dense bitset
+    auto it_0 = bs.begin();
+    auto it_64 = it_0 + 64;
+    auto it_128 = it_0 + 128;
+
+    expect(eq(it_64 - it_0, 64));
+    expect(eq(it_128 - it_64, 64));
+    expect(eq(it_128 - it_0, 128));
+  };
+
+  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
+  "BitSetIterator Sparse BitSet"_test = [] {
+    // Test with very sparse bitset
+    BitSet bs(1000);
+
+    // Set only a few bits: 7, 8, 500, 999
+    bs[7] = true;
+    bs[8] = true;
+    bs[250] = true;
+    bs[500] = true;
+    bs[749] = true;
+    bs[999] = true;
+
+    auto it = bs.begin();
+    expect(*it == 7);
+
+    expect(eq(*(it + 1), 8));
+    expect(eq(*(it + 2), 250));
+    expect(eq(*(it + 3), 500));
+    expect(eq(*(it + 4), 749));
+    expect(eq(*(it + 5), 999));
+    expect((it + 6) == std::default_sentinel);
+    expect((it + 7) == std::default_sentinel);
+    expect((it + 777) == std::default_sentinel);
+
+    // Test differences with sparse data
+    for (std::ptrdiff_t i = 0; i < 5; ++i)
+      for (std::ptrdiff_t j = 0; j < 5; ++j)
+        expect(eq((it + i) - (it + j), i - j));
+  };
+
   return 0;
 }
