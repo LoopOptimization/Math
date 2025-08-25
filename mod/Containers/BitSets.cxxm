@@ -630,6 +630,11 @@ struct BitSets {
   std::uint64_t *data_;
   std::uint32_t num_sets_, num_chunks_per_;
 
+  static constexpr auto from(value_type x) -> BitSets {
+    return {.data_ = x.data_.data(),
+            .num_sets_ = 1,
+            .num_chunks_per_ = std::uint32_t(x.data_.size())};
+  }
   struct Iterator {
     using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
     std::uint64_t *data_;
