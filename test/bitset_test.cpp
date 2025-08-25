@@ -12,7 +12,7 @@ import std;
 using containers::BitSet, containers::BitSets, ::math::Vector,
   utils::operator""_mat;
 
-int main() {
+auto main() -> int {
   using namespace boost::ut;
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -34,16 +34,16 @@ int main() {
     utils::print('\n');
     // expect(std::ranges::begin(bs), bs.begin());
     // expect(std::ranges::end(bs), bs.end());
-    Vector<std::size_t> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
+    Vector<int> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
     std::ptrdiff_t j = 0;
-    for (auto J = bs.begin(); J != decltype(bs)::end(); ++J) {
-      expect(std::size_t(*J) == bsc[std::size_t(j++)]);
-      expect(bs[*J]);
-      utils::println("We get: ", *J);
+    for (std::ptrdiff_t J : bs) {
+      expect(eq(J, bsc[j++]));
+      expect(bs[J]);
+      utils::println("We get: ", J);
     }
     j = 0;
-    for (auto i : bs) {
-      expect(std::size_t(i) == bsc[std::size_t(j++)]);
+    for (std::ptrdiff_t i : bs) {
+      expect(i == bsc[j++]);
       expect(bs[i]);
       utils::println("We get: ", i);
     }
@@ -53,7 +53,7 @@ int main() {
     BitSet empty;
     std::ptrdiff_t c = 0, d = 0;
     utils::println("About to iterate empty!");
-    for (auto b : empty) {
+    for (std::ptrdiff_t b : empty) {
       ++c;
       d += b;
     }
@@ -111,8 +111,9 @@ int main() {
     BitSet<std::array<std::uint64_t, 2>> bs;
     bs[4] = true;
     bs[10] = true;
-    expect(bs.data_[0] == 1040);
+    expect(bs.data_[0] == 0b10000010000);
     expect(bs.data_[1] == 0);
+    expect(eq(bs.maxValue(), 10));
     Vector<std::size_t> sv;
     for (auto i : bs) sv.push_back(i);
     expect(sv.size() == 2);

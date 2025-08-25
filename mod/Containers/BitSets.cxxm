@@ -24,32 +24,38 @@ template <std::unsigned_integral U> class BitSetIterator {
   [[no_unique_address]] const U *it_;
   [[no_unique_address]] const U *end_;
   [[no_unique_address]] U istate_;
-  std::ptrdiff_t cstate0_{-1};
-  std::ptrdiff_t cstate1_{0};
+  // value == cstate0_ + cstate1_
+  std::ptrdiff_t cstate_{0}; // cumulative offset w/in chunk
 
 public:
-  constexpr explicit BitSetIterator(const U *_it, const U *_end, U _istate)
-    : it_{_it}, end_{_end}, istate_{_istate} {}
+  constexpr explicit BitSetIterator(const U *it, const U *end)
+    : it_{it}, end_{end} {
+    bool is_empty = it == end;
+    istate_ = is_empty ? 0 : *it;
+    if (it == end) return;
+    this->operator++();
+    --cstate_;
+  }
   using value_type = std::ptrdiff_t;
   using difference_type = std::ptrdiff_t;
-  TRIVIAL constexpr auto operator*() const -> std::ptrdiff_t {
-    return cstate0_ + cstate1_;
-  }
+  TRIVIAL constexpr auto operator*() const -> std::ptrdiff_t { return cstate_; }
   TRIVIAL constexpr auto operator++() -> BitSetIterator & {
-    while (istate_ == 0) {
-      if (++it_ == end_) return *this;
-      istate_ = *it_;
-      cstate0_ = -1;
-      cstate1_ += 8 * sizeof(U);
+    static constexpr std::ptrdiff_t num_bits = 8 * sizeof(U);
+    if (!istate_) {
+      do {
+        if (++it_ == end_) return *this;
+        cstate_ = (cstate_ & (-num_bits)) + num_bits;
+      } while (!(istate_ = *it_));
+      --cstate_;
     }
     std::ptrdiff_t tzp1 = std::countr_zero(istate_);
-    cstate0_ += ++tzp1;
+    cstate_ += ++tzp1;
     istate_ = tzp1 >= 64 ? 0 : istate_ >> tzp1;
     return *this;
   }
   TRIVIAL constexpr auto operator++(int) -> BitSetIterator {
     BitSetIterator temp = *this;
-    ++*this;
+    this->operator++();
     return temp;
   }
   TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
@@ -68,6 +74,15 @@ public:
   TRIVIAL friend constexpr auto operator!=(std::default_sentinel_t,
                                            const BitSetIterator &bt) -> bool {
     return bt.it_ != bt.end_ || (bt.istate_ != 0);
+  }
+  constexpr auto operator-(const BitSetIterator &other) -> std::ptrdiff_t {
+    std::ptrdiff_t pct = std::popcount(istate_),
+                   pco = std::popcount(other.istate_), diff = pco - pct;
+    if (it_ > other.it_)
+      for (U it = other.it_; it < it_; ++it) diff += std::popcount(*it);
+    else if (it_ < other.it_)
+      for (U it = it_; it < other.it_; ++it) diff -= std::popcount(*it);
+    return diff;
   }
 };
 
@@ -127,8 +142,9 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return b;
   }
   TRIVIAL [[nodiscard]] constexpr auto maxValue() const -> std::ptrdiff_t {
-    std::ptrdiff_t N = std::ssize(data_);
-    return N ? ((usize * N) - std::countl_zero(data_[N - 1])) : 0;
+    for (std::ptrdiff_t N = std::ssize(data_); N;)
+      if (U x = data_[--N]) return (usize * N + 63z) - std::countl_zero(x);
+    return 0;
   }
   TRIVIAL [[nodiscard]] constexpr auto count() const -> std::ptrdiff_t {
     std::ptrdiff_t c = 0;
@@ -140,9 +156,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL [[nodiscard]] constexpr auto begin() const -> BitSetIterator<U> {
     const U *b(&*data_.begin());
     const U *e(&*data_.end());
-    if (b == e) return BitSetIterator<U>{b, e, 0};
-    BitSetIterator it{b, e, *b};
-    return ++it;
+    return BitSetIterator<U>{b, e};
   }
   TRIVIAL [[nodiscard]] static constexpr auto end() -> std::default_sentinel_t {
     return std::default_sentinel;
@@ -424,6 +438,8 @@ static_assert(std::is_trivially_destructible_v<FixedSizeBitSet<2>>);
 // static_assert(std::input_or_output_iterator<
 //               decltype(std::declval<FixedSizeBitSet<2>>().begin())>);
 static_assert(std::ranges::range<FixedSizeBitSet<2>>);
+static_assert(std::ranges::range<BitSet<>>);
+static_assert(std::ranges::range<BitSet<math::MutPtrVector<std::uint64_t>>>);
 
 template <typename T, typename B = BitSet<>> struct BitSliceView {
   [[no_unique_address]] math::MutPtrVector<T> a_;
