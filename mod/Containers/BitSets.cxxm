@@ -452,14 +452,10 @@ static_assert(std::is_trivially_destructible_v<BitSet64>);
 static_assert(std::is_trivially_destructible_v<FixedSizeBitSet<2>>);
 
 } // namespace containers
-// NOLINTNEXTLINE(cert-dcl58-cpp)
-export {
-  template <containers::BitCollection T>
-  inline constexpr bool
-    std::ranges::enable_borrowed_range<containers::BitSet<T>> =
-      enable_borrowed_range<T>;
-
-} // namespace std::ranges
+export template <containers::BitCollection T>
+inline constexpr bool
+  std::ranges::enable_borrowed_range<containers::BitSet<T>> =
+    enable_borrowed_range<T>;
 
 export namespace containers {
 static_assert(
@@ -778,9 +774,12 @@ struct BitSets {
     std::ptrdiff_t sz = num_chunks_per_;
     return value_type{{data_ + (sz * i), math::length(sz)}};
   }
-  void resize(std::uint32_t new_size) {
+  // returns the number of bytes freed
+  auto resize(std::uint32_t new_size) -> std::ptrdiff_t {
     invariant(new_size <= num_sets_);
+    std::ptrdiff_t diff = num_sets_ - new_size;
     num_sets_ = new_size;
+    return (8z * num_chunks_per_) * diff;
   }
   TRIVIAL constexpr auto mview() -> BitSets { return *this; }
   constexpr auto operator==(BitSets other) const -> bool {
