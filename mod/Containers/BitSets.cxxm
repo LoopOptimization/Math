@@ -280,7 +280,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     //   if (u) return true;
     // return false;
   }
-  template <typename U> TRIVIAL constexpr void setUnion(const BitSet<U> &bs) {
+  template <typename V> TRIVIAL constexpr void setUnion(const BitSet<V> &bs) {
     std::ptrdiff_t O = std::ssize(bs.data_), N = std::ssize(data_);
     if (O > N) resizeData(O);
     for (std::ptrdiff_t i = 0; i < O; ++i) {
@@ -288,8 +288,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
       data_[i] = d;
     }
   }
-  template <typename O>
-  TRIVIAL constexpr auto operator&=(const BitSet<O> &bs) -> BitSet & {
+  template <typename V>
+  TRIVIAL constexpr auto operator&=(const BitSet<V> &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
     for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
@@ -297,8 +297,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return *this;
   }
   /// a -= b is the same as a &= ~b
-  template <typename U>
-  TRIVIAL constexpr auto operator-=(const BitSet<U> &bs) -> BitSet & {
+  template <typename V>
+  TRIVIAL constexpr auto operator-=(const BitSet<V> &bs) -> BitSet & {
     if (std::ssize(bs.data_) < std::ssize(data_))
       resizeData(std::ssize(bs.data_));
     for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
@@ -306,38 +306,58 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return *this;
   }
   /// a - b is the same as a & ~b
-  template <typename U>
-  TRIVIAL constexpr auto operator-(const BitSet<U> &bs) const -> BitSet {
+  template <typename V>
+  TRIVIAL constexpr auto operator-(const BitSet<V> &bs) const -> BitSet {
     BitSet cpy(*this); // TODO: avoid 2 passes
     cpy -= bs;
     return cpy;
   }
-  template <typename U>
-  TRIVIAL constexpr auto operator|=(const BitSet<U> &bs) -> BitSet & {
+  template <typename V>
+  TRIVIAL constexpr auto operator|=(const BitSet<V> &bs) -> BitSet & {
     if (std::ssize(bs.data_) > std::ssize(data_))
       resizeData(std::ssize(bs.data_));
     for (std::ptrdiff_t i = 0; i < std::ssize(bs.data_); ++i)
       data_[i] |= bs.data_[i];
     return *this;
   }
-  template <typename U>
-  TRIVIAL constexpr auto operator&(const BitSet<U> &bs) const -> BitSet {
+  template <typename V>
+  TRIVIAL constexpr auto operator&(const BitSet<V> &bs) const -> BitSet {
     BitSet r = *this;
     return r &= bs;
   }
-  template <typename U>
-  TRIVIAL constexpr auto operator|(const BitSet<U> &bs) const -> BitSet {
+  template <typename V>
+  TRIVIAL constexpr auto operator|(const BitSet<V> &bs) const -> BitSet {
     BitSet r = *this;
     return r |= bs;
   }
-  template <typename U>
-  TRIVIAL constexpr auto operator==(const BitSet<U> &bs) const -> bool {
+  template <typename V>
+  TRIVIAL constexpr auto operator==(const BitSet<V> &bs) const -> bool {
     return data_ == bs.data_;
   }
   TRIVIAL constexpr auto operator~() const -> BitSet {
     BitSet r = *this;
     for (U &u : r.data_) u = ~u;
     return r;
+  }
+  /// x.isSubSet(y);
+  /// is equivalent to
+  /// (y | x) == y;
+  template <typename V>
+  TRIVIAL constexpr auto isSubSet(const BitSet<V> &superset) const -> bool {
+    std::ptrdiff_t S = data_.size(), L = superset.data_.size(),
+                   M = std::min(S, L);
+    for (std::ptrdiff_t i = 0; i < M; ++i)
+      if (U y = superset.data_[i]; (y | data_[i]) != y) return false;
+    for (std::ptrdiff_t i = M; i < S; ++i)
+      if (data_[i]) return false;
+    return true;
+  }
+  /// y.isSuperSet(x);
+  /// is equivalent to
+  /// (x & y) == x;
+  template <typename V>
+  TRIVIAL constexpr auto isSuperSet(const BitSet<V> &subset) const -> bool {
+    return subset.isSubSet(*this);
   }
 
   template <typename U>

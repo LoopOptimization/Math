@@ -15,8 +15,7 @@ using containers::BitSet, containers::BitSets, ::math::Vector,
 auto main() -> int {
   using namespace boost::ut;
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet BasicAssertions"_test = [] {
+  "BitSet BasicAssertions"_test = [] -> void {
     BitSet bs(1000);
     std::ptrdiff_t count = 0;
     for (std::ptrdiff_t _ : bs) ++count;
@@ -32,6 +31,7 @@ auto main() -> int {
     expect(fatal(bs.findFirstZero() == 1));
     bs.print();
     utils::print('\n');
+    expect(bs.isSubSet(bs));
     // expect(std::ranges::begin(bs), bs.begin());
     // expect(std::ranges::end(bs), bs.end());
     Vector<int> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
@@ -62,8 +62,7 @@ auto main() -> int {
     expect(!d);
     utils::println("we made it to the end!");
   };
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet Insert"_test = [] {
+  "BitSet Insert"_test = [] -> void {
     BitSet<std::array<std::uint64_t, 2>> bs;
     std::ptrdiff_t count = 0;
     for (std::ptrdiff_t _ : bs) ++count;
@@ -77,8 +76,7 @@ auto main() -> int {
     bs.insert(5);
     expect(bs.data_[0] == 354);
   };
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet DynSize"_test = [] {
+  "BitSet DynSize"_test = [] -> void {
     BitSet bs, bsd{BitSet<>::dense(11)};
     std::ptrdiff_t count = 0;
     for (std::ptrdiff_t _ : bs) ++count;
@@ -86,8 +84,11 @@ auto main() -> int {
     for (std::ptrdiff_t _ : bsd) ++count;
     expect(fatal(count == 11));
     expect(bs.data_.size() == 0);
+    expect(bs.isSubSet(bsd));
     bs[4] = true;
     bs[10] = true;
+    expect(bsd.isSuperSet(bs));
+    expect(!bsd.isSubSet(bs));
     expect(bs.data_.size() == 1);
     expect(bs.data_.front() == 1040);
     for (std::ptrdiff_t i = 0; i < 11; ++i)
@@ -106,8 +107,7 @@ auto main() -> int {
     expect(sv[0] == 4);
     expect(sv[1] == 10);
   };
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet FixedSize"_test = [] {
+  "BitSet FixedSize"_test = [] -> void {
     BitSet<std::array<std::uint64_t, 2>> bs;
     bs[4] = true;
     bs[10] = true;
@@ -120,8 +120,7 @@ auto main() -> int {
     expect(sv[0] == 4);
     expect(sv[1] == 10);
   };
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet FixedSizeSmall"_test = [] {
+  "BitSet FixedSizeSmall"_test = [] -> void {
     using SB = BitSet<std::array<std::uint16_t, 1>>;
     static_assert(sizeof(SB) == 2);
     SB bs;
@@ -142,8 +141,7 @@ auto main() -> int {
     expect(sv[3] == 10);
     expect(SB::fromMask(1200).data_[0] == 1200);
   };
-  // NOLINTNEXTLINE()
-  "BitSet IterTest"_test = [] {
+  "BitSet IterTest"_test = [] -> void {
     ::math::Vector<std::uint64_t, 1> data{};
     data.push_back(9223372036854775808U);
     data.push_back(1732766553700568065U);
@@ -157,8 +155,7 @@ auto main() -> int {
     utils::print('\n');
     expect(fatal(i == sz));
   };
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet EmptyIntersection"_test = [] {
+  "BitSet EmptyIntersection"_test = [] -> void {
     BitSet bs1, bs2;
     expect(bs1.emptyIntersection(bs2));
 
@@ -185,8 +182,7 @@ auto main() -> int {
     expect(!bs3.emptyIntersection(bs4));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet ExpressionTemplate"_test = [] {
+  "BitSet ExpressionTemplate"_test = [] -> void {
     // Test basic expression template assignment with PtrVector
     auto v{"[5 0 -3 7 0 -1 8 0 2]"_mat};
 
@@ -209,8 +205,7 @@ auto main() -> int {
     expect(bs.size() == 6); // 6 non-zero elements
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet ExpressionTemplate GreaterThan"_test = [] {
+  "BitSet ExpressionTemplate GreaterThan"_test = [] -> void {
     // Test with different comparison operators
     auto data{"[5 -2 3 -7 0 1 8 -1 2]"_mat};
     ::math::PtrVector<std::int64_t> vec{data};
@@ -234,8 +229,7 @@ auto main() -> int {
     expect(bs.size() == 5); // 5 positive elements
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet ExpressionTemplate Complex"_test = [] {
+  "BitSet ExpressionTemplate Complex"_test = [] -> void {
     // Test with more complex expressions
     auto data{"[10 5 -3 15 2 8 -1 20 0]"_mat};
     ::math::PtrVector<std::int64_t> vec{data};
@@ -266,12 +260,14 @@ auto main() -> int {
     expect(!bs2[7]); // 20 >= 0
     expect(!bs2[8]); // 0 >= 0
 
+    expect(!bs1.isSubSet(bs2));
+    expect(!bs1.isSuperSet(bs2));
+
     expect(bs1.size() == 5); // 5 elements >= 5
     expect(bs2.size() == 2); // 2 elements < 0
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet ExpressionTemplate DynamicSize"_test = [] {
+  "BitSet ExpressionTemplate DynamicSize"_test = [] -> void {
     // Test with dynamic size BitSet
     auto vec{"[1 0 3 0 5 6 0 8]"_mat};
 
@@ -292,8 +288,7 @@ auto main() -> int {
     expect(bs.size() == 5); // 5 non-zero elements
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet CompoundAssignment OR"_test = [] {
+  "BitSet CompoundAssignment OR"_test = [] -> void {
     // Test |= operator with expression templates
     auto vec1{"[1 0 1 0 1 0]"_mat};
     auto vec2{"[0 1 1 1 0 0]"_mat};
@@ -310,6 +305,7 @@ auto main() -> int {
     expect(!bs[5]);
     expect(bs.size() == 3);
 
+    auto bs2{bs};
     // OR with vec2 != 0: [0,1,1,1,0,0] -> bits 1,2,3 set
     // Result should be: bits 0,1,2,3,4 set
     bs |= (vec2 != 0);
@@ -320,10 +316,13 @@ auto main() -> int {
     expect(bs[4]);
     expect(!bs[5]);
     expect(bs.size() == 5);
+    expect(!bs.isSubSet(bs2));
+    expect(bs2.isSubSet(bs));
+    expect(bs.isSuperSet(bs2));
+    expect(!bs2.isSuperSet(bs));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet CompoundAssignment AND"_test = [] {
+  "BitSet CompoundAssignment AND"_test = [] -> void {
     // Test &= operator with expression templates
     auto vec1{"[1 1 1 1 1 0]"_mat};
     auto vec2{"[1 0 1 0 1 1]"_mat};
@@ -352,8 +351,7 @@ auto main() -> int {
     expect(bs.size() == 3);
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet CompoundAssignment XOR"_test = [] {
+  "BitSet CompoundAssignment XOR"_test = [] -> void {
     // Test ^= operator with expression templates
     auto vec1{"[1 1 0 1 0 1]"_mat};
     auto vec2{"[1 0 1 1 1 0]"_mat};
@@ -382,8 +380,7 @@ auto main() -> int {
     expect(bs.size() == 4);
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet CompoundAssignment Complex"_test = [] {
+  "BitSet CompoundAssignment Complex"_test = [] -> void {
     // Test compound assignment with more complex expressions
     auto data{"[5 -2 3 -7 0 1 8 -1]"_mat};
     ::math::PtrVector<std::int64_t> vec{data};
@@ -443,8 +440,7 @@ auto main() -> int {
     expect(bs.size() == 7);
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSet CompoundAssignment DynamicSize"_test = [] {
+  "BitSet CompoundAssignment DynamicSize"_test = [] -> void {
     // Test compound assignment with dynamic size BitSet
     auto vec1{"[1 0 1 0 1]"_mat};
     auto vec2{"[0 1 1 1 0]"_mat};
@@ -474,8 +470,7 @@ auto main() -> int {
     expect(bs.size() == 3);
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets BasicConstruction"_test = [] {
+  "BitSets BasicConstruction"_test = [] -> void {
     alloc::OwningArena<> alloc;
 
     // Test empty factory method with small collection
@@ -504,8 +499,7 @@ auto main() -> int {
     expect(bs2.size() == 0);
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets IndividualOperations"_test = [] {
+  "BitSets IndividualOperations"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 4, 64);
 
@@ -559,8 +553,7 @@ auto main() -> int {
     expect(eq(bs0.size(), 1));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets MemoryLayout"_test = [] {
+  "BitSets MemoryLayout"_test = [] -> void {
     alloc::OwningArena<> alloc;
 
     // Test edge case: 1 element per set
@@ -595,8 +588,7 @@ auto main() -> int {
     }
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Independence"_test = [] {
+  "BitSets Independence"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 3, 100);
 
@@ -650,8 +642,7 @@ auto main() -> int {
     expect(bs2.contains(25) && !bs2.contains(99));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets ExpressionTemplates"_test = [] {
+  "BitSets ExpressionTemplates"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 2, 50);
 
@@ -687,8 +678,7 @@ auto main() -> int {
     expect(bs0.size() == 2);
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Iterator Basic"_test = [] {
+  "BitSets Iterator Basic"_test = [] -> void {
     alloc::OwningArena<> alloc;
 
     // Test with non-empty collection
@@ -736,8 +726,7 @@ auto main() -> int {
     expect(empty_coll.begin() == empty_coll.end());
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Iterator RangeFor"_test = [] {
+  "BitSets Iterator RangeFor"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 5, 100);
 
@@ -770,8 +759,7 @@ auto main() -> int {
     }
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Iterator STL"_test = [] {
+  "BitSets Iterator STL"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 7, 64);
 
@@ -803,8 +791,7 @@ auto main() -> int {
     expect(advanced_bitset.contains(63));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Iterator Bidirectional"_test = [] {
+  "BitSets Iterator Bidirectional"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 6, 128);
 
@@ -856,8 +843,7 @@ auto main() -> int {
     expect(eq(actual_distance, expected_distance));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Iterator Sizes"_test = [] {
+  "BitSets Iterator Sizes"_test = [] -> void {
     alloc::OwningArena<> alloc;
 
     // Test empty collection
@@ -911,8 +897,7 @@ auto main() -> int {
     }
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSets Iterator Independence"_test = [] {
+  "BitSets Iterator Independence"_test = [] -> void {
     alloc::OwningArena<> alloc;
     BitSets bs_coll = BitSets::empty(&alloc, 4, 80);
 
@@ -972,8 +957,7 @@ auto main() -> int {
     expect(eq(stable_bs_again.size(), 2));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSetIterator Plus Operator"_test = [] {
+  "BitSetIterator Plus Operator"_test = [] -> void {
     // Test operator+(std::ptrdiff_t) on BitSetIterator
     BitSet bs(200);
 
@@ -1025,8 +1009,7 @@ auto main() -> int {
     expect(eq(*neg_it, 5)); // Should be same as original
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSetIterator Minus Operator"_test = [] {
+  "BitSetIterator Minus Operator"_test = [] -> void {
     // Test operator-(const BitSetIterator &other)
     BitSet bs(100);
 
@@ -1062,8 +1045,7 @@ auto main() -> int {
     expect(eq(it_2nd - it_2nd, 0));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSetIterator Large Jump Performance"_test = [] {
+  "BitSetIterator Large Jump Performance"_test = [] -> void {
     // Test that operator+ efficiently handles large jumps using popcount
     BitSet bs(10000);
 
@@ -1098,8 +1080,7 @@ auto main() -> int {
     expect(eq(*from_mid_jump, 5000));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSetIterator Dense BitSet"_test = [] {
+  "BitSetIterator Dense BitSet"_test = [] -> void {
     // Test with a dense bitset to verify word-boundary handling
     BitSet bs = BitSet<>::dense(200);
     expect(eq(bs.size(), 200));
@@ -1136,8 +1117,7 @@ auto main() -> int {
     expect(eq(it_128 - it_0, 128));
   };
 
-  // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-  "BitSetIterator Sparse BitSet"_test = [] {
+  "BitSetIterator Sparse BitSet"_test = [] -> void {
     // Test with very sparse bitset
     BitSet bs(1000);
 
