@@ -1620,48 +1620,51 @@ struct ScalarizeViaCast<MutArray<T, S, true>> {
 };
 } // namespace math
 
-template <class T, math::Dimension S, bool Compress>
-inline constexpr bool
-  std::ranges::enable_borrowed_range<math::Array<T, S, Compress>> = true;
-template <class T, math::Dimension S, bool Compress>
-inline constexpr bool
-  std::ranges::enable_borrowed_range<math::MutArray<T, S, Compress>> = true;
-static_assert(
-  std::same_as<utils::eltype_t<math::Array<unsigned, math::Length<>>>,
-               unsigned>);
+export {
+  template <class T, math::Dimension S, bool Compress>
+  inline constexpr bool
+    std::ranges::enable_borrowed_range<math::Array<T, S, Compress>> = true;
+  template <class T, math::Dimension S, bool Compress>
+  inline constexpr bool
+    std::ranges::enable_borrowed_range<math::MutArray<T, S, Compress>> = true;
+  static_assert(
+    std::same_as<utils::eltype_t<math::Array<unsigned, math::Length<>>>,
+                 unsigned>);
 
-template <class T, std::ptrdiff_t L>
-requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_size<::math::Array<T, ::math::Length<L>>>
-  : std::integral_constant<std::ptrdiff_t, L> {};
+  template <class T, std::ptrdiff_t L>
+  requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+  struct std::tuple_size<::math::Array<T, ::math::Length<L>>>
+    : std::integral_constant<std::ptrdiff_t, L> {};
 
-template <std::size_t I, class T, std::ptrdiff_t L>
-requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_element<I, ::math::Array<T, ::math::Length<L>>> {
-  using type = T;
-};
+  template <std::size_t I, class T, std::ptrdiff_t L>
+  requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+  struct std::tuple_element<I, ::math::Array<T, ::math::Length<L>>> {
+    using type = T;
+  };
 
-template <class T, std::ptrdiff_t L,
-          std::ptrdiff_t X>
-requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_size<::math::Array<T, ::math::StridedRange<L, X>>>
-  : std::integral_constant<std::ptrdiff_t, L> {};
+  template <class T, std::ptrdiff_t L,
+            std::ptrdiff_t X>
+  requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+  struct std::tuple_size<::math::Array<T, ::math::StridedRange<L, X>>>
+    : std::integral_constant<std::ptrdiff_t, L> {};
 
-template <std::size_t I, class T, std::ptrdiff_t L,
-          std::ptrdiff_t X>
-requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_element<I, ::math::Array<T, ::math::StridedRange<L, X>>> {
-  using type = T;
-};
-template <class T, std::ptrdiff_t L,
-          std::ptrdiff_t X>
-requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_size<::math::MutArray<T, ::math::StridedRange<L, X>>>
-  : std::integral_constant<std::ptrdiff_t, L> {};
+  template <std::size_t I, class T, std::ptrdiff_t L,
+            std::ptrdiff_t X>
+  requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+  struct std::tuple_element<I, ::math::Array<T, ::math::StridedRange<L, X>>> {
+    using type = T;
+  };
+  template <class T, std::ptrdiff_t L,
+            std::ptrdiff_t X>
+  requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+  struct std::tuple_size<::math::MutArray<T, ::math::StridedRange<L, X>>>
+    : std::integral_constant<std::ptrdiff_t, L> {};
 
-template <std::size_t I, class T, std::ptrdiff_t L,
-          std::ptrdiff_t X>
-requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
-struct std::tuple_element<I, ::math::MutArray<T, ::math::StridedRange<L, X>>> {
-  using type = T;
-};
+  template <std::size_t I, class T, std::ptrdiff_t L,
+            std::ptrdiff_t X>
+  requires(L != -1) // NOLINTNEXTLINE(cert-dcl58-cpp)
+  struct std::tuple_element<I,
+                            ::math::MutArray<T, ::math::StridedRange<L, X>>> {
+    using type = T;
+  };
+}

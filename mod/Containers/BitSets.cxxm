@@ -26,6 +26,14 @@ template <std::unsigned_integral U> class BitSetIterator {
   [[no_unique_address]] U istate_;
   // value == cstate0_ + cstate1_
   std::ptrdiff_t cstate_{0}; // cumulative offset w/in chunk
+  TRIVIAL friend constexpr auto operator==(std::default_sentinel_t,
+                                           BitSetIterator x) -> bool {
+    return (x.istate_ == 0) && (x.it_ == x.end_);
+  }
+  TRIVIAL friend constexpr auto operator!=(std::default_sentinel_t,
+                                           BitSetIterator x) -> bool {
+    return (x.istate_ != 0) || (x.it_ != x.end_);
+  }
 
 public:
   constexpr explicit BitSetIterator(const U *it, const U *end)
@@ -37,7 +45,6 @@ public:
     --cstate_;
   }
   using value_type = std::ptrdiff_t;
-  using difference_type = std::ptrdiff_t;
   TRIVIAL constexpr auto operator*() const -> std::ptrdiff_t { return cstate_; }
   TRIVIAL constexpr auto operator++() -> BitSetIterator & {
     static constexpr std::ptrdiff_t num_bits = 8 * sizeof(U);
@@ -67,15 +74,8 @@ public:
   TRIVIAL constexpr auto operator==(BitSetIterator j) const -> bool {
     return (it_ == j.it_) && (istate_ == j.istate_);
   }
-  TRIVIAL friend constexpr auto operator==(std::default_sentinel_t,
-                                           const BitSetIterator &bt) -> bool {
-    return bt.it_ == bt.end_ && (bt.istate_ == 0);
-  }
-  TRIVIAL friend constexpr auto operator!=(std::default_sentinel_t,
-                                           const BitSetIterator &bt) -> bool {
-    return bt.it_ != bt.end_ || (bt.istate_ != 0);
-  }
-  constexpr auto operator-(const BitSetIterator &other) -> std::ptrdiff_t {
+  constexpr auto operator-(const BitSetIterator &other) const
+    -> std::ptrdiff_t {
     std::ptrdiff_t pct = std::popcount(istate_),
                    pco = std::popcount(other.istate_), diff = pco - pct;
     if (it_ > other.it_)
@@ -99,6 +99,7 @@ public:
     return result;
   }
 };
+static_assert(std::weakly_incrementable<BitSetIterator<std::uint64_t>>);
 
 template <typename T>
 concept BitCollection = requires(T t) {
@@ -449,8 +450,32 @@ using FixedSizeBitSet = BitSet<std::array<std::uint64_t, N>>;
 using BitSet64 = FixedSizeBitSet<1>;
 static_assert(std::is_trivially_destructible_v<BitSet64>);
 static_assert(std::is_trivially_destructible_v<FixedSizeBitSet<2>>);
-// static_assert(std::input_or_output_iterator<
-//               decltype(std::declval<FixedSizeBitSet<2>>().begin())>);
+
+} // namespace containers
+// NOLINTNEXTLINE(cert-dcl58-cpp)
+export {
+  template <containers::BitCollection T>
+  inline constexpr bool
+    std::ranges::enable_borrowed_range<containers::BitSet<T>> =
+      enable_borrowed_range<T>;
+
+} // namespace std::ranges
+
+export namespace containers {
+static_assert(
+  std::same_as<BitSetIterator<std::uint64_t>,
+               decltype(std::ranges::begin(
+                 std::declval<BitSet<math::MutPtrVector<std::uint64_t>>>()))>);
+static_assert(
+  std::same_as<std::default_sentinel_t,
+               decltype(std::ranges::end(
+                 std::declval<BitSet<math::MutPtrVector<std::uint64_t>>>()))>);
+static_assert(
+  std::same_as<BitSetIterator<std::uint64_t>,
+               decltype(std::ranges::begin(std::declval<const BitSet<> &>()))>);
+
+static_assert(std::input_or_output_iterator<
+              decltype(std::declval<FixedSizeBitSet<2>>().begin())>);
 static_assert(std::ranges::range<FixedSizeBitSet<2>>);
 static_assert(std::ranges::range<BitSet<>>);
 static_assert(std::ranges::range<BitSet<math::MutPtrVector<std::uint64_t>>>);
