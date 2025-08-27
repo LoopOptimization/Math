@@ -1,3 +1,5 @@
+#include <algorithm>
+
 import boost.ut;
 
 import Arena;
@@ -37,6 +39,7 @@ auto main() -> int {
     Vector<int> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
     std::ptrdiff_t j = 0;
     for (std::ptrdiff_t J : bs) {
+      expect(eq(bs.getIterationIdx(J), j));
       expect(eq(J, bsc[j++]));
       expect(bs[J]);
       utils::println("We get: ", J);
@@ -149,11 +152,11 @@ auto main() -> int {
     BitSet<> bs{data};
     std::ptrdiff_t sz = bs.size(), i = 0;
     for (std::ptrdiff_t a : bs) {
+      expect(eq(bs.getIterationIdx(a), i++));
       utils::print(a, " ");
-      ++i;
     }
     utils::print('\n');
-    expect(fatal(i == sz));
+    expect(fatal(eq(i, sz)));
   };
   "BitSet EmptyIntersection"_test = [] -> void {
     BitSet bs1, bs2;
@@ -769,7 +772,7 @@ auto main() -> int {
 
     // Test with std::for_each (or ranges equivalent)
     std::ptrdiff_t counter = 0;
-    std::for_each(bs_coll.begin(), bs_coll.end(), [&counter](auto bitset) {
+    std::ranges::for_each(bs_coll, [&counter](auto bitset) {
       bitset[counter * 5] = true;
       expect(bitset.contains(counter * 5));
       ++counter;
@@ -1041,7 +1044,9 @@ auto main() -> int {
     expect(eq(it_2nd - it_4th, -2));
 
     // Test same iterator
+    // NOLINTNEXTLINE(misc-redundant-expression)
     expect(eq(it_begin - it_begin, 0));
+    // NOLINTNEXTLINE(misc-redundant-expression)
     expect(eq(it_2nd - it_2nd, 0));
   };
 

@@ -108,10 +108,11 @@ concept TriviallyCopyable =
 } // namespace utils
 
 template <typename T> struct InParameter {
-  using type = const T &;
-};
-template <utils::TriviallyCopyable T> struct InParameter<T> {
-  using type = T;
+  using V = std::remove_cvref_t<T>;
+  static constexpr bool is_trival =
+    std::is_trivially_copyable_v<V> && std::is_trivially_destructible_v<V>;
+  using type = std::conditional_t<is_trival && sizeof(V) <= 16,
+                                  std::remove_cvref_t<V>, const V &>;
 };
 
 export namespace utils {
@@ -122,6 +123,10 @@ export namespace utils {
 /// TRIVIAL inline auto foo(const T& x){
 ///  return foo_impl<T>(x); // inparam_t blocks deduction
 /// }
+/// This passes by value for trivially copyable objects <= 16 bytes in size.
+/// Otherwise, it passes by const reference.
+/// The 16 byte threshold is the threshold ABIs use for passing using the stack
+/// vs by registers.
 template <typename T> using inparam_t = typename InParameter<T>::type;
 } // namespace utils
 
