@@ -124,6 +124,10 @@ int main() {
     expect(C == D);
     for (auto c : C.eachCol() | std::views::reverse) c -= (i--);
     expect(C == oldD);
+    MutPtrVector<std::int64_t> v0 = C[0, _], v1 = C[1, _];
+    containers::Pair(v0, v1) << containers::Pair(v1, v0);
+    expect(v0 == oldD[1, _]);
+    expect(v1 == oldD[0, _]);
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
