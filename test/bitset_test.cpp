@@ -1152,5 +1152,101 @@ auto main() -> int {
         expect(eq((it + i) - (it + j), i - j));
   };
 
+  "BitSet ChunkedIterator"_test = [] -> void {
+    // Test chunked iterator with example pattern: 0b100110111010
+    // Expected chunks: _(1,2), _(4,6), _(7,10), _(11,12)
+    BitSet bs(20);
+    bs[1] = true;
+    bs[4] = true;
+    bs[5] = true;
+    bs[7] = true;
+    bs[8] = true;
+    bs[9] = true;
+    bs[11] = true;
+
+    std::vector<std::pair<std::ptrdiff_t, std::ptrdiff_t>> expected_chunks = {
+      {1, 2}, {4, 6}, {7, 10}, {11, 12}};
+
+    std::ptrdiff_t chunk_idx = 0;
+    for (auto chunk : bs.chunks()) {
+      expect(chunk_idx < std::ssize(expected_chunks));
+      expect(eq(*chunk.begin(), expected_chunks[chunk_idx].first));
+      expect(eq(chunk.end(), expected_chunks[chunk_idx].second));
+      ++chunk_idx;
+    }
+    expect(eq(chunk_idx, expected_chunks.size()));
+  };
+
+  "BitSet ChunkedIterator Dense"_test = [] -> void {
+    // Test with dense bitset - should produce one large chunk
+    BitSet bs = BitSet<>::dense(100);
+
+    std::ptrdiff_t chunk_count = 0;
+    auto c = bs.chunks();
+    for (auto I = c.begin(); I != std::default_sentinel; ++I) {
+      // for (auto chunk : bs.chunks()) {
+      auto chunk = *I;
+      expect(eq(*chunk.begin(), chunk_count ? 64 : 0));
+      expect(eq(chunk.end(), chunk_count ? 100 : 64));
+      ++chunk_count;
+    }
+    expect(eq(chunk_count, 2));
+  };
+
+  "BitSet ChunkedIterator Empty"_test = [] -> void {
+    // Test with empty bitset
+    BitSet bs(100);
+
+    std::ptrdiff_t chunk_count = 0;
+    for (auto chunk : bs.chunks()) {
+      ++chunk_count;
+      utils::println("Unexpected chunk: ", *chunk.begin(), "-", chunk.end());
+    }
+    expect(eq(chunk_count, 0));
+  };
+
+  "BitSet ChunkedIterator SingleBits"_test = [] -> void {
+    // Test with isolated single bits
+    BitSet bs(100);
+    bs[10] = true;
+    bs[30] = true;
+    bs[50] = true;
+    bs[90] = true;
+
+    std::vector<std::pair<std::ptrdiff_t, std::ptrdiff_t>> expected_chunks = {
+      {10, 11}, {30, 31}, {50, 51}, {90, 91}};
+
+    std::ptrdiff_t chunk_idx = 0;
+    for (auto chunk : bs.chunks()) {
+      expect(chunk_idx < std::ssize(expected_chunks));
+      expect(eq(*chunk.begin(), expected_chunks[chunk_idx].first));
+      expect(eq(chunk.end(), expected_chunks[chunk_idx].second));
+      ++chunk_idx;
+    }
+    expect(eq(chunk_idx, expected_chunks.size()));
+  };
+
+  "BitSet ChunkedIterator CrossingWords"_test = [] -> void {
+    // Test chunks that cross 64-bit word boundaries
+    BitSet bs(200);
+
+    // Set bits around 64-bit boundaries
+    for (std::ptrdiff_t i = 62; i <= 66; ++i) bs[i] = true; // 62,63,64,65,66
+    for (std::ptrdiff_t i = 126; i <= 130; ++i)
+      bs[i] = true; // 126,127,128,129,130
+
+    std::vector<std::pair<std::ptrdiff_t, std::ptrdiff_t>> expected_chunks = {
+      {62, 64}, {64, 67}, {126, 128}, {128, 131}};
+
+    std::ptrdiff_t chunk_idx = 0;
+    for (auto chunk : bs.chunks()) {
+      expect(chunk_idx < std::ssize(expected_chunks));
+      expect(eq(*chunk.begin(), expected_chunks[chunk_idx].first));
+      expect(eq(chunk.end(), expected_chunks[chunk_idx].second));
+      ++chunk_idx;
+    }
+    expect(eq(chunk_idx, expected_chunks.size()));
+  };
+
   return 0;
 }

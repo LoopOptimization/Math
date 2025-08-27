@@ -20,6 +20,93 @@ using utils::invariant;
 template <typename T>
 concept CanResize = requires(T t) { t.resize(0); };
 
+template <std::unsigned_integral U> class BitSetChunkedIterator {
+  [[no_unique_address]] const U *it_;
+  [[no_unique_address]] const U *end_;
+  [[no_unique_address]] U istate_;
+  std::ptrdiff_t chunk_start_{0};
+  std::ptrdiff_t chunk_len_{0};
+  static constexpr std::ptrdiff_t num_bits = 8 * sizeof(U);
+
+public:
+  constexpr explicit BitSetChunkedIterator(const U *it, const U *end)
+    : it_{it}, end_{end} {
+    if (it == end) {
+      istate_ = 0;
+      return;
+    }
+    istate_ = *it;
+    advanceToChunk();
+  }
+
+  using value_type = math::Range<std::ptrdiff_t, std::ptrdiff_t>;
+
+  TRIVIAL constexpr auto operator*() const -> value_type {
+    return math::Range<std::ptrdiff_t, std::ptrdiff_t>{
+      .b_ = chunk_start_, .e_ = chunk_start_ + chunk_len_};
+  }
+
+  constexpr auto operator++() -> BitSetChunkedIterator & {
+
+    // (a) Skip current chunk
+    istate_ = chunk_len_ < num_bits ? istate_ >> chunk_len_ : 0;
+    // istate_ >>= chunk_len_;
+    chunk_start_ += chunk_len_;
+
+    // (b) Skip zeros and advance chunks if needed
+    if (!istate_) {
+      if (!(chunk_start_ & (num_bits - 1))) chunk_start_ -= num_bits;
+      do {
+        if (++it_ == end_) return *this;
+        chunk_start_ = (chunk_start_ & (-num_bits)) + num_bits;
+      } while ((istate_ = *it_, !istate_));
+    }
+
+    // (c) Skip leading zeros in current chunk
+    std::ptrdiff_t zeros = std::countr_zero(istate_);
+    istate_ >>= zeros;
+    chunk_start_ += zeros;
+
+    // Set up for next chunk
+    chunk_len_ = std::countr_one(istate_);
+
+    return *this;
+  }
+
+  TRIVIAL constexpr auto operator++(int) -> BitSetChunkedIterator {
+    BitSetChunkedIterator temp = *this;
+    this->operator++();
+    return temp;
+  }
+
+  TRIVIAL constexpr auto operator==(std::default_sentinel_t) const -> bool {
+    return it_ == end_ && (istate_ == 0);
+  }
+
+  TRIVIAL constexpr auto operator!=(std::default_sentinel_t) const -> bool {
+    return it_ != end_ || (istate_ != 0);
+  }
+
+private:
+  constexpr void advanceToChunk() {
+
+    // Skip leading zeros across chunks
+    while (!istate_) {
+      if (++it_ == end_) return;
+      chunk_start_ = (chunk_start_ & (-num_bits)) + num_bits;
+      istate_ = *it_;
+    }
+
+    // Skip leading zeros in current chunk
+    std::ptrdiff_t zeros = std::countr_zero(istate_);
+    istate_ >>= zeros;
+    chunk_start_ += zeros;
+
+    // Set up canonical state with trailing ones
+    chunk_len_ = std::countr_one(istate_);
+  }
+};
+
 template <std::unsigned_integral U> class BitSetIterator {
   [[no_unique_address]] const U *it_;
   [[no_unique_address]] const U *end_;
@@ -176,6 +263,28 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL [[nodiscard]] static constexpr auto end() -> std::default_sentinel_t {
     return std::default_sentinel;
   };
+
+  struct ChunkedRange {
+    const U *begin_;
+    const U *end_;
+
+    TRIVIAL [[nodiscard]] constexpr auto begin() const
+      -> BitSetChunkedIterator<U> {
+      return BitSetChunkedIterator<U>{begin_, end_};
+    }
+    TRIVIAL [[nodiscard]] static constexpr auto end()
+      -> std::default_sentinel_t {
+      return std::default_sentinel;
+    }
+  };
+
+  /// For now, these are split across 64-bit boundaries.
+  /// TODO: don't split.
+  TRIVIAL [[nodiscard]] constexpr auto chunks() const -> ChunkedRange {
+    const U *b(&*data_.begin());
+    const U *e(&*data_.end());
+    return ChunkedRange{b, e};
+  }
   TRIVIAL [[nodiscard]] constexpr auto front() const -> std::ptrdiff_t {
     for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
       if (data_[i]) return (usize * i) + std::countr_zero(data_[i]);
