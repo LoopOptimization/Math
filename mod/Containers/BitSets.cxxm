@@ -20,6 +20,19 @@ using utils::invariant;
 template <typename T>
 concept CanResize = requires(T t) { t.resize(0); };
 
+struct Chunk {
+  std::ptrdiff_t begin_;
+  std::ptrdiff_t len_;
+  TRIVIAL [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return len_;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto begin() const -> std::ptrdiff_t {
+    return begin_;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto end() const -> std::ptrdiff_t {
+    return begin_ + len_;
+  }
+};
 template <std::unsigned_integral U> class BitSetChunkedIterator {
   [[no_unique_address]] const U *it_;
   [[no_unique_address]] const U *end_;
@@ -39,11 +52,10 @@ public:
     advanceToChunk();
   }
 
-  using value_type = math::Range<std::ptrdiff_t, std::ptrdiff_t>;
+  using value_type = Chunk;
 
   TRIVIAL constexpr auto operator*() const -> value_type {
-    return math::Range<std::ptrdiff_t, std::ptrdiff_t>{
-      .b_ = chunk_start_, .e_ = chunk_start_ + chunk_len_};
+    return Chunk{.begin_ = chunk_start_, .len_ = chunk_len_};
   }
 
   constexpr auto operator++() -> BitSetChunkedIterator & {

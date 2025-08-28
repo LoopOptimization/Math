@@ -83,7 +83,7 @@ auto main() -> int {
     BitSet bs, bsd{BitSet<>::dense(11)};
     std::ptrdiff_t count = 0;
     for (auto chunk : bsd.chunks()) {
-      expect(eq(*chunk.begin(), 0));
+      expect(eq(chunk.begin(), 0));
       expect(eq(chunk.end(), 11));
       ++count;
     }
@@ -1177,7 +1177,7 @@ auto main() -> int {
     std::ptrdiff_t chunk_idx = 0;
     for (auto chunk : bs.chunks()) {
       expect(chunk_idx < std::ssize(expected_chunks));
-      expect(eq(*chunk.begin(), expected_chunks[chunk_idx].first));
+      expect(eq(chunk.begin(), expected_chunks[chunk_idx].first));
       expect(eq(chunk.end(), expected_chunks[chunk_idx].second));
       ++chunk_idx;
     }
@@ -1190,7 +1190,7 @@ auto main() -> int {
 
     std::ptrdiff_t chunk_count = 0;
     for (auto chunk : bs.chunks()) {
-      expect(eq(*chunk.begin(), chunk_count ? 64 : 0));
+      expect(eq(chunk.begin(), chunk_count ? 64 : 0));
       expect(eq(chunk.end(), chunk_count ? 100 : 64));
       ++chunk_count;
     }
@@ -1204,14 +1204,14 @@ auto main() -> int {
     std::ptrdiff_t chunk_count = 0;
     for (auto chunk : bs.chunks()) {
       ++chunk_count;
-      utils::println("Unexpected chunk: ", *chunk.begin(), "-", chunk.end());
+      utils::println("Unexpected chunk: ", chunk.begin(), "-", chunk.end());
     }
     expect(eq(chunk_count, 0));
     bs[4] = true;
     bs[5] = true;
     std::ptrdiff_t count = 0;
     for (auto chunk : bs.chunks()) {
-      expect(eq(*chunk.begin(), 4));
+      expect(eq(chunk.begin(), 4));
       expect(eq(chunk.end(), 6));
       ++count;
     }
@@ -1232,7 +1232,7 @@ auto main() -> int {
     std::ptrdiff_t chunk_idx = 0;
     for (auto chunk : bs.chunks()) {
       expect(chunk_idx < std::ssize(expected_chunks));
-      expect(eq(*chunk.begin(), expected_chunks[chunk_idx].first));
+      expect(eq(chunk.begin(), expected_chunks[chunk_idx].first));
       expect(eq(chunk.end(), expected_chunks[chunk_idx].second));
       ++chunk_idx;
     }
@@ -1254,7 +1254,7 @@ auto main() -> int {
     std::ptrdiff_t chunk_idx = 0;
     for (auto chunk : bs.chunks()) {
       expect(chunk_idx < std::ssize(expected_chunks));
-      expect(eq(*chunk.begin(), expected_chunks[chunk_idx].first));
+      expect(eq(chunk.begin(), expected_chunks[chunk_idx].first));
       expect(eq(chunk.end(), expected_chunks[chunk_idx].second));
       ++chunk_idx;
     }
