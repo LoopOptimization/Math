@@ -82,6 +82,13 @@ auto main() -> int {
   "BitSet DynSize"_test = [] -> void {
     BitSet bs, bsd{BitSet<>::dense(11)};
     std::ptrdiff_t count = 0;
+    for (auto chunk : bsd.chunks()) {
+      expect(eq(*chunk.begin(), 0));
+      expect(eq(chunk.end(), 11));
+      ++count;
+    }
+    expect(eq(count, 1));
+    count = 0;
     for (std::ptrdiff_t _ : bs) ++count;
     expect(fatal(count == 0));
     for (std::ptrdiff_t _ : bsd) ++count;
@@ -1182,10 +1189,7 @@ auto main() -> int {
     BitSet bs = BitSet<>::dense(100);
 
     std::ptrdiff_t chunk_count = 0;
-    auto c = bs.chunks();
-    for (auto I = c.begin(); I != std::default_sentinel; ++I) {
-      // for (auto chunk : bs.chunks()) {
-      auto chunk = *I;
+    for (auto chunk : bs.chunks()) {
       expect(eq(*chunk.begin(), chunk_count ? 64 : 0));
       expect(eq(chunk.end(), chunk_count ? 100 : 64));
       ++chunk_count;
@@ -1203,6 +1207,15 @@ auto main() -> int {
       utils::println("Unexpected chunk: ", *chunk.begin(), "-", chunk.end());
     }
     expect(eq(chunk_count, 0));
+    bs[4] = true;
+    bs[5] = true;
+    std::ptrdiff_t count = 0;
+    for (auto chunk : bs.chunks()) {
+      expect(eq(*chunk.begin(), 4));
+      expect(eq(chunk.end(), 6));
+      ++count;
+    }
+    expect(eq(count, 1));
   };
 
   "BitSet ChunkedIterator SingleBits"_test = [] -> void {
