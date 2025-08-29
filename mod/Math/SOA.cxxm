@@ -419,5 +419,5 @@ struct std::tuple_size<math::SOAReference<T, II...>>
 
 template <std::size_t I, math::ConstructibleFromMembers T, std::size_t... II>
 struct std::tuple_element<I, math::SOAReference<T, II...>> {
-  using type = typename std::tuple_element<I, T>::type;
+  using type = std::tuple_element_t<I, T>;
 };

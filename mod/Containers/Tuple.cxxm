@@ -550,6 +550,5 @@ struct std::tuple_element<0, containers::Tuple<T, Ts...>> {
 };
 template <std::size_t I, typename T, typename... Ts>
 struct std::tuple_element<I, containers::Tuple<T, Ts...>> {
-  using type =
-    typename std::tuple_element<I - 1, containers::Tuple<Ts...>>::type;
+  using type = std::tuple_element_t<I - 1, containers::Tuple<Ts...>>;
 };
