@@ -426,6 +426,15 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
       data_[i] &= (~bs.data_[i]);
     return *this;
   }
+  template <typename V>
+  TRIVIAL constexpr auto countSetDiff(const BitSet<V> &bs) -> std::ptrdiff_t {
+    std::ptrdiff_t c = 0, I = std::ssize(data_), J = std::ssize(bs.data_),
+                   L = std::min(I, J);
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c += std::popcount(data_[i] & ~bs.data_[i]);
+    for (std::ptrdiff_t i = L; i < I; ++i) c += std::popcount(data_[i]);
+    return c;
+  }
   /// a - b is the same as a & ~b
   template <typename V>
   TRIVIAL constexpr auto operator-(const BitSet<V> &bs) const -> BitSet {
