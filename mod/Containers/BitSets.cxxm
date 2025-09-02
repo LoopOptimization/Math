@@ -222,40 +222,44 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL constexpr explicit BitSet(T &&_data) : data_{std::move(_data)} {}
   TRIVIAL constexpr explicit BitSet(const T &_data) : data_{_data} {}
   TRIVIAL static constexpr auto numElementsNeeded(std::ptrdiff_t N)
-    -> math::Length<> {
-    return math::length(((N + usize - 1) >> ushift));
+    -> std::ptrdiff_t {
+    return ((N + (usize - 1)) >> ushift);
   }
   TRIVIAL constexpr void zero() {
     std::memset(&*data_.begin(), 0, usize * std::ssize(data_));
   }
   TRIVIAL constexpr explicit BitSet(std::ptrdiff_t N)
     requires(!std::is_trivially_destructible_v<T>)
-    : data_{numElementsNeeded(N), 0} {}
+    : data_{math::length(numElementsNeeded(N)), 0} {}
   TRIVIAL static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
   TRIVIAL constexpr void resizeData(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) data_.resize(N);
     else invariant(N <= std::ssize(data_));
   }
   TRIVIAL constexpr void resize(std::ptrdiff_t N) {
-    if constexpr (CanResize<T>) data_.resize(numElementsNeeded(N));
+    if constexpr (CanResize<T>)
+      data_.resize(math::length(numElementsNeeded(N)));
     else invariant(N <= std::ssize(data_) * usize);
   }
   TRIVIAL constexpr void maybeResize(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) {
-      math::Length<> M = numElementsNeeded(N);
+      math::Length<> M = math::length(numElementsNeeded(N));
       if (M > std::ssize(data_)) data_.resize(std::ptrdiff_t(M));
     } else invariant(N <= std::ssize(data_) * std::ptrdiff_t(usize));
   }
+  /// Behavior is undefined if N <= 0
+  TRIVIAL constexpr void makeDense(std::ptrdiff_t N) {
+    invariant(N > 0);
+    U maxval = std::numeric_limits<U>::max(), *ptr = &*data_.begin();
+    for (; N > usize; N -= usize, ++ptr) *ptr = maxval;
+    *ptr = (U(1UL) << N) - U(1UL);
+  }
   TRIVIAL static constexpr auto dense(std::ptrdiff_t N) -> BitSet {
     BitSet b{};
-    math::Length M = numElementsNeeded(N);
+    math::Length M = math::length(numElementsNeeded(N));
     if (!M) return b;
-    U maxval = std::numeric_limits<U>::max();
     if constexpr (CanResize<T>) b.data_.resizeForOverwrite(M);
-    --M;
-    for (std::ptrdiff_t i = 0z; i < M; ++i) b.data_[i] = maxval;
-    if (std::ptrdiff_t rem = N & (usize - 1))
-      b.data_[std::ptrdiff_t(M)] = (1z << rem) - 1z;
+    b.makeDense(N);
     return b;
   }
   TRIVIAL [[nodiscard]] constexpr auto maxValue() const -> std::ptrdiff_t {
@@ -263,13 +267,6 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
       if (U x = data_[--N]) return (usize * N + 63z) - std::countl_zero(x);
     return 0;
   }
-  TRIVIAL [[nodiscard]] constexpr auto count() const -> std::ptrdiff_t {
-    std::ptrdiff_t c = 0;
-    for (std::uint64_t x : data_) c += std::popcount(x);
-    return c;
-  }
-  // BitSet::Iterator(std::vector<std::U> &seta)
-  //     : set(seta), didx(0), offset(0), state(seta[0]), count(0) {};
   TRIVIAL [[nodiscard]] constexpr auto begin() const -> BitSetIterator<U> {
     const U *b(&*data_.begin());
     const U *e(&*data_.end());
