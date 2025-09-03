@@ -323,8 +323,8 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     return std::countr_one(intmask());
   }
   TRIVIAL [[nodiscard]] constexpr auto offEnd() const -> std::ptrdiff_t {
-    std::uint32_t m = (~intmask()) & ((1U << W) - 1U);
-    return 32 - std::countl_zero(m);
+    std::uint32_t bitmask = (~intmask()) & ((1U << W) - 1U);
+    return 32 - std::countl_zero(bitmask);
   }
   TRIVIAL constexpr operator __m128i() requires(sizeof(I) * W == 16) {
     return std::bit_cast<__m128i>(m);
