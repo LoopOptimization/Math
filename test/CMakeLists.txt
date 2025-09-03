@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 # ---- Options ----
 
 option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
-option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
@@ -109,13 +108,8 @@ foreach(test_source ${test_sources})
     target_compile_definitions(${test_name} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
 
-  if(NOT TEST_INSTALLED_VERSION)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES
-                                                "GNU")
-      target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra
-                                                 -Wshadow -Werror)
-    endif()
-  endif()
+  target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra
+                                             -Wshadow -Werror)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(

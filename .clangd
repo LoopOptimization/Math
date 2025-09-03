@@ -22,3 +22,5 @@ Hover:
 InlayHints:
   BlockEnd: true
   DefaultArguments: true
+Documentation:
+  CommentFormat: Doxygen

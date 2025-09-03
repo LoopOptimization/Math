@@ -78,7 +78,7 @@ protected:
   // meta data is always in front, so we don't have to handle
   // the rare accidental case of huge slabs separately.
   static constexpr std::size_t MetaSize = align(2 * sizeof(void *));
-  static constexpr std::size_t SlabSpace = SlabSize - 2 * MetaSize;
+  static constexpr std::size_t SlabSpace = SlabSize - (2 * MetaSize);
   static_assert(std::has_single_bit(Alignment));
   static_assert(__STDCPP_DEFAULT_NEW_ALIGNMENT__ >= Alignment);
 

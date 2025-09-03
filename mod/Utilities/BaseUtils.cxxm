@@ -118,16 +118,16 @@ template <typename T> struct InParameter {
 export namespace utils {
 
 /// This can be used like
-/// auto foo_impl(inparam_t<T> x, ...);
+/// auto foo_impl(value_t<T> x, ...);
 /// template <typename T>
 /// TRIVIAL inline auto foo(const T& x){
-///  return foo_impl<T>(x); // inparam_t blocks deduction
+///  return foo_impl<T>(x); // value_t blocks deduction
 /// }
 /// This passes by value for trivially copyable objects <= 16 bytes in size.
 /// Otherwise, it passes by const reference.
 /// The 16 byte threshold is the threshold ABIs use for passing using the stack
 /// vs by registers.
-template <typename T> using inparam_t = typename InParameter<T>::type;
+template <typename T> using value_t = typename InParameter<T>::type;
 } // namespace utils
 
 export namespace bit {

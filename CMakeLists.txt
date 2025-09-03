@@ -3,7 +3,6 @@ cmake_policy(SET CMP0167 NEW) # new find boost
 # Dependencies; Boost:
 find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
 
-
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
@@ -98,6 +97,9 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -fno-semantic-interposition -fdiagnostics-color=always
             -Wno-comma-subscript -Wno-psabi)
 endif()
+target_compile_options(
+  ${PROJECT_NAME} PRIVATE -Wshadow -Werror # -Wpedantic -Wextra -Wall
+                          -Wno-reference-tu-local-entity-in-other-tu)
 target_compile_features(
   ${PROJECT_NAME}
   PRIVATE cxx_std_23
@@ -169,7 +171,6 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_EXCEPTION_DISABLE)
 find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::headers)
-
 
 # ---- Create an installable target ----
 # this allows users to install and find the library via `find_package()`.

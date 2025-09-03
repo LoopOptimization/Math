@@ -63,7 +63,7 @@ template <std::signed_integral I> constexpr auto nextpow2(I x) -> I {
 struct NextPow2 {
   static constexpr auto operator()(auto sz) -> std::ptrdiff_t {
     std::ptrdiff_t i = std::ptrdiff_t(sz);
-    return i ? std::max(8z, nextpow2(i)) : 0z;
+    return i ? std::max(8Z, nextpow2(i)) : 0Z;
   }
   constexpr NextPow2() = default;
   constexpr NextPow2(auto) {};
@@ -80,7 +80,8 @@ struct Explicit {
   constexpr Explicit() = default;
   constexpr Explicit(std::int32_t sz)
     : capacity_{((sz > 8) ? nextpow2(sz) : 8 * (sz > 0))} {}
-  constexpr Explicit(::math::Length<> sz) : Explicit(std::ptrdiff_t(sz)) {}
+  constexpr Explicit(::math::Length<> sz)
+    : Explicit(std::int32_t(std::ptrdiff_t(sz))) {}
   constexpr auto operator()(auto) const -> std::ptrdiff_t { return capacity_; }
   constexpr auto operator=(std::int32_t cap) -> Explicit & {
     capacity_ = cap;

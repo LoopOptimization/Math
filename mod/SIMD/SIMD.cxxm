@@ -71,8 +71,6 @@ consteval auto range() -> Vec<W, I> {
 
 #if defined(__x86_64__) && defined(__AVX512VL__)
 template <std::ptrdiff_t W>
-#include "Macros.hxx"
-
 TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v)
   -> Vec<W, std::int64_t> {
   if constexpr (W == 2) {
@@ -970,7 +968,7 @@ struct Unroll {
   static_assert(R * C > 0);
 #ifdef __AVX512VL__
   using MaskType = mask::Bit<W>;
-#elif defined(__AVX512F__)
+#elifdef __AVX512F__
   using MaskType =
     std::conditional_t<Bytes * W == 64, mask::Bit<W>, mask::Vector<W, Bytes>>;
 #else
@@ -1133,12 +1131,13 @@ TRIVIAL constexpr auto vbroadcast(T x) -> Vec<W, T> {
     }
   } else return x;
 }
-template <typename T> TRIVIAL inline auto load(const T *p, mask::None<1>) -> T {
+template <typename T>
+TRIVIAL inline auto load(const T *p, mask::None<1>) -> utils::value_t<T> {
   return *p;
 }
 template <typename T>
 TRIVIAL constexpr auto load(const T *p, mask::None<1>, std::int32_t)
-  -> const T & {
+  -> utils::value_t<T> {
   return *p;
 }
 template <typename T> TRIVIAL inline void store(T *p, mask::None<1>, T x) {
@@ -1173,13 +1172,6 @@ template <std::ptrdiff_t W, typename T> TRIVIAL consteval auto mmzero() {
 
 template auto vbroadcast<8, std::int64_t>(Vec<8, std::int64_t>)
   -> Vec<8, std::int64_t>;
-
-// namespace hw {
-// typedef double __m512d_u __attribute__((__vector_size__(64),
-// __aligned__(8)));
-
-// typedef std::int64_t __m512i_u __attribute__((__vector_size__(64),
-// __aligned__(8))); } // namespace hw
 
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<16>) -> Vec<16, T> {
@@ -1987,7 +1979,8 @@ TRIVIAL inline void scatter(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x,
   if (i.m[1] != 0) p[indv[1]] = x[1];
 }
 
-#ifdef __AVX2__
+#ifdef __AVX512F__
+#elifdef __AVX2__
 // masked gathers
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> m,
@@ -2420,56 +2413,100 @@ TRIVIAL inline void store(T *p, mask::None<2>, Vec<2, T> x) {
   // else static_assert(false);
 }
 
-#ifdef __AVX512F__
-template auto load<std::int64_t>(const std::int64_t *, mask::None<2>)
-  -> Vec<2, std::int64_t>;
-template auto load<std::int64_t>(const std::int64_t *, mask::Bit<2>)
-  -> Vec<2, std::int64_t>;
-template void store<std::int64_t>(std::int64_t *, mask::None<2>,
-                                  Vec<2, std::int64_t>);
-template void store<std::int64_t>(std::int64_t *, mask::Bit<2>,
-                                  Vec<2, std::int64_t>);
-template auto load<std::int64_t>(const std::int64_t *, mask::None<4>)
-  -> Vec<4, std::int64_t>;
-template auto load<std::int64_t>(const std::int64_t *, mask::Bit<4>)
-  -> Vec<4, std::int64_t>;
-template void store<std::int64_t>(std::int64_t *, mask::None<4>,
-                                  Vec<4, std::int64_t>);
-template void store<std::int64_t>(std::int64_t *, mask::Bit<4>,
-                                  Vec<4, std::int64_t>);
-template auto load<std::int64_t>(const std::int64_t *, mask::None<8>)
-  -> Vec<8, std::int64_t>;
-template auto load<std::int64_t>(const std::int64_t *, mask::Bit<8>)
-  -> Vec<8, std::int64_t>;
-template void store<std::int64_t>(std::int64_t *, mask::None<8>,
-                                  Vec<8, std::int64_t>);
-template void store<std::int64_t>(std::int64_t *, mask::Bit<8>,
-                                  Vec<8, std::int64_t>);
+template long load(const long *p, mask::None<1>);
+template long load(const long *p, mask::None<1>, std::int32_t);
 
-template auto load<std::int64_t>(const std::int64_t *, mask::None<2>,
-                                 std::int32_t) -> Vec<2, std::int64_t>;
-template auto load<std::int64_t>(const std::int64_t *, mask::Bit<2>,
-                                 std::int32_t) -> Vec<2, std::int64_t>;
-template void store<std::int64_t>(std::int64_t *, mask::None<2>,
-                                  Vec<2, std::int64_t>, std::int32_t);
-template void store<std::int64_t>(std::int64_t *, mask::Bit<2>,
-                                  Vec<2, std::int64_t>, std::int32_t);
-template auto load<std::int64_t>(const std::int64_t *, mask::None<4>,
-                                 std::int32_t) -> Vec<4, std::int64_t>;
-template auto load<std::int64_t>(const std::int64_t *, mask::Bit<4>,
-                                 std::int32_t) -> Vec<4, std::int64_t>;
-template void store<std::int64_t>(std::int64_t *, mask::None<4>,
-                                  Vec<4, std::int64_t>, std::int32_t);
-template void store<std::int64_t>(std::int64_t *, mask::Bit<4>,
-                                  Vec<4, std::int64_t>, std::int32_t);
-template auto load<std::int64_t>(const std::int64_t *, mask::None<8>,
-                                 std::int32_t) -> Vec<8, std::int64_t>;
-template auto load<std::int64_t>(const std::int64_t *, mask::Bit<8>,
-                                 std::int32_t) -> Vec<8, std::int64_t>;
-template void store<std::int64_t>(std::int64_t *, mask::None<8>,
-                                  Vec<8, std::int64_t>, std::int32_t);
-template void store<std::int64_t>(std::int64_t *, mask::Bit<8>,
-                                  Vec<8, std::int64_t>, std::int32_t);
+template double load(const double *p, mask::None<1>);
+template double load(const double *p, mask::None<1>, std::int32_t);
+
+template void store<long>(long *p, mask::None<1>, long x);
+template void store<long>(long *p, mask::None<1>, long x, std::int32_t);
+
+template void store<double>(double *p, mask::None<1>, double x);
+template void store<double>(double *p, mask::None<1>, double x, std::int32_t);
+
+#ifdef __AVX512F__
+template auto load<long>(const long *, mask::None<2>) -> Vec<2, long>;
+template auto load<long>(const long *, mask::None<4>) -> Vec<4, long>;
+template auto load<long>(const long *, mask::None<8>) -> Vec<8, long>;
+
+template auto load<long>(const long *, mask::Bit<2>) -> Vec<2, long>;
+template auto load<long>(const long *, mask::Bit<4>) -> Vec<4, long>;
+template auto load<long>(const long *, mask::Bit<8>) -> Vec<8, long>;
+
+template auto load<long>(const long *, mask::None<2>, std::int32_t)
+  -> Vec<2, long>;
+template auto load<long>(const long *, mask::None<4>, std::int32_t)
+  -> Vec<4, long>;
+template auto load<long>(const long *, mask::None<8>, std::int32_t)
+  -> Vec<8, long>;
+
+template auto load<long>(const long *, mask::Bit<2>, std::int32_t)
+  -> Vec<2, long>;
+template auto load<long>(const long *, mask::Bit<4>, std::int32_t)
+  -> Vec<4, long>;
+template auto load<long>(const long *, mask::Bit<8>, std::int32_t)
+  -> Vec<8, long>;
+
+template void store<long>(long *, mask::None<2>, Vec<2, long>);
+template void store<long>(long *, mask::None<4>, Vec<4, long>);
+template void store<long>(long *, mask::None<8>, Vec<8, long>);
+
+template void store<long>(long *, mask::Bit<2>, Vec<2, long>);
+template void store<long>(long *, mask::Bit<4>, Vec<4, long>);
+template void store<long>(long *, mask::Bit<8>, Vec<8, long>);
+
+template void store<long>(long *, mask::None<2>, Vec<2, long>, std::int32_t);
+template void store<long>(long *, mask::None<4>, Vec<4, long>, std::int32_t);
+template void store<long>(long *, mask::None<8>, Vec<8, long>, std::int32_t);
+
+template void store<long>(long *, mask::Bit<2>, Vec<2, long>, std::int32_t);
+template void store<long>(long *, mask::Bit<4>, Vec<4, long>, std::int32_t);
+template void store<long>(long *, mask::Bit<8>, Vec<8, long>, std::int32_t);
+
+template auto load<double>(const double *, mask::None<2>) -> Vec<2, double>;
+template auto load<double>(const double *, mask::None<4>) -> Vec<4, double>;
+template auto load<double>(const double *, mask::None<8>) -> Vec<8, double>;
+
+template auto load<double>(const double *, mask::Bit<2>) -> Vec<2, double>;
+template auto load<double>(const double *, mask::Bit<4>) -> Vec<4, double>;
+template auto load<double>(const double *, mask::Bit<8>) -> Vec<8, double>;
+
+template auto load<double>(const double *, mask::None<2>, std::int32_t)
+  -> Vec<2, double>;
+template auto load<double>(const double *, mask::None<4>, std::int32_t)
+  -> Vec<4, double>;
+template auto load<double>(const double *, mask::None<8>, std::int32_t)
+  -> Vec<8, double>;
+
+template auto load<double>(const double *, mask::Bit<2>, std::int32_t)
+  -> Vec<2, double>;
+template auto load<double>(const double *, mask::Bit<4>, std::int32_t)
+  -> Vec<4, double>;
+template auto load<double>(const double *, mask::Bit<8>, std::int32_t)
+  -> Vec<8, double>;
+
+template void store<double>(double *, mask::None<2>, Vec<2, double>);
+template void store<double>(double *, mask::None<4>, Vec<4, double>);
+template void store<double>(double *, mask::None<8>, Vec<8, double>);
+
+template void store<double>(double *, mask::Bit<2>, Vec<2, double>);
+template void store<double>(double *, mask::Bit<4>, Vec<4, double>);
+template void store<double>(double *, mask::Bit<8>, Vec<8, double>);
+
+template void store<double>(double *, mask::None<2>, Vec<2, double>,
+                            std::int32_t);
+template void store<double>(double *, mask::None<4>, Vec<4, double>,
+                            std::int32_t);
+template void store<double>(double *, mask::None<8>, Vec<8, double>,
+                            std::int32_t);
+
+template void store<double>(double *, mask::Bit<2>, Vec<2, double>,
+                            std::int32_t);
+template void store<double>(double *, mask::Bit<4>, Vec<4, double>,
+                            std::int32_t);
+template void store<double>(double *, mask::Bit<8>, Vec<8, double>,
+                            std::int32_t);
 
 // Compress store intrinsics for AVX512
 template <typename T>
@@ -3919,11 +3956,11 @@ TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          ret[r, c] = load(ptr + c * W, mask::None<W>{});
+          ret[r, c] = load(ptr + (c * W), mask::None<W>{});
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          ret[r, c] = load(ptr + c * W, masks[c]);
+          ret[r, c] = load(ptr + (c * W), masks[c]);
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
@@ -4074,7 +4111,7 @@ struct UnrollRef {
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store<T>(p + c * W, mask::None<W>{}, x[r, c]);
+          store<T>(p + (c * W), mask::None<W>{}, x[r, c]);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c) {
@@ -4133,7 +4170,7 @@ struct UnrollRef {
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          store<T>(p + c * W, mask::None<W>{}, x[r, c]);
+          store<T>(p + c * W, mask::None<W>{}, vbroadcast<W>(x[r, c]));
         store<T>(p + (C - 1) * W, masks_[0], vbroadcast<W>(x[r, C - 1]));
       }
     }
@@ -4209,6 +4246,8 @@ struct UnrollRef {
   }
   TRIVIAL constexpr auto operator=(std::convertible_to<T> auto x)
     -> UnrollRef & {
+    static_assert(!std::same_as<T, long> ||
+                  (W == 1 || W == 2 || W == 4 || W == 8));
     *this = Vec<W, T>{} + T(x);
     return *this;
   }
@@ -4401,7 +4440,7 @@ private:
       Vec<W, std::int64_t> v = vbroadcast<W, std::int64_t>(y - x.index_);
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        ret.data[u] = range<W, std::int64_t>() <= (v - u * W);
+        ret.data[u] = range<W, std::int64_t>() <= (v - (u * W));
       return ret;
     } else
       return ::simd::Unroll<1, 1, W, std::int64_t>{
@@ -4453,5 +4492,147 @@ TRIVIAL constexpr auto tailmask(std::ptrdiff_t i, std::ptrdiff_t m) {
 template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
 inline constexpr bool issimd<Unroll<U, W, M>> = true;
 } // namespace index
+
+#ifdef __AVX512F__
+
+template Unroll<1L, 1L, 8L, long>
+loadunroll<1L, 1L, 8L, long, 1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+template Unroll<1L, 1L, 8L, long>
+loadunroll<1L, 1L, 8L, long, 1L, 1UL, simd::mask::Bit<8>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+template Unroll<1L, 1L, 8L, long>
+loadunroll<1L, 1L, 8L, long, 1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<1L, 2L, 8L, long>
+loadunroll<1L, 2L, 8L, long, 1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<1L, 3L, 8L, long>
+loadunroll<1L, 3L, 8L, long, 1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<1L, 4L, 8L, long>
+loadunroll<1L, 4L, 8L, long, 1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<2L, 2L, 8L, double>
+loadunroll<2L, 2L, 8L, double, 1L, 1UL, simd::mask::None<8>>(
+  const double *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<2L, 1L, 8L, double>
+loadunroll<2L, 1L, 8L, double, -1L, 1UL, simd::mask::Bit<8>>(
+  const double *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+
+template Unroll<2L, 1L, 8L, double>
+loadunroll<2L, 1L, 8L, double, -1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const double *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<3L, 1L, 8L, double>
+loadunroll<3L, 1L, 8L, double, -1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const double *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<4L, 1L, 8L, double>
+loadunroll<4L, 1L, 8L, double, -1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const double *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<1L, 1L, 8L, double>
+loadunroll<1L, 1L, 8L, double, 1L, 1UL, simd::mask::None<8>>(
+  const double *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<1L, 4L, 8L, double>
+loadunroll<1L, 4L, 8L, double, 1L, 1UL, simd::mask::None<8>>(
+  const double *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<1L, 1L, 8L, double>
+loadunroll<1L, 1L, 8L, double, 1L, 1UL, simd::mask::Bit<8>>(
+  const double *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+
+template Unroll<1L, 1L, 8L, double>
+loadunroll<1L, 1L, 8L, double, 1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const double *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<4L, 1L, 8L, long>
+loadunroll<4L, 1L, 8L, long, -1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<4L, 1L, 8L, long>
+loadunroll<4L, 1L, 8L, long, -1L, 1UL, simd::mask::Bit<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+
+template Unroll<1L, 4L, 8L, long>
+loadunroll<1L, 4L, 8L, long, -1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<1L, 1L, 8L, long>
+loadunroll<1L, 1L, 8L, long, -1L, 1UL, simd::mask::Bit<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+
+template Unroll<3L, 1L, 8L, long>
+loadunroll<3L, 1L, 8L, long, -1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<3L, 1L, 8L, long>
+loadunroll<3L, 1L, 8L, long, -1L, 1UL, simd::mask::Bit<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+
+template Unroll<2L, 2L, 8L, long>
+loadunroll<2L, 2L, 8L, long, -1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template Unroll<2L, 1L, 8L, long>
+loadunroll<2L, 1L, 8L, long, -1L, 1UL, simd::mask::Bit<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::Bit<8>, 1UL> masks);
+
+template Unroll<1L, 1L, 8L, long>
+loadunroll<1L, 1L, 8L, long, -1L, 1UL, simd::mask::ExplicitLengthBit<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<8>, 1UL> masks);
+
+template Unroll<1L, 1L, 4L, long>
+loadunroll<1L, 1L, 4L, long, 1L, 1UL, simd::mask::ExplicitLengthBit<4>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::ExplicitLengthBit<4>, 1UL> masks);
+
+template Unroll<1L, 1L, 4L, long>
+loadunroll<1L, 1L, 4L, long, 1L, 1UL, simd::mask::None<4>>(
+  const long *ptr, math::RowStride<1L> rowStride,
+  std::array<simd::mask::None<4>, 1UL> masks);
+
+template Unroll<1L, 1L, 8L, long>
+loadunroll<1L, 1L, 8L, long, -1L, 1UL, simd::mask::None<8>>(
+  const long *ptr, math::RowStride<-1L> rowStride,
+  std::array<simd::mask::None<8>, 1UL> masks);
+
+template auto index::unrollmask<1L, 4L>(std::ptrdiff_t L, std::ptrdiff_t i);
+template auto index::unrollmask<1L, 8L>(std::ptrdiff_t L, std::ptrdiff_t i);
+template auto index::unrollmask<2L, 8L>(std::ptrdiff_t L, std::ptrdiff_t i);
+template auto index::unrollmask<3L, 8L>(std::ptrdiff_t L, std::ptrdiff_t i);
+
+#endif
 
 } // namespace simd
