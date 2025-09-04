@@ -68,8 +68,7 @@ using utils::invariant, utils::Valid;
 /// In both cases, the start/end references are to the region
 /// So, meta is indexed with negative/positive indices depending on size.
 template <std::size_t SlabSize = 16384, bool BumpUp = true> class Arena {
-  static constexpr std::size_t Alignment =
-    alignof(std::int64_t); // std::max_align_t);
+  static constexpr std::size_t Alignment = alignof(std::int64_t);
   static constexpr auto align(std::size_t x) -> std::size_t {
     return (x + Alignment - 1) & ~(Alignment - 1);
   }

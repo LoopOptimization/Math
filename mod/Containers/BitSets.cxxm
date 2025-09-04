@@ -839,7 +839,7 @@ TRIVIAL constexpr void xorAssignFromExpression(BitSet<T> &bitset,
 
 struct BitSets {
   using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
-  using reference = BitSet<math::MutPtrVector<std::uint64_t>>;
+  using reference = value_type;
   std::uint64_t *data_;
   std::uint32_t num_sets_, num_chunks_per_;
 
@@ -930,7 +930,7 @@ struct BitSets {
     return num_chunks_per_;
   }
   [[nodiscard]] constexpr auto maximumSize() const -> std::ptrdiff_t {
-    return 64z * maximumNumChunks();
+    return 64Z * maximumNumChunks();
   }
   constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
     std::ptrdiff_t sz = num_chunks_per_;
@@ -941,7 +941,7 @@ struct BitSets {
     invariant(new_size <= num_sets_);
     std::ptrdiff_t diff = num_sets_ - new_size;
     num_sets_ = new_size;
-    return (8z * num_chunks_per_) * diff;
+    return (8Z * num_chunks_per_) * diff;
   }
   TRIVIAL constexpr auto mview() -> BitSets { return *this; }
   constexpr auto operator==(BitSets other) const -> bool {
