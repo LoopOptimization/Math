@@ -288,7 +288,7 @@ concept DenseLayout =
   RowVectorDimension<T> || std::is_convertible_v<T, DenseDims<>>;
 
 template <typename T>
-concept StaticLength = RowVectorDimension<T> && !std::same_as<T, Length<>>;
+concept StaticLength = RowVectorDimension<T> && T::comptime() != -1;
 
 // constexpr auto row(RowVectorDimension auto) -> Row<1> { return {}; }
 // constexpr auto row(ColVectorDimension auto s) { return Row(s); }
@@ -306,9 +306,10 @@ concept CompressIndex = requires { typename T::mask_type; };
 // Concept for aligning array dimensions with indices.
 template <class I, class D>
 concept Index =
-  (VectorDimension<D> &&
-   (ScalarIndex<I> || AbstractSlice<I> || simd::index::issimd<I> || CompressIndex<I>)) ||
-  (DenseLayout<D> && (ScalarIndex<I> || simd::index::issimd<I> || CompressIndex<I>)) ||
+  (VectorDimension<D> && (ScalarIndex<I> || AbstractSlice<I> ||
+                          simd::index::issimd<I> || CompressIndex<I>)) ||
+  (DenseLayout<D> &&
+   (ScalarIndex<I> || simd::index::issimd<I> || CompressIndex<I>)) ||
   (MatrixDimension<D> && requires(I i) {
     { i.row_idx_ };
     { i.col_idx_ };

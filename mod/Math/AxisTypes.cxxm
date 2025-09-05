@@ -31,6 +31,12 @@ export namespace math {
 
 using utils::invariant;
 
+// constexpr auto comptime(auto) -> std::ptrdiff_t { return -1; }
+// template <typename T, T val>
+// constexpr auto comptime(std::integral_constant<T, val>) -> std::ptrdiff_t {
+//   return val;
+// }
+
 template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
 struct Length {
   static constexpr std::ptrdiff_t nrow = 1;
