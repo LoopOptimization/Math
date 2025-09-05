@@ -98,8 +98,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -Wno-comma-subscript -Wno-psabi)
 endif()
 target_compile_options(
-  ${PROJECT_NAME} PRIVATE -Wshadow -Werror # -Wpedantic -Wextra -Wall
-                          -Wno-reference-tu-local-entity-in-other-tu)
+  ${PROJECT_NAME} PRIVATE -Wshadow -Werror) # -Wpedantic -Wextra -Wall
+                          # -Wno-reference-tu-local-entity-in-other-tu)
 target_compile_features(
   ${PROJECT_NAME}
   PRIVATE cxx_std_23
