@@ -33,7 +33,7 @@ struct UniformScalingMaskedOp {
     for (std::ptrdiff_t r = 0; r < R; ++r) {
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t c = 0; c < C; ++c)
-        ret[r, c] = ::simd::select<T>(mask_[r, c], vv, ::simd::Vec<W, T>{});
+        ret[r, c] = ::simd::select(mask_[r, c], vv, ::simd::Vec<W, T>{});
     }
     return ret;
   }
@@ -48,7 +48,7 @@ struct UniformScalingMaskedOp {
     auto vv = simd::vbroadcast<W, T>(value_);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
-      result[i] = simd::select<T>(mask_[i], unroll[i] + vv, unroll[i]);
+      result[i] = simd::select(mask_[i], unroll[i] + vv, unroll[i]);
     return result;
   }
 
@@ -59,7 +59,7 @@ struct UniformScalingMaskedOp {
     auto vv = simd::vbroadcast<W, T>(value_);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
-      result[i] = simd::select<T>(mask_[i], vv - unroll[i], -unroll[i]);
+      result[i] = simd::select(mask_[i], vv - unroll[i], -unroll[i]);
     return result;
   }
 
@@ -71,10 +71,9 @@ struct UniformScalingMaskedOp {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
       if constexpr (is_known_identity)
-        result[i] = simd::select<T>(mask_[i], unroll[i], simd::Vec<W, T>{});
+        result[i] = simd::select(mask_[i], unroll[i], simd::Vec<W, T>{});
       else
-        result[i] =
-          simd::select<T>(mask_[i], vv * unroll[i], simd::Vec<W, T>{});
+        result[i] = simd::select(mask_[i], vv * unroll[i], simd::Vec<W, T>{});
     return result;
   }
 
@@ -85,7 +84,7 @@ struct UniformScalingMaskedOp {
     auto vv = simd::vbroadcast<W, T>(value_);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
-      result[i] = simd::select<T>(mask_[i], vv / unroll[i], simd::Vec<W, T>{});
+      result[i] = simd::select(mask_[i], vv / unroll[i], simd::Vec<W, T>{});
     return result;
   }
 
@@ -97,7 +96,7 @@ struct UniformScalingMaskedOp {
     auto vv = simd::vbroadcast<W, T>(op.value_);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
-      result[i] = simd::select<T>(op.mask_[i], unroll[i] + vv, unroll[i]);
+      result[i] = simd::select(op.mask_[i], unroll[i] + vv, unroll[i]);
     return result;
   }
 
@@ -109,7 +108,7 @@ struct UniformScalingMaskedOp {
     auto vv = simd::vbroadcast<W, T>(op.value_);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
-      result[i] = simd::select<T>(op.mask_[i], unroll[i] - vv, unroll[i]);
+      result[i] = simd::select(op.mask_[i], unroll[i] - vv, unroll[i]);
     return result;
   }
 
@@ -122,10 +121,10 @@ struct UniformScalingMaskedOp {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
       if constexpr (is_known_identity)
-        result[i] = simd::select<T>(op.mask_[i], unroll[i], simd::Vec<W, T>{});
+        result[i] = simd::select(op.mask_[i], unroll[i], simd::Vec<W, T>{});
       else
         result[i] =
-          simd::select<T>(op.mask_[i], unroll[i] * vv, simd::Vec<W, T>{});
+          simd::select(op.mask_[i], unroll[i] * vv, simd::Vec<W, T>{});
     return result;
   }
 };

@@ -70,8 +70,10 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
   return b << k;
 }
 template <>
-TRIVIAL constexpr auto gcd<1>(std::int64_t x, std::int64_t y) -> std::int64_t {
-  return gcd(x, y);
+TRIVIAL constexpr auto gcd<1>(simd::Vec<1, std::int64_t> x,
+                              simd::Vec<1, std::int64_t> y)
+  -> simd::Vec<1, std::int64_t> {
+  return gcd(x[0], y[0]);
 }
 
 template <std::ptrdiff_t W>
@@ -85,8 +87,9 @@ TRIVIAL constexpr auto gcdreduce(simd::Vec<W, std::int64_t> v) -> std::int64_t {
     return gcdreduce<W / 2>(gcd<W / 2>(a, b));
   } else return gcd(v[0], v[1]);
 }
-template <> constexpr auto gcdreduce<1>(std::int64_t v) -> std::int64_t {
-  return v;
+template <>
+constexpr auto gcdreduce<1>(simd::Vec<1, std::int64_t> v) -> std::int64_t {
+  return v[0];
 }
 
 TRIVIAL constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {

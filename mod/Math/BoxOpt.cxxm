@@ -54,14 +54,14 @@ public:
         simd::Vec<W, std::int64_t>{});
 #endif
       V xload = simd::gather(x.data(), i.mask_ & m, j.vec_);
-      y.vec_ = simd::select<double>(
-        m, scale.vec_ * sigmoid<W>(xload) + off.vec_, off.vec_);
+      y.vec_ =
+        simd::select(m, scale.vec_ * sigmoid<W>(xload) + off.vec_, off.vec_);
     } else {
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u) {
         auto m = simd::cmp::ge<W, int>(j.data_[u], simd::Vec<W, int>{});
         V xload = simd::gather(x.data(), i.mask_ & m, j.data_[u]);
-        y.data_[u] = simd::select<double>(
+        y.data_[u] = simd::select(
           m, scale.data_[u] * sigmoid<W>(xload) + off.data_[u], off.data_[u]);
       }
     }

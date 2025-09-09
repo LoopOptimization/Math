@@ -77,10 +77,14 @@ getLeavingVariable(PtrMatrix<std::int64_t> C, std::ptrdiff_t entering_variable)
 }
 // (varCapacity+1)%simd::Width<std::int64_t>==0
 TRIVIAL constexpr auto alignVarCapacity(RowStride<> rs) -> RowStride<> {
-  static constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
   std::ptrdiff_t r = std::ptrdiff_t(rs) + 1;
-  if constexpr (W == 1) return stride(r);
+#ifndef POLYMATHNOEXPLICITSIMDARRAY
+  static constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+  if constexpr (W <= 1) return stride(r);
   else return stride(__builtin_align_up(r, W));
+#else
+  return stride(r);
+#endif
 }
 [[nodiscard]] TRIVIAL constexpr auto reservedTableau(std::ptrdiff_t cons,
                                                      std::ptrdiff_t vars)

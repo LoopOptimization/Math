@@ -11,18 +11,10 @@ constexpr auto vecget(simd::Vec<W, std::int64_t> v, std::ptrdiff_t i)
   -> std::int64_t {
   return v[i];
 }
-template <>
-constexpr auto vecget<1>(std::int64_t v, std::ptrdiff_t) -> std::int64_t {
-  return v;
-}
 template <std::ptrdiff_t W>
 constexpr void vecset(simd::Vec<W, std::int64_t> &v, std::int64_t newval,
                       std::ptrdiff_t i) {
   v[i] = newval;
-}
-template <>
-constexpr void vecset<1>(std::int64_t &v, std::int64_t newval, std::ptrdiff_t) {
-  v = newval;
 }
 
 template <std::ptrdiff_t W>

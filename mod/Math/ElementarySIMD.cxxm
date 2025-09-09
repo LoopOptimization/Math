@@ -440,7 +440,7 @@ constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
   V maxval = simd::vbroadcast<W, double>(std::numeric_limits<double>::max());
   auto minmask = simd::cmp::le<W, double>(
     x, simd::vbroadcast<W, double>(subnormal_exp(0.0, base)));
-  V alt = simd::select<double>(maxmask, maxval, V{});
+  V alt = simd::select(maxmask, maxval, V{});
   auto altmask = maxmask | minmask;
   // #else
   // if (x >= max_exp(x, base)) return std::numeric_limits<double>::infinity();
@@ -459,7 +459,7 @@ constexpr auto exp_impl_core(simd::Vec<W, double> x) -> simd::Vec<W, double> {
     (std::bit_cast<simd::Vec<W, std::int64_t>>(N) >> 8) << 52);
   V z =
     std::bit_cast<V>(twopk + std::bit_cast<simd::Vec<W, std::int64_t>>(small));
-  return simd::select<double>(altmask, alt, z);
+  return simd::select(altmask, alt, z);
 }
 template <int B, std::ptrdiff_t R, std::ptrdiff_t U, std::ptrdiff_t W>
 constexpr auto exp_impl(simd::Unroll<R, U, W, double> x)
