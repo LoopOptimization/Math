@@ -69,14 +69,12 @@ using utils::invariant, utils::Valid;
 /// So, meta is indexed with negative/positive indices depending on size.
 template <std::size_t SlabSize = 16384, bool BumpUp = true> class Arena {
   static constexpr std::size_t Alignment = alignof(std::int64_t);
-  static constexpr auto align(std::size_t x) -> std::size_t {
-    return (x + Alignment - 1) & ~(Alignment - 1);
-  }
 
 protected:
   // meta data is always in front, so we don't have to handle
   // the rare accidental case of huge slabs separately.
-  static constexpr std::size_t MetaSize = align(2 * sizeof(void *));
+  static constexpr std::size_t MetaSize =
+    __builtin_align_up(2 * sizeof(void *), Alignment);
   static constexpr std::size_t SlabSpace = SlabSize - (2 * MetaSize);
   static_assert(std::has_single_bit(Alignment));
   static_assert(__STDCPP_DEFAULT_NEW_ALIGNMENT__ >= Alignment);
@@ -96,7 +94,9 @@ public:
     void **old_meta = getMetaEnd(s_end_);
     void *next = old_meta[0];
     if (next && Size <= SlabSpace) return initSlab(next);
-    initNewSlab(Size > SlabSpace ? align(Size) + SlabSize : SlabSize);
+    initNewSlab(Size > SlabSpace
+                  ? __builtin_align_up(Size, Alignment) + SlabSize
+                  : SlabSize);
     old_meta[0] = slab_;
     void *first_slab = old_meta[1];
     getMetaStart(slab_)[1] = first_slab;
@@ -155,9 +155,11 @@ public:
     __asan_poison_memory_region(Ptr, Size);
 #endif
     if constexpr (BumpUp) {
-      if (static_cast<char *>(Ptr) + align(Size) == slab_) slab_ = Ptr;
+      if (static_cast<char *>(Ptr) + __builtin_align_up(Size, Alignment) ==
+          slab_)
+        slab_ = Ptr;
     } else if (Ptr == slab_) {
-      slab_ = static_cast<char *>(slab_) + align(Size);
+      slab_ = static_cast<char *>(slab_) + __builtin_align_up(Size, Alignment);
       return;
     }
   }
@@ -185,8 +187,9 @@ public:
         return p;
       }
       if constexpr (BumpUp) {
-        if (Ptr == static_cast<char *>(slab_) - align(capOld)) {
-          slab_ = cptr + align(capNew);
+        if (Ptr == static_cast<char *>(slab_) -
+                     __builtin_align_up(capOld, Alignment)) {
+          slab_ = cptr + __builtin_align_up(capNew, Alignment);
           if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
             __asan_unpoison_memory_region(cptr + capOld, capNew - capOld);
@@ -198,7 +201,7 @@ public:
           }
         }
       } else if (Ptr == slab_) {
-        std::size_t extra_size = align(capNew - capOld);
+        std::size_t extra_size = __builtin_align_up(capNew - capOld, Alignment);
         slab_ = static_cast<char *>(slab_) - extra_size;
         if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
@@ -290,8 +293,8 @@ private:
   constexpr auto tryReallocate(void *Ptr, std::size_t capOld,
                                std::size_t capNew) -> void * {
     if constexpr (BumpUp) {
-      if (Ptr == (char *)slab_ - align(capOld)) {
-        slab_ = (char *)Ptr + align(capNew);
+      if (Ptr == (char *)slab_ - __builtin_align_up(capOld, Alignment)) {
+        slab_ = (char *)Ptr + __builtin_align_up(capNew, Alignment);
         if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
           __asan_unpoison_memory_region((char *)Ptr + capOld, capNew - capOld);
@@ -303,7 +306,7 @@ private:
         }
       }
     } else if (Ptr == slab_) {
-      std::size_t extra_size = align(capNew - capOld);
+      std::size_t extra_size = __builtin_align_up(capNew - capOld, Alignment);
       slab_ = (char *)slab_ - extra_size;
       if (!outOfSlab()) {
 #if MATH_ADDRESS_SANITIZER_BUILD
@@ -347,7 +350,7 @@ private:
     slab_ = bump(slab_, Alignment); // poisoned zone
 #endif
     void *old = slab_;
-    slab_ = bump(old, align(Size));
+    slab_ = bump(old, __builtin_align_up(Size, Alignment));
     if constexpr (BumpUp) return old;
     else return slab_;
   }
