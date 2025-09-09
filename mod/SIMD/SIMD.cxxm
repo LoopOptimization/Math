@@ -69,94 +69,6 @@ consteval auto range() -> Vec<W, I> {
   }
 }
 
-#if defined(__x86_64__) && defined(__AVX512VL__)
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v)
-  -> Vec<W, std::int64_t> {
-  if constexpr (W == 2) {
-    return std::bit_cast<Vec<2, std::int64_t>>(
-      _mm_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
-  } else if constexpr (W == 4) {
-    return std::bit_cast<Vec<4, std::int64_t>>(
-      _mm256_cvtepi32_epi64(std::bit_cast<__m128i>(v)));
-  } else if constexpr (W == 8) {
-    return std::bit_cast<Vec<8, std::int64_t>>(
-      _mm512_cvtepi32_epi64(std::bit_cast<__m256i>(v)));
-  } else static_assert(false);
-}
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v)
-  -> Vec<W, std::int64_t> {
-  if constexpr (W == 2) {
-    return std::bit_cast<Vec<2, std::int64_t>>(
-      _mm_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
-  } else if constexpr (W == 4) {
-    return std::bit_cast<Vec<4, std::int64_t>>(
-      _mm256_cvtepu32_epi64(std::bit_cast<__m128i>(v)));
-  } else if constexpr (W == 8) {
-    return std::bit_cast<Vec<8, std::int64_t>>(
-      _mm512_cvtepu32_epi64(std::bit_cast<__m256i>(v)));
-  } else static_assert(false);
-}
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v)
-  -> Vec<W, std::int32_t> {
-  if constexpr (W == 2) {
-    return std::bit_cast<Vec<2, std::int32_t>>(
-      _mm_cvtepi64_epi32(std::bit_cast<__m128i>(v)));
-  } else if constexpr (W == 4) {
-    return std::bit_cast<Vec<4, std::int32_t>>(
-      _mm256_cvtepi64_epi32(std::bit_cast<__m256i>(v)));
-  } else if constexpr (W == 8) {
-    return std::bit_cast<Vec<8, std::int32_t>>(
-      _mm512_cvtepi64_epi32(std::bit_cast<__m512i>(v)));
-  } else static_assert(false);
-}
-#else
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto sextelts(Vec<W, std::int32_t> v)
-  -> Vec<W, std::int64_t> {
-  if constexpr (W != 1) {
-    Vec<W, std::int64_t> r;
-    for (std::ptrdiff_t w = 0; w < W; ++w)
-      r[w] = static_cast<std::int64_t>(v[w]);
-    return r;
-  } else return static_cast<std::int64_t>(v);
-}
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto zextelts(Vec<W, std::int32_t> v)
-  -> Vec<W, std::int64_t> {
-  using R = Vec<W, std::int64_t>;
-  static constexpr Vec<W, std::int32_t> z{};
-  if constexpr (W == 1)
-    return static_cast<std::int64_t>(
-      static_cast<std::uint64_t>(static_cast<std::uint32_t>(v)));
-  else if constexpr (W == 2)
-    return std::bit_cast<R>(__builtin_shufflevector(v, z, 0, 2, 1, 3));
-  else if constexpr (W == 4)
-    return std::bit_cast<R>(
-      __builtin_shufflevector(v, z, 0, 4, 1, 5, 2, 6, 3, 7));
-  else if constexpr (W == 8)
-    return std::bit_cast<R>(__builtin_shufflevector(
-      v, z, 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
-  else static_assert(false);
-}
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto truncelts(Vec<W, std::int64_t> v)
-  -> Vec<W, std::int32_t> {
-  using R = Vec<W, std::int64_t>;
-  if constexpr (W == 1) return static_cast<R>(v);
-  else {
-    Vec<2 * W, std::int32_t> x = std::bit_cast<Vec<2 * W, std::int32_t>>(v);
-    if constexpr (W == 2) return __builtin_shufflevector(x, x, 0, 2);
-    else if constexpr (W == 4) return __builtin_shufflevector(x, x, 0, 2, 4, 6);
-    else if constexpr (W == 8)
-      return __builtin_shufflevector(x, x, 0, 2, 4, 6, 8, 10, 12, 14);
-    else static_assert(false);
-  }
-}
-#endif
-
 namespace mask {
 /// Treats all elements as unmasked
 template <std::ptrdiff_t W> struct None {
@@ -292,25 +204,25 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   V m;
   template <std::size_t newBytes>
   TRIVIAL constexpr operator Vector<W, newBytes>() const {
-    if constexpr (newBytes == Bytes) return *this;
-    else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
-    else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
-    else static_assert(false);
+    if constexpr (newBytes != Bytes) {
+      using S = utils::signed_integer_t<newBytes>;
+      return {__builtin_convertvector(m, Vec<W, S>)};
+    } else return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
     if constexpr (sizeof(I) == 8)
       if constexpr (W == 2) {
-        __m128d arg = std::bit_cast<__m128d>(m);
+        __m128d arg = __builtin_bit_cast(__m128d, m);
         return _mm_movemask_pd(arg);
-      } else return _mm256_movemask_pd(std::bit_cast<__m256d>(m));
+      } else return _mm256_movemask_pd(__builtin_bit_cast(__m256d, m));
     else if constexpr (sizeof(I) == 4)
       if constexpr (W == 4) {
-        __m128 mm = std::bit_cast<__m128>(m);
+        __m128 mm = __builtin_bit_cast(__m128, m);
         return _mm_movemask_ps(mm);
-      } else return _mm256_movemask_ps(std::bit_cast<__m256>(m));
+      } else return _mm256_movemask_ps(__builtin_bit_cast(__m256, m));
     else if constexpr (W == 16)
-      return _mm_movemask_epi8(std::bit_cast<__m128i>(m));
-    else return _mm256_movemask_epi8(std::bit_cast<__m256i>(m));
+      return _mm_movemask_epi8(__builtin_bit_cast(__m128i, m));
+    else return _mm256_movemask_epi8(__builtin_bit_cast(__m256i, m));
   }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool { return intmask(); }
   TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
@@ -327,22 +239,22 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     return 32 - std::countl_zero(bitmask);
   }
   TRIVIAL constexpr operator __m128i() requires(sizeof(I) * W == 16) {
-    return std::bit_cast<__m128i>(m);
+    return __builtin_bit_cast(__m128i, m);
   }
   TRIVIAL constexpr operator __m128d() requires(sizeof(I) * W == 16) {
-    return std::bit_cast<__m128d>(m);
+    return __builtin_bit_cast(__m128d, m);
   }
   TRIVIAL constexpr operator __m128() requires(sizeof(I) * W == 16) {
-    return std::bit_cast<__m128>(m);
+    return __builtin_bit_cast(__m128, m);
   }
   TRIVIAL constexpr operator __m256i() requires(sizeof(I) * W == 32) {
-    return std::bit_cast<__m256i>(m);
+    return __builtin_bit_cast(__m256i, m);
   }
   TRIVIAL constexpr operator __m256d() requires(sizeof(I) * W == 32) {
-    return std::bit_cast<__m256d>(m);
+    return __builtin_bit_cast(__m256d, m);
   }
   TRIVIAL constexpr operator __m256() requires(sizeof(I) * W == 32) {
-    return std::bit_cast<__m256>(m);
+    return __builtin_bit_cast(__m256, m);
   }
 
 private:
@@ -380,12 +292,10 @@ struct ExplicitLengthVector : Vector<W, Bytes> {
 
   template <std::size_t newBytes>
   TRIVIAL constexpr operator ExplicitLengthVector<W, newBytes>() {
-    if constexpr (newBytes == Bytes) return *this;
-    else if constexpr (newBytes == 2 * Bytes)
-      return {sextelts<W>(this->m), explicit_on_end_};
-    else if constexpr (2 * newBytes == Bytes)
-      return {truncelts<W>(this->m), explicit_on_end_};
-    else static_assert(false);
+    if constexpr (newBytes != Bytes) {
+      using S = utils::signed_integer_t<newBytes>;
+      return {__builtin_convertvector(this->m, Vec<W, S>)};
+    } else return *this;
   }
 };
 #ifdef __AVX512F__
@@ -446,10 +356,10 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   V m;
   template <std::size_t newBytes>
   TRIVIAL constexpr operator Vector<W, newBytes>() const {
-    if constexpr (newBytes == Bytes) return *this;
-    else if constexpr (newBytes == 2 * Bytes) return {sextelts<W>(m)};
-    else if constexpr (2 * newBytes == Bytes) return {truncelts<W>(m)};
-    else static_assert(false);
+    if constexpr (newBytes != Bytes) {
+      using S = utils::signed_integer_t<newBytes>;
+      return {__builtin_convertvector(m, Vec<W, S>)};
+    } else return *this;
   }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool {
     bool any{false};
@@ -548,47 +458,47 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
-                                 std::bit_cast<__m512>(y), 8)};
+      return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
+                                 __builtin_bit_cast(__m512, y), 8)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm512_cmp_epi32_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 0)};
+      return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 0)};
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 8)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 8)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 0)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 0)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm256_cmp_ps_mask(std::bit_cast<__m256>(x),
-                                 std::bit_cast<__m256>(y), 8)};
+      return {_mm256_cmp_ps_mask(__builtin_bit_cast(__m256, x),
+                                 __builtin_bit_cast(__m256, y), 8)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm256_cmp_epi32_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 0)};
+      return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 0)};
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm256_cmp_pd_mask(std::bit_cast<__m256d>(x),
-                                 std::bit_cast<__m256d>(y), 8)};
+      return {_mm256_cmp_pd_mask(__builtin_bit_cast(__m256d, x),
+                                 __builtin_bit_cast(__m256d, y), 8)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm256_cmp_epi64_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 0)};
+      return {_mm256_cmp_epi64_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 0)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {
-        _mm_cmp_ps_mask(std::bit_cast<__m128>(x), std::bit_cast<__m128>(y), 8)};
+      return {_mm_cmp_ps_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128, y), 8)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm_cmp_epi32_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 0)};
+      return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 0)};
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm_cmp_pd_mask(std::bit_cast<__m128d>(x),
-                              std::bit_cast<__m128d>(y), 8)};
+      return {_mm_cmp_pd_mask(__builtin_bit_cast(__m128d, x),
+                              __builtin_bit_cast(__m128d, y), 8)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm_cmp_epi64_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 0)};
+      return {_mm_cmp_epi64_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 0)};
     else static_assert(false);
   } else static_assert(false);
 }
@@ -596,47 +506,47 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
-                                 std::bit_cast<__m512>(y), 4)};
+      return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
+                                 __builtin_bit_cast(__m512, y), 4)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm512_cmp_epi32_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 4)};
+      return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 4)};
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 4)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 4)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 4)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 4)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm256_cmp_ps_mask(std::bit_cast<__m256>(x),
-                                 std::bit_cast<__m256>(y), 4)};
+      return {_mm256_cmp_ps_mask(__builtin_bit_cast(__m256, x),
+                                 __builtin_bit_cast(__m256, y), 4)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm256_cmp_epi32_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 4)};
+      return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 4)};
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm256_cmp_pd_mask(std::bit_cast<__m256d>(x),
-                                 std::bit_cast<__m256d>(y), 4)};
+      return {_mm256_cmp_pd_mask(__builtin_bit_cast(__m256d, x),
+                                 __builtin_bit_cast(__m256d, y), 4)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm256_cmp_epi64_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 4)};
+      return {_mm256_cmp_epi64_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 4)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {
-        _mm_cmp_ps_mask(std::bit_cast<__m128>(x), std::bit_cast<__m128>(y), 4)};
+      return {_mm_cmp_ps_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128, y), 4)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm_cmp_epi32_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 4)};
+      return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 4)};
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm_cmp_pd_mask(std::bit_cast<__m128d>(x),
-                              std::bit_cast<__m128d>(y), 4)};
+      return {_mm_cmp_pd_mask(__builtin_bit_cast(__m128d, x),
+                              __builtin_bit_cast(__m128d, y), 4)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm_cmp_epi64_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 4)};
+      return {_mm_cmp_epi64_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 4)};
     else static_assert(false);
   } else static_assert(false);
 }
@@ -644,47 +554,47 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
-                                 std::bit_cast<__m512>(y), 25)};
+      return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
+                                 __builtin_bit_cast(__m512, y), 25)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm512_cmp_epi32_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 1)};
+      return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 1)};
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 25)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 25)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 1)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 1)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm256_cmp_ps_mask(std::bit_cast<__m256>(x),
-                                 std::bit_cast<__m256>(y), 25)};
+      return {_mm256_cmp_ps_mask(__builtin_bit_cast(__m256, x),
+                                 __builtin_bit_cast(__m256, y), 25)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm256_cmp_epi32_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 1)};
+      return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 1)};
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm256_cmp_pd_mask(std::bit_cast<__m256d>(x),
-                                 std::bit_cast<__m256d>(y), 25)};
+      return {_mm256_cmp_pd_mask(__builtin_bit_cast(__m256d, x),
+                                 __builtin_bit_cast(__m256d, y), 25)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm256_cmp_epi64_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 1)};
+      return {_mm256_cmp_epi64_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 1)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm_cmp_ps_mask(std::bit_cast<__m128>(x),
-                              std::bit_cast<__m128>(y), 25)};
+      return {_mm_cmp_ps_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128, y), 25)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm_cmp_epi32_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 1)};
+      return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 1)};
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm_cmp_pd_mask(std::bit_cast<__m128>(x),
-                              std::bit_cast<__m128d>(y), 25)};
+      return {_mm_cmp_pd_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128d, y), 25)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm_cmp_epi64_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 1)};
+      return {_mm_cmp_epi64_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 1)};
     else static_assert(false);
   } else static_assert(false);
 }
@@ -692,47 +602,47 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
-                                 std::bit_cast<__m512>(y), 22)};
+      return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
+                                 __builtin_bit_cast(__m512, y), 22)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm512_cmp_epi32_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 6)};
+      return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 6)};
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 22)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 22)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 6)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 6)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm256_cmp_ps_mask(std::bit_cast<__m256>(x),
-                                 std::bit_cast<__m256>(y), 22)};
+      return {_mm256_cmp_ps_mask(__builtin_bit_cast(__m256, x),
+                                 __builtin_bit_cast(__m256, y), 22)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm256_cmp_epi32_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 6)};
+      return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 6)};
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm256_cmp_pd_mask(std::bit_cast<__m256d>(x),
-                                 std::bit_cast<__m256d>(y), 22)};
+      return {_mm256_cmp_pd_mask(__builtin_bit_cast(__m256d, x),
+                                 __builtin_bit_cast(__m256d, y), 22)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm256_cmp_epi64_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 6)};
+      return {_mm256_cmp_epi64_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 6)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm_cmp_ps_mask(std::bit_cast<__m128>(x),
-                              std::bit_cast<__m128>(y), 22)};
+      return {_mm_cmp_ps_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128, y), 22)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm_cmp_epi32_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 6)};
+      return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 6)};
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm_cmp_pd_mask(std::bit_cast<__m128d>(x),
-                              std::bit_cast<__m128d>(y), 22)};
+      return {_mm_cmp_pd_mask(__builtin_bit_cast(__m128d, x),
+                              __builtin_bit_cast(__m128d, y), 22)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm_cmp_epi64_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 6)};
+      return {_mm_cmp_epi64_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 6)};
     else static_assert(false);
   } else static_assert(false);
 }
@@ -740,47 +650,47 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
-                                 std::bit_cast<__m512>(y), 26)};
+      return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
+                                 __builtin_bit_cast(__m512, y), 26)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm512_cmp_epi32_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 2)};
+      return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 2)};
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 26)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 26)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 2)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 2)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm256_cmp_ps_mask(std::bit_cast<__m256>(x),
-                                 std::bit_cast<__m256>(y), 26)};
+      return {_mm256_cmp_ps_mask(__builtin_bit_cast(__m256, x),
+                                 __builtin_bit_cast(__m256, y), 26)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm256_cmp_epi32_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 2)};
+      return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 2)};
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm256_cmp_pd_mask(std::bit_cast<__m256d>(x),
-                                 std::bit_cast<__m256d>(y), 26)};
+      return {_mm256_cmp_pd_mask(__builtin_bit_cast(__m256d, x),
+                                 __builtin_bit_cast(__m256d, y), 26)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm256_cmp_epi64_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 2)};
+      return {_mm256_cmp_epi64_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 2)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm_cmp_ps_mask(std::bit_cast<__m128>(x),
-                              std::bit_cast<__m128>(y), 26)};
+      return {_mm_cmp_ps_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128, y), 26)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm_cmp_epi32_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 2)};
+      return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 2)};
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm_cmp_pd_mask(std::bit_cast<__m128d>(x),
-                              std::bit_cast<__m128d>(y), 26)};
+      return {_mm_cmp_pd_mask(__builtin_bit_cast(__m128d, x),
+                              __builtin_bit_cast(__m128d, y), 26)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm_cmp_epi64_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 2)};
+      return {_mm_cmp_epi64_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 2)};
     else static_assert(false);
   } else static_assert(false);
 }
@@ -788,48 +698,48 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm512_cmp_ps_mask(std::bit_cast<__m512>(x),
-                                 std::bit_cast<__m512>(y), 21)};
+      return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
+                                 __builtin_bit_cast(__m512, y), 21)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm512_cmp_epi32_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 5)};
+      return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 5)};
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 21)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 21)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 5)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 5)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm256_cmp_ps_mask(std::bit_cast<__m256>(x),
-                                 std::bit_cast<__m256>(y), 21)};
+      return {_mm256_cmp_ps_mask(__builtin_bit_cast(__m256, x),
+                                 __builtin_bit_cast(__m256, y), 21)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm256_cmp_epi32_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 5)};
+      return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 5)};
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm256_cmp_pd_mask(std::bit_cast<__m256d>(x),
-                                 std::bit_cast<__m256d>(y), 21)};
+      return {_mm256_cmp_pd_mask(__builtin_bit_cast(__m256d, x),
+                                 __builtin_bit_cast(__m256d, y), 21)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm256_cmp_epi64_mask(std::bit_cast<__m256i>(x),
-                                    std::bit_cast<__m256i>(y), 5)};
+      return {_mm256_cmp_epi64_mask(__builtin_bit_cast(__m256i, x),
+                                    __builtin_bit_cast(__m256i, y), 5)};
     else if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
-      return {_mm_cmp_ps_mask(std::bit_cast<__m128>(x),
-                              std::bit_cast<__m128>(y), 21)};
+      return {_mm_cmp_ps_mask(__builtin_bit_cast(__m128, x),
+                              __builtin_bit_cast(__m128, y), 21)};
     else if constexpr (sizeof(T) == 4)
-      return {_mm_cmp_epi32_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 5)};
+      return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 5)};
     else static_assert(false);
   } else if constexpr (W == 2) {
 
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm_cmp_pd_mask(std::bit_cast<__m128d>(x),
-                              std::bit_cast<__m128d>(y), 21)};
+      return {_mm_cmp_pd_mask(__builtin_bit_cast(__m128d, x),
+                              __builtin_bit_cast(__m128d, y), 21)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm_cmp_epi64_mask(std::bit_cast<__m128i>(x),
-                                 std::bit_cast<__m128i>(y), 5)};
+      return {_mm_cmp_epi64_mask(__builtin_bit_cast(__m128i, x),
+                                 __builtin_bit_cast(__m128i, y), 5)};
     else static_assert(false);
   } else static_assert(false);
 }
@@ -840,11 +750,11 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 8)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 8)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 0)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 0)};
     else static_assert(false);
   } else {
     return mask::Vector<W>{x == y};
@@ -854,11 +764,11 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 4)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 4)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 4)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 4)};
     else static_assert(false);
   } else {
     return mask::Vector<W>{x != y};
@@ -869,11 +779,11 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 25)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 25)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 1)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 1)};
     else static_assert(false);
   } else {
     return mask::Vector<W>{x < y};
@@ -883,11 +793,11 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 22)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 22)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 6)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 6)};
     else static_assert(false);
   } else {
     return mask::Vector<W>{x > y};
@@ -898,11 +808,11 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 26)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 26)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 2)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 2)};
     else static_assert(false);
   } else {
     return mask::Vector<W>{x <= y};
@@ -912,11 +822,11 @@ template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) {
   if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
-      return {_mm512_cmp_pd_mask(std::bit_cast<__m512d>(x),
-                                 std::bit_cast<__m512d>(y), 21)};
+      return {_mm512_cmp_pd_mask(__builtin_bit_cast(__m512d, x),
+                                 __builtin_bit_cast(__m512d, y), 21)};
     else if constexpr (sizeof(T) == 8)
-      return {_mm512_cmp_epi64_mask(std::bit_cast<__m512i>(x),
-                                    std::bit_cast<__m512i>(y), 5)};
+      return {_mm512_cmp_epi64_mask(__builtin_bit_cast(__m512i, x),
+                                    __builtin_bit_cast(__m512i, y), 5)};
     else static_assert(false);
   } else {
     return mask::Vector<W>{x >= y};
@@ -1177,12 +1087,12 @@ template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<16>) -> Vec<16, T> {
   const void *vp = p;
   if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<16, float>>(_mm512_loadu_ps(vp));
+    return __builtin_bit_cast(Vec<16, float>, _mm512_loadu_ps(vp));
   } else if constexpr (sizeof(T) == 4) {
-    return std::bit_cast<Vec<16, T>>(_mm512_loadu_epi32(vp));
+    return __builtin_bit_cast(Vec<16, T>, _mm512_loadu_epi32(vp));
 #ifdef __AVX512VL__
   } else if constexpr (sizeof(T) == 2) {
-    return std::bit_cast<Vec<16, T>>(_mm256_loadu_epi16(vp));
+    return __builtin_bit_cast(Vec<16, T>, _mm256_loadu_epi16(vp));
 #endif
   } else static_assert(false);
 }
@@ -1190,21 +1100,21 @@ template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Bit<8> i) -> Vec<8, T> {
   const void *vp = p;
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<8, double>>(
-      _mm512_maskz_loadu_pd(std::uint8_t(i.mask_), vp));
+    return __builtin_bit_cast(Vec<8, double>,
+                              _mm512_maskz_loadu_pd(std::uint8_t(i.mask_), vp));
   } else if constexpr (sizeof(T) == 8) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm512_maskz_loadu_epi64(std::uint8_t(i.mask_), vp));
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm512_maskz_loadu_epi64(std::uint8_t(i.mask_), vp));
 #ifdef __AVX512VL__
   } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<8, float>>(
-      _mm256_maskz_loadu_ps(std::uint8_t(i.mask_), vp));
+    return __builtin_bit_cast(Vec<8, float>,
+                              _mm256_maskz_loadu_ps(std::uint8_t(i.mask_), vp));
   } else if constexpr (sizeof(T) == 4) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm256_maskz_loadu_epi32(std::uint8_t(i.mask_), vp));
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm256_maskz_loadu_epi32(std::uint8_t(i.mask_), vp));
   } else if constexpr (sizeof(T) == 2) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm_maskz_loadu_epi16(std::uint8_t(i.mask_), vp));
+    return __builtin_bit_cast(Vec<8, T>,
+                              _mm_maskz_loadu_epi16(std::uint8_t(i.mask_), vp));
 #endif
   } else static_assert(false);
 }
@@ -1212,15 +1122,15 @@ template <typename T>
 TRIVIAL inline auto load(const T *pt, mask::Bit<16> i) -> Vec<16, T> {
   const void *p = pt;
   if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<16, float>>(
-      _mm512_maskz_loadu_ps(std::uint16_t(i.mask_), p));
+    return __builtin_bit_cast(Vec<16, float>,
+                              _mm512_maskz_loadu_ps(std::uint16_t(i.mask_), p));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<16, T>>(
-      _mm512_maskz_loadu_epi32(std::uint16_t(i.mask_), p));
+    return __builtin_bit_cast(
+      Vec<16, T>, _mm512_maskz_loadu_epi32(std::uint16_t(i.mask_), p));
 #ifdef __AVX512VL__
   else if constexpr (sizeof(T) == 2)
-    return std::bit_cast<Vec<16, T>>(
-      _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+    return __builtin_bit_cast(
+      Vec<16, T>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
 #endif
   else static_assert(false);
 }
@@ -1228,14 +1138,14 @@ template <typename T>
 TRIVIAL inline void store(T *pt, mask::None<16>, Vec<16, T> x) {
   void *p = pt;
   if constexpr (std::same_as<T, float>) {
-    __m512 xf = std::bit_cast<__m512>(x);
+    __m512 xf = __builtin_bit_cast(__m512, x);
     _mm512_storeu_ps(p, xf);
   } else if constexpr (sizeof(T) == 4) {
-    __m512i xi = std::bit_cast<__m512i>(x);
+    __m512i xi = __builtin_bit_cast(__m512i, x);
     _mm512_storeu_epi32(p, xi);
 #ifdef __AVX512VL__
   } else if constexpr (sizeof(T) == 2) {
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
     _mm256_storeu_epi16(p, xi);
 #endif
   } else static_assert(false);
@@ -1244,20 +1154,20 @@ template <typename T>
 TRIVIAL inline void store(T *p, mask::Bit<8> i, Vec<8, T> x) {
   void *vp = p;
   if constexpr (std::same_as<T, double>) {
-    __m512d xd = std::bit_cast<__m512d>(x);
+    __m512d xd = __builtin_bit_cast(__m512d, x);
     _mm512_mask_storeu_pd(vp, std::uint8_t(i.mask_), xd);
   } else if constexpr (sizeof(T) == 8) {
-    __m512i xi = std::bit_cast<__m512i>(x);
+    __m512i xi = __builtin_bit_cast(__m512i, x);
     _mm512_mask_storeu_epi64(vp, std::uint8_t(i.mask_), xi);
 #ifdef __AVX512VL__
   } else if constexpr (std::same_as<T, float>) {
-    __m256 xf = std::bit_cast<__m256>(x);
+    __m256 xf = __builtin_bit_cast(__m256, x);
     _mm256_mask_storeu_ps(vp, std::uint8_t(i.mask_), xf);
   } else if constexpr (sizeof(T) == 4) {
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
     _mm256_mask_storeu_epi32(vp, std::uint8_t(i.mask_), xi);
   } else if constexpr (sizeof(T) == 2) {
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
     _mm_mask_storeu_epi16(vp, std::uint8_t(i.mask_), xi);
 #endif
   } else static_assert(false);
@@ -1266,14 +1176,14 @@ template <typename T>
 TRIVIAL inline void store(T *pt, mask::Bit<16> i, Vec<16, T> x) {
   void *p = pt;
   if constexpr (std::same_as<T, float>) {
-    __m512 xf = std::bit_cast<__m512>(x);
+    __m512 xf = __builtin_bit_cast(__m512, x);
     _mm512_mask_storeu_ps(p, std::uint16_t(i.mask_), xf);
   } else if constexpr (sizeof(T) == 4) {
-    __m512i xi = std::bit_cast<__m512i>(x);
+    __m512i xi = __builtin_bit_cast(__m512i, x);
     _mm512_mask_storeu_epi32(p, std::uint16_t(i.mask_), xi);
 #ifdef __AVX512VL__
   } else if constexpr (sizeof(T) == 2) {
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
     _mm256_mask_storeu_epi16(p, std::uint16_t(i.mask_), xi);
 #endif
   } else static_assert(false);
@@ -1283,12 +1193,12 @@ TRIVIAL inline void store(T *pt, mask::Bit<16> i, Vec<16, T> x) {
 template <typename T>
 TRIVIAL inline auto gather(const T *pt, mask::None<16>, Vec<16, std::int32_t> i)
   -> Vec<16, T> {
-  auto inds = std::bit_cast<__m512i>(i);
+  auto inds = __builtin_bit_cast(__m512i, i);
   const void *p = pt;
   if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<16, T>>(_mm512_i32gather_ps(inds, p, 4));
+    return __builtin_bit_cast(Vec<16, T>, _mm512_i32gather_ps(inds, p, 4));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_epi32(inds, p, 4));
+    return __builtin_bit_cast(Vec<8, T>, _mm512_i32gather_epi32(inds, p, 4));
   else static_assert(false);
 }
 template <typename T>
@@ -1299,21 +1209,25 @@ TRIVIAL inline auto load(const T *p, mask::None<16>, std::int32_t stride)
 template <typename T>
 TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i,
                            Vec<8, std::int32_t> indv) -> Vec<8, T> {
-  auto inds = std::bit_cast<__m256i>(indv);
+  auto inds = __builtin_bit_cast(__m256i, indv);
   const void *p = pt;
   static constexpr auto src = mmzero<8, T>();
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<8, double>>(
+    return __builtin_bit_cast(
+      Vec<8, double>,
       _mm512_mask_i32gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<8, T>>(
+    return __builtin_bit_cast(
+      Vec<8, T>,
       _mm512_mask_i32gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
 #ifdef __AVX512VL__
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<8, float>>(
+    return __builtin_bit_cast(
+      Vec<8, float>,
       _mm256_mmask_i32gather_ps(src, std::uint8_t(i.mask_), inds, p, 4));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<8, T>>(
+    return __builtin_bit_cast(
+      Vec<8, T>,
       _mm256_mmask_i32gather_epi32(src, std::uint8_t(i.mask_), inds, p, 4));
 #endif
   else static_assert(false);
@@ -1321,14 +1235,16 @@ TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i,
 template <typename T>
 TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i,
                            Vec<8, std::int64_t> indv) -> Vec<8, T> {
-  auto inds = std::bit_cast<__m512i>(indv);
+  auto inds = __builtin_bit_cast(__m512i, indv);
   const void *p = pt;
   static constexpr auto src = mmzero<8, T>();
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<8, double>>(
+    return __builtin_bit_cast(
+      Vec<8, double>,
       _mm512_mask_i64gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<8, T>>(
+    return __builtin_bit_cast(
+      Vec<8, T>,
       _mm512_mask_i64gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
   else static_assert(false);
 }
@@ -1340,14 +1256,16 @@ TRIVIAL inline auto load(const T *p, mask::Bit<8> i, std::int32_t stride)
 template <typename T>
 TRIVIAL inline auto gather(const T *pt, mask::Bit<16> i,
                            Vec<16, std::int32_t> indv) -> Vec<16, T> {
-  auto inds = std::bit_cast<__m512i>(indv);
+  auto inds = __builtin_bit_cast(__m512i, indv);
   const void *p = pt;
   auto src = mmzero<8, T>();
   if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<16, float>>(
+    return __builtin_bit_cast(
+      Vec<16, float>,
       _mm512_mask_i32gather_ps(src, std::uint16_t(i.mask_), inds, p, 4));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<16, T>>(
+    return __builtin_bit_cast(
+      Vec<16, T>,
       _mm512_mask_i32gather_epi32(src, std::uint16_t(i.mask_), inds, p, 4));
   else static_assert(false);
 }
@@ -1359,17 +1277,17 @@ TRIVIAL inline auto load(const T *p, mask::Bit<16> i, std::int32_t stride)
 template <typename T>
 TRIVIAL inline void scatter(T *pt, mask::None<8>, Vec<8, T> x,
                             Vec<8, std::int32_t> indv) {
-  auto inds = std::bit_cast<__m256i>(indv);
+  auto inds = __builtin_bit_cast(__m256i, indv);
   void *p = pt;
   if constexpr (std::same_as<T, double>)
-    _mm512_i32scatter_pd(p, inds, std::bit_cast<__m512d>(x), 8);
+    _mm512_i32scatter_pd(p, inds, __builtin_bit_cast(__m512d, x), 8);
   else if constexpr (sizeof(T) == 8)
-    _mm512_i32scatter_epi64(p, inds, std::bit_cast<__m512i>(x), 8);
+    _mm512_i32scatter_epi64(p, inds, __builtin_bit_cast(__m512i, x), 8);
 #ifdef __AVX512VL__
   else if constexpr (std::same_as<T, float>)
-    _mm256_i32scatter_ps(p, inds, std::bit_cast<__m256>(x), 4);
+    _mm256_i32scatter_ps(p, inds, __builtin_bit_cast(__m256, x), 4);
   else if constexpr (sizeof(T) == 4)
-    _mm256_i32scatter_epi32(p, inds, std::bit_cast<__m256i>(x), 4);
+    _mm256_i32scatter_epi32(p, inds, __builtin_bit_cast(__m256i, x), 4);
 #endif
   else static_assert(false);
 }
@@ -1382,12 +1300,12 @@ TRIVIAL inline void store(T *p, mask::None<8>, Vec<8, T> x,
 template <typename T>
 TRIVIAL inline void scatter(T *pt, mask::None<16>, Vec<16, T> x,
                             Vec<16, std::int32_t> indv) {
-  auto inds = std::bit_cast<__m512i>(indv);
+  auto inds = __builtin_bit_cast(__m512i, indv);
   void *p = pt;
   if constexpr (std::same_as<T, float>)
-    _mm512_i32scatter_ps(p, inds, std::bit_cast<__m512>(x), 4);
+    _mm512_i32scatter_ps(p, inds, __builtin_bit_cast(__m512, x), 4);
   else if constexpr (sizeof(T) == 4)
-    _mm512_i32scatter_epi32(p, inds, std::bit_cast<__m512i>(x), 4);
+    _mm512_i32scatter_epi32(p, inds, __builtin_bit_cast(__m512i, x), 4);
   else static_assert(false);
 }
 template <typename T>
@@ -1398,21 +1316,21 @@ TRIVIAL inline void store(T *p, mask::None<16>, Vec<16, T> x,
 template <typename T>
 TRIVIAL inline void scatter(T *pt, mask::Bit<8> i, Vec<8, T> x,
                             Vec<8, std::int32_t> indv) {
-  auto inds = std::bit_cast<__m256i>(indv);
+  auto inds = __builtin_bit_cast(__m256i, indv);
   void *p = pt;
   if constexpr (std::same_as<T, double>)
     _mm512_mask_i32scatter_pd(p, std::uint8_t(i.mask_), inds,
-                              std::bit_cast<__m512d>(x), 8);
+                              __builtin_bit_cast(__m512d, x), 8);
   else if constexpr (sizeof(T) == 8)
     _mm512_mask_i32scatter_epi64(p, std::uint8_t(i.mask_), inds,
-                                 std::bit_cast<__m512i>(x), 8);
+                                 __builtin_bit_cast(__m512i, x), 8);
 #ifdef __AVX512VL__
   else if constexpr (std::same_as<T, float>)
     _mm256_mask_i32scatter_ps(p, std::uint8_t(i.mask_), inds,
-                              std::bit_cast<__m256>(x), 4);
+                              __builtin_bit_cast(__m256, x), 4);
   else if constexpr (sizeof(T) == 4)
     _mm256_mask_i32scatter_epi32(p, std::uint8_t(i.mask_), inds,
-                                 std::bit_cast<__m256i>(x), 4);
+                                 __builtin_bit_cast(__m256i, x), 4);
 #endif
   else static_assert(false);
 }
@@ -1424,14 +1342,14 @@ TRIVIAL inline void store(T *p, mask::Bit<8> i, Vec<8, T> x,
 template <typename T>
 TRIVIAL inline void scatter(T *pt, mask::Bit<16> i, Vec<16, T> x,
                             Vec<16, std::int32_t> indv) {
-  auto inds = std::bit_cast<__m512i>(indv);
+  auto inds = __builtin_bit_cast(__m512i, indv);
   void *p = pt;
   if constexpr (std::same_as<T, float>)
     _mm512_mask_i32scatter_ps(p, std::uint16_t(i.mask_), inds,
-                              std::bit_cast<__m512>(x), 4);
+                              __builtin_bit_cast(__m512, x), 4);
   else if constexpr (sizeof(T) == 4)
     _mm512_mask_i32scatter_epi32(p, std::uint16_t(i.mask_), inds,
-                                 std::bit_cast<__m512i>(x), 4);
+                                 __builtin_bit_cast(__m512i, x), 4);
   else static_assert(false);
 }
 template <typename T>
@@ -1443,22 +1361,26 @@ template <typename T>
 TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, T> x, Vec<8, T> y)
   -> Vec<8, T> {
   if constexpr (std::same_as<T, double>) {
-    __m512d xd = std::bit_cast<__m512d>(x), yd = std::bit_cast<__m512d>(y);
-    return std::bit_cast<Vec<8, T>>(
-      _mm512_mask_mov_pd(yd, std::uint8_t(m.mask_), xd));
+    __m512d xd = __builtin_bit_cast(__m512d, x),
+            yd = __builtin_bit_cast(__m512d, y);
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm512_mask_mov_pd(yd, std::uint8_t(m.mask_), xd));
   } else if constexpr (sizeof(T) == 8) {
-    __m512i xi = std::bit_cast<__m512i>(x), yi = std::bit_cast<__m512i>(y);
-    return std::bit_cast<Vec<8, T>>(
-      _mm512_mask_mov_epi64(yi, std::uint8_t(m.mask_), xi));
+    __m512i xi = __builtin_bit_cast(__m512i, x),
+            yi = __builtin_bit_cast(__m512i, y);
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm512_mask_mov_epi64(yi, std::uint8_t(m.mask_), xi));
 #ifdef __AVX512VL__
   } else if constexpr (std::same_as<T, float>) {
-    __m256 xf = std::bit_cast<__m256>(x), yf = std::bit_cast<__m256>(y);
-    return std::bit_cast<Vec<8, T>>(
-      _mm256_mask_mov_ps(yf, std::uint8_t(m.mask_), xf));
+    __m256 xf = __builtin_bit_cast(__m256, x),
+           yf = __builtin_bit_cast(__m256, y);
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm256_mask_mov_ps(yf, std::uint8_t(m.mask_), xf));
   } else if constexpr (sizeof(T) == 4) {
-    __m256i xi = std::bit_cast<__m256i>(x), yi = std::bit_cast<__m256i>(y);
-    return std::bit_cast<Vec<8, T>>(
-      _mm256_mask_mov_epi32(yi, std::uint8_t(m.mask_), xi));
+    __m256i xi = __builtin_bit_cast(__m256i, x),
+            yi = __builtin_bit_cast(__m256i, y);
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm256_mask_mov_epi32(yi, std::uint8_t(m.mask_), xi));
 #endif
   } else static_assert(false);
 }
@@ -1467,13 +1389,15 @@ template <typename T>
 TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, T> x, Vec<16, T> y)
   -> Vec<16, T> {
   if constexpr (std::same_as<T, float>) {
-    __m512 xf = std::bit_cast<__m512>(x), yf = std::bit_cast<__m512>(y);
-    return std::bit_cast<Vec<16, T>>(
-      _mm512_mask_mov_ps(yf, std::uint16_t(m.mask_), xf));
+    __m512 xf = __builtin_bit_cast(__m512, x),
+           yf = __builtin_bit_cast(__m512, y);
+    return __builtin_bit_cast(
+      Vec<16, T>, _mm512_mask_mov_ps(yf, std::uint16_t(m.mask_), xf));
   } else if constexpr (sizeof(T) == 4) {
-    __m512i xi = std::bit_cast<__m512i>(x), yi = std::bit_cast<__m512i>(y);
-    return std::bit_cast<Vec<16, T>>(
-      _mm512_mask_mov_epi32(yi, std::uint16_t(m.mask_), xi));
+    __m512i xi = __builtin_bit_cast(__m512i, x),
+            yi = __builtin_bit_cast(__m512i, y);
+    return __builtin_bit_cast(
+      Vec<16, T>, _mm512_mask_mov_epi32(yi, std::uint16_t(m.mask_), xi));
   } else static_assert(false);
 }
 
@@ -1482,58 +1406,58 @@ TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, T> x, Vec<16, T> y)
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<8>) -> Vec<8, T> {
   if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<8, float>>(_mm256_loadu_ps(p));
+    return __builtin_bit_cast(Vec<8, float>, _mm256_loadu_ps(p));
 #ifdef __AVX512F__
   } else if constexpr (sizeof(T) == 4) {
     const void *vp = p;
-    return std::bit_cast<Vec<8, T>>(_mm256_loadu_epi32(vp));
+    return __builtin_bit_cast(Vec<8, T>, _mm256_loadu_epi32(vp));
   } else if constexpr (sizeof(T) == 2) {
     const void *vp = p;
-    return std::bit_cast<Vec<8, T>>(_mm_loadu_epi16(vp));
+    return __builtin_bit_cast(Vec<8, T>, _mm_loadu_epi16(vp));
   } else if constexpr (std::same_as<T, double>) {
     const void *vp = p;
-    return std::bit_cast<Vec<8, double>>(_mm512_loadu_pd(vp));
+    return __builtin_bit_cast(Vec<8, double>, _mm512_loadu_pd(vp));
   } else if constexpr (sizeof(T) == 8) {
     const void *vp = p;
-    return std::bit_cast<Vec<8, T>>(_mm512_loadu_epi64(vp));
+    return __builtin_bit_cast(Vec<8, T>, _mm512_loadu_epi64(vp));
 #else
   } else if constexpr (sizeof(T) == 4) {
     const __m256i *pi = reinterpret_cast<const __m256i *>(p);
-    return std::bit_cast<Vec<8, T>>(_mm256_loadu_si256(pi));
+    return __builtin_bit_cast(Vec<8, T>, _mm256_loadu_si256(pi));
   } else if constexpr (sizeof(T) == 2) {
     const __m128i *pi = reinterpret_cast<const __m128i *>(p);
-    return std::bit_cast<Vec<8, T>>(_mm_loadu_si128(pi));
+    return __builtin_bit_cast(Vec<8, T>, _mm_loadu_si128(pi));
 #endif
   } else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::None<8>, Vec<8, T> x) {
   if constexpr (std::same_as<T, float>) {
-    __m256 xf = std::bit_cast<__m256>(x);
+    __m256 xf = __builtin_bit_cast(__m256, x);
     _mm256_storeu_ps(p, xf);
 #ifdef __AVX512F__
   } else if constexpr (sizeof(T) == 4) {
     void *vp = p;
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
     _mm256_storeu_epi32(vp, xi);
   } else if constexpr (sizeof(T) == 2) {
     void *vp = p;
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
     _mm_storeu_epi16(vp, xi);
   } else if constexpr (std::same_as<T, double>) {
     void *vp = p;
-    __m512d xd = std::bit_cast<__m512d>(x);
+    __m512d xd = __builtin_bit_cast(__m512d, x);
     _mm512_storeu_pd(vp, xd);
   } else if constexpr (sizeof(T) == 8) {
     void *vp = p;
-    __m512i xi = std::bit_cast<__m512i>(x);
+    __m512i xi = __builtin_bit_cast(__m512i, x);
     _mm512_storeu_epi64(vp, xi);
 #else
   } else if constexpr (sizeof(T) == 4) {
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
     _mm256_storeu_si256(reinterpret_cast<__m256i *>(p), xi);
   } else if constexpr (sizeof(T) == 2) {
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
     _mm_storeu_si128(reinterpret_cast<__m128i *>(p), xi);
 #endif
   } else static_assert(false);
@@ -1543,27 +1467,27 @@ TRIVIAL inline void store(T *p, mask::None<8>, Vec<8, T> x) {
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, std::int32_t> indv)
   -> Vec<4, T> {
-  auto x = std::bit_cast<__m128i>(indv);
+  auto x = __builtin_bit_cast(__m128i, indv);
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(_mm256_i32gather_pd(p, x, 8));
+    return __builtin_bit_cast(Vec<4, double>, _mm256_i32gather_pd(p, x, 8));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<4, float>>(_mm_i32gather_ps(p, x, 4));
+    return __builtin_bit_cast(Vec<4, float>, _mm_i32gather_ps(p, x, 4));
   else if constexpr (sizeof(T) == 8) {
     const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return std::bit_cast<Vec<4, T>>(_mm256_i32gather_epi64(pi, x, 8));
+    return __builtin_bit_cast(Vec<4, T>, _mm256_i32gather_epi64(pi, x, 8));
   } else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<4, T>>(_mm_i32gather_epi32(p, x, 4));
+    return __builtin_bit_cast(Vec<4, T>, _mm_i32gather_epi32(p, x, 4));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::None<4>, Vec<4, std::int64_t> indv)
   -> Vec<4, T> {
-  auto x = std::bit_cast<__m256i>(indv);
+  auto x = __builtin_bit_cast(__m256i, indv);
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(_mm256_i64gather_pd(p, x, 8));
+    return __builtin_bit_cast(Vec<4, double>, _mm256_i64gather_pd(p, x, 8));
   else if constexpr (sizeof(T) == 8) {
     const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return std::bit_cast<Vec<4, T>>(_mm256_i64gather_epi64(pi, x, 8));
+    return __builtin_bit_cast(Vec<4, T>, _mm256_i64gather_epi64(pi, x, 8));
   } else static_assert(false);
 }
 template <typename T>
@@ -1574,12 +1498,12 @@ TRIVIAL inline auto load(const T *p, mask::None<4>, std::int32_t stride)
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::None<2>, Vec<2, std::int64_t> indv)
   -> Vec<2, T> {
-  auto x = std::bit_cast<__m128i>(indv);
+  auto x = __builtin_bit_cast(__m128i, indv);
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(_mm_i64gather_pd(p, x, 8));
+    return __builtin_bit_cast(Vec<2, double>, _mm_i64gather_pd(p, x, 8));
   else if constexpr (sizeof(T) == 8) {
     const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return std::bit_cast<Vec<2, T>>(_mm_i64gather_epi64(pi, x, 8));
+    return __builtin_bit_cast(Vec<2, T>, _mm_i64gather_epi64(pi, x, 8));
   } else static_assert(false);
 }
 template <typename T>
@@ -1590,17 +1514,17 @@ TRIVIAL inline auto load(const T *p, mask::None<2>, std::int32_t stride)
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, std::int32_t> indv)
   -> Vec<8, T> {
-  auto inds = std::bit_cast<__m256i>(indv);
+  auto inds = __builtin_bit_cast(__m256i, indv);
   if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<8, T>>(_mm256_i32gather_ps(p, inds, 4));
+    return __builtin_bit_cast(Vec<8, T>, _mm256_i32gather_ps(p, inds, 4));
   } else if constexpr (sizeof(T) == 4) {
-    return std::bit_cast<Vec<8, T>>(_mm256_i32gather_epi32(p, inds, 4));
+    return __builtin_bit_cast(Vec<8, T>, _mm256_i32gather_epi32(p, inds, 4));
 #ifdef __AVX512F__
   } else if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_pd(inds, p, 8));
+    return __builtin_bit_cast(Vec<8, T>, _mm512_i32gather_pd(inds, p, 8));
   } else if constexpr (sizeof(T) == 8) {
     const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return std::bit_cast<Vec<8, T>>(_mm512_i32gather_epi64(inds, pi, 8));
+    return __builtin_bit_cast(Vec<8, T>, _mm512_i32gather_epi64(inds, pi, 8));
 #endif
   } else static_assert(false);
 }
@@ -1608,12 +1532,12 @@ TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, std::int32_t> indv)
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, std::int64_t> indv)
   -> Vec<8, T> {
-  auto inds = std::bit_cast<__m512i>(indv);
+  auto inds = __builtin_bit_cast(__m512i, indv);
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<8, T>>(_mm512_i64gather_pd(inds, p, 8));
+    return __builtin_bit_cast(Vec<8, T>, _mm512_i64gather_pd(inds, p, 8));
   } else if constexpr (sizeof(T) == 8) {
     const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return std::bit_cast<Vec<8, T>>(_mm512_i64gather_epi64(inds, pi, 8));
+    return __builtin_bit_cast(Vec<8, T>, _mm512_i64gather_epi64(inds, pi, 8));
   } else static_assert(false);
 }
 #endif // AVX512F
@@ -1631,33 +1555,33 @@ template <typename T>
 TRIVIAL inline auto load(const T *pt, mask::Bit<4> i) -> Vec<4, T> {
   const void *p = pt;
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<4, double>>(
-      _mm256_maskz_loadu_pd(std::uint8_t(i.mask_), p));
+    return __builtin_bit_cast(Vec<4, double>,
+                              _mm256_maskz_loadu_pd(std::uint8_t(i.mask_), p));
   } else if constexpr (sizeof(T) == 8) {
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_maskz_loadu_epi64(std::uint8_t(i.mask_), p));
+    return __builtin_bit_cast(
+      Vec<4, T>, _mm256_maskz_loadu_epi64(std::uint8_t(i.mask_), p));
   } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<4, float>>(
-      _mm_maskz_loadu_ps(std::uint8_t(i.mask_), p));
+    return __builtin_bit_cast(Vec<4, float>,
+                              _mm_maskz_loadu_ps(std::uint8_t(i.mask_), p));
   } else if constexpr (sizeof(T) == 4) {
-    return std::bit_cast<Vec<4, T>>(
-      _mm_maskz_loadu_epi32(std::uint8_t(i.mask_), p));
+    return __builtin_bit_cast(Vec<4, T>,
+                              _mm_maskz_loadu_epi32(std::uint8_t(i.mask_), p));
   } else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *pt, mask::Bit<4> i, Vec<4, T> x) {
   void *p = pt;
   if constexpr (std::same_as<T, double>) {
-    __m256d xd = std::bit_cast<__m256d>(x);
+    __m256d xd = __builtin_bit_cast(__m256d, x);
     _mm256_mask_storeu_pd(p, std::uint8_t(i.mask_), xd);
   } else if constexpr (sizeof(T) == 8) {
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
     _mm256_mask_storeu_epi64(p, std::uint8_t(i.mask_), xi);
   } else if constexpr (std::same_as<T, float>) {
-    __m128 xf = std::bit_cast<__m128>(x);
+    __m128 xf = __builtin_bit_cast(__m128, x);
     _mm_mask_storeu_ps(p, std::uint8_t(i.mask_), xf);
   } else if constexpr (sizeof(T) == 4) {
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
     _mm_mask_storeu_epi32(p, std::uint8_t(i.mask_), xi);
   } else static_assert(false);
 }
@@ -1665,51 +1589,59 @@ TRIVIAL inline void store(T *pt, mask::Bit<4> i, Vec<4, T> x) {
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Bit<2> i) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(
-      _mm_maskz_loadu_pd(std::uint8_t(i.mask_), p));
+    return __builtin_bit_cast(Vec<2, double>,
+                              _mm_maskz_loadu_pd(std::uint8_t(i.mask_), p));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<2, T>>(
-      _mm_maskz_loadu_epi64(std::uint8_t(i.mask_), p));
+    return __builtin_bit_cast(Vec<2, T>,
+                              _mm_maskz_loadu_epi64(std::uint8_t(i.mask_), p));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::Bit<2> i, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
-    _mm_mask_storeu_pd(p, std::uint8_t(i.mask_), std::bit_cast<__m128d>(x));
+    _mm_mask_storeu_pd(p, std::uint8_t(i.mask_),
+                       __builtin_bit_cast(__m128d, x));
   else if constexpr (sizeof(T) == 8)
-    _mm_mask_storeu_epi64(p, std::uint8_t(i.mask_), std::bit_cast<__m128i>(x));
+    _mm_mask_storeu_epi64(p, std::uint8_t(i.mask_),
+                          __builtin_bit_cast(__m128i, x));
   else static_assert(false);
 }
 // gather/scatter
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Bit<4> i,
                            Vec<4, std::int32_t> indv) -> Vec<4, T> {
-  auto inds = std::bit_cast<__m128i>(indv);
+  auto inds = __builtin_bit_cast(__m128i, indv);
   auto src{mmzero<4, T>()};
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(
+    return __builtin_bit_cast(
+      Vec<4, double>,
       _mm256_mmask_i32gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(
+    return __builtin_bit_cast(
+      Vec<4, T>,
       _mm256_mmask_i32gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<4, float>>(
+    return __builtin_bit_cast(
+      Vec<4, float>,
       _mm_mmask_i32gather_ps(src, std::uint8_t(i.mask_), inds, p, 4));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<4, T>>(
+    return __builtin_bit_cast(
+      Vec<4, T>,
       _mm_mmask_i32gather_epi32(src, std::uint8_t(i.mask_), inds, p, 4));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Bit<4> i,
                            Vec<4, std::int64_t> indv) -> Vec<4, T> {
-  auto inds = std::bit_cast<__m256i>(indv);
+  auto inds = __builtin_bit_cast(__m256i, indv);
   auto src{mmzero<4, T>()};
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(
+    return __builtin_bit_cast(
+      Vec<4, double>,
       _mm256_mmask_i64gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(
+    return __builtin_bit_cast(
+      Vec<4, T>,
       _mm256_mmask_i64gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
   else static_assert(false);
 }
@@ -1722,15 +1654,15 @@ TRIVIAL inline auto load(const T *p, mask::Bit<4> i, std::int32_t stride)
 template <typename T>
 TRIVIAL inline void scatter(T *p, mask::None<4>, Vec<4, T> x,
                             Vec<4, std::int32_t> indv) {
-  auto inds = std::bit_cast<__m128i>(indv);
+  auto inds = __builtin_bit_cast(__m128i, indv);
   if constexpr (std::same_as<T, double>)
-    _mm256_i32scatter_pd(p, inds, std::bit_cast<__m256d>(x), 8);
+    _mm256_i32scatter_pd(p, inds, __builtin_bit_cast(__m256d, x), 8);
   else if constexpr (sizeof(T) == 8)
-    _mm256_i32scatter_epi64(p, inds, std::bit_cast<__m256i>(x), 8);
+    _mm256_i32scatter_epi64(p, inds, __builtin_bit_cast(__m256i, x), 8);
   else if constexpr (std::same_as<T, float>)
-    _mm_i32scatter_ps(p, inds, std::bit_cast<__m128>(x), 4);
+    _mm_i32scatter_ps(p, inds, __builtin_bit_cast(__m128, x), 4);
   else if constexpr (sizeof(T) == 4)
-    _mm_i32scatter_epi32(p, inds, std::bit_cast<__m128i>(x), 4);
+    _mm_i32scatter_epi32(p, inds, __builtin_bit_cast(__m128i, x), 4);
   else static_assert(false);
 }
 template <typename T>
@@ -1741,19 +1673,19 @@ TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x,
 template <typename T>
 TRIVIAL inline void scatter(T *p, mask::Bit<4> i, Vec<4, T> x,
                             Vec<4, std::int32_t> indv) {
-  auto inds = std::bit_cast<__m128i>(indv);
+  auto inds = __builtin_bit_cast(__m128i, indv);
   if constexpr (std::same_as<T, double>)
     _mm256_mask_i32scatter_pd(p, std::uint8_t(i.mask_), inds,
-                              std::bit_cast<__m256d>(x), 8);
+                              __builtin_bit_cast(__m256d, x), 8);
   else if constexpr (sizeof(T) == 8)
     _mm256_mask_i32scatter_epi64(p, std::uint8_t(i.mask_), inds,
-                                 std::bit_cast<__m256i>(x), 8);
+                                 __builtin_bit_cast(__m256i, x), 8);
   else if constexpr (std::same_as<T, double>)
     _mm_mask_i32scatter_ps(p, std::uint8_t(i.mask_), inds,
-                           std::bit_cast<__m128>(x), 4);
+                           __builtin_bit_cast(__m128, x), 4);
   else if constexpr (sizeof(T) == 4)
     _mm_mask_i32scatter_epi32(p, std::uint8_t(i.mask_), inds,
-                              std::bit_cast<__m128i>(x), 4);
+                              __builtin_bit_cast(__m128i, x), 4);
   else static_assert(false);
 }
 template <typename T>
@@ -1764,13 +1696,15 @@ TRIVIAL inline void store(T *p, mask::Bit<4> i, Vec<4, T> x,
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Bit<2> i,
                            Vec<2, std::int64_t> indv) -> Vec<2, T> {
-  auto inds = std::bit_cast<__m128i>(indv);
+  auto inds = __builtin_bit_cast(__m128i, indv);
   auto src{mmzero<2, T>()};
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(
+    return __builtin_bit_cast(
+      Vec<2, double>,
       _mm_mmask_i64gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<2, T>>(
+    return __builtin_bit_cast(
+      Vec<2, T>,
       _mm_mmask_i64gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
   else static_assert(false);
 }
@@ -1782,11 +1716,11 @@ TRIVIAL inline auto load(const T *p, mask::Bit<2> i, std::int32_t stride)
 template <typename T>
 TRIVIAL inline void scatter(T *p, mask::None<2>, Vec<2, T> x,
                             Vec<2, std::int64_t> indv) {
-  auto inds = std::bit_cast<__m128i>(indv);
+  auto inds = __builtin_bit_cast(__m128i, indv);
   if constexpr (std::same_as<T, double>)
-    _mm_i64scatter_pd(p, inds, std::bit_cast<__m128d>(x), 8);
+    _mm_i64scatter_pd(p, inds, __builtin_bit_cast(__m128d, x), 8);
   else if constexpr (sizeof(T) == 8)
-    _mm_i64scatter_epi64(p, inds, std::bit_cast<__m128i>(x), 8);
+    _mm_i64scatter_epi64(p, inds, __builtin_bit_cast(__m128i, x), 8);
   else static_assert(false);
 }
 template <typename T>
@@ -1797,13 +1731,13 @@ TRIVIAL inline void store(T *p, mask::None<2>, Vec<2, T> x,
 template <typename T>
 TRIVIAL inline void scatter(T *p, mask::Bit<2> i, Vec<2, T> x,
                             Vec<2, std::int64_t> indv) {
-  auto inds = std::bit_cast<__m128i>(indv);
+  auto inds = __builtin_bit_cast(__m128i, indv);
   if constexpr (std::same_as<T, double>)
     _mm_mask_i64scatter_pd(p, std::uint8_t(i.mask_), inds,
-                           std::bit_cast<__m128d>(x), 8);
+                           __builtin_bit_cast(__m128d, x), 8);
   else if constexpr (sizeof(T) == 8)
     _mm_mask_i64scatter_epi64(p, std::uint8_t(i.mask_), inds,
-                              std::bit_cast<__m128i>(x), 8);
+                              __builtin_bit_cast(__m128i, x), 8);
   else static_assert(false);
 }
 template <typename T>
@@ -1817,34 +1751,46 @@ TRIVIAL inline auto fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
                           mask::Bit<W> m) {
   if constexpr (std::same_as<T, double>) {
     if constexpr (W == 8) {
-      return std::bit_cast<Vec<W, T>>(_mm512_mask3_fmadd_pd(
-        std::bit_cast<__m512d>(a), std::bit_cast<__m512d>(b),
-        std::bit_cast<__m512d>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm512_mask3_fmadd_pd(__builtin_bit_cast(__m512d, a),
+                                         __builtin_bit_cast(__m512d, b),
+                                         __builtin_bit_cast(__m512d, c),
+                                         std::uint8_t(m.mask_)));
     } else if constexpr (W == 4) {
-      return std::bit_cast<Vec<W, T>>(_mm256_mask3_fmadd_pd(
-        std::bit_cast<__m256d>(a), std::bit_cast<__m256d>(b),
-        std::bit_cast<__m256d>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm256_mask3_fmadd_pd(__builtin_bit_cast(__m256d, a),
+                                         __builtin_bit_cast(__m256d, b),
+                                         __builtin_bit_cast(__m256d, c),
+                                         std::uint8_t(m.mask_)));
     } else {
       static_assert(W == 2);
-      return std::bit_cast<Vec<W, T>>(
-        _mm_mask3_fmadd_pd(std::bit_cast<__m128d>(a), std::bit_cast<__m128d>(b),
-                           std::bit_cast<__m128d>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm_mask3_fmadd_pd(__builtin_bit_cast(__m128d, a),
+                                      __builtin_bit_cast(__m128d, b),
+                                      __builtin_bit_cast(__m128d, c),
+                                      std::uint8_t(m.mask_)));
     }
   } else {
     static_assert(std::same_as<T, float>);
     if constexpr (W == 16) {
-      return std::bit_cast<Vec<W, T>>(_mm512_mask3_fmadd_ps(
-        std::bit_cast<__m512>(a), std::bit_cast<__m512>(b),
-        std::bit_cast<__m512>(c), std::uint16_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm512_mask3_fmadd_ps(__builtin_bit_cast(__m512, a),
+                                         __builtin_bit_cast(__m512, b),
+                                         __builtin_bit_cast(__m512, c),
+                                         std::uint16_t(m.mask_)));
     } else if constexpr (W == 8) {
-      return std::bit_cast<Vec<W, T>>(_mm256_mask3_fmadd_ps(
-        std::bit_cast<__m256>(a), std::bit_cast<__m256>(b),
-        std::bit_cast<__m256>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm256_mask3_fmadd_ps(__builtin_bit_cast(__m256, a),
+                                         __builtin_bit_cast(__m256, b),
+                                         __builtin_bit_cast(__m256, c),
+                                         std::uint8_t(m.mask_)));
     } else {
       static_assert(W == 4);
-      return std::bit_cast<Vec<W, T>>(
-        _mm_mask3_fmadd_ps(std::bit_cast<__m128>(a), std::bit_cast<__m128>(b),
-                           std::bit_cast<__m128>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm_mask3_fmadd_ps(__builtin_bit_cast(__m128, a),
+                                      __builtin_bit_cast(__m128, b),
+                                      __builtin_bit_cast(__m128, c),
+                                      std::uint8_t(m.mask_)));
     }
   }
 }
@@ -1854,34 +1800,46 @@ TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
                            mask::Bit<W> m) {
   if constexpr (std::same_as<T, double>) {
     if constexpr (W == 8) {
-      return std::bit_cast<Vec<W, T>>(_mm512_mask3_fnmadd_pd(
-        std::bit_cast<__m512d>(a), std::bit_cast<__m512d>(b),
-        std::bit_cast<__m512d>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm512_mask3_fnmadd_pd(__builtin_bit_cast(__m512d, a),
+                                          __builtin_bit_cast(__m512d, b),
+                                          __builtin_bit_cast(__m512d, c),
+                                          std::uint8_t(m.mask_)));
     } else if constexpr (W == 4) {
-      return std::bit_cast<Vec<W, T>>(_mm256_mask3_fnmadd_pd(
-        std::bit_cast<__m256d>(a), std::bit_cast<__m256d>(b),
-        std::bit_cast<__m256d>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm256_mask3_fnmadd_pd(__builtin_bit_cast(__m256d, a),
+                                          __builtin_bit_cast(__m256d, b),
+                                          __builtin_bit_cast(__m256d, c),
+                                          std::uint8_t(m.mask_)));
     } else {
       static_assert(W == 2);
-      return std::bit_cast<Vec<W, T>>(_mm_mask3_fnmadd_pd(
-        std::bit_cast<__m128d>(a), std::bit_cast<__m128d>(b),
-        std::bit_cast<__m128d>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm_mask3_fnmadd_pd(__builtin_bit_cast(__m128d, a),
+                                       __builtin_bit_cast(__m128d, b),
+                                       __builtin_bit_cast(__m128d, c),
+                                       std::uint8_t(m.mask_)));
     }
   } else {
     static_assert(std::same_as<T, float>);
     if constexpr (W == 16) {
-      return std::bit_cast<Vec<W, T>>(_mm512_mask3_fnmadd_ps(
-        std::bit_cast<__m512>(a), std::bit_cast<__m512>(b),
-        std::bit_cast<__m512>(c), std::uint16_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm512_mask3_fnmadd_ps(__builtin_bit_cast(__m512, a),
+                                          __builtin_bit_cast(__m512, b),
+                                          __builtin_bit_cast(__m512, c),
+                                          std::uint16_t(m.mask_)));
     } else if constexpr (W == 8) {
-      return std::bit_cast<Vec<W, T>>(_mm256_mask3_fnmadd_ps(
-        std::bit_cast<__m256>(a), std::bit_cast<__m256>(b),
-        std::bit_cast<__m256>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm256_mask3_fnmadd_ps(__builtin_bit_cast(__m256, a),
+                                          __builtin_bit_cast(__m256, b),
+                                          __builtin_bit_cast(__m256, c),
+                                          std::uint8_t(m.mask_)));
     } else {
       static_assert(W == 4);
-      return std::bit_cast<Vec<W, T>>(
-        _mm_mask3_fnmadd_ps(std::bit_cast<__m128>(a), std::bit_cast<__m128>(b),
-                            std::bit_cast<__m128>(c), std::uint8_t(m.mask_)));
+      return __builtin_bit_cast(
+        Vec<W, T>, _mm_mask3_fnmadd_ps(__builtin_bit_cast(__m128, a),
+                                       __builtin_bit_cast(__m128, b),
+                                       __builtin_bit_cast(__m128, c),
+                                       std::uint8_t(m.mask_)));
     }
   }
 }
@@ -1889,34 +1847,40 @@ template <typename T>
 TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, T> x, Vec<4, T> y)
   -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_mask_mov_pd(std::bit_cast<__m256d>(y), std::uint8_t(m.mask_),
-                         std::bit_cast<__m256d>(x)));
+    return __builtin_bit_cast(
+      Vec<4, T>,
+      _mm256_mask_mov_pd(__builtin_bit_cast(__m256d, y), std::uint8_t(m.mask_),
+                         __builtin_bit_cast(__m256d, x)));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_mask_mov_epi64(std::bit_cast<__m256i>(y), std::uint8_t(m.mask_),
-                            std::bit_cast<__m256i>(x)));
+    return __builtin_bit_cast(
+      Vec<4, T>, _mm256_mask_mov_epi64(__builtin_bit_cast(__m256i, y),
+                                       std::uint8_t(m.mask_),
+                                       __builtin_bit_cast(__m256i, x)));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<4, T>>(_mm_mask_mov_ps(std::bit_cast<__m128>(y),
-                                                    std::uint8_t(m.mask_),
-                                                    std::bit_cast<__m128>(x)));
+    return __builtin_bit_cast(Vec<4, T>,
+                              _mm_mask_mov_ps(__builtin_bit_cast(__m128, y),
+                                              std::uint8_t(m.mask_),
+                                              __builtin_bit_cast(__m128, x)));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<4, T>>(
-      _mm_mask_mov_epi32(std::bit_cast<__m128i>(y), std::uint8_t(m.mask_),
-                         std::bit_cast<__m128i>(x)));
+    return __builtin_bit_cast(
+      Vec<4, T>,
+      _mm_mask_mov_epi32(__builtin_bit_cast(__m128i, y), std::uint8_t(m.mask_),
+                         __builtin_bit_cast(__m128i, x)));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, T> x, Vec<2, T> y)
   -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, T>>(_mm_mask_mov_pd(std::bit_cast<__m128d>(y),
-                                                    std::uint8_t(m.mask_),
-                                                    std::bit_cast<__m128d>(x)));
+    return __builtin_bit_cast(Vec<2, T>,
+                              _mm_mask_mov_pd(__builtin_bit_cast(__m128d, y),
+                                              std::uint8_t(m.mask_),
+                                              __builtin_bit_cast(__m128d, x)));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<2, T>>(
-      _mm_mask_mov_epi64(std::bit_cast<__m128i>(y), std::uint8_t(m.mask_),
-                         std::bit_cast<__m128i>(x)));
+    return __builtin_bit_cast(
+      Vec<2, T>,
+      _mm_mask_mov_epi64(__builtin_bit_cast(__m128i, y), std::uint8_t(m.mask_),
+                         __builtin_bit_cast(__m128i, x)));
   else static_assert(false);
 }
 
@@ -1926,13 +1890,16 @@ TRIVIAL inline auto fmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
                           mask::Mask<W> m) {
   if constexpr ((W * sizeof(T)) != 64) return m.m ? (a * b + c) : c;
   else if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<W, T>>(_mm512_mask3_fmadd_pd(
-      std::bit_cast<__m512d>(a), std::bit_cast<__m512d>(b),
-      std::bit_cast<__m512d>(c), std::uint8_t(m.mask_)));
+    return __builtin_bit_cast(
+      Vec<W, T>, _mm512_mask3_fmadd_pd(__builtin_bit_cast(__m512d, a),
+                                       __builtin_bit_cast(__m512d, b),
+                                       __builtin_bit_cast(__m512d, c),
+                                       std::uint8_t(m.mask_)));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<W, T>>(
-      _mm512_mask3_fmadd_ps(std::bit_cast<__m512>(a), std::bit_cast<__m512>(b),
-                            std::bit_cast<__m512>(c), std::uint16_t(m.mask_)));
+    return __builtin_bit_cast(
+      Vec<W, T>, _mm512_mask3_fmadd_ps(
+                   __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
+                   __builtin_bit_cast(__m512, c), std::uint16_t(m.mask_)));
   else static_assert(false);
 }
 template <typename T, std::ptrdiff_t W>
@@ -1940,13 +1907,16 @@ TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
                            mask::Mask<W> m) {
   if constexpr ((W * sizeof(T)) != 64) return m.m ? (c - a * b) : c;
   else if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<W, T>>(_mm512_mask3_fnmadd_pd(
-      std::bit_cast<__m512d>(a), std::bit_cast<__m512d>(b),
-      std::bit_cast<__m512d>(c), std::uint8_t(m.mask_)));
+    return __builtin_bit_cast(
+      Vec<W, T>, _mm512_mask3_fnmadd_pd(__builtin_bit_cast(__m512d, a),
+                                        __builtin_bit_cast(__m512d, b),
+                                        __builtin_bit_cast(__m512d, c),
+                                        std::uint8_t(m.mask_)));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<W, T>>(
-      _mm512_mask3_fnmadd_ps(std::bit_cast<__m512>(a), std::bit_cast<__m512>(b),
-                             std::bit_cast<__m512>(c), std::uint16_t(m.mask_)));
+    return __builtin_bit_cast(
+      Vec<W, T>, _mm512_mask3_fnmadd_ps(
+                   __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
+                   __builtin_bit_cast(__m512, c), std::uint16_t(m.mask_)));
   else static_assert(false);
 }
 
@@ -1985,30 +1955,34 @@ TRIVIAL inline void scatter(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x,
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> m,
                            Vec<4, std::int32_t> indv) -> Vec<4, T> {
-  auto x = std::bit_cast<__m128i>(indv);
+  auto x = __builtin_bit_cast(__m128i, indv);
   static constexpr auto z = mmzero<4, T>();
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<4, double>>(
-      _mm256_mask_i32gather_pd(z, p, x, m, 8));
+    return __builtin_bit_cast(Vec<4, double>,
+                              _mm256_mask_i32gather_pd(z, p, x, m, 8));
   } else if constexpr (sizeof(T) == 8) {
     const long long int *l = reinterpret_cast<const long long int *>(p);
-    return std::bit_cast<Vec<4, T>>(_mm256_mask_i32gather_epi64(z, l, x, m, 8));
+    return __builtin_bit_cast(Vec<4, T>,
+                              _mm256_mask_i32gather_epi64(z, l, x, m, 8));
   } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<4, float>>(_mm_mask_i32gather_ps(z, p, x, m, 4));
+    return __builtin_bit_cast(Vec<4, float>,
+                              _mm_mask_i32gather_ps(z, p, x, m, 4));
   } else if constexpr (sizeof(T) == 4) {
-    return std::bit_cast<Vec<4, T>>(_mm_mask_i32gather_epi32(z, p, x, m, 4));
+    return __builtin_bit_cast(Vec<4, T>,
+                              _mm_mask_i32gather_epi32(z, p, x, m, 4));
   } else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> m,
                            Vec<4, std::int64_t> indv) -> Vec<4, T> {
-  auto x = std::bit_cast<__m256i>(indv);
+  auto x = __builtin_bit_cast(__m256i, indv);
   static constexpr auto z = mmzero<4, T>();
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(
-      _mm256_mask_i64gather_pd(z, p, x, m, 8));
+    return __builtin_bit_cast(Vec<4, double>,
+                              _mm256_mask_i64gather_pd(z, p, x, m, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(_mm256_mask_i64gather_epi64(z, p, x, m, 8));
+    return __builtin_bit_cast(Vec<4, T>,
+                              _mm256_mask_i64gather_epi64(z, p, x, m, 8));
   else static_assert(false);
 }
 template <typename T>
@@ -2019,14 +1993,15 @@ TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> m,
 template <typename T>
 TRIVIAL inline auto gather(const T *p, mask::Vector<2, sizeof(T)> m,
                            Vec<2, std::int64_t> indv) -> Vec<2, T> {
-  auto x = std::bit_cast<__m128i>(indv);
+  auto x = __builtin_bit_cast(__m128i, indv);
   __m128i mask = __m128i(m);
   static constexpr auto z = mmzero<2, T>();
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(
-      _mm_mask_i64gather_pd(z, p, x, mask, 8));
+    return __builtin_bit_cast(Vec<2, double>,
+                              _mm_mask_i64gather_pd(z, p, x, mask, 8));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<2, T>>(_mm_mask_i64gather_epi64(z, p, x, mask, 8));
+    return __builtin_bit_cast(Vec<2, T>,
+                              _mm_mask_i64gather_epi64(z, p, x, mask, 8));
   else static_assert(false);
 }
 template <typename T>
@@ -2148,43 +2123,44 @@ template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> i)
   -> Vec<4, T> {
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<4, double>>(_mm256_maskload_pd(p, i));
+    return __builtin_bit_cast(Vec<4, double>, _mm256_maskload_pd(p, i));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_maskload_epi64((const long long *)p, i));
+    return __builtin_bit_cast(Vec<4, T>,
+                              _mm256_maskload_epi64((const long long *)p, i));
   else if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<4, float>>(_mm_maskload_ps(p, i));
+    return __builtin_bit_cast(Vec<4, float>, _mm_maskload_ps(p, i));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<4, T>>(_mm_maskload_epi32((const int *)p, i));
+    return __builtin_bit_cast(Vec<4, T>, _mm_maskload_epi32((const int *)p, i));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Vector<8, sizeof(T)> i)
   -> Vec<8, T> {
   if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<8, float>>(_mm256_maskload_ps(p, i));
+    return __builtin_bit_cast(Vec<8, float>, _mm256_maskload_ps(p, i));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<8, T>>(_mm256_maskload_epi32((const int *)p, i));
+    return __builtin_bit_cast(Vec<8, T>,
+                              _mm256_maskload_epi32((const int *)p, i));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>)
-    _mm256_maskstore_pd(p, i, std::bit_cast<__m256d>(x));
+    _mm256_maskstore_pd(p, i, __builtin_bit_cast(__m256d, x));
   else if constexpr (sizeof(T) == 8)
-    _mm256_maskstore_epi64((long long *)p, i, std::bit_cast<__m256i>(x));
+    _mm256_maskstore_epi64((long long *)p, i, __builtin_bit_cast(__m256i, x));
   else if constexpr (std::same_as<T, float>)
-    _mm_maskstore_ps(p, i, std::bit_cast<__m128>(x));
+    _mm_maskstore_ps(p, i, __builtin_bit_cast(__m128, x));
   else if constexpr (sizeof(T) == 4)
-    _mm_maskstore_epi32((int *)p, i, std::bit_cast<__m128i>(x));
+    _mm_maskstore_epi32((int *)p, i, __builtin_bit_cast(__m128i, x));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::Vector<8, sizeof(T)> i, Vec<8, T> x) {
   if constexpr (std::same_as<T, float>)
-    _mm256_maskstore_ps(p, i, std::bit_cast<__m256>(x));
+    _mm256_maskstore_ps(p, i, __builtin_bit_cast(__m256, x));
   else if constexpr (sizeof(T) == 4)
-    _mm256_maskstore_epi32((int *)p, i, std::bit_cast<__m256i>(x));
+    _mm256_maskstore_epi32((int *)p, i, __builtin_bit_cast(__m256i, x));
   else static_assert(false);
 }
 
@@ -2192,18 +2168,18 @@ template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> i)
   -> Vec<2, T> {
   if constexpr (std::same_as<T, double>)
-    return std::bit_cast<Vec<2, double>>(_mm_maskload_pd(p, i));
+    return __builtin_bit_cast(Vec<2, double>, _mm_maskload_pd(p, i));
   else if constexpr (sizeof(T) == 8)
-    return std::bit_cast<Vec<2, T>>(
-      _mm_maskload_epi64((const long long *)p, i));
+    return __builtin_bit_cast(Vec<2, T>,
+                              _mm_maskload_epi64((const long long *)p, i));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>)
-    _mm_maskstore_pd(p, i, std::bit_cast<__m128d>(x));
+    _mm_maskstore_pd(p, i, __builtin_bit_cast(__m128d, x));
   else if constexpr (sizeof(T) == 8)
-    _mm_maskstore_epi64((long long *)p, i, std::bit_cast<__m128i>(x));
+    _mm_maskstore_epi64((long long *)p, i, __builtin_bit_cast(__m128i, x));
   else static_assert(false);
 }
 
@@ -2272,34 +2248,34 @@ TRIVIAL inline void store(T *p, mask::Vector<4, sizeof(T)> i, Vec<4, T> x) {
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<4>) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<4, double>>(_mm256_loadu_pd(p));
+    return __builtin_bit_cast(Vec<4, double>, _mm256_loadu_pd(p));
   } else if constexpr (sizeof(T) == 8) {
 #ifdef __AVX512VL__
     const void *vp = p;
-    return std::bit_cast<Vec<4, T>>(_mm256_loadu_epi64(vp));
+    return __builtin_bit_cast(Vec<4, T>, _mm256_loadu_epi64(vp));
 #else
     const __m256i *pi = reinterpret_cast<const __m256i *>(p);
-    return std::bit_cast<Vec<4, T>>(_mm256_loadu_si256(pi));
+    return __builtin_bit_cast(Vec<4, T>, _mm256_loadu_si256(pi));
 #endif
   } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<4, float>>(_mm_loadu_ps(p));
+    return __builtin_bit_cast(Vec<4, float>, _mm_loadu_ps(p));
   } else if constexpr (sizeof(T) == 4) {
 #ifdef __AVX512VL__
     const void *vp = p;
-    return std::bit_cast<Vec<4, T>>(_mm_loadu_epi32(vp));
+    return __builtin_bit_cast(Vec<4, T>, _mm_loadu_epi32(vp));
 #else
     const __m128i *pi = reinterpret_cast<const __m128i *>(p);
-    return std::bit_cast<Vec<4, T>>(_mm_loadu_si128(pi));
+    return __builtin_bit_cast(Vec<4, T>, _mm_loadu_si128(pi));
 #endif
   } else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>) {
-    __m256d xd = std::bit_cast<__m256d>(x);
+    __m256d xd = __builtin_bit_cast(__m256d, x);
     _mm256_storeu_pd(p, xd);
   } else if constexpr (sizeof(T) == 8) {
-    __m256i xi = std::bit_cast<__m256i>(x);
+    __m256i xi = __builtin_bit_cast(__m256i, x);
 #ifdef __AVX512VL__
     void *vp = p;
     _mm256_storeu_epi64(vp, xi);
@@ -2308,10 +2284,10 @@ TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x) {
     _mm256_storeu_si256(pi, xi);
 #endif
   } else if constexpr (std::same_as<T, float>) {
-    __m128 xf = std::bit_cast<__m128>(x);
+    __m128 xf = __builtin_bit_cast(__m128, x);
     _mm_storeu_ps(p, xf);
   } else if constexpr (sizeof(T) == 4) {
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
 #ifdef __AVX512VL__
     void *vp = p;
     _mm_storeu_epi32(vp, xi);
@@ -2357,18 +2333,18 @@ TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x) {
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<4>) -> Vec<4, T> {
   if constexpr (std::same_as<T, float>)
-    return std::bit_cast<Vec<4, float>>(_mm_loadu_ps(p));
+    return __builtin_bit_cast(Vec<4, float>, _mm_loadu_ps(p));
   else if constexpr (sizeof(T) == 4)
-    return std::bit_cast<Vec<4, T>>(_mm_loadu_si128((const __m128i *)p));
+    return __builtin_bit_cast(Vec<4, T>, _mm_loadu_si128((const __m128i *)p));
   else static_assert(false);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::None<4>, Vec<4, T> x) {
   if constexpr (std::same_as<T, float>)
-    _mm_storeu_pd(p, std::bit_cast<__m128d>(x));
+    _mm_storeu_pd(p, __builtin_bit_cast(__m128d, x));
   else if constexpr (sizeof(T) == 4) {
     __m128i *pi = reinterpret_cast<__m128i *>(p);
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
     _mm_storeu_si128(pi, xi);
   } else static_assert(false);
 }
@@ -2379,13 +2355,13 @@ template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<2>) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>) {
     double const *dp = p;
-    return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(dp));
-    // return std::bit_cast<Vec<2, double>>(_mm_loadu_pd(p));
+    return __builtin_bit_cast(Vec<2, double>, _mm_loadu_pd(dp));
+    // return __builtin_bit_cast(Vec<2, double>,_mm_loadu_pd(p));
   } else if constexpr (sizeof(T) == 8)
 #ifdef __AVX512VL__
-    return std::bit_cast<Vec<2, T>>(_mm_loadu_epi64(p));
+    return __builtin_bit_cast(Vec<2, T>, _mm_loadu_epi64(p));
 #else
-    return std::bit_cast<Vec<2, T>>(_mm_loadu_si128((const __m128i *)p));
+    return __builtin_bit_cast(Vec<2, T>, _mm_loadu_si128((const __m128i *)p));
 #endif
   else return Vec<2, T>{p[0], p[1]};
   // else static_assert(false);
@@ -2395,10 +2371,10 @@ template <typename T>
 TRIVIAL inline void store(T *p, mask::None<2>, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>) {
     double *dp = p;
-    __m128d xpd = std::bit_cast<__m128d>(x);
+    __m128d xpd = __builtin_bit_cast(__m128d, x);
     _mm_storeu_pd(dp, xpd);
   } else if constexpr (sizeof(T) == 8) {
-    __m128i xi = std::bit_cast<__m128i>(x);
+    __m128i xi = __builtin_bit_cast(__m128i, x);
 #ifdef __AVX512VL__
     void *vp = p;
     _mm_storeu_epi64(vp, xi);
@@ -2513,21 +2489,21 @@ template <typename T>
 TRIVIAL inline void compressstore(T *p, mask::Bit<16> m, Vec<16, T> x) {
   if constexpr (std::same_as<T, float>) {
     _mm512_mask_compressstoreu_ps(p, std::uint16_t(m.mask_),
-                                  std::bit_cast<__m512>(x));
+                                  __builtin_bit_cast(__m512, x));
   } else if constexpr (std::same_as<T, std::int32_t>) {
     _mm512_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_),
-                                     std::bit_cast<__m512i>(x));
+                                     __builtin_bit_cast(__m512i, x));
   } else static_assert("type not supported");
 }
 
 template <typename T>
 TRIVIAL inline auto expandload(const T *p, mask::Bit<16> m) -> Vec<16, T> {
   if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<16, T>>(
-      _mm512_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<16, T>, _mm512_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int32_t>) {
-    return std::bit_cast<Vec<16, T>>(
-      _mm512_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<16, T>, _mm512_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
   } else static_assert("type not supported");
 }
 
@@ -2535,33 +2511,33 @@ template <typename T>
 TRIVIAL inline void compressstore(T *p, mask::Bit<8> m, Vec<8, T> x) {
   if constexpr (std::same_as<T, double>) {
     _mm512_mask_compressstoreu_pd(p, std::uint8_t(m.mask_),
-                                  std::bit_cast<__m512d>(x));
+                                  __builtin_bit_cast(__m512d, x));
   } else if constexpr (std::same_as<T, std::int64_t>) {
     _mm512_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_),
-                                     std::bit_cast<__m512i>(x));
+                                     __builtin_bit_cast(__m512i, x));
   } else if constexpr (std::same_as<T, float>) {
     _mm256_mask_compressstoreu_ps(p, std::uint16_t(m.mask_),
-                                  std::bit_cast<__m256>(x));
+                                  __builtin_bit_cast(__m256, x));
   } else if constexpr (std::same_as<T, std::int32_t>) {
     _mm256_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_),
-                                     std::bit_cast<__m256i>(x));
+                                     __builtin_bit_cast(__m256i, x));
   } else static_assert("type not supported");
 }
 
 template <typename T>
 TRIVIAL inline auto expandload(const T *p, mask::Bit<8> m) -> Vec<8, T> {
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm512_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm512_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int64_t>) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm512_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm512_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
   } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm256_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm256_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int32_t>) {
-    return std::bit_cast<Vec<8, T>>(
-      _mm256_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<8, T>, _mm256_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
   } else static_assert("type not supported");
 }
 
@@ -2569,33 +2545,33 @@ template <typename T>
 TRIVIAL inline void compressstore(T *p, mask::Bit<4> m, Vec<4, T> x) {
   if constexpr (std::same_as<T, double>) {
     _mm256_mask_compressstoreu_pd(p, std::uint8_t(m.mask_),
-                                  std::bit_cast<__m256d>(x));
+                                  __builtin_bit_cast(__m256d, x));
   } else if constexpr (std::same_as<T, std::int64_t>) {
     _mm256_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_),
-                                     std::bit_cast<__m256i>(x));
+                                     __builtin_bit_cast(__m256i, x));
   } else if constexpr (std::same_as<T, float>) {
     _mm128_mask_compressstoreu_ps(p, std::uint16_t(m.mask_),
-                                  std::bit_cast<__m128>(x));
+                                  __builtin_bit_cast(__m128, x));
   } else if constexpr (std::same_as<T, std::int32_t>) {
     _mm128_mask_compressstoreu_epi32(p, std::uint16_t(m.mask_),
-                                     std::bit_cast<__m128i>(x));
+                                     __builtin_bit_cast(__m128i, x));
   } else static_assert("type not supported");
 }
 
 template <typename T>
 TRIVIAL inline auto expandload(const T *p, mask::Bit<4> m) -> Vec<4, T> {
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<4, T>, _mm256_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int64_t>) {
-    return std::bit_cast<Vec<4, T>>(
-      _mm256_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<4, T>, _mm256_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
   } else if constexpr (std::same_as<T, float>) {
-    return std::bit_cast<Vec<4, T>>(
-      _mm128_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<4, T>, _mm128_maskz_expandloadu_ps(std::uint16_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int32_t>) {
-    return std::bit_cast<Vec<4, T>>(
-      _mm128_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<4, T>, _mm128_maskz_expandloadu_epi32(std::uint16_t(m.mask_), p));
   } else static_assert("type not supported");
 }
 
@@ -2603,21 +2579,21 @@ template <typename T>
 TRIVIAL inline void compressstore(T *p, mask::Bit<2> m, Vec<2, T> x) {
   if constexpr (std::same_as<T, double>) {
     _mm128_mask_compressstoreu_pd(p, std::uint8_t(m.mask_),
-                                  std::bit_cast<__m128d>(x));
+                                  __builtin_bit_cast(__m128d, x));
   } else if constexpr (std::same_as<T, std::int64_t>) {
     _mm128_mask_compressstoreu_epi64(p, std::uint8_t(m.mask_),
-                                     std::bit_cast<__m128i>(x));
+                                     __builtin_bit_cast(__m128i, x));
   } else static_assert("type not supported");
 }
 
 template <typename T>
 TRIVIAL inline auto expandload(const T *p, mask::Bit<2> m) -> Vec<2, T> {
   if constexpr (std::same_as<T, double>) {
-    return std::bit_cast<Vec<2, T>>(
-      _mm128_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<2, T>, _mm128_maskz_expandloadu_pd(std::uint8_t(m.mask_), p));
   } else if constexpr (std::same_as<T, std::int64_t>) {
-    return std::bit_cast<Vec<2, T>>(
-      _mm128_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
+    return __builtin_bit_cast(
+      Vec<2, T>, _mm128_maskz_expandloadu_epi64(std::uint8_t(m.mask_), p));
   } else static_assert("type not supported");
 }
 
@@ -2824,28 +2800,28 @@ TRIVIAL inline constexpr auto clz(Vec<W, T> v) {
   static_assert((sizeof(T) == 4) || (sizeof(T) == 8));
   if constexpr (W == 16) {
     static_assert(sizeof(T) == 4);
-    __m512i vi = std::bit_cast<__m512i>(v);
-    return std::bit_cast<Vec<W, T>>(_mm512_lzcnt_epi32(vi));
+    __m512i vi = __builtin_bit_cast(__m512i, v);
+    return __builtin_bit_cast(Vec<W, T>, _mm512_lzcnt_epi32(vi));
   } else if constexpr (W == 8) {
     if constexpr (sizeof(T) == 8) {
-      __m512i vi = std::bit_cast<__m512i>(v);
-      return std::bit_cast<Vec<W, T>>(_mm512_lzcnt_epi64(vi));
+      __m512i vi = __builtin_bit_cast(__m512i, v);
+      return __builtin_bit_cast(Vec<W, T>, _mm512_lzcnt_epi64(vi));
     } else {
-      __m256i vi = std::bit_cast<__m256i>(v);
-      return std::bit_cast<Vec<W, T>>(_mm256_lzcnt_epi32(vi));
+      __m256i vi = __builtin_bit_cast(__m256i, v);
+      return __builtin_bit_cast(Vec<W, T>, _mm256_lzcnt_epi32(vi));
     }
   } else if constexpr (W == 4) {
     if constexpr (sizeof(T) == 8) {
-      __m256i vi = std::bit_cast<__m256i>(v);
-      return std::bit_cast<Vec<W, T>>(_mm256_lzcnt_epi64(vi));
+      __m256i vi = __builtin_bit_cast(__m256i, v);
+      return __builtin_bit_cast(Vec<W, T>, _mm256_lzcnt_epi64(vi));
     } else {
-      __m128i vi = std::bit_cast<__m128i>(v);
-      return std::bit_cast<Vec<W, T>>(_mm_lzcnt_epi32(vi));
+      __m128i vi = __builtin_bit_cast(__m128i, v);
+      return __builtin_bit_cast(Vec<W, T>, _mm_lzcnt_epi32(vi));
     }
   } else {
     static_assert(sizeof(T) == 8);
-    __m128i vi = std::bit_cast<__m128i>(v);
-    return std::bit_cast<Vec<W, T>>(_mm_lzcnt_epi64(vi));
+    __m128i vi = __builtin_bit_cast(__m128i, v);
+    return __builtin_bit_cast(Vec<W, T>, _mm_lzcnt_epi64(vi));
   }
 }
 // count right zeros

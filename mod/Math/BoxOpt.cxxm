@@ -49,8 +49,9 @@ public:
 #ifdef __AVX512F__
       auto m = simd::cmp::ge<W, int>(j.vec_, simd::Vec<W, int>{});
 #else
-      auto m = simd::cmp::ge<W, std::int64_t>(simd::zextelts<W>(j.vec_),
-                                              simd::Vec<W, std::int64_t>{});
+      auto m = simd::cmp::ge<W, std::int64_t>(
+        __builtin_convertvector(j.vec_, simd::Vec<W, std::int64_t>),
+        simd::Vec<W, std::int64_t>{});
 #endif
       V xload = simd::gather(x.data(), i.mask_ & m, j.vec_);
       y.vec_ = simd::select<double>(

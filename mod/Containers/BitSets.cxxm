@@ -936,7 +936,7 @@ struct BitSets {
     std::ptrdiff_t sz = num_chunks_per_;
     return value_type{{data_ + (sz * i), math::length(sz)}};
   }
-  // returns the number of bytes freed
+  /// returns the number of bytes freed
   auto resize(std::uint32_t new_size) -> std::ptrdiff_t {
     invariant(new_size <= num_sets_);
     std::ptrdiff_t diff = num_sets_ - new_size;
