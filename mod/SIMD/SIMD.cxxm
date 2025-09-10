@@ -1292,167 +1292,311 @@ TRIVIAL inline void store(std::uint16_t *pt, mask::Bit<16> i,
 #endif
 
 // strided memory accesses
-template <typename T>
-TRIVIAL inline auto gather(const T *pt, mask::None<16>, Vec<16, std::int32_t> i)
-  -> Vec<16, T> {
+TRIVIAL inline auto gather(const float *pt, mask::None<16>,
+                           Vec<16, std::int32_t> i) -> Vec<16, float> {
   auto inds = __builtin_bit_cast(__m512i, i);
   const void *p = pt;
-  if constexpr (std::same_as<T, float>)
-    return __builtin_bit_cast(Vec<16, T>, _mm512_i32gather_ps(inds, p, 4));
-  else if constexpr (sizeof(T) == 4)
-    return __builtin_bit_cast(Vec<8, T>, _mm512_i32gather_epi32(inds, p, 4));
-  else static_assert(false);
+  return __builtin_bit_cast(Vec<16, float>, _mm512_i32gather_ps(inds, p, 4));
+}
+TRIVIAL inline auto gather(const std::int32_t *pt, mask::None<16>,
+                           Vec<16, std::int32_t> i) -> Vec<16, std::int32_t> {
+  auto inds = __builtin_bit_cast(__m512i, i);
+  const void *p = pt;
+  return __builtin_bit_cast(Vec<16, std::int32_t>,
+                            _mm512_i32gather_ps(inds, p, 4));
+}
+template <typename std::uint32_t>
+TRIVIAL inline auto gather(const std::uint32_t *pt, mask::None<16>,
+                           Vec<16, std::int32_t> i) -> Vec<16, std::uint32_t> {
+  auto inds = __builtin_bit_cast(__m512i, i);
+  const void *p = pt;
+  return __builtin_bit_cast(Vec<16, std::uint32_t>,
+                            _mm512_i32gather_epi32(inds, p, 4));
 }
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::None<16>, std::int32_t stride)
   -> Vec<16, T> {
   return gather(p, mask::None<16>{}, range<16>() * stride);
 }
-template <typename T>
-TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i,
-                           Vec<8, std::int32_t> indv) -> Vec<8, T> {
+TRIVIAL inline auto gather(const double *pt, mask::Bit<8> i,
+                           Vec<8, std::int32_t> indv) -> Vec<8, double> {
   auto inds = __builtin_bit_cast(__m256i, indv);
   const void *p = pt;
-  static constexpr auto src = mmzero<8, T>();
-  if constexpr (std::same_as<T, double>)
-    return __builtin_bit_cast(
-      Vec<8, double>,
-      _mm512_mask_i32gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
-  else if constexpr (sizeof(T) == 8)
-    return __builtin_bit_cast(
-      Vec<8, T>,
-      _mm512_mask_i32gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
-#ifdef __AVX512VL__
-  else if constexpr (std::same_as<T, float>)
-    return __builtin_bit_cast(
-      Vec<8, float>,
-      _mm256_mmask_i32gather_ps(src, std::uint8_t(i.mask_), inds, p, 4));
-  else if constexpr (sizeof(T) == 4)
-    return __builtin_bit_cast(
-      Vec<8, T>,
-      _mm256_mmask_i32gather_epi32(src, std::uint8_t(i.mask_), inds, p, 4));
-#endif
-  else static_assert(false);
+  static constexpr auto src = mmzero<8, double>();
+  return __builtin_bit_cast(
+    Vec<8, double>,
+    _mm512_mask_i32gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
 }
-template <typename T>
-TRIVIAL inline auto gather(const T *pt, mask::Bit<8> i,
-                           Vec<8, std::int64_t> indv) -> Vec<8, T> {
+
+TRIVIAL inline auto gather(const std::int64_t *pt, mask::Bit<8> i,
+                           Vec<8, std::int32_t> indv) -> Vec<8, std::int64_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, std::int64_t>();
+  return __builtin_bit_cast(
+    Vec<8, std::int64_t>,
+    _mm512_mask_i32gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
+}
+
+TRIVIAL inline auto gather(const std::uint64_t *pt, mask::Bit<8> i,
+                           Vec<8, std::int32_t> indv) -> Vec<8, std::uint64_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, std::uint64_t>();
+  return __builtin_bit_cast(
+    Vec<8, std::uint64_t>,
+    _mm512_mask_i32gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
+}
+
+#ifdef __AVX512VL__
+TRIVIAL inline auto gather(const float *pt, mask::Bit<8> i,
+                           Vec<8, std::int32_t> indv) -> Vec<8, float> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, float>();
+  return __builtin_bit_cast(
+    Vec<8, float>,
+    _mm256_mmask_i32gather_ps(src, std::uint8_t(i.mask_), inds, p, 4));
+}
+
+TRIVIAL inline auto gather(const std::int32_t *pt, mask::Bit<8> i,
+                           Vec<8, std::int32_t> indv) -> Vec<8, std::int32_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, std::int32_t>();
+  return __builtin_bit_cast(
+    Vec<8, std::int32_t>,
+    _mm256_mmask_i32gather_epi32(src, std::uint8_t(i.mask_), inds, p, 4));
+}
+
+TRIVIAL inline auto gather(const std::uint32_t *pt, mask::Bit<8> i,
+                           Vec<8, std::int32_t> indv) -> Vec<8, std::uint32_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, std::uint32_t>();
+  return __builtin_bit_cast(
+    Vec<8, std::uint32_t>,
+    _mm256_mmask_i32gather_epi32(src, std::uint8_t(i.mask_), inds, p, 4));
+}
+#endif
+TRIVIAL inline auto gather(const double *pt, mask::Bit<8> i,
+                           Vec<8, std::int64_t> indv) -> Vec<8, double> {
   auto inds = __builtin_bit_cast(__m512i, indv);
   const void *p = pt;
-  static constexpr auto src = mmzero<8, T>();
-  if constexpr (std::same_as<T, double>)
-    return __builtin_bit_cast(
-      Vec<8, double>,
-      _mm512_mask_i64gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
-  else if constexpr (sizeof(T) == 8)
-    return __builtin_bit_cast(
-      Vec<8, T>,
-      _mm512_mask_i64gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
-  else static_assert(false);
+  static constexpr auto src = mmzero<8, double>();
+  return __builtin_bit_cast(
+    Vec<8, double>,
+    _mm512_mask_i64gather_pd(src, std::uint8_t(i.mask_), inds, p, 8));
+}
+
+TRIVIAL inline auto gather(const std::int64_t *pt, mask::Bit<8> i,
+                           Vec<8, std::int64_t> indv) -> Vec<8, std::int64_t> {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, std::int64_t>();
+  return __builtin_bit_cast(
+    Vec<8, std::int64_t>,
+    _mm512_mask_i64gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
+}
+
+TRIVIAL inline auto gather(const std::uint64_t *pt, mask::Bit<8> i,
+                           Vec<8, std::int64_t> indv) -> Vec<8, std::uint64_t> {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  const void *p = pt;
+  static constexpr auto src = mmzero<8, std::uint64_t>();
+  return __builtin_bit_cast(
+    Vec<8, std::uint64_t>,
+    _mm512_mask_i64gather_epi64(src, std::uint8_t(i.mask_), inds, p, 8));
 }
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Bit<8> i, std::int32_t stride)
   -> Vec<8, T> {
   return gather(p, i, range<8>() * stride);
 }
-template <typename T>
-TRIVIAL inline auto gather(const T *pt, mask::Bit<16> i,
-                           Vec<16, std::int32_t> indv) -> Vec<16, T> {
+TRIVIAL inline auto gather(const float *pt, mask::Bit<16> i,
+                           Vec<16, std::int32_t> indv) -> Vec<16, float> {
   auto inds = __builtin_bit_cast(__m512i, indv);
   const void *p = pt;
-  auto src = mmzero<8, T>();
-  if constexpr (std::same_as<T, float>)
-    return __builtin_bit_cast(
-      Vec<16, float>,
-      _mm512_mask_i32gather_ps(src, std::uint16_t(i.mask_), inds, p, 4));
-  else if constexpr (sizeof(T) == 4)
-    return __builtin_bit_cast(
-      Vec<16, T>,
-      _mm512_mask_i32gather_epi32(src, std::uint16_t(i.mask_), inds, p, 4));
-  else static_assert(false);
+  auto src = mmzero<16, float>();
+  return __builtin_bit_cast(
+    Vec<16, float>,
+    _mm512_mask_i32gather_ps(src, std::uint16_t(i.mask_), inds, p, 4));
+}
+
+TRIVIAL inline auto gather(const std::int32_t *pt, mask::Bit<16> i,
+                           Vec<16, std::int32_t> indv) -> Vec<16, std::int32_t> {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  const void *p = pt;
+  auto src = mmzero<16, std::int32_t>();
+  return __builtin_bit_cast(
+    Vec<16, std::int32_t>,
+    _mm512_mask_i32gather_epi32(src, std::uint16_t(i.mask_), inds, p, 4));
+}
+
+TRIVIAL inline auto gather(const std::uint32_t *pt, mask::Bit<16> i,
+                           Vec<16, std::int32_t> indv) -> Vec<16, std::uint32_t> {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  const void *p = pt;
+  auto src = mmzero<16, std::uint32_t>();
+  return __builtin_bit_cast(
+    Vec<16, std::uint32_t>,
+    _mm512_mask_i32gather_epi32(src, std::uint16_t(i.mask_), inds, p, 4));
 }
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Bit<16> i, std::int32_t stride)
   -> Vec<16, T> {
   return gather(p, i, range<16>() * stride);
 }
-template <typename T>
-TRIVIAL inline void scatter(T *pt, mask::None<8>, Vec<8, T> x,
+TRIVIAL inline void scatter(double *pt, mask::None<8>, Vec<8, double> x,
                             Vec<8, std::int32_t> indv) {
   auto inds = __builtin_bit_cast(__m256i, indv);
   void *p = pt;
-  if constexpr (std::same_as<T, double>)
-    _mm512_i32scatter_pd(p, inds, __builtin_bit_cast(__m512d, x), 8);
-  else if constexpr (sizeof(T) == 8)
-    _mm512_i32scatter_epi64(p, inds, __builtin_bit_cast(__m512i, x), 8);
-#ifdef __AVX512VL__
-  else if constexpr (std::same_as<T, float>)
-    _mm256_i32scatter_ps(p, inds, __builtin_bit_cast(__m256, x), 4);
-  else if constexpr (sizeof(T) == 4)
-    _mm256_i32scatter_epi32(p, inds, __builtin_bit_cast(__m256i, x), 4);
-#endif
-  else static_assert(false);
+  _mm512_i32scatter_pd(p, inds, __builtin_bit_cast(__m512d, x), 8);
 }
+
+TRIVIAL inline void scatter(std::int64_t *pt, mask::None<8>, Vec<8, std::int64_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm512_i32scatter_epi64(p, inds, __builtin_bit_cast(__m512i, x), 8);
+}
+
+TRIVIAL inline void scatter(std::uint64_t *pt, mask::None<8>, Vec<8, std::uint64_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm512_i32scatter_epi64(p, inds, __builtin_bit_cast(__m512i, x), 8);
+}
+
+#ifdef __AVX512VL__
+TRIVIAL inline void scatter(float *pt, mask::None<8>, Vec<8, float> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm256_i32scatter_ps(p, inds, __builtin_bit_cast(__m256, x), 4);
+}
+
+TRIVIAL inline void scatter(std::int32_t *pt, mask::None<8>, Vec<8, std::int32_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm256_i32scatter_epi32(p, inds, __builtin_bit_cast(__m256i, x), 4);
+}
+
+TRIVIAL inline void scatter(std::uint32_t *pt, mask::None<8>, Vec<8, std::uint32_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm256_i32scatter_epi32(p, inds, __builtin_bit_cast(__m256i, x), 4);
+}
+#endif
 template <typename T>
 TRIVIAL inline void store(T *p, mask::None<8>, Vec<8, T> x,
                           std::int32_t stride) {
   scatter(p, mask::None<8>{}, x, range<8>() * stride);
 }
 
-template <typename T>
-TRIVIAL inline void scatter(T *pt, mask::None<16>, Vec<16, T> x,
+TRIVIAL inline void scatter(float *pt, mask::None<16>, Vec<16, float> x,
                             Vec<16, std::int32_t> indv) {
   auto inds = __builtin_bit_cast(__m512i, indv);
   void *p = pt;
-  if constexpr (std::same_as<T, float>)
-    _mm512_i32scatter_ps(p, inds, __builtin_bit_cast(__m512, x), 4);
-  else if constexpr (sizeof(T) == 4)
-    _mm512_i32scatter_epi32(p, inds, __builtin_bit_cast(__m512i, x), 4);
-  else static_assert(false);
+  _mm512_i32scatter_ps(p, inds, __builtin_bit_cast(__m512, x), 4);
+}
+
+TRIVIAL inline void scatter(std::int32_t *pt, mask::None<16>, Vec<16, std::int32_t> x,
+                            Vec<16, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  void *p = pt;
+  _mm512_i32scatter_epi32(p, inds, __builtin_bit_cast(__m512i, x), 4);
+}
+
+TRIVIAL inline void scatter(std::uint32_t *pt, mask::None<16>, Vec<16, std::uint32_t> x,
+                            Vec<16, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  void *p = pt;
+  _mm512_i32scatter_epi32(p, inds, __builtin_bit_cast(__m512i, x), 4);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::None<16>, Vec<16, T> x,
                           std::int32_t stride) {
   scatter(p, mask::None<16>{}, x, range<16>() * stride);
 }
-template <typename T>
-TRIVIAL inline void scatter(T *pt, mask::Bit<8> i, Vec<8, T> x,
+TRIVIAL inline void scatter(double *pt, mask::Bit<8> i, Vec<8, double> x,
                             Vec<8, std::int32_t> indv) {
   auto inds = __builtin_bit_cast(__m256i, indv);
   void *p = pt;
-  if constexpr (std::same_as<T, double>)
-    _mm512_mask_i32scatter_pd(p, std::uint8_t(i.mask_), inds,
-                              __builtin_bit_cast(__m512d, x), 8);
-  else if constexpr (sizeof(T) == 8)
-    _mm512_mask_i32scatter_epi64(p, std::uint8_t(i.mask_), inds,
-                                 __builtin_bit_cast(__m512i, x), 8);
-#ifdef __AVX512VL__
-  else if constexpr (std::same_as<T, float>)
-    _mm256_mask_i32scatter_ps(p, std::uint8_t(i.mask_), inds,
-                              __builtin_bit_cast(__m256, x), 4);
-  else if constexpr (sizeof(T) == 4)
-    _mm256_mask_i32scatter_epi32(p, std::uint8_t(i.mask_), inds,
-                                 __builtin_bit_cast(__m256i, x), 4);
-#endif
-  else static_assert(false);
+  _mm512_mask_i32scatter_pd(p, std::uint8_t(i.mask_), inds,
+                            __builtin_bit_cast(__m512d, x), 8);
 }
+
+TRIVIAL inline void scatter(std::int64_t *pt, mask::Bit<8> i, Vec<8, std::int64_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm512_mask_i32scatter_epi64(p, std::uint8_t(i.mask_), inds,
+                               __builtin_bit_cast(__m512i, x), 8);
+}
+
+TRIVIAL inline void scatter(std::uint64_t *pt, mask::Bit<8> i, Vec<8, std::uint64_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm512_mask_i32scatter_epi64(p, std::uint8_t(i.mask_), inds,
+                               __builtin_bit_cast(__m512i, x), 8);
+}
+
+#ifdef __AVX512VL__
+TRIVIAL inline void scatter(float *pt, mask::Bit<8> i, Vec<8, float> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm256_mask_i32scatter_ps(p, std::uint8_t(i.mask_), inds,
+                            __builtin_bit_cast(__m256, x), 4);
+}
+
+TRIVIAL inline void scatter(std::int32_t *pt, mask::Bit<8> i, Vec<8, std::int32_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm256_mask_i32scatter_epi32(p, std::uint8_t(i.mask_), inds,
+                               __builtin_bit_cast(__m256i, x), 4);
+}
+
+TRIVIAL inline void scatter(std::uint32_t *pt, mask::Bit<8> i, Vec<8, std::uint32_t> x,
+                            Vec<8, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  void *p = pt;
+  _mm256_mask_i32scatter_epi32(p, std::uint8_t(i.mask_), inds,
+                               __builtin_bit_cast(__m256i, x), 4);
+}
+#endif
 template <typename T>
 TRIVIAL inline void store(T *p, mask::Bit<8> i, Vec<8, T> x,
                           std::int32_t stride) {
   scatter(p, i, x, range<8>() * stride);
 }
-template <typename T>
-TRIVIAL inline void scatter(T *pt, mask::Bit<16> i, Vec<16, T> x,
+TRIVIAL inline void scatter(float *pt, mask::Bit<16> i, Vec<16, float> x,
                             Vec<16, std::int32_t> indv) {
   auto inds = __builtin_bit_cast(__m512i, indv);
   void *p = pt;
-  if constexpr (std::same_as<T, float>)
-    _mm512_mask_i32scatter_ps(p, std::uint16_t(i.mask_), inds,
-                              __builtin_bit_cast(__m512, x), 4);
-  else if constexpr (sizeof(T) == 4)
-    _mm512_mask_i32scatter_epi32(p, std::uint16_t(i.mask_), inds,
-                                 __builtin_bit_cast(__m512i, x), 4);
-  else static_assert(false);
+  _mm512_mask_i32scatter_ps(p, std::uint16_t(i.mask_), inds,
+                            __builtin_bit_cast(__m512, x), 4);
+}
+
+TRIVIAL inline void scatter(std::int32_t *pt, mask::Bit<16> i, Vec<16, std::int32_t> x,
+                            Vec<16, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  void *p = pt;
+  _mm512_mask_i32scatter_epi32(p, std::uint16_t(i.mask_), inds,
+                               __builtin_bit_cast(__m512i, x), 4);
+}
+
+TRIVIAL inline void scatter(std::uint32_t *pt, mask::Bit<16> i, Vec<16, std::uint32_t> x,
+                            Vec<16, std::int32_t> indv) {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  void *p = pt;
+  _mm512_mask_i32scatter_epi32(p, std::uint16_t(i.mask_), inds,
+                               __builtin_bit_cast(__m512i, x), 4);
 }
 template <typename T>
 TRIVIAL inline void store(T *p, mask::Bit<16> i, Vec<16, T> x,
@@ -1738,34 +1882,64 @@ TRIVIAL inline auto load(const T *p, mask::None<2>, std::int32_t stride)
   -> Vec<2, T> {
   return gather(p, mask::None<2>{}, range<2>() * stride);
 }
-template <typename T>
-TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, std::int32_t> indv)
-  -> Vec<8, T> {
+TRIVIAL inline auto gather(const float *p, mask::None<8>, Vec<8, std::int32_t> indv)
+  -> Vec<8, float> {
   auto inds = __builtin_bit_cast(__m256i, indv);
-  if constexpr (std::same_as<T, float>) {
-    return __builtin_bit_cast(Vec<8, T>, _mm256_i32gather_ps(p, inds, 4));
-  } else if constexpr (sizeof(T) == 4) {
-    return __builtin_bit_cast(Vec<8, T>, _mm256_i32gather_epi32(p, inds, 4));
-#ifdef __AVX512F__
-  } else if constexpr (std::same_as<T, double>) {
-    return __builtin_bit_cast(Vec<8, T>, _mm512_i32gather_pd(inds, p, 8));
-  } else if constexpr (sizeof(T) == 8) {
-    const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return __builtin_bit_cast(Vec<8, T>, _mm512_i32gather_epi64(inds, pi, 8));
-#endif
-  } else static_assert(false);
+  return __builtin_bit_cast(Vec<8, float>, _mm256_i32gather_ps(p, inds, 4));
 }
+
+TRIVIAL inline auto gather(const std::int32_t *p, mask::None<8>, Vec<8, std::int32_t> indv)
+  -> Vec<8, std::int32_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  return __builtin_bit_cast(Vec<8, std::int32_t>, _mm256_i32gather_epi32(p, inds, 4));
+}
+
+TRIVIAL inline auto gather(const std::uint32_t *p, mask::None<8>, Vec<8, std::int32_t> indv)
+  -> Vec<8, std::uint32_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  return __builtin_bit_cast(Vec<8, std::uint32_t>, _mm256_i32gather_epi32(p, inds, 4));
+}
+
 #ifdef __AVX512F__
-template <typename T>
-TRIVIAL inline auto gather(const T *p, mask::None<8>, Vec<8, std::int64_t> indv)
-  -> Vec<8, T> {
+TRIVIAL inline auto gather(const double *p, mask::None<8>, Vec<8, std::int32_t> indv)
+  -> Vec<8, double> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  return __builtin_bit_cast(Vec<8, double>, _mm512_i32gather_pd(inds, p, 8));
+}
+
+TRIVIAL inline auto gather(const std::int64_t *p, mask::None<8>, Vec<8, std::int32_t> indv)
+  -> Vec<8, std::int64_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const long long int *pi = reinterpret_cast<const long long int *>(p);
+  return __builtin_bit_cast(Vec<8, std::int64_t>, _mm512_i32gather_epi64(inds, pi, 8));
+}
+
+TRIVIAL inline auto gather(const std::uint64_t *p, mask::None<8>, Vec<8, std::int32_t> indv)
+  -> Vec<8, std::uint64_t> {
+  auto inds = __builtin_bit_cast(__m256i, indv);
+  const long long int *pi = reinterpret_cast<const long long int *>(p);
+  return __builtin_bit_cast(Vec<8, std::uint64_t>, _mm512_i32gather_epi64(inds, pi, 8));
+}
+#endif
+#ifdef __AVX512F__
+TRIVIAL inline auto gather(const double *p, mask::None<8>, Vec<8, std::int64_t> indv)
+  -> Vec<8, double> {
   auto inds = __builtin_bit_cast(__m512i, indv);
-  if constexpr (std::same_as<T, double>) {
-    return __builtin_bit_cast(Vec<8, T>, _mm512_i64gather_pd(inds, p, 8));
-  } else if constexpr (sizeof(T) == 8) {
-    const long long int *pi = reinterpret_cast<const long long int *>(p);
-    return __builtin_bit_cast(Vec<8, T>, _mm512_i64gather_epi64(inds, pi, 8));
-  } else static_assert(false);
+  return __builtin_bit_cast(Vec<8, double>, _mm512_i64gather_pd(inds, p, 8));
+}
+
+TRIVIAL inline auto gather(const std::int64_t *p, mask::None<8>, Vec<8, std::int64_t> indv)
+  -> Vec<8, std::int64_t> {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  const long long int *pi = reinterpret_cast<const long long int *>(p);
+  return __builtin_bit_cast(Vec<8, std::int64_t>, _mm512_i64gather_epi64(inds, pi, 8));
+}
+
+TRIVIAL inline auto gather(const std::uint64_t *p, mask::None<8>, Vec<8, std::int64_t> indv)
+  -> Vec<8, std::uint64_t> {
+  auto inds = __builtin_bit_cast(__m512i, indv);
+  const long long int *pi = reinterpret_cast<const long long int *>(p);
+  return __builtin_bit_cast(Vec<8, std::uint64_t>, _mm512_i64gather_epi64(inds, pi, 8));
 }
 #endif // AVX512F
 template <typename T>
@@ -2283,19 +2457,31 @@ TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> m,
                          std::int32_t stride) -> Vec<4, T> {
   return gather(p, m, range<4>() * stride);
 }
-template <typename T>
-TRIVIAL inline auto gather(const T *p, mask::Vector<2, sizeof(T)> m,
-                           Vec<2, std::int64_t> indv) -> Vec<2, T> {
+TRIVIAL inline auto gather(const double *p, mask::Vector<2, sizeof(double)> m,
+                           Vec<2, std::int64_t> indv) -> Vec<2, double> {
   auto x = __builtin_bit_cast(__m128i, indv);
   __m128i mask = __m128i(m);
-  static constexpr auto z = mmzero<2, T>();
-  if constexpr (std::same_as<T, double>)
-    return __builtin_bit_cast(Vec<2, double>,
-                              _mm_mask_i64gather_pd(z, p, x, mask, 8));
-  else if constexpr (sizeof(T) == 8)
-    return __builtin_bit_cast(Vec<2, T>,
-                              _mm_mask_i64gather_epi64(z, p, x, mask, 8));
-  else static_assert(false);
+  static constexpr auto z = mmzero<2, double>();
+  return __builtin_bit_cast(Vec<2, double>,
+                            _mm_mask_i64gather_pd(z, p, x, mask, 8));
+}
+
+TRIVIAL inline auto gather(const std::int64_t *p, mask::Vector<2, sizeof(std::int64_t)> m,
+                           Vec<2, std::int64_t> indv) -> Vec<2, std::int64_t> {
+  auto x = __builtin_bit_cast(__m128i, indv);
+  __m128i mask = __m128i(m);
+  static constexpr auto z = mmzero<2, std::int64_t>();
+  return __builtin_bit_cast(Vec<2, std::int64_t>,
+                            _mm_mask_i64gather_epi64(z, p, x, mask, 8));
+}
+
+TRIVIAL inline auto gather(const std::uint64_t *p, mask::Vector<2, sizeof(std::uint64_t)> m,
+                           Vec<2, std::int64_t> indv) -> Vec<2, std::uint64_t> {
+  auto x = __builtin_bit_cast(__m128i, indv);
+  __m128i mask = __m128i(m);
+  static constexpr auto z = mmzero<2, std::uint64_t>();
+  return __builtin_bit_cast(Vec<2, std::uint64_t>,
+                            _mm_mask_i64gather_epi64(z, p, x, mask, 8));
 }
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> m,
@@ -2412,19 +2598,36 @@ TRIVIAL inline auto gather(const T *p, mask::Vector<4, sizeof(T)> i,
 #endif // AVX
 #endif // no AVX2
 #ifdef __AVX__
-template <typename T>
-TRIVIAL inline auto load(const T *p, mask::Vector<4, sizeof(T)> i)
-  -> Vec<4, T> {
-  if constexpr (std::same_as<T, double>)
-    return __builtin_bit_cast(Vec<4, double>, _mm256_maskload_pd(p, i));
-  else if constexpr (sizeof(T) == 8)
-    return __builtin_bit_cast(Vec<4, T>,
-                              _mm256_maskload_epi64((const long long *)p, i));
-  else if constexpr (std::same_as<T, float>)
-    return __builtin_bit_cast(Vec<4, float>, _mm_maskload_ps(p, i));
-  else if constexpr (sizeof(T) == 4)
-    return __builtin_bit_cast(Vec<4, T>, _mm_maskload_epi32((const int *)p, i));
-  else static_assert(false);
+TRIVIAL inline auto load(const double *p, mask::Vector<4, sizeof(double)> i)
+  -> Vec<4, double> {
+  return __builtin_bit_cast(Vec<4, double>, _mm256_maskload_pd(p, i));
+}
+
+TRIVIAL inline auto load(const std::int64_t *p, mask::Vector<4, sizeof(std::int64_t)> i)
+  -> Vec<4, std::int64_t> {
+  return __builtin_bit_cast(Vec<4, std::int64_t>,
+                            _mm256_maskload_epi64((const long long *)p, i));
+}
+
+TRIVIAL inline auto load(const std::uint64_t *p, mask::Vector<4, sizeof(std::uint64_t)> i)
+  -> Vec<4, std::uint64_t> {
+  return __builtin_bit_cast(Vec<4, std::uint64_t>,
+                            _mm256_maskload_epi64((const long long *)p, i));
+}
+
+TRIVIAL inline auto load(const float *p, mask::Vector<4, sizeof(float)> i)
+  -> Vec<4, float> {
+  return __builtin_bit_cast(Vec<4, float>, _mm_maskload_ps(p, i));
+}
+
+TRIVIAL inline auto load(const std::int32_t *p, mask::Vector<4, sizeof(std::int32_t)> i)
+  -> Vec<4, std::int32_t> {
+  return __builtin_bit_cast(Vec<4, std::int32_t>, _mm_maskload_epi32((const int *)p, i));
+}
+
+TRIVIAL inline auto load(const std::uint32_t *p, mask::Vector<4, sizeof(std::uint32_t)> i)
+  -> Vec<4, std::uint32_t> {
+  return __builtin_bit_cast(Vec<4, std::uint32_t>, _mm_maskload_epi32((const int *)p, i));
 }
 template <typename T>
 TRIVIAL inline auto load(const T *p, mask::Vector<8, sizeof(T)> i)
@@ -2467,13 +2670,16 @@ TRIVIAL inline auto load(const T *p, mask::Vector<2, sizeof(T)> i)
                               _mm_maskload_epi64((const long long *)p, i));
   else static_assert(false);
 }
-template <typename T>
-TRIVIAL inline void store(T *p, mask::Vector<2, sizeof(T)> i, Vec<2, T> x) {
-  if constexpr (std::same_as<T, double>)
-    _mm_maskstore_pd(p, i, __builtin_bit_cast(__m128d, x));
-  else if constexpr (sizeof(T) == 8)
-    _mm_maskstore_epi64((long long *)p, i, __builtin_bit_cast(__m128i, x));
-  else static_assert(false);
+TRIVIAL inline void store(double *p, mask::Vector<2, sizeof(double)> i, Vec<2, double> x) {
+  _mm_maskstore_pd(p, i, __builtin_bit_cast(__m128d, x));
+}
+
+TRIVIAL inline void store(std::int64_t *p, mask::Vector<2, sizeof(std::int64_t)> i, Vec<2, std::int64_t> x) {
+  _mm_maskstore_epi64((long long *)p, i, __builtin_bit_cast(__m128i, x));
+}
+
+TRIVIAL inline void store(std::uint64_t *p, mask::Vector<2, sizeof(std::uint64_t)> i, Vec<2, std::uint64_t> x) {
+  _mm_maskstore_epi64((long long *)p, i, __builtin_bit_cast(__m128i, x));
 }
 
 // we need 256 bit fallback scatters
