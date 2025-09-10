@@ -39,9 +39,9 @@ public:
                      Capacity<> conCap, RowStride<> varCap) -> Valid<Simplex>;
   static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
                      std::ptrdiff_t numSlack) -> Valid<Simplex>;
-  static auto create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex>;
-  static auto create(Row<> numCon, Col<> numVar, Capacity<> conCap,
-                     RowStride<> varCap) -> std::unique_ptr<Simplex>;
+  static auto malloc(Row<> numCon, Col<> numVar) -> Simplex *;
+  static auto malloc(Row<> numCon, Col<> numVar, Capacity<> conCap,
+                     RowStride<> varCap) -> Simplex *;
 
   // Static utility methods for creating simplex problems
   static auto positiveVariables(alloc::Arena<> *alloc,
@@ -285,9 +285,6 @@ public:
   auto operator=(const Simplex &) -> Simplex & = delete;
   Simplex(Simplex &&) = delete;
   auto operator=(Simplex &&) -> Simplex & = delete;
-  static auto operator new(std::size_t count, Capacity<> conCap,
-                           RowStride<> varCap) -> void *;
-  static void operator delete(void *ptr, std::size_t sz);
 
 private:
   Row<> num_constraints_{};

@@ -903,23 +903,13 @@ auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var,
   return mem;
 }
 
-auto Simplex::operator new(std::size_t count, Capacity<> conCap,
-                           RowStride<> varCap) -> void * {
-  auto cC = std::ptrdiff_t(conCap), vC = std::ptrdiff_t(varCap);
-  std::size_t mem_needed = requiredMemory(cC, vC);
-  return alloc::malloc(count * mem_needed, std::align_val_t(alignof(Simplex)));
-}
-void Simplex::operator delete(void *ptr, std::size_t sz) {
-  alloc::free(ptr, sz, std::align_val_t(alignof(Simplex)));
-}
-
-auto Simplex::create(Row<> numCon, Col<> numVar) -> std::unique_ptr<Simplex> {
+auto Simplex::malloc(Row<> numCon, Col<> numVar) -> Simplex * {
   auto nc = std::ptrdiff_t(numCon);
-  return create(numCon, numVar, capacity(nc),
-                stride(std::ptrdiff_t(numVar) + nc));
+  return Simplex::malloc(numCon, numVar, capacity(nc),
+                         stride(std::ptrdiff_t(numVar) + nc));
 }
-auto Simplex::create(Row<> numCon, Col<> numVar, Capacity<> conCap,
-                     RowStride<> varCap) -> std::unique_ptr<Simplex> {
+auto Simplex::malloc(Row<> numCon, Col<> numVar, Capacity<> conCap,
+                     RowStride<> varCap) -> Simplex * {
   varCap = alignVarCapacity(varCap);
   std::ptrdiff_t cC = std::ptrdiff_t(conCap), vC = std::ptrdiff_t(varCap);
   std::size_t mem_needed = requiredMemory(cC, vC);
@@ -929,7 +919,7 @@ auto Simplex::create(Row<> numCon, Col<> numVar, Capacity<> conCap,
   ret->num_vars_ = numVar;
   ret->constraint_capacity_ = conCap;
   ret->var_capacity_p1_ = varCap;
-  return std::unique_ptr<Simplex>(ret);
+  return ret;
 }
 
 auto Simplex::Solution::operator[](std::ptrdiff_t i) const -> Rational {

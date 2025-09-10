@@ -148,37 +148,37 @@ inline void free(void *p) {
 
 inline void free(void *p, std::size_t n) {
 #if USE_MIMALLOC
-  return mi_free_size(p, n);
+  mi_free_size(p, n);
 #elif USE_JEMALLOC
-  return sdallocx(p, n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__)));
+ sdallocx(p, n, MALLOCX_ALIGN(__STDCPP_DEFAULT_NEW_ALIGNMENT__)));
 #else
   (void)n;
-  return std::free(p);
+  std::free(p);
 #endif
 };
 
 inline void free(void *p, std::align_val_t al) {
   auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
-  return mi_free_aligned(p, a);
+  mi_free_aligned(p, a);
 #elif USE_JEMALLOC
-  return dallocx(p, MALLOCX_ALIGN(a)));
+  dallocx(p, MALLOCX_ALIGN(a)));
 #else
   (void)a;
-  return std::free(p);
+  std::free(p);
 #endif
 };
 
 inline void free(void *p, std::size_t n, std::align_val_t al) {
   auto a = static_cast<std::size_t>(al);
 #if USE_MIMALLOC
-  return mi_free_size_aligned(p, n, a);
+  mi_free_size_aligned(p, n, a);
 #elif USE_JEMALLOC
-  return sdallocx(p, n, MALLOCX_ALIGN(a)));
+  sdallocx(p, n, MALLOCX_ALIGN(a)));
 #else
   (void)a;
   (void)n;
-  return std::free(p);
+  std::free(p);
 #endif
 };
 
