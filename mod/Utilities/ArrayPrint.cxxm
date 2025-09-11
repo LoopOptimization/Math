@@ -128,7 +128,7 @@ inline void printMatrix(const T *A, std::ptrdiff_t M, std::ptrdiff_t N,
   using U = decltype(countDigits(std::declval<T>()));
   for (std::ptrdiff_t i = 0; i < M; ++i) {
     if (i) print("  ");
-    else print("\n[ ");
+    else print("[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
       T Aij = A[(i * X) + j];
       for (U k = 0; k < U(max_digits[j]) - countDigits(Aij); ++k) print(' ');
@@ -146,7 +146,7 @@ inline void printMatrix(const bool *A, std::ptrdiff_t M, std::ptrdiff_t N,
   // first, we determine the number of digits needed per column
   for (std::ptrdiff_t i = 0; i < M; ++i) {
     if (i) print("  ");
-    else print("\n[ ");
+    else print("[ ");
     for (std::ptrdiff_t j = 0; j < N; j++) {
       print(static_cast<char>('0' + A[(i * X) + j]));
       if (j != N - 1) print(' ');
