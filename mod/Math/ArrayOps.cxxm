@@ -418,6 +418,7 @@ template <typename A, typename... As, typename B, typename... Bs, typename I,
           typename R>
 TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
                                 const Tuple<B, Bs...> &sref, I L, R row) {
+  using math::view;
   // we want to avoid the pointer reloading on every iter, so we help alias
   // analysis out.
   auto dst{dref.mutmap([](auto &d) { return d.mview(); })};
@@ -598,9 +599,10 @@ template <typename A, typename... As, typename B, typename... Bs>
 #else
   using C = math::scalarize_via_cast_t<
     std::remove_cvref_t<decltype(std::declval<A>().view())>>;
+  using math::view;
   if constexpr ((!std::same_as<C, void>) &&
                 math::detail::ScalarizeViaCastTo<
-                  C, As..., decltype(std::declval<B>().view()), Bs...>()) {
+                  C, As..., decltype(view(std::declval<B>())), Bs...>()) {
     using T = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<As>...,
                                  utils::eltype_t<B>, utils::eltype_t<Bs>...>;
     if constexpr ((sizeof(T) % (sizeof(C) * simd::Width<C>)) != 0) {

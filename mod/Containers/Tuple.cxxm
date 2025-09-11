@@ -5,8 +5,9 @@ import std;
 export namespace containers {
 
 template <typename... Ts> struct Tuple;
-template <typename T, typename... Ts>
-TRIVIAL constexpr auto cattuple(T, Tuple<Ts...>) -> Tuple<T, Ts...>;
+template <typename W, typename X, typename Y, typename Z, typename... Ts>
+TRIVIAL constexpr auto cattuple(W, X, Y, Z, Tuple<Ts...>)
+  -> Tuple<W, X, Y, Z, Ts...>;
 
 template <typename T, typename... Ts, typename U, typename... Us>
 TRIVIAL constexpr void copyFrom(Tuple<T, Ts...> &dst,
@@ -475,13 +476,13 @@ struct Tuple<T0, T1, T2, T3, T4, Ts...> {
     copyFrom(*this, src);
   }
 
-private:
   TRIVIAL constexpr Tuple(T0 _0_, T1 _1_, T2 _2_, T3 _3_, Tuple<T4, Ts...> tail)
     : _0(_0_), _1(_1_), _2(_2_), _3(_3_), tail_(tail){};
 };
-template <typename T, typename... Ts>
-TRIVIAL constexpr auto cattuple(T x, Tuple<Ts...> y) -> Tuple<T, Ts...> {
-  return {x, y};
+template <typename W, typename X, typename Y, typename Z, typename... Ts>
+TRIVIAL constexpr auto cattuple(W w, X x, Y y, Z z, Tuple<Ts...> t)
+  -> Tuple<W, X, Y, Z, Ts...> {
+  return {w, x, y, z, t};
 }
 
 template <typename... Ts> Tuple(Ts...) -> Tuple<Ts...>;

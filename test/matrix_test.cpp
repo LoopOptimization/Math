@@ -656,6 +656,19 @@ int main() {
     expect(boolMatrix2[1, 1] == false);
     expect(boolMatrix2[2, 2] == true);
   };
-
+  "Diag Test"_test = [] {
+    DenseMatrix<std::int64_t> A{DenseDims<>{row(15), col(15)}},
+      B{DenseDims<>{row(15), col(15)}}, C{DenseDims<>{row(15), col(15)}},
+      D{DenseDims<>{row(15), col(15)}}, E{DenseDims<>{row(15), col(15)}},
+      F{DenseDims<>{row(15), col(15)}};
+    A.zero(), B.zero(), C.zero(), D.zero(), E.zero(), F.zero();
+    using containers::Tuple;
+    Tuple(A.diag(), B.diag(), C.diag(), D.diag(), E.diag(), F.diag())
+      << Tuple(1, -2, 3, -4, 5, -6);
+    // 1 - 2 + 6 - 4 + 5 - 6 == 0
+    expect(allZero(A + B + 2 * C + D + E + F));
+    // 1 + 2 + 3 - 4 + 5 - 6 == 1
+    expect(A - B + C + D + E + F == I);
+  };
   return 0;
 }

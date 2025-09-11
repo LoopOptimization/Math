@@ -62,22 +62,23 @@ void testBasicAssertions() {
   expect(x == xtest + 4.7);
   expect(y == 8.0);
   auto t16 = Tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-  expect(t16.template get<0>() == 0);
-  expect(t16.template get<1>() == 1);
-  expect(t16.template get<2>() == 2);
-  expect(t16.template get<3>() == 3);
-  expect(t16.template get<4>() == 4);
-  expect(t16.template get<5>() == 5);
-  expect(t16.template get<6>() == 6);
-  expect(t16.template get<7>() == 7);
-  expect(t16.template get<8>() == 8);
-  expect(t16.template get<9>() == 9);
-  expect(t16.template get<10>() == 10);
-  expect(t16.template get<11>() == 11);
-  expect(t16.template get<12>() == 12);
-  expect(t16.template get<13>() == 13);
-  expect(t16.template get<14>() == 14);
-  expect(t16.template get<15>() == 15);
+  t16 = t16.map([](int x) -> int { return 3 * x; });
+  expect(t16.template get<0>() == 3 * 0);
+  expect(t16.template get<1>() == 3 * 1);
+  expect(t16.template get<2>() == 3 * 2);
+  expect(t16.template get<3>() == 3 * 3);
+  expect(t16.template get<4>() == 3 * 4);
+  expect(t16.template get<5>() == 3 * 5);
+  expect(t16.template get<6>() == 3 * 6);
+  expect(t16.template get<7>() == 3 * 7);
+  expect(t16.template get<8>() == 3 * 8);
+  expect(t16.template get<9>() == 3 * 9);
+  expect(t16.template get<10>() == 3 * 10);
+  expect(t16.template get<11>() == 3 * 11);
+  expect(t16.template get<12>() == 3 * 12);
+  expect(t16.template get<13>() == 3 * 13);
+  expect(t16.template get<14>() == 3 * 14);
+  expect(t16.template get<15>() == 3 * 15);
 }
 
 int main() {
