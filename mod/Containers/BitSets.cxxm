@@ -141,7 +141,7 @@ public:
     istate_ = is_empty ? 0 : *it;
     if (it == end) return;
     this->operator++();
-    --cstate_;
+    if (it_ == it) --cstate_;
   }
   using value_type = std::ptrdiff_t;
   TRIVIAL constexpr auto operator*() const -> std::ptrdiff_t { return cstate_; }
@@ -932,9 +932,12 @@ struct BitSets {
   [[nodiscard]] constexpr auto maximumSize() const -> std::ptrdiff_t {
     return 64Z * maximumNumChunks();
   }
-  constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
+  TRIVIAL constexpr auto operator[](std::ptrdiff_t i) const -> value_type {
     std::ptrdiff_t sz = num_chunks_per_;
     return value_type{{data_ + (sz * i), math::length(sz)}};
+  }
+  DEBUGUSED [[nodiscard]] auto get(std::ptrdiff_t i) const -> value_type {
+    return (*this)[i];
   }
   /// returns the number of bytes freed
   auto resize(std::uint32_t new_size) -> std::ptrdiff_t {

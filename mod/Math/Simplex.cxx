@@ -132,17 +132,14 @@ auto removeAugmentVars(
   MutPtrVector<Simplex::index_t> basic_vars{S->getBasicVariables()};
   MutPtrVector<Simplex::index_t> basic_cons{S->getBasicConstraints()};
   MutPtrVector<Simplex::value_type> costs{S->getCost()};
-  costs << 0;
+  costs.zero();
   C[_, _(old_num_var + 1, end)] << 0;
-  {
-    std::ptrdiff_t i = 0;
-    for (std::ptrdiff_t a : augmentVars) {
-      basic_vars[a] = Simplex::index_t(i) + Simplex::index_t(old_num_var);
-      basic_cons[i + old_num_var] = Simplex::index_t(a);
-      C[a, old_num_var + (++i)] = 1;
-      // we now zero out the implicit cost of `1`
-      costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
-    }
+  for (std::ptrdiff_t i = 0; std::ptrdiff_t a : augmentVars) {
+    basic_vars[a] = Simplex::index_t(i) + Simplex::index_t(old_num_var);
+    basic_cons[i + old_num_var] = Simplex::index_t(a);
+    C[a, old_num_var + (++i)] = 1;
+    // we now zero out the implicit cost of `1`
+    costs[_(begin, old_num_var + 1)] -= C[a, _(begin, old_num_var + 1)];
   }
 #ifndef NDEBUG
   if (anyLTZero(basic_vars)) __builtin_trap();

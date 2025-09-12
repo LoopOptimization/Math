@@ -36,7 +36,7 @@ auto main() -> int {
     expect(bs.isSubSet(bs));
     // expect(std::ranges::begin(bs), bs.begin());
     // expect(std::ranges::end(bs), bs.end());
-    Vector<int> bsc{std::array{0, 4, 10, 87, 117, 200, 991}};
+    std::array bsc{0, 4, 10, 87, 117, 200, 991};
     std::ptrdiff_t j = 0;
     for (std::ptrdiff_t J : bs) {
       expect(eq(bs.getIterationIdx(J), j));
@@ -50,7 +50,7 @@ auto main() -> int {
       expect(bs[i]);
       utils::println("We get: ", i);
     }
-    expect(j == std::ptrdiff_t(bsc.size()));
+    expect(j == std::ssize(bsc));
     expect(j == std::ptrdiff_t(bs.size()));
     utils::println("About to create empty!");
     BitSet empty;
@@ -78,6 +78,13 @@ auto main() -> int {
     expect(bs.data_[1] == 0);
     bs.insert(5);
     expect(bs.data_[0] == 354);
+
+    std::array args{144, 146};
+    containers::BitSet<::math::Vector<std::uint64_t, 8>> aug_vars{};
+    for (int x : args) aug_vars.uncheckedInsert(x);
+    expect(eq(aug_vars.front(), std::min(args[0], args[1])));
+    for (std::ptrdiff_t i = 0; std::ptrdiff_t x : aug_vars)
+      expect(eq(x, args[i++]));
   };
   "BitSet DynSize"_test = [] -> void {
     BitSet bs, bsd{BitSet<>::dense(11)};
