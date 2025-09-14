@@ -4,9 +4,34 @@ cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
+option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
+
+# --- Native compilation ---
+
+if(ENABLE_NATIVE_COMPILATION)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    add_compile_options(-xhost)
+    if(ENABLE_WIDE_VECTORS)
+      add_compile_options(-qopt-zmm-usage=high)
+    endif()
+  else()
+    add_compile_options(-march=native)
+    if(ENABLE_WIDE_VECTORS)
+      if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+          add_compile_options(-mprefer-vector-width=512)
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+          add_compile_options(
+            -mprefer-vector-width=512
+                                   -mtune-ctrl=avx512_move_by_pieces)
+        endif()
+      endif()
+    endif()
+  endif()
+endif()
 
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti;-march=native>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>"
 )
 # add_compile_options("-save-temps") # for preprocessed source
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES

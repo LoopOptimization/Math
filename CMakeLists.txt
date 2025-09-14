@@ -6,7 +6,6 @@ find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
-option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 # option(FOR_TESTING "Build for testing" OFF)
@@ -19,31 +18,6 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 # cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 
-# --- Native compilation ---
-
-if(ENABLE_NATIVE_COMPILATION)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    add_compile_options(-xhost)
-    if(ENABLE_WIDE_VECTORS)
-      add_compile_options(-qopt-zmm-usage=high)
-    endif()
-  else()
-    add_compile_options(-march=native)
-    if(ENABLE_WIDE_VECTORS)
-      include(CheckCXXCompilerFlag)
-      check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
-      if(VEC512)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-          add_compile_options(-mprefer-vector-width=512)
-        elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-          add_compile_options(
-            -mprefer-vector-width=512
-                                   -mtune-ctrl=avx512_move_by_pieces)
-        endif()
-      endif()
-    endif()
-  endif()
-endif()
 
 # ---- Project ----
 
