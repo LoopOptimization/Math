@@ -141,12 +141,12 @@ TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetEnd i)
   invariant(i.offset_ <= len);
   return std::ptrdiff_t(len) - i.offset_;
 }
-[[nodiscard]] constexpr auto calcRangeOffset(Length<> len, std::ptrdiff_t i)
+TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<> len, std::ptrdiff_t i)
   -> std::ptrdiff_t {
   invariant(i <= len);
   return i;
 }
-[[nodiscard]] constexpr auto calcRangeOffset(Length<>, Begin)
+TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<>, Begin)
   -> std::ptrdiff_t {
   return 0z;
 }

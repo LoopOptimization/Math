@@ -6,7 +6,7 @@ option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti;-march=native>"
 )
 # add_compile_options("-save-temps") # for preprocessed source
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES

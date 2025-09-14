@@ -18,6 +18,33 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # your CMake build for the exact value to use.
     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 # cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+
+# --- Native compilation ---
+
+if(ENABLE_NATIVE_COMPILATION)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    add_compile_options(-xhost)
+    if(ENABLE_WIDE_VECTORS)
+      add_compile_options(-qopt-zmm-usage=high)
+    endif()
+  else()
+    add_compile_options(-march=native)
+    if(ENABLE_WIDE_VECTORS)
+      include(CheckCXXCompilerFlag)
+      check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
+      if(VEC512)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+          add_compile_options(-mprefer-vector-width=512)
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+          add_compile_options(
+            -mprefer-vector-width=512
+                                   -mtune-ctrl=avx512_move_by_pieces)
+        endif()
+      endif()
+    endif()
+  endif()
+endif()
+
 # ---- Project ----
 
 message(
@@ -135,33 +162,6 @@ if(SEARCH_JE_MALLOC)
       target_include_directories(${PROJECT_NAME}
                                  PRIVATE ${JEMALLOC_INCLUDE_DIRS})
       target_compile_definitions(${PROJECT_NAME} PRIVATE USING_JEMALLOC)
-    endif()
-  endif()
-endif()
-
-# --- Native compilation ---
-
-if(ENABLE_NATIVE_COMPILATION)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_compile_options(${PROJECT_NAME} PUBLIC -xhost)
-    if(ENABLE_WIDE_VECTORS)
-      target_compile_options(${PROJECT_NAME} PUBLIC -qopt-zmm-usage=high)
-    endif()
-  else()
-    target_compile_options(${PROJECT_NAME} PUBLIC -march=native)
-    if(ENABLE_WIDE_VECTORS)
-      include(CheckCXXCompilerFlag)
-      check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
-      if(VEC512)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-          target_compile_options(${PROJECT_NAME}
-                                 PUBLIC -mprefer-vector-width=512)
-        elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-          target_compile_options(
-            ${PROJECT_NAME} PUBLIC -mprefer-vector-width=512
-                                   -mtune-ctrl=avx512_move_by_pieces)
-        endif()
-      endif()
     endif()
   endif()
 endif()
