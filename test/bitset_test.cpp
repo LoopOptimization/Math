@@ -1267,6 +1267,14 @@ auto main() -> int {
     }
     expect(eq(chunk_idx, expected_chunks.size()));
   };
+  "BitSet Diff"_test = [] -> void {
+    BitSet bs3{BitSet<>::dense(3)}, bs1{};
+    bs1.insert(1);
+    bs1.data_ << (bs3.data_ & (~bs1.data_));
+    expect(bs1.contains(0));
+    expect(!bs1.contains(1));
+    expect(bs1.contains(2));
+  };
 
   return 0;
 }
