@@ -378,8 +378,8 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   }
   TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
     std::ptrdiff_t l = 0;
-    for (std::ptrdiff_t w = 0; w < W; ++w)
-      if (m[w]) l = w;
+    for (std::ptrdiff_t w = 0; w < W;)
+      if (m[w++]) l = w;
     return l;
   }
   TRIVIAL [[nodiscard]] constexpr auto offBegin() const -> std::ptrdiff_t {
@@ -4596,20 +4596,20 @@ TRIVIAL constexpr auto loadunrollmm(const T *ptr, math::RowStride<X> rowStride,
         } else {
           if ((rc + 1 == RC) && rw >= row_masks[0].onEnd()) break;
         }
-        std::ptrdiff_t r = rw + RW * rc;
+        std::ptrdiff_t r = rw + (RW * rc);
         if constexpr (NMC == 0) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t c = 0; c < C; ++c)
-            ret[r, c] = load(ptr + c * W, mask::None<W>{});
+            ret[r, c] = load(ptr + (c * W), mask::None<W>{});
         } else if constexpr (NMC == C) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t c = 0; c < C; ++c)
-            ret[r, c] = load(ptr + c * W, col_masks[c]);
+            ret[r, c] = load(ptr + (c * W), col_masks[c]);
         } else {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-            ret[r, c] = load(ptr + c * W, mask::None<W>{});
-          ret[r, C - 1] = load(ptr + (C - 1) * W, col_masks[0]);
+            ret[r, c] = load(ptr + (c * W), mask::None<W>{});
+          ret[r, C - 1] = load(ptr + ((C - 1) * W), col_masks[0]);
         }
       }
     }
