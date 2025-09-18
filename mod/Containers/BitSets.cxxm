@@ -532,15 +532,9 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return std::strong_ordering::equal;
   }
 
-  DEBUGUSED void print() const {
-    utils::print("BitSet[");
-    auto it = begin();
-    if (it != std::default_sentinel) {
-      utils::print(*(it++));
-      for (; it != std::default_sentinel; ++it) utils::print(", ", *it);
-    }
-    utils::print("]");
-    utils::flush();
+  DEBUGUSED void print() const { printCore(), utils::flush(); }
+  DEBUGUSED void println() const {
+    printCore(), utils::println(), utils::flush();
   }
   TRIVIAL constexpr void clear() {
     std::fill_n(data_.begin(), std::ssize(data_), 0);
@@ -603,6 +597,17 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     } {
     xorAssignFromExpression(*this, expr);
     return *this;
+  }
+
+private:
+  void printCore() const {
+    utils::print("BitSet[");
+    auto it = begin();
+    if (it != std::default_sentinel) {
+      utils::print(*(it++));
+      for (; it != std::default_sentinel; ++it) utils::print(", ", *it);
+    }
+    utils::print(']');
   }
 };
 
@@ -954,6 +959,9 @@ struct BitSets {
     std::ptrdiff_t len = totalElements();
     return math::PtrVector<std::uint64_t>(data_, math::length(len)) ==
            math::PtrVector<std::uint64_t>(other.data_, math::length(len));
+  }
+  DEBUGUSED void print() const {
+    for (value_type bs : *this) bs.println();
   }
 };
 static_assert(std::bidirectional_iterator<BitSets::Iterator>);
