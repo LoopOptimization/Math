@@ -436,6 +436,9 @@ int main() {
     expect(x.pop_back_val() == z);
     x.zero();
     expect(allZero(x));
+    y.resize(2);
+    y << 1;
+    expect(allZero(y - 1));
   };
 
   "StringMat1x1 BasicAssertions"_test = [] {

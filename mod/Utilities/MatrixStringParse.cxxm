@@ -4,9 +4,6 @@ export module ArrayParse;
 import StaticArray;
 import std;
 
-// #if !defined(__clang__)
-#define CONSTEVAL_LITERAL_ARRAYS
-// #endif
 template <std::size_t N> struct String {
   char data_[N];
 
@@ -38,11 +35,7 @@ consteval auto dims_eltype() -> std::array<std::ptrdiff_t, 2> {
   }
 }
 
-#ifndef CONSTEVAL_LITERAL_ARRAYS
-template <String S> constexpr auto matrix_from_string() {
-#else
 template <String S> consteval auto matrix_from_string() {
-#endif
   constexpr std::array<std::ptrdiff_t, 2> dims = dims_eltype<S>();
   // #if !defined(__clang__)
   //   // we want the array to be dense, so we check if the remainder
@@ -95,11 +88,7 @@ export namespace utils {
 
 // static_assert(__cpp_nontype_template_args >= 201911);
 
-#ifndef CONSTEVAL_LITERAL_ARRAYS
-template <String S> [[nodiscard]] constexpr auto operator""_mat() {
-#else
 template <String S> [[nodiscard]] consteval auto operator""_mat() {
-#endif
   return matrix_from_string<S>();
 }
 

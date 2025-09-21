@@ -40,9 +40,11 @@ NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A_arg,
         for (std::ptrdiff_t r = 0; r < M; ++r) {
           std::ptrdiff_t L = W * fulliter;
           for (std::ptrdiff_t i = 0; i < L; i += W)
-            if (f(A[r, simd::index::Unroll<1, W>{i}])) return true;
-          if constexpr (remainder > 0)
-            if (f(A[r, simd::index::unrollmask<1, W>(N, L)])) return true;
+            if (f(A[r, simd::index::Unroll<1, W>{i}]).any()) return true;
+          if constexpr (remainder > 0) {
+            auto u = simd::index::unrollmask<1, W>(N, L);
+            if ((f(A[r, u]) & u.mask_).any()) return true;
+          }
         }
       } else {
         constexpr std::ptrdiff_t W = simd::Width<T>;
@@ -50,7 +52,7 @@ NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A_arg,
           for (std::ptrdiff_t i = 0;; i += W) {
             auto u{simd::index::unrollmask<1, W>(N, i)};
             if (!u) break;
-            if (f(A[r, u])) return true;
+            if ((f(A[r, u]) & u.mask_).any()) return true;
           }
         }
       }
@@ -64,16 +66,18 @@ NODEBUG [[gnu::flatten]] constexpr auto any(const AbstractTensor auto &A_arg,
       constexpr std::ptrdiff_t remainder = vdr[2];
       std::ptrdiff_t K = W * fulliter;
       for (std::ptrdiff_t i = 0; i < K; i += W)
-        if (f(A[simd::index::Unroll<1, W>{i}])) return true;
-      if constexpr (remainder > 0)
-        if (f(A[simd::index::unrollmask<1, W>(L, K)])) return true;
+        if (f(A[simd::index::Unroll<1, W>{i}]).any()) return true;
+      if constexpr (remainder > 0) {
+        auto u = simd::index::unrollmask<1, W>(L, K);
+        if ((f(A[u]) & u.mask_).any()) return true;
+      }
     } else {
       constexpr std::ptrdiff_t W = simd::Width<T>;
       std::ptrdiff_t L = RowVector<TA> ? N : M;
       for (std::ptrdiff_t i = 0;; i += W) {
         auto u{simd::index::unrollmask<1, W>(L, i)};
         if (!u) break;
-        if (f(A[u])) return true;
+        if ((f(A[u]) & u.mask_).any()) return true;
       }
     }
   } else if constexpr (AbstractMatrix<TA>) {
@@ -93,8 +97,8 @@ NODEBUG constexpr auto anyNEZero(const AbstractTensor auto &A) -> bool {
     simd::VecWidth<T, decltype(numRows(A))::comptime(),
                    decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
-    return any(A, [] TRIVIAL(simd::Unroll<1, 1, W, T> v) -> bool {
-      return (v != simd::Vec<W, T>{}).any();
+    return any(A, [] TRIVIAL(simd::Unroll<1, 1, W, T> v) {
+      return (v != simd::Vec<W, T>{});
     });
   else return any(A, [] TRIVIAL(T x) -> bool { return x != T{}; });
 }
@@ -104,8 +108,8 @@ NODEBUG constexpr auto anyLTZero(const AbstractTensor auto &A) -> bool {
     simd::VecWidth<T, decltype(numRows(A))::comptime(),
                    decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
-    return any(A, [] TRIVIAL(simd::Unroll<1, 1, W, T> v) -> bool {
-      return (v < simd::Vec<W, T>{}).any();
+    return any(A, [] TRIVIAL(simd::Unroll<1, 1, W, T> v) {
+      return (v < simd::Vec<W, T>{});
     });
   else return any(A, [] TRIVIAL(T x) -> bool { return x < T{}; });
 }
@@ -115,8 +119,8 @@ NODEBUG constexpr auto anyGTZero(const AbstractTensor auto &A) -> bool {
     simd::VecWidth<T, decltype(numRows(A))::comptime(),
                    decltype(numCols(A))::comptime()>();
   if constexpr (simd::SIMDSupported<T>)
-    return any(A, [] TRIVIAL(simd::Unroll<1, 1, W, T> v) -> bool {
-      return (v > simd::Vec<W, T>{}).any();
+    return any(A, [] TRIVIAL(simd::Unroll<1, 1, W, T> v) {
+      return (v > simd::Vec<W, T>{});
     });
   else return any(A, [] TRIVIAL(T x) -> bool { return x > T{}; });
 }

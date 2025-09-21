@@ -4,6 +4,8 @@
 
 #ifdef __clang__
 
+// #define NODEBUG
+// #define TRIVIAL
 #define NODEBUG [[gnu::nodebug]]
 #define TRIVIAL [[gnu::nodebug, gnu::always_inline]]
 // clang-format off

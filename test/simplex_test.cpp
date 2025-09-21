@@ -1673,17 +1673,23 @@ auto main(int argc, const char **argv) -> int {
   };
   "OrderedComparison"_test = [&managed_alloc] -> void {
     // clang-format off
-    //          m  a  b  x  y s0 s1 s2 s3
+    //  0 = m - a - s0
+    // s0 = m - a
+    // s0 >= 0 -> m >= a
+    // 
+    //           m  a  b  x  y s0 s1 s2 s3
     auto t0{"[0  0  0  0  0  0  0  0  0  0;"
-            "0  1 -1  0  0  0 -1  0  0  0;"
-            "0  1  0 -1  0  0  0 -1  0  0;"
-            "0 -1  0  0  1  0  0  0 -1  0;"
-            "0 -1  0  0  0  1  0  0  0 -1]"_mat};
+            " 0  1 -1  0  0  0 -1  0  0  0;"
+            " 0  1  0 -1  0  0  0 -1  0  0;"
+            " 0 -1  0  0  1  0  0  0 -1  0;"
+            " 0 -1  0  0  0  1  0  0  0 -1]"_mat};
+    // 0 =  m -a - s_0
+    // 1 = -m + x - s_2
     auto t1{"[0  0  0  0  0  0  0  0  0  0;"
-            "0  1 -1  0  0  0 -1  0  0  0;"
-            "0  1  0 -1  0  0  0 -1  0  0;"
-            "1 -1  0  0  1  0  0  0 -1  0;"
-            "0 -1  0  0  0  1  0  0  0 -1]"_mat};
+            " 0  1 -1  0  0  0 -1  0  0  0;"
+            " 0  1  0 -1  0  0  0 -1  0  0;"
+            " 1 -1  0  0  1  0  0  0 -1  0;"
+            " 0 -1  0  0  0  1  0  0  0 -1]"_mat};
     // clang-format on
     static constexpr std::ptrdiff_t a = 2;
     static constexpr std::ptrdiff_t x = 4;
@@ -1694,7 +1700,10 @@ auto main(int argc, const char **argv) -> int {
       Valid<Simplex> S{simplexFromTableau(&alloc, i ? t1 : t0)};
       expect(fatal(!S->initiateFeasible()));
       MutPtrVector<Simplex::value_type> C{S->getCost()};
-      C.zero();
+      // is x >= a ?
+      //   m  a b x y 
+      // [ 0 -1 0 1 0  ]
+      C.zero(); // zeros the vector
       // minimize x - a
       C[a] = -1;
       C[x] = 1;
