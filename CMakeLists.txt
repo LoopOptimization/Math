@@ -16,7 +16,6 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # `Help/dev/experimental.rst` in the CMake source corresponding to
     # your CMake build for the exact value to use.
     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
-# cmake master uses: "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 
 
 # ---- Project ----
