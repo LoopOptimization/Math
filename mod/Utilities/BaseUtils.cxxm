@@ -86,7 +86,7 @@ export namespace utils {
 
 template <std::size_t Size>
 using signed_integer_t = std::conditional_t<
-  Size == 8, std::int64_t,
+  Size == 8, std::ptrdiff_t,
   std::conditional_t<
     Size == 4, std::int32_t,
     std::conditional_t<

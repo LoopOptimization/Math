@@ -17,19 +17,24 @@ if(ENABLE_NATIVE_COMPILATION)
   else()
     add_compile_options(-march=native)
     if(ENABLE_WIDE_VECTORS)
-      if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
         if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
           add_compile_options(-mprefer-vector-width=512)
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-          add_compile_options(
-            -mprefer-vector-width=512
-                                   -mtune-ctrl=avx512_move_by_pieces)
+          add_compile_options(-mprefer-vector-width=512
+                              -mtune-ctrl=avx512_move_by_pieces)
         endif()
       endif()
     endif()
   endif()
 endif()
-
+if(APPLE)
+  add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:-nostdinc++;-nostdlib++;-isystem;/opt/homebrew/opt/llvm/include/c++/v1>")
+  add_link_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:-L/opt/homebrew/opt/llvm/lib/c++;-Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++;-lc++>"
+  )
+endif()
 add_compile_options(
   "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti>"
 )
@@ -144,8 +149,8 @@ foreach(test_source ${test_sources})
     target_compile_definitions(${test_name} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
 
-  target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra
-                                             -Wshadow -Werror)
+  target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra -Wshadow
+                                             -Werror)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(
