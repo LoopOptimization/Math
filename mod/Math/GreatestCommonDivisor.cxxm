@@ -55,7 +55,7 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
                              az = simd::crz<W, std::int64_t>(x);
   auto on = ((a > 1) & (b > 1));
   simd::Vec<W, std::int64_t> offb = (x == 0 ? b : (y == 0 ? a : one));
-  if (!(simd::cmp::ne<W, std::int64_t>(on, zero)).any()) return offb;
+  if (!(simd::cmp::ne<W>(on, {})).any()) return offb;
   b = on ? (b >> bz) : offb;
   simd::Vec<W, std::int64_t> k = on ? (az > bz ? bz : az) : zero;
   for (;;) {
@@ -64,7 +64,7 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
     az = simd::crz<W, std::int64_t>(d);
     b = (on & (a <= b)) ? a : b;
     on = on ? (d != zero) : on;
-    if (!(simd::cmp::ne<W, std::int64_t>(on, zero)).any()) break;
+    if (!(simd::cmp::ne<W>(on, {})).any()) break;
     a = constexpr_abs<W, std::int64_t>(d);
   }
   return b << k;

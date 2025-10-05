@@ -41,10 +41,10 @@ struct Rational {
     -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator_, y.denominator_);
     std::int64_t a, b, n, d;
-    bool o1 = __builtin_smull_overflow(numerator_, yd, &a);
-    bool o2 = __builtin_smull_overflow(y.numerator_, xd, &b);
-    bool o3 = __builtin_smull_overflow(denominator_, yd, &d);
-    bool o4 = __builtin_saddl_overflow(a, b, &n);
+    bool o1 = __builtin_mul_overflow(numerator_, yd, &a);
+    bool o2 = __builtin_mul_overflow(y.numerator_, xd, &b);
+    bool o3 = __builtin_mul_overflow(denominator_, yd, &d);
+    bool o4 = __builtin_add_overflow(a, b, &n);
     if ((o1 | o2) | (o3 | o4)) return {};
     if (!n) return Rational{0, 1};
     auto [nn, nd] = divgcd(n, d);
@@ -63,10 +63,10 @@ struct Rational {
     -> std::optional<Rational> {
     auto [xd, yd] = divgcd(denominator_, y.denominator_);
     std::int64_t a, b, n, d;
-    bool o1 = __builtin_smull_overflow(numerator_, yd, &a);
-    bool o2 = __builtin_smull_overflow(y.numerator_, xd, &b);
-    bool o3 = __builtin_smull_overflow(denominator_, yd, &d);
-    bool o4 = __builtin_ssubl_overflow(a, b, &n);
+    bool o1 = __builtin_mul_overflow(numerator_, yd, &a);
+    bool o2 = __builtin_mul_overflow(y.numerator_, xd, &b);
+    bool o3 = __builtin_mul_overflow(denominator_, yd, &d);
+    bool o4 = __builtin_sub_overflow(a, b, &n);
     if ((o1 | o2) | (o3 | o4)) return {};
     if (!n) return Rational{0, 1};
     auto [nn, nd] = divgcd(n, d);
@@ -94,8 +94,8 @@ struct Rational {
     auto [xn, yd] = divgcd(numerator_, y.denominator_);
     auto [xd, yn] = divgcd(denominator_, y.numerator_);
     std::int64_t n, d;
-    bool o1 = __builtin_smull_overflow(xn, yn, &n);
-    bool o2 = __builtin_smull_overflow(xd, yd, &d);
+    bool o1 = __builtin_mul_overflow(xn, yn, &n);
+    bool o2 = __builtin_mul_overflow(xd, yd, &d);
     if (o1 | o2) return {};
     return Rational{n, d};
   }
