@@ -24,3 +24,6 @@ InlayHints:
   DefaultArguments: true
 Documentation:
   CommentFormat: Doxygen
+Completion:
+  HeaderInsertion: Never
+
