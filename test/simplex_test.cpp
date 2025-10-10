@@ -24,10 +24,10 @@ auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
   static constexpr auto check_invalid = [](auto x) {
     return x == std::numeric_limits<std::int64_t>::min();
   };
-  invariant(find_if(tableau, check_invalid) < 0);
+  invariant(find_first(tableau, check_invalid) < 0);
   simp->getTableau() << tableau;
   PtrMatrix<Simplex::value_type> C{simp->getConstraints()};
-  invariant(find_if(C, check_invalid) < 0);
+  invariant(find_first(C, check_invalid) < 0);
   return simp;
 }
 

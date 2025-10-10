@@ -29,7 +29,7 @@ struct NoFilter {
 getEnteringVariable(PtrVector<std::int64_t> costs)
   -> std::optional<Simplex::index_t> {
   // Bland's algorithm; guaranteed to terminate
-  std::ptrdiff_t idx = find_if(costs, [](auto c) { return c < 0; });
+  std::ptrdiff_t idx = find_first(costs, [](auto c) { return c < 0; });
   return idx >= 0 ? idx : std::optional<Simplex::index_t>{};
 }
 
