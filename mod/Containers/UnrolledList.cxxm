@@ -13,7 +13,7 @@ template <typename T> class UList {
 
 public:
   constexpr UList() = default;
-  constexpr UList(T t) : count_(1) { data_[0] = t; }
+  constexpr UList(T t) : count_(1) { std::construct_at(data_, t); }
   constexpr UList(T t, UList *n) : count_(1), next_(n) {
     std::construct_at(data_, t);
   }
@@ -222,67 +222,41 @@ public:
     return (i < count_) ? data_[i] : next_->operator[](i - count_);
   }
   constexpr auto operator=(const UList &other) -> UList & = default;
-  struct MutIterator {
-
-    UList *list;
-    std::ptrdiff_t index;
+  template <bool mut> struct Iterator {
+    std::conditional_t<mut, UList, const UList> *list_;
+    std::ptrdiff_t index_;
     constexpr auto operator==(std::default_sentinel_t) const -> bool {
-      return list == nullptr;
-    }
-    constexpr auto operator==(MutIterator other) const -> bool {
-      return list == other.list && index == other.index;
-    }
-    constexpr auto operator++() -> MutIterator & {
-      invariant(list != nullptr);
-      if (++index == list->count_) {
-        list = list->next_;
-        index = 0;
-      }
-      return *this;
-    }
-    constexpr auto operator++(int) -> MutIterator {
-      invariant(list != nullptr);
-      auto ret = *this;
-      ++*this;
-      return ret;
-    }
-    constexpr auto operator*() -> T & {
-      invariant(list != nullptr);
-      return list->data_[index];
-    }
-    constexpr auto operator->() -> T * { return &**this; }
-  };
-  struct Iterator {
-    const UList *list;
-    std::ptrdiff_t index;
-    constexpr auto operator==(std::default_sentinel_t) const -> bool {
-      return list == nullptr;
+      return list_ == nullptr;
     }
     constexpr auto operator==(Iterator other) const -> bool {
-      return list == other.list && index == other.index;
+      return list_ == other.list_ && index_ == other.index_;
     }
     constexpr auto operator++() -> Iterator & {
-      invariant(list != nullptr);
-      if (++index == list->count_) {
-        list = list->next_;
-        index = 0;
+      invariant(list_ != nullptr);
+      if (++index_ == list_->count_) {
+        list_ = list_->next_;
+        index_ = 0;
       }
       return *this;
     }
     constexpr auto operator++(int) -> Iterator {
-      invariant(list != nullptr);
+      invariant(list_ != nullptr);
       auto ret = *this;
       ++*this;
       return ret;
     }
-    constexpr auto operator*() -> T {
-      invariant(list != nullptr);
-      return list->data_[index];
+    constexpr auto operator*() -> std::conditional_t<mut, T &, T> {
+      invariant(list_ != nullptr);
+      return list_->data_[index_];
     }
-    constexpr auto operator->() -> const T * { return &**this; }
+    constexpr auto operator->() -> std::conditional_t<mut, T *, const T *> {
+      return &**this;
+    }
   };
-  [[nodiscard]] constexpr auto begin() const -> Iterator { return {this, 0}; }
-  [[nodiscard]] constexpr auto begin() -> MutIterator { return {this, 0}; }
+  [[nodiscard]] constexpr auto begin() const -> Iterator<false> {
+    return {this, 0};
+  }
+  [[nodiscard]] constexpr auto begin() -> Iterator<true> { return {this, 0}; }
   static constexpr auto end() -> std::default_sentinel_t {
     return std::default_sentinel;
   }
