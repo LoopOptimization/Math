@@ -448,7 +448,8 @@ namespace cmp {
 #ifdef __AVX512VL__
 
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y)
+  -> mask::Bit<W> requires(W == 16 || W == 8 || W == 4 || W == 2) {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
@@ -496,7 +497,8 @@ TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y)
+  -> mask::Bit<W> requires(W == 16 || W == 8 || W == 4 || W == 2) {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
@@ -544,7 +546,8 @@ TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y)
+  -> mask::Bit<W> requires(W == 16 || W == 8 || W == 4 || W == 2) {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
@@ -592,7 +595,8 @@ TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y)
+  -> mask::Bit<W> requires(W == 16 || W == 8 || W == 4 || W == 2) {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
@@ -640,7 +644,8 @@ TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y)
+  -> mask::Bit<W> requires(W == 16 || W == 8 || W == 4 || W == 2) {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
@@ -688,7 +693,8 @@ TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
+TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y)
+  -> mask::Bit<W> requires(W == 16 || W == 8 || W == 4 || W == 2) {
   if constexpr (W == 16) {
     if constexpr (std::same_as<T, float>) // UQ (unordered quiet?)
       return {_mm512_cmp_ps_mask(__builtin_bit_cast(__m512, x),
@@ -737,7 +743,7 @@ TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Bit<W> {
   } else static_assert(false);
 }
 
-#elif defined(__AVX512F__)
+#elifdef __AVX512F__
 
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) {
@@ -829,32 +835,66 @@ TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) {
 #else  // ifdef __AVX512VL__
 
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
+  requires(W == 16 || W == 8 || W == 4 || W == 2) {
   return {x == y};
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
+  requires(W == 16 || W == 8 || W == 4 || W == 2) {
   return {x != y};
 }
 
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
+  requires(W == 16 || W == 8 || W == 4 || W == 2) {
   return {x < y};
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
+  requires(W == 16 || W == 8 || W == 4 || W == 2) {
   return {x > y};
 }
 
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
+  requires(W == 16 || W == 8 || W == 4 || W == 2) {
   return {x <= y};
 }
 template <std::ptrdiff_t W, typename T>
-TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)> {
+TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
+  requires(W == 16 || W == 8 || W == 4 || W == 2) {
   return {x >= y};
 }
 #endif // ifdef __AVX512VL__; else
+
+template <std::ptrdiff_t W, typename T>
+TRIVIAL inline auto eq(T x, T y) -> bool requires(W == 1) {
+  return x == y;
+}
+template <std::ptrdiff_t W, typename T>
+TRIVIAL inline auto ne(T x, T y) -> bool requires(W == 1) {
+  return x != y;
+}
+
+template <std::ptrdiff_t W, typename T>
+TRIVIAL inline auto lt(T x, T y) -> bool requires(W == 1) {
+  return x < y;
+}
+template <std::ptrdiff_t W, typename T>
+TRIVIAL inline auto gt(T x, T y) -> bool requires(W == 1) {
+  return x > y;
+}
+
+template <std::ptrdiff_t W, typename T>
+TRIVIAL inline auto le(T x, T y) -> bool requires(W == 1) {
+  return x <= y;
+}
+template <std::ptrdiff_t W, typename T>
+TRIVIAL inline auto ge(T x, T y) -> bool requires(W == 1) {
+  return x >= y;
+}
+
 } // namespace cmp
 template <std::ptrdiff_t W,
           typename I = std::conditional_t<W == 2, std::int64_t, std::int32_t>>
@@ -940,16 +980,17 @@ private:
 };
 
 // Specialization for 1x1 Unroll
-template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1, 1, N, Bytes> {
+template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
   static constexpr std::ptrdiff_t W =
     std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
 #ifdef __AVX512VL__
-  using MaskType = mask::Bit<W>;
-#elif defined(__AVX512F__)
-  using MaskType =
-    std::conditional_t<Bytes * W == 64, mask::Bit<W>, mask::Vector<W, Bytes>>;
+  using MaskType = std::conditional_t<W == 1, bool, mask::Bit<W>>;
+#elifdef(__AVX512F__)
+  using MaskType = std::conditional_t<
+    W == 1, bool,
+    std::conditional_t<Bytes * W == 64, mask::Bit<W>, mask::Vector<W, Bytes>>>;
 #else
-  using MaskType = mask::Vector<W, Bytes>;
+  using MaskType = std::conditional_t<W == 1, bool, mask::Vector<W, Bytes>>;
 #endif
   MaskType mask_;
 
@@ -970,20 +1011,25 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1, 1, N, Bytes> {
 
   TRIVIAL constexpr operator MaskType() const { return mask_; }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool {
-    return mask_.any();
+    if constexpr (W > 1) return mask_.any();
+    else return mask_;
   }
 
   [[nodiscard]] TRIVIAL constexpr auto onBegin() const -> std::ptrdiff_t {
-    return mask_.onBegin();
+    if constexpr (W > 1) return mask_.onBegin();
+    else return !mask_;
   }
 
   [[nodiscard]] TRIVIAL constexpr auto onEnd() const -> std::ptrdiff_t {
-    return mask_.onEnd();
+    if constexpr (W > 1) return mask_.onEnd();
+    else return mask_;
   }
   template <typename T>
   [[nodiscard]] TRIVIAL constexpr auto
   select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
          const ::simd::Unroll<1Z, 1Z, N, T> &y) -> ::simd::Unroll<1Z, 1Z, N, T>;
+
+  TRIVIAL constexpr operator bool() const requires(W == 1) { return mask_; }
 
 private:
   TRIVIAL friend constexpr auto operator&(Unroll a, Unroll b) -> Unroll {
@@ -3610,9 +3656,9 @@ struct Unroll {
     if constexpr (L > 1) {
       std::array<U, 2> ret{};
       POLYMATHFULLUNROLL
-      for (std::ptrdiff_t l = 0; l < L; ++l) {
-        ret[0].data_[l] = data_[l];
-        ret[1].data_[l] = data_[l + L];
+      for (std::ptrdiff_t i = 0; i < L; ++i) {
+        ret[0].data_[i] = data_[i];
+        ret[1].data_[i] = data_[i + L];
       }
       return ret;
     } else return std::array<U, 2>{U{data_[0]}, U{data_[1]}};
@@ -4039,19 +4085,22 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   [[nodiscard]] TRIVIAL constexpr auto split() const
     requires(W == 2 || W == 4 || W == 8 || W == 16) {
     if constexpr (W == 16) {
-      return std::array<El<W / 2, T>, 2>{
-        __builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7),
-        __builtin_shufflevector(vec_, vec_, 8, 9, 10, 11, 12, 13, 14, 15)};
+      return std::array<Unroll<1Z, 1Z, 8Z, T>, 2>{
+        Unroll<1Z, 1Z, 8Z, T>{
+          __builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7)},
+        Unroll<1Z, 1Z, 8Z, T>{
+          __builtin_shufflevector(vec_, vec_, 8, 9, 10, 11, 12, 13, 14, 15)}};
     } else if constexpr (W == 8) {
-      return std::array<El<W / 2, T>, 2>{
-        __builtin_shufflevector(vec_, vec_, 0, 1, 2, 3),
-        __builtin_shufflevector(vec_, vec_, 4, 5, 6, 7)};
+      return std::array<Unroll<1Z, 1Z, 4Z, T>, 2>{
+        Unroll<1Z, 1Z, 4Z, T>{__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3)},
+        Unroll<1Z, 1Z, 4Z, T>{__builtin_shufflevector(vec_, vec_, 4, 5, 6, 7)}};
     } else if constexpr (W == 4) {
-      return std::array<El<W / 2, T>, 2>{
-        __builtin_shufflevector(vec_, vec_, 0, 1),
-        __builtin_shufflevector(vec_, vec_, 2, 3)};
+      return std::array<Unroll<1Z, 1Z, 2Z, T>, 2>{
+        Unroll<1Z, 1Z, 2Z, T>{__builtin_shufflevector(vec_, vec_, 0, 1)},
+        Unroll<1Z, 1Z, 2Z, T>{__builtin_shufflevector(vec_, vec_, 2, 3)}};
     } else if constexpr (W == 2) {
-      return std::array<El<W / 2, T>, 2>{vec_[0], vec_[1]};
+      return std::array<Unroll<1Z, 1Z, 1Z, T>, 2>{
+        Unroll<1Z, 1Z, 1Z, T>{vec_[0]}, Unroll<1Z, 1Z, 1Z, T>{vec_[1]}};
     } else static_assert("currently only supports W in {2,4,8,16}");
   }
 
