@@ -3587,6 +3587,23 @@ struct Unroll {
     -> Unroll & requires(W != 1) {
     return (*this) /= vbroadcast<W, T>(a);
   }
+  [[nodiscard]] TRIVIAL constexpr auto split() const requires(R == 1 || C == 1)
+  {
+    static_assert(R > 1 || C > 1);
+    static constexpr std::ptrdiff_t Chalf = C >> 1;
+    static constexpr std::ptrdiff_t Rhalf = R >> 1;
+    static constexpr std::ptrdiff_t L = (R * C) >> 1;
+    using U = std::conditional_t<R == 1, Unroll<1Z, Chalf, N, T>,
+                                 Unroll<Rhalf, 1Z, N, T>>;
+    std::array<U, 2> ret{};
+
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t l = 0; l < L; ++l) {
+      ret[0].data_[l] = data_[l];
+      ret[1].data_[l] = data_[l + L];
+    }
+    return ret;
+  }
 
 private:
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
@@ -4005,6 +4022,22 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     -> Unroll & requires(W != 1) {
     vec_ /= vbroadcast<W, T>(a);
     return *this;
+  }
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    -> std::array<El<W / 2, T>, 2> {
+    if constexpr (W == 16) {
+      return {
+        __builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7),
+        __builtin_shufflevector(vec_, vec_, 8, 9, 10, 11, 12, 13, 14, 15)};
+    } else if constexpr (W == 8) {
+      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3),
+              __builtin_shufflevector(vec_, vec_, 4, 5, 6, 7)};
+    } else if constexpr (W == 4) {
+      return {__builtin_shufflevector(vec_, vec_, 0, 1),
+              __builtin_shufflevector(vec_, vec_, 2, 3)};
+    } else if constexpr (W == 2) {
+      return {vec_[0], vec_[1]};
+    } else static_assert("currently only supports W in {2,4,8,16}");
   }
 
 private:
