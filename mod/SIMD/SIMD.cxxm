@@ -5244,7 +5244,7 @@ constexpr auto
 Unroll<1Z, 1Z, N, Bytes>::select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
                                  const ::simd::Unroll<1Z, 1Z, N, T> &y)
   -> ::simd::Unroll<1Z, 1Z, N, T> {
-  return {::simd::select(mask_, x.data_, y.data_)};
+  return {::simd::select(mask_, x.vec_, y.vec_)};
 }
 } // namespace mask
 
