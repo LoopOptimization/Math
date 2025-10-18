@@ -36,7 +36,7 @@ constexpr auto bound(alloc::Arena<> *alloc, BoxTransform &box, double upper,
 constexpr auto
 minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<std::int32_t> r,
                BoxTransform &box, const auto &f,
-               double globalupper = std::numeric_limits<double>::infinity())
+               double globalupper = std::numeric_limits<double>::max())
   -> double {
   // goal is to shrink all bounds such that lb==ub, i.e. we have all
   // integer solutions.
@@ -66,7 +66,7 @@ minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<std::int32_t> r,
 constexpr auto
 minimizeIntSol(alloc::Arena<> *alloc, MutPtrVector<std::int32_t> r,
                std::int32_t lb, std::int32_t ub, const auto &f,
-               double globalupper = std::numeric_limits<double>::infinity())
+               double globalupper = std::numeric_limits<double>::max())
   -> double {
   // goal is to shrink all bounds such that lb==ub, i.e. we have all
   // integer solutions.
