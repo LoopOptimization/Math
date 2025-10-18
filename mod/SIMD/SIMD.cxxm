@@ -38,6 +38,9 @@ using map = boost::unordered_flat_map<K, V, boost::hash<K>, std::equal_to<K>,
 
 export namespace simd {
 
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T>
+struct Unroll;
+
 template <std::ptrdiff_t W, typename T>
 using Vec = T [[clang::ext_vector_type(W)]];
 template <std::ptrdiff_t W, typename T>
@@ -909,6 +912,10 @@ struct Unroll {
       if (auto end = data_[i].onEnd(); end > 0) last = (i * W) + end;
     return last;
   }
+  template <typename T>
+  [[nodiscard]] TRIVIAL constexpr auto
+  select(const ::simd::Unroll<R, C, N, T> &x,
+         const ::simd::Unroll<R, C, N, T> &y) -> ::simd::Unroll<R, C, N, T>;
 
 private:
   TRIVIAL friend constexpr auto operator&(Unroll a, Unroll b) -> Unroll {
@@ -973,6 +980,10 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1, 1, N, Bytes> {
   [[nodiscard]] TRIVIAL constexpr auto onEnd() const -> std::ptrdiff_t {
     return mask_.onEnd();
   }
+  template <typename T>
+  [[nodiscard]] TRIVIAL constexpr auto
+  select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
+         const ::simd::Unroll<1Z, 1Z, N, T> &y) -> ::simd::Unroll<1Z, 1Z, N, T>;
 
 private:
   TRIVIAL friend constexpr auto operator&(Unroll a, Unroll b) -> Unroll {
@@ -3595,14 +3606,16 @@ struct Unroll {
     static constexpr std::ptrdiff_t L = (R * C) >> 1;
     using U = std::conditional_t<R == 1, Unroll<1Z, Chalf, N, T>,
                                  Unroll<Rhalf, 1Z, N, T>>;
-    std::array<U, 2> ret{};
 
-    POLYMATHFULLUNROLL
-    for (std::ptrdiff_t l = 0; l < L; ++l) {
-      ret[0].data_[l] = data_[l];
-      ret[1].data_[l] = data_[l + L];
-    }
-    return ret;
+    if constexpr (L > 1) {
+      std::array<U, 2> ret{};
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 0; l < L; ++l) {
+        ret[0].data_[l] = data_[l];
+        ret[1].data_[l] = data_[l + L];
+      }
+      return ret;
+    } else return std::array<U, 2>{U{data_[0]}, U{data_[1]}};
   }
 
 private:
@@ -3859,7 +3872,7 @@ private:
           c;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t i = 0; i < R * C; ++i)
-          c.data_[i] = op(a.data_[i], b.data_[i]);
+          c.data_[i] = {op(a.data_[i], b.data_[i])};
         return c;
       } else if constexpr (R == 1) { // R1 > 0
         // `a` was indexed across cols only
@@ -3870,7 +3883,7 @@ private:
         for (std::ptrdiff_t r = 0; r < R1; ++r) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t c = 0; c < C; ++c)
-            z[r, c] = op(a.data_[c], b[r, c]);
+            z[r, c] = {op(a.data_[c], b[r, c])};
         }
         return z;
       } else {
@@ -3882,13 +3895,13 @@ private:
         if constexpr (C == 1) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t r = 0; r < R; ++r)
-            z.data_[r] = op(a.data_[r], b.vec_);
+            z.data_[r] = {op(a.data_[r], b.vec_)};
         } else {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t r = 0; r < R; ++r) {
             POLYMATHFULLUNROLL
             for (std::ptrdiff_t c = 0; c < C; ++c)
-              z[r, c] = op(a[r, c], b.data_[c]);
+              z[r, c] = {op(a[r, c], b.data_[c])};
           }
         }
         return z;
@@ -3905,15 +3918,15 @@ private:
       if constexpr (C1 == 1) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R2; ++r)
-          if constexpr (R2 == R1) z.data_[r] = op(a.data_[r], b.vec_[r]);
-          else z.data_[r] = op(a.data_[r], b.vec_);
+          if constexpr (R2 == R1) z.data_[r] = {op(a.data_[r], b.vec_[r])};
+          else z.data_[r] = {op(a.data_[r], b.vec_)};
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R2; ++r) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t c = 0; c < C1; ++c)
-            if constexpr (R2 == R1) z[r, c] = op(a.data_[r], b[r, c]);
-            else z[r, c] = op(a.data_[r], b.data_[c]);
+            if constexpr (R2 == R1) z[r, c] = {op(a.data_[r], b[r, c])};
+            else z[r, c] = {op(a.data_[r], b.data_[c])};
         }
       }
       return z;
@@ -3929,19 +3942,19 @@ private:
       if constexpr (R2 == 1) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          z.data_[c] = op(a.data_[c], b.vec_);
+          z.data_[c] = {op(a.data_[c], b.vec_)};
       } else if constexpr (C == 1) {
         static_assert(R != 1 && R == R2);
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R2; ++r)
-          z.data_[r] = op(a.data_[r], b.data_[r]);
+          z.data_[r] = {op(a.data_[r], b.data_[r])};
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R2; ++r) {
           POLYMATHFULLUNROLL
           for (std::ptrdiff_t c = 0; c < C; ++c)
-            if constexpr (R == R2) z[r, c] = op(a[r, c], b.data_[r]);
-            else z[r, c] = op(a.data_[c], b.data_[r]);
+            if constexpr (R == R2) z[r, c] = {op(a[r, c], b.data_[r])};
+            else z[r, c] = {op(a.data_[c], b.data_[r])};
         }
       }
       return z;
@@ -4024,19 +4037,21 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     return *this;
   }
   [[nodiscard]] TRIVIAL constexpr auto split() const
-    -> std::array<El<W / 2, T>, 2> {
+    requires(W == 2 || W == 4 || W == 8 || W == 16) {
     if constexpr (W == 16) {
-      return {
+      return std::array<El<W / 2, T>, 2>{
         __builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7),
         __builtin_shufflevector(vec_, vec_, 8, 9, 10, 11, 12, 13, 14, 15)};
     } else if constexpr (W == 8) {
-      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3),
-              __builtin_shufflevector(vec_, vec_, 4, 5, 6, 7)};
+      return std::array<El<W / 2, T>, 2>{
+        __builtin_shufflevector(vec_, vec_, 0, 1, 2, 3),
+        __builtin_shufflevector(vec_, vec_, 4, 5, 6, 7)};
     } else if constexpr (W == 4) {
-      return {__builtin_shufflevector(vec_, vec_, 0, 1),
-              __builtin_shufflevector(vec_, vec_, 2, 3)};
+      return std::array<El<W / 2, T>, 2>{
+        __builtin_shufflevector(vec_, vec_, 0, 1),
+        __builtin_shufflevector(vec_, vec_, 2, 3)};
     } else if constexpr (W == 2) {
-      return {vec_[0], vec_[1]};
+      return std::array<El<W / 2, T>, 2>{vec_[0], vec_[1]};
     } else static_assert("currently only supports W in {2,4,8,16}");
   }
 
@@ -4643,7 +4658,7 @@ TRIVIAL constexpr auto transpose(Unroll<R8, C, 8, T> u)
 }
 
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
-          std::ptrdiff_t X, std::size_t NM, typename MT = mask::None<N>>
+          std::ptrdiff_t X, std::size_t NM = 1, typename MT = mask::None<N>>
 TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
                                   std::array<MT, NM> masks)
   -> Unroll<R, C, N, T> requires(NM == 0 || NM == 1 || NM == C) {
@@ -5203,6 +5218,35 @@ TRIVIAL constexpr auto tailmask(std::ptrdiff_t i, std::ptrdiff_t m) {
 template <std::ptrdiff_t U, std::ptrdiff_t W, typename M>
 inline constexpr bool issimd<Unroll<U, W, M>> = true;
 } // namespace index
+
+namespace mask {
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
+          std::size_t Bytes>
+template <typename T>
+constexpr auto
+Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, C, N, T> &x,
+                               const ::simd::Unroll<R, C, N, T> &y)
+  -> ::simd::Unroll<R, C, N, T> {
+  ::simd::Unroll<R, C, N, T> ret;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t r = 0; r < R; ++r) {
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t c = 0; c < C; ++c) {
+      std::ptrdiff_t i = (r * C) + c;
+      ret.data_[i] = ::simd::select(data_[i], x.data_[i], y.data_[i]);
+    }
+  }
+  return ret;
+}
+template <std::ptrdiff_t N, std::size_t Bytes>
+template <typename T>
+constexpr auto
+Unroll<1Z, 1Z, N, Bytes>::select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
+                                 const ::simd::Unroll<1Z, 1Z, N, T> &y)
+  -> ::simd::Unroll<1Z, 1Z, N, T> {
+  return {::simd::select(mask_, x.data_, y.data_)};
+}
+} // namespace mask
 
 #ifdef __AVX512F__
 
