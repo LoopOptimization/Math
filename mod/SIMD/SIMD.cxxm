@@ -985,7 +985,7 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
     std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
 #ifdef __AVX512VL__
   using MaskType = std::conditional_t<W == 1, bool, mask::Bit<W>>;
-#elifdef(__AVX512F__)
+#elifdef __AVX512F__
   using MaskType = std::conditional_t<
     W == 1, bool,
     std::conditional_t<Bytes * W == 64, mask::Bit<W>, mask::Vector<W, Bytes>>>;
