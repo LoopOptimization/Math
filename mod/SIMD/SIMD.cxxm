@@ -156,7 +156,8 @@ template <std::ptrdiff_t W> struct Bit {
   }
 
   TRIVIAL constexpr auto operator~() const -> Bit<W> { return {~mask_}; }
-  TRIVIAL constexpr auto split() const -> std::array<Bit<W / 2>, 2> {
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    -> std::array<Bit<W / 2>, 2> {
     return {{mask_}, {mask_ >> W}};
   }
 
@@ -299,6 +300,11 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     return {__builtin_convertvector(m, Vec<W, J>)};
   }
   TRIVIAL constexpr auto operator~() const -> Vector { return {~m}; }
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    -> std::array<Vector<W / 2, Bytes>, 2> {
+    auto s = ::simd::split(m);
+    return {s[0], s[1]};
+  }
 
 private:
   TRIVIAL friend constexpr auto operator&(Vector a, Vector b) -> Vector {
@@ -1115,24 +1121,11 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
   select(const ::simd::Unroll<1Z, C, W, T> &x,
          const ::simd::Unroll<1Z, C, W, T> &y)
     -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z));
-  [[nodiscard]] TRIVIAL constexpr auto split() const requires(R == 1 || C == 1)
-  {
-    static_assert(R > 1 || C > 1);
-    static constexpr std::ptrdiff_t Chalf = C >> 1;
-    static constexpr std::ptrdiff_t Rhalf = R >> 1;
-    static constexpr std::ptrdiff_t L = (R * C) >> 1;
-    using U = std::conditional_t<R == 1, Unroll<1Z, Chalf, N, T>,
-                                 Unroll<Rhalf, 1Z, N, T>>;
 
-    if constexpr (L > 1) {
-      std::array<U, 2> ret{};
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t i = 0; i < L; ++i) {
-        ret[0].data_[i] = data_[i];
-        ret[1].data_[i] = data_[i + L];
-      }
-      return ret;
-    } else return std::array<U, 2>{U{data_[0]}, U{data_[1]}};
+  [[nodiscard]] TRIVIAL constexpr auto split() const {
+    using U = Unroll<1Z, 1Z, N / 2, Bytes>;
+    auto s = mask_.split();
+    return std::array<U, 2>{U{s[0]}, U{s[1]}};
   }
 
   TRIVIAL constexpr operator bool() const requires(W == 1) { return mask_; }
@@ -5381,6 +5374,43 @@ Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, C, N, T> &x,
   }
   return ret;
 }
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
+          std::size_t Bytes>
+template <typename T, std::ptrdiff_t CU, std::ptrdiff_t W>
+[[nodiscard]] TRIVIAL constexpr auto
+Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, CU, W, T> &x,
+                               const ::simd::Unroll<R, CU, W, T> &y)
+  -> ::simd::Unroll<R, CU, W, T> requires((CU * W == C * N) && (CU != C)) {
+  if constexpr (C < CU) {
+    // We will double `C` and cut `N` in half.
+    static constexpr std::ptrdiff_t C2 = C << 1;
+    static constexpr std::ptrdiff_t Nhalf = N >> 1;
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll<R, C2, Nhalf, Bytes> s;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i) {
+      auto splt = data_[i].split();
+      s.data_[2 * i] = splt[0], s.data_[(2 * i) + 1] = splt[1];
+    }
+    // either `s` matches, or continues the recursion
+    return s.select(x, y);
+  } else { // C > CU
+    // We will double `CU` and cut `W` in half.
+    static constexpr std::ptrdiff_t C2 = CU << 1;
+    static constexpr std::ptrdiff_t Whalf = W >> 1;
+    static constexpr std::ptrdiff_t L = R * CU;
+    ::simd::Unroll<R, C2, Whalf, T> a, b;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i) {
+      auto xsplt = x.data_[i].split();
+      auto ysplt = y.data_[i].split();
+      a.data_[2 * i] = xsplt[0], a.data_[(2 * i) + 1] = xsplt[1];
+      b.data_[2 * i] = ysplt[0], b.data_[(2 * i) + 1] = ysplt[1];
+    }
+    // either matches, or continues the recursion
+    return select(a, b);
+  }
+}
 template <std::ptrdiff_t N, std::size_t Bytes>
 template <typename T>
 constexpr auto
@@ -5388,6 +5418,19 @@ Unroll<1Z, 1Z, N, Bytes>::select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
                                  const ::simd::Unroll<1Z, 1Z, N, T> &y)
   -> ::simd::Unroll<1Z, 1Z, N, T> {
   return {::simd::select(mask_, x.vec_, y.vec_)};
+}
+template <std::ptrdiff_t N, std::size_t Bytes>
+template <typename T, std::ptrdiff_t C, std::ptrdiff_t W>
+[[nodiscard]] TRIVIAL constexpr auto
+Unroll<1Z, 1Z, N, Bytes>::select(const ::simd::Unroll<1Z, C, W, T> &x,
+                                 const ::simd::Unroll<1Z, C, W, T> &y)
+  -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
+  static constexpr std::ptrdiff_t Nhalf = N >> 1;
+  Unroll<1Z, 2Z, Nhalf, Bytes> s;
+  auto splt = mask_.split();
+  s.data_[0] = splt[0], s.data_[1] = splt[1];
+  // either `s` matches, or continues the recursion
+  return s.select(x, y);
 }
 } // namespace mask
 
