@@ -103,6 +103,9 @@ template <std::ptrdiff_t W> struct Bit {
   TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
     return std::ptrdiff_t(std::countr_zero(mask_));
   }
+  TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
+    return std::popcount(mask_);
+  }
   /// Returns the last `idx` where the mask bit is `1`
   /// Values >= W indicate full masks
   TRIVIAL [[nodiscard]] constexpr auto onEnd() const -> std::ptrdiff_t {
@@ -233,6 +236,9 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     else return _mm256_movemask_epi8(__builtin_bit_cast(__m256i, m));
   }
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool { return intmask(); }
+  TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
+    return std::popcount(intmask());
+  }
   TRIVIAL [[nodiscard]] constexpr auto onBegin() const -> std::ptrdiff_t {
     return std::countr_zero(intmask());
   }
@@ -939,6 +945,12 @@ struct Unroll {
       if (data_[i].any()) return true;
     return false;
   }
+  TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
+    int count = data_[0].popcount();
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 1; i < R * C; ++i) count += data_[i].popcount();
+    return false;
+  }
 
   [[nodiscard]] TRIVIAL constexpr auto onBegin() const -> std::ptrdiff_t {
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
@@ -1013,6 +1025,9 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
   TRIVIAL [[nodiscard]] constexpr auto any() const -> bool {
     if constexpr (W > 1) return mask_.any();
     else return mask_;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
+    return mask_.popcount();
   }
 
   [[nodiscard]] TRIVIAL constexpr auto onBegin() const -> std::ptrdiff_t {
