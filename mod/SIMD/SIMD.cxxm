@@ -3764,6 +3764,14 @@ struct Unroll {
       return ret;
     } else return std::array<U, 2>{U{data_[0]}, U{data_[1]}};
   }
+  TRIVIAL static constexpr auto vbroadcast(T x) -> Unroll {
+    Unroll u;
+    static constexpr std::ptrdiff_t L = R * C;
+    VT v = ::simd::vbroadcast<W>(x);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i) u.data_[i] = v;
+    return u;
+  }
 
 private:
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
@@ -3809,12 +3817,18 @@ private:
     return applyop<false>(a, b, std::bit_xor<>{});
   }
 
+  TRIVIAL friend constexpr auto operator==(Unroll a, T b) {
+
+    return applyop<true>(a, Unroll::vbroadcast(b),
+                         [](auto x, auto y) { return x == y; });
+  }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator==(Unroll a,
                                            const Unroll<R1, C1, W1, T1> &b) {
     return applyop<true>(a, b, [](auto x, auto y) { return x == y; });
   }
+
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator!=(Unroll a,
@@ -4190,6 +4204,9 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     auto s = ::simd::split(vec_);
     return std::array<U, 2>{U{s[0]}, U{s[1]}};
   }
+  TRIVIAL static constexpr auto vbroadcast(T x) -> Unroll {
+    return {::simd::vbroadcast<W>(x)};
+  }
 
 private:
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
@@ -4449,62 +4466,62 @@ private:
   TRIVIAL friend constexpr auto operator<(Unroll a,
                                           std::convertible_to<T> auto b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::lt<W, T>(a.vec_, vbroadcast<W, T>(b))};
+    return {cmp::lt<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator>(Unroll a,
                                           std::convertible_to<T> auto b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::gt<W, T>(a.vec_, vbroadcast<W, T>(b))};
+    return {cmp::gt<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator<=(Unroll a,
                                            std::convertible_to<T> auto b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::le<W, T>(a.vec_, vbroadcast<W, T>(b))};
+    return {cmp::le<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator>=(Unroll a,
                                            std::convertible_to<T> auto b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::ge<W, T>(a.vec_, vbroadcast<W, T>(b))};
+    return {cmp::ge<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator==(Unroll a,
                                            std::convertible_to<T> auto b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::eq<W, T>(a.vec_, vbroadcast<W, T>(b))};
+    return {cmp::eq<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator!=(Unroll a,
                                            std::convertible_to<T> auto b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::ne<W, T>(a.vec_, vbroadcast<W, T>(b))};
+    return {cmp::ne<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator<(std::convertible_to<T> auto a,
                                           Unroll b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::lt<W, T>(vbroadcast<W, T>(a), b.vec_)};
+    return {cmp::lt<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>(std::convertible_to<T> auto a,
                                           Unroll b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::gt<W, T>(vbroadcast<W, T>(a), b.vec_)};
+    return {cmp::gt<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator<=(std::convertible_to<T> auto a,
                                            Unroll b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::le<W, T>(vbroadcast<W, T>(a), b.vec_)};
+    return {cmp::le<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>=(std::convertible_to<T> auto a,
                                            Unroll b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::ge<W, T>(vbroadcast<W, T>(a), b.vec_)};
+    return {cmp::ge<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator==(std::convertible_to<T> auto a,
                                            Unroll b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::eq<W, T>(vbroadcast<W, T>(a), b.vec_)};
+    return {cmp::eq<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator!=(std::convertible_to<T> auto a,
                                            Unroll b)
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::ne<W, T>(vbroadcast<W, T>(a), b.vec_)};
+    return {cmp::ne<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
 
   template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1,
