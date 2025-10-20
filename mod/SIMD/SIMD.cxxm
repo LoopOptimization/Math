@@ -3822,6 +3822,11 @@ private:
     return applyop<true>(a, Unroll::vbroadcast(b),
                          [](auto x, auto y) { return x == y; });
   }
+  TRIVIAL friend constexpr auto operator!=(Unroll a, T b) {
+
+    return applyop<true>(a, Unroll::vbroadcast(b),
+                         [](auto x, auto y) { return x != y; });
+  }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator==(Unroll a,
