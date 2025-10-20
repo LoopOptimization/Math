@@ -192,8 +192,9 @@ template <std::ptrdiff_t R, std::ptrdiff_t C> struct DenseDims {
   static constexpr std::ptrdiff_t nrow = R;
   static constexpr std::ptrdiff_t ncol = C;
   static constexpr std::ptrdiff_t nstride = C;
-  [[no_unique_address]] Row<R> m_;
-  [[no_unique_address]] Col<C> n_;
+  using dim_t = std::conditional_t<R==-1&&C==-1, std::int32_t, std::ptrdiff_t>;
+  [[no_unique_address]] Row<R,dim_t> m_;
+  [[no_unique_address]] Col<C,dim_t> n_;
   TRIVIAL explicit constexpr DenseDims() = default;
   TRIVIAL constexpr DenseDims(Row<R> m, Col<C> n) : m_{m}, n_{n} {}
   TRIVIAL constexpr DenseDims(Length<1>)

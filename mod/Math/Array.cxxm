@@ -593,6 +593,18 @@ static_assert(AbstractMatrix<Array<std::int64_t, SquareDims<>>>);
 
 static_assert(
   std::is_trivially_default_constructible_v<Array<std::int64_t, DenseDims<>>>);
+static_assert(sizeof(SquareDims<4>) == 1);
+static_assert(sizeof(SquareDims<>) == 8);
+static_assert(sizeof(Array<std::int64_t, SquareDims<4>>) == 8);
+static_assert(sizeof(Array<std::int64_t, SquareDims<>>) == 16);
+static_assert(sizeof(Array<std::int64_t, DenseDims<3,4>>) == 8);
+static_assert(sizeof(Array<std::int64_t, DenseDims<4>>) == 16);
+static_assert(sizeof(Array<std::int64_t, DenseDims<>>) == 16);
+
+// Array<std::int64_t, SquareDims<4>> A{};
+// std::int64_t** p0 = &A.ptr_ ;
+// SquareDims<4> *p1 = &A.sz_;
+// assert(p0 == p1); // no_unique_address
 
 template <class T, Dimension S, bool Compress>
 struct MutArray : Array<T, S, Compress>,
@@ -1488,10 +1500,6 @@ static_assert(sizeof(PtrMatrix<std::int64_t>) ==
               3 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
 static_assert(sizeof(MutPtrMatrix<std::int64_t>) ==
               3 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
-static_assert(sizeof(DensePtrMatrix<std::int64_t>) ==
-              2 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
-static_assert(sizeof(MutDensePtrMatrix<std::int64_t>) ==
-              2 * sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
 static_assert(sizeof(SquarePtrMatrix<std::int64_t>) ==
               sizeof(std::ptrdiff_t) + sizeof(std::int64_t *));
 static_assert(sizeof(MutSquarePtrMatrix<std::int64_t>) ==

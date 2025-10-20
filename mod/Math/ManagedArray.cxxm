@@ -691,7 +691,7 @@ static_assert(sizeof(ManagedArray<std::int64_t, StridedDims<>, 64,
 // [ptr, dims, capacity, array]
 // 8 + 2*4 + 8 + 0 + 64*8 = 24 + 512 = 536
 static_assert(sizeof(ManagedArray<std::int64_t, DenseDims<>, 64,
-                                  alloc::Mallocator<std::int64_t>>) == 544);
+                                  alloc::Mallocator<std::int64_t>>) == 536);
 // sizes should be:
 // [ptr, dims, capacity, array]
 // 8 + 1*4 + 4 + 0 + 64*8 = 16 + 512 = 528
@@ -735,8 +735,8 @@ using IntMatrix = ManagedArray<std::int64_t, S>;
 static_assert(sizeof(ManagedArray<std::int32_t, DenseDims<3, 5>, 15>) ==
               sizeof(std::int32_t *) + 16 * sizeof(std::int32_t));
 static_assert(sizeof(ManagedArray<std::int32_t, DenseDims<>, 15>) ==
-              sizeof(std::int32_t *) + 3 * sizeof(std::ptrdiff_t) +
-                16 * sizeof(std::int32_t));
+              sizeof(std::int32_t *) + 2 * sizeof(std::int32_t) +
+              sizeof(std::ptrdiff_t) + 16 * sizeof(std::int32_t));
 static_assert(AbstractMatrix<ManagedArray<std::int64_t, SquareDims<>>>);
 static_assert(
   std::is_convertible_v<DenseMatrix<std::int64_t>, Matrix<std::int64_t>>);
