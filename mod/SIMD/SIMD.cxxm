@@ -3731,19 +3731,19 @@ struct Unroll {
   }
   TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    return (*this) += vbroadcast<W, T>(a);
+    return (*this) += ::simd::vbroadcast<W, T>(a);
   }
   TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    return (*this) -= vbroadcast<W, T>(a);
+    return (*this) -= ::simd::vbroadcast<W, T>(a);
   }
   TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    return (*this) *= vbroadcast<W, T>(a);
+    return (*this) *= ::simd::vbroadcast<W, T>(a);
   }
   TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    return (*this) /= vbroadcast<W, T>(a);
+    return (*this) /= ::simd::vbroadcast<W, T>(a);
   }
   [[nodiscard]] TRIVIAL constexpr auto split() const requires(R == 1 || C == 1)
   {
@@ -3905,37 +3905,37 @@ private:
   TRIVIAL friend constexpr auto operator+(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a + vbroadcast<W, T>(b);
+    return a + ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator-(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a - vbroadcast<W, T>(b);
+    return a - ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a * vbroadcast<W, T>(b);
+    return a * ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a / vbroadcast<W, T>(b);
+    return a / ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator&(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a & vbroadcast<W, T>(b);
+    return a & ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator|(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a | vbroadcast<W, T>(b);
+    return a | ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator^(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a ^ vbroadcast<W, T>(b);
+    return a ^ ::simd::vbroadcast<W, T>(b);
   }
 
   TRIVIAL friend constexpr auto operator+(VT a, Unroll b) -> Unroll {
@@ -3982,31 +3982,31 @@ private:
   }
   TRIVIAL friend constexpr auto operator+(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) + a;
+    return ::simd::vbroadcast<W, T>(b) + a;
   }
   TRIVIAL friend constexpr auto operator-(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) - a;
+    return ::simd::vbroadcast<W, T>(b) - a;
   }
   TRIVIAL friend constexpr auto operator*(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) * a;
+    return ::simd::vbroadcast<W, T>(b) * a;
   }
   TRIVIAL friend constexpr auto operator/(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) / a;
+    return ::simd::vbroadcast<W, T>(b) / a;
   }
   TRIVIAL friend constexpr auto operator&(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) & a;
+    return ::simd::vbroadcast<W, T>(b) & a;
   }
   TRIVIAL friend constexpr auto operator|(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) | a;
+    return ::simd::vbroadcast<W, T>(b) | a;
   }
   TRIVIAL friend constexpr auto operator^(T b, Unroll a) -> Unroll
     requires(W != 1) {
-    return vbroadcast<W, T>(b) ^ a;
+    return ::simd::vbroadcast<W, T>(b) ^ a;
   }
 
   template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1,
@@ -4179,22 +4179,22 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   }
   TRIVIAL constexpr auto operator+=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    vec_ += vbroadcast<W, T>(a);
+    vec_ += ::simd::vbroadcast<W, T>(a);
     return *this;
   }
   TRIVIAL constexpr auto operator-=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    vec_ -= vbroadcast<W, T>(a);
+    vec_ -= ::simd::vbroadcast<W, T>(a);
     return *this;
   }
   TRIVIAL constexpr auto operator*=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    vec_ *= vbroadcast<W, T>(a);
+    vec_ *= ::simd::vbroadcast<W, T>(a);
     return *this;
   }
   TRIVIAL constexpr auto operator/=(std::convertible_to<T> auto a)
     -> Unroll & requires(W != 1) {
-    vec_ /= vbroadcast<W, T>(a);
+    vec_ /= ::simd::vbroadcast<W, T>(a);
     return *this;
   }
   [[nodiscard]] TRIVIAL constexpr auto split() const
@@ -4380,37 +4380,37 @@ private:
   TRIVIAL friend constexpr auto operator+(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a + vbroadcast<W, T>(b);
+    return a + ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator-(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a - vbroadcast<W, T>(b);
+    return a - ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator*(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a * vbroadcast<W, T>(b);
+    return a * ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator/(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a / vbroadcast<W, T>(b);
+    return a / ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator&(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a & vbroadcast<W, T>(b);
+    return a & ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator|(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a | vbroadcast<W, T>(b);
+    return a | ::simd::vbroadcast<W, T>(b);
   }
   TRIVIAL friend constexpr auto operator^(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(W != 1) {
-    return a ^ vbroadcast<W, T>(b);
+    return a ^ ::simd::vbroadcast<W, T>(b);
   }
 
   TRIVIAL friend constexpr auto operator+(VT a, Unroll b) -> Unroll {
@@ -4436,31 +4436,31 @@ private:
   }
   TRIVIAL friend constexpr auto operator+(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) + a;
+    return ::simd::vbroadcast<W, T>(b) + a;
   }
   TRIVIAL friend constexpr auto operator-(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) - a;
+    return ::simd::vbroadcast<W, T>(b) - a;
   }
   TRIVIAL friend constexpr auto operator*(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) * a;
+    return ::simd::vbroadcast<W, T>(b) * a;
   }
   TRIVIAL friend constexpr auto operator/(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) / a;
+    return ::simd::vbroadcast<W, T>(b) / a;
   }
   TRIVIAL friend constexpr auto operator&(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) & a;
+    return ::simd::vbroadcast<W, T>(b) & a;
   }
   TRIVIAL friend constexpr auto operator|(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) | a;
+    return ::simd::vbroadcast<W, T>(b) | a;
   }
   TRIVIAL friend constexpr auto operator^(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(W != 1) {
-    return vbroadcast<W, T>(b) ^ a;
+    return ::simd::vbroadcast<W, T>(b) ^ a;
   }
 
   TRIVIAL friend constexpr auto operator<(Unroll a,
