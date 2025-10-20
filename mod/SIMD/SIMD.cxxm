@@ -158,7 +158,7 @@ template <std::ptrdiff_t W> struct Bit {
   TRIVIAL constexpr auto operator~() const -> Bit<W> { return {~mask_}; }
   [[nodiscard]] TRIVIAL constexpr auto split() const
     -> std::array<Bit<W / 2>, 2> {
-    return {{mask_}, {mask_ >> W}};
+    return {Bit<W / 2>{mask_}, Bit<W / 2>{mask_ >> W}};
   }
 
 private:
@@ -5592,5 +5592,11 @@ template auto index::unrollmask<2L, 8L>(std::ptrdiff_t L, std::ptrdiff_t i);
 template auto index::unrollmask<3L, 8L>(std::ptrdiff_t L, std::ptrdiff_t i);
 
 #endif
+
+template <std::ptrdiff_t W, typename T>
+TRIVIAL constexpr auto load(const T *p) {
+  static constexpr std::ptrdiff_t L = simd::Width<T>;
+  return simd::loadunroll<1, W / L, L>(p, math::RowStride<0>{}, {});
+}
 
 } // namespace simd
