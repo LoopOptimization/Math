@@ -439,8 +439,21 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   }
   TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
     std::uint32_t mask{};
-    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= stati_cast<bool>(m[w]) << w;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= static_cast<bool>(m[w]) << w;
     return mask;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
+    int count = static_cast<bool>(m[0]);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t w = 1; w < W; ++w) count += static_cast<bool>(m[w]);
+    return count;
+  }
+  TRIVIAL constexpr auto operator~() const -> Vector { return {~m}; }
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    -> std::array<Vector<W / 2, Bytes>, 2> {
+    auto s = ::simd::split(m);
+    return {s[0], s[1]};
   }
 
 private:
