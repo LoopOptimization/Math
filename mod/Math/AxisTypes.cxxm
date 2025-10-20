@@ -321,13 +321,21 @@ TRIVIAL inline constexpr Capacity<M, I>::operator Capacity<-1, I>() const {
   static constexpr I cap = M;
   return {static_cast<Capacity<-1, I>::cap>(cap)};
 }
-template <std::ptrdiff_t M = -1> struct Row {
-  static_assert(M >= 0);
+
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Row {
+  static_assert(M >= 0 && std::same_as<I, std::ptrdiff_t>);
   TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
     return M;
   }
   TRIVIAL inline explicit constexpr operator bool() const { return M; }
-  TRIVIAL inline constexpr operator Row<-1>() const;
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Row<-1, J>() const;
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Row<M, J>() const
+    requires(!std::same_as<I, J>) {
+    return {};
+  }
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
 
 private:
@@ -367,13 +375,30 @@ private:
     return {};
   }
 };
-template <> struct Row<-1> {
-  enum class row : std::ptrdiff_t {};
+template <std::signed_integral I> struct RowEnum {
+  enum class row : I {};
+};
+template <std::signed_integral I> struct Row<-1, I> {
+  using row = RowEnum<I>::row;
   row value_;
   TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
     auto m = static_cast<std::ptrdiff_t>(value_);
     invariant(m >= 0);
     return m;
+  }
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Row<-1, J>() const
+    requires(!std::same_as<I, J>) {
+    return {static_cast<Row<-1, J>::row>(value_)};
+  }
+  TRIVIAL inline constexpr operator typename RowEnum<std::int32_t>::row() const
+    requires(!std::same_as<I, std::int32_t>) {
+    return static_cast<Row<-1, std::int32_t>::row>(value_);
+  }
+  TRIVIAL inline constexpr
+  operator typename RowEnum<std::ptrdiff_t>::row() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return static_cast<Row<-1, std::ptrdiff_t>::row>(value_);
   }
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<std::ptrdiff_t>(value_);
@@ -438,17 +463,27 @@ private:
   }
 };
 static_assert(sizeof(Row<>) == sizeof(std::ptrdiff_t));
-template <std::ptrdiff_t M>
-TRIVIAL inline constexpr Row<M>::operator Row<-1>() const {
-  return {static_cast<Row<-1>::row>(M)};
+static_assert(sizeof(Row<-1, std::int32_t>) == sizeof(std::int32_t));
+template <std::ptrdiff_t M, std::signed_integral I>
+template <std::signed_integral J>
+TRIVIAL inline constexpr Row<M, I>::operator Row<-1, J>() const {
+  return {static_cast<Row<-1, J>::row>(M)};
 }
-template <std::ptrdiff_t M = -1> struct Col {
-  static_assert(M >= 0);
+
+template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
+struct Col {
+  static_assert(M >= 0 && std::same_as<I, std::ptrdiff_t>);
   TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
     return M;
   }
   TRIVIAL inline explicit constexpr operator bool() const { return M; }
-  TRIVIAL inline constexpr operator Col<-1>() const;
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<-1, J>() const;
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<M, J>() const
+    requires(!std::same_as<I, J>) {
+    return {};
+  }
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
 
 private:
@@ -492,19 +527,36 @@ private:
     return {};
   }
 };
-template <> struct Col<-1> {
-  enum class col : std::ptrdiff_t {};
+template <std::signed_integral I> struct ColEnum {
+  enum class col : I {};
+};
+template <std::signed_integral I> struct Col<-1, I> {
+  using col = ColEnum<I>::col;
   col value_;
   TRIVIAL inline explicit constexpr operator std::ptrdiff_t() const {
     auto m = static_cast<std::ptrdiff_t>(value_);
     invariant(m >= 0);
     return m;
   }
+  template <std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<-1, J>() const
+    requires(!std::same_as<I, J>) {
+    return {static_cast<Col<-1, J>::col>(value_)};
+  }
+  TRIVIAL inline constexpr operator typename ColEnum<std::int32_t>::col() const
+    requires(!std::same_as<I, std::int32_t>) {
+    return static_cast<Col<-1, std::int32_t>::col>(value_);
+  }
+  TRIVIAL inline constexpr
+  operator typename ColEnum<std::ptrdiff_t>::col() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return static_cast<Col<-1, std::ptrdiff_t>::col>(value_);
+  }
   TRIVIAL inline explicit constexpr operator bool() const {
     return static_cast<std::ptrdiff_t>(value_);
   }
-  template <std::ptrdiff_t M>
-  TRIVIAL inline constexpr operator Col<M>() const requires(M != -1) {
+  template <std::ptrdiff_t M, std::signed_integral J>
+  TRIVIAL inline constexpr operator Col<M, J>() const requires(M != -1) {
     utils::invariant(static_cast<std::ptrdiff_t>(value_) == M);
     return {};
   }
@@ -567,9 +619,11 @@ private:
   }
 };
 static_assert(sizeof(Col<>) == sizeof(std::ptrdiff_t));
-template <std::ptrdiff_t M>
-TRIVIAL inline constexpr Col<M>::operator Col<-1>() const {
-  return {static_cast<Col<-1>::col>(M)};
+static_assert(sizeof(Col<-1, std::int32_t>) == sizeof(std::int32_t));
+template <std::ptrdiff_t M, std::signed_integral I>
+template <std::signed_integral J>
+TRIVIAL constexpr Col<M, I>::operator Col<-1, J>() const {
+  return {static_cast<Col<-1, J>::col>(M)};
 }
 template <std::ptrdiff_t M = -1> struct RowStride {
   static_assert(M >= 0);

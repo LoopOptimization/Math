@@ -145,6 +145,7 @@ struct AbstractSelect {
 
 export namespace math {
 
+// expression template base class
 template <typename T, typename A> class Expr {
   TRIVIAL constexpr auto v() const {
     return static_cast<const A *>(this)->view();
