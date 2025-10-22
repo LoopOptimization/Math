@@ -17,7 +17,6 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # your CMake build for the exact value to use.
     "d0edc3af-4c50-42ea-a356-e2862fe7a444")
 
-
 # ---- Project ----
 
 message(
@@ -90,6 +89,9 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
     ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
+  # -fexperimental-new-constant-interpreter)
+
+  # TODO: try if this passes with clang 22
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   target_compile_options(
     ${PROJECT_NAME}
@@ -97,9 +99,9 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -fno-semantic-interposition -fdiagnostics-color=always
             -Wno-comma-subscript -Wno-psabi)
 endif()
-target_compile_options(
-  ${PROJECT_NAME} PRIVATE -Wshadow -Werror) # -Wpedantic -Wextra -Wall
-                          # -Wno-reference-tu-local-entity-in-other-tu)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow -Werror) # -Wpedantic
+                                                                 # -Wextra -Wall
+# -Wno-reference-tu-local-entity-in-other-tu)
 target_compile_features(
   ${PROJECT_NAME}
   PRIVATE cxx_std_23
