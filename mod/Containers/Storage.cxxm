@@ -66,14 +66,14 @@ template <typename T, std::ptrdiff_t N> struct Storage {
     std::is_trivially_destructible_v<T>;
   static constexpr std::ptrdiff_t NumElt = trivial ? N : N * sizeof(T);
   using DataElt = std::conditional_t<trivial, T, char>;
-  alignas(T) DataElt mem[NumElt]; // NOLINT (modernize-avoid-c-style-arrays)
+  alignas(T) DataElt mem_[NumElt]; // NOLINT (modernize-avoid-c-style-arrays)
   constexpr auto data() -> T * {
-    if constexpr (trivial) return mem;
-    else return reinterpret_cast<T *>(mem);
+    if constexpr (trivial) return mem_;
+    else return reinterpret_cast<T *>(mem_);
   }
   constexpr auto data() const -> const T * {
-    if constexpr (trivial) return mem;
-    else return reinterpret_cast<const T *>(mem);
+    if constexpr (trivial) return mem_;
+    else return reinterpret_cast<const T *>(mem_);
   }
   constexpr Storage() {} // NOLINT (modernize-use-equals-default)
 };
