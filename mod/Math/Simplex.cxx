@@ -696,7 +696,7 @@ void Simplex::rLexMin(Vector<Rational> &sol) { sol << rLexMinLast(sol.size()); }
 auto Simplex::positiveVariables(alloc::Arena<> *alloc,
                                 PtrMatrix<std::int64_t> A,
                                 PtrMatrix<std::int64_t> B)
-  -> Optional<Simplex *> {
+  -> Optional<Simplex &> {
   invariant(A.numCol() == B.numCol());
   std::ptrdiff_t num_var = std::ptrdiff_t(A.numCol()) - 1,
                  num_slack = std::ptrdiff_t(A.numRow()),
@@ -708,28 +708,28 @@ auto Simplex::positiveVariables(alloc::Arena<> *alloc,
   for (std::ptrdiff_t i = 0; i < num_slack; ++i) var_cap += A[i, 0] < 0;
   // try to avoid reallocating
   auto checkpoint{alloc->checkpoint()};
-  Simplex *simplex{Simplex::create(alloc, row(num_con),
+  Simplex &simplex{Simplex::create(alloc, row(num_con),
                                    col(num_var + num_slack), capacity(num_con),
                                    stride(var_cap))};
   // construct:
   // [ I A
   //   0 B ]
   // then drop the extra variables
-  slackEqualityConstraints(simplex->getConstraints()[_, _(1, end)],
+  slackEqualityConstraints(simplex.getConstraints()[_, _(1, end)],
                            A[_, _(1, end)], B[_, _(1, end)]);
-  auto consts{simplex->getConstants()};
+  auto consts{simplex.getConstants()};
   consts[_(0, num_slack)] << A[_, 0];
   if (num_strict) consts[_(num_slack, num_slack + num_strict)] << B[_, 0];
   // for (std::ptrdiff_t i = 0; i < numSlack; ++i) consts[i] = A(i, 0);
   // for (std::ptrdiff_t i = 0; i < numStrict; ++i) consts[i + numSlack] =
   // B(i, 0);
-  if (!simplex->initiateFeasible()) return simplex;
+  if (!simplex.initiateFeasible()) return simplex;
   alloc->rollback(checkpoint);
-  return nullptr;
+  return {};
 }
 auto Simplex::positiveVariables(alloc::Arena<> *alloc,
                                 PtrMatrix<std::int64_t> A)
-  -> Optional<Simplex *> {
+  -> Optional<Simplex &> {
   std::ptrdiff_t num_var = std::ptrdiff_t(A.numCol()) - 1,
                  num_slack = std::ptrdiff_t(A.numRow()), num_con = num_slack,
                  var_cap = num_var + num_slack;
@@ -738,36 +738,36 @@ auto Simplex::positiveVariables(alloc::Arena<> *alloc,
   for (std::ptrdiff_t i = 0; i < num_slack; ++i) var_cap += A[i, 0] < 0;
   // try to avoid reallocating
   auto checkpoint{alloc->checkpoint()};
-  Simplex *simplex{Simplex::create(alloc, row(num_con),
+  Simplex &simplex{Simplex::create(alloc, row(num_con),
                                    col(num_var + num_slack), capacity(num_con),
                                    stride(var_cap))};
   // construct:
   // [ I A ]
   // then drop the extra variables
-  slackEqualityConstraints(simplex->getConstraints()[_, _(1, end)],
+  slackEqualityConstraints(simplex.getConstraints()[_, _(1, end)],
                            A[_, _(1, end)]);
   // auto consts{simplex.getConstants()};
   // for (std::ptrdiff_t i = 0; i < numSlack; ++i) consts[i] = A(i, 0);
-  simplex->getConstants() << A[_, 0];
-  if (!simplex->initiateFeasible()) return simplex;
+  simplex.getConstants() << A[_, 0];
+  if (!simplex.initiateFeasible()) return simplex;
   alloc->rollback(checkpoint);
-  return nullptr;
+  return {};
 }
 
 void Simplex::pruneBounds(alloc::Arena<> *alloc, std::ptrdiff_t numSlack) {
   auto p = alloc->scope();
-  Simplex *simplex{Simplex::create(alloc, num_constraints_, num_vars_,
+  Simplex &simplex{Simplex::create(alloc, num_constraints_, num_vars_,
                                    constraint_capacity_,
                                    --auto{var_capacity_p1_})};
   // Simplex simplex{getNumCons(), getNumVars(), getNumSlack(), 0};
   for (std::ptrdiff_t c = 0; c < getNumCons(); ++c) {
-    *simplex << *this;
-    MutPtrMatrix<std::int64_t> constraints = simplex->getConstraints();
+    simplex << *this;
+    MutPtrMatrix<std::int64_t> constraints = simplex.getConstraints();
     std::int64_t bumped_bound = ++constraints[c, 0];
-    MutPtrVector<std::int64_t> cost = simplex->getCost();
+    MutPtrVector<std::int64_t> cost = simplex.getCost();
     for (std::ptrdiff_t v = numSlack; v < cost.size(); ++v)
       cost[v] = -constraints[c, v + 1];
-    if (simplex->run() != bumped_bound) deleteConstraint(c--);
+    if (simplex.run() != bumped_bound) deleteConstraint(c--);
   }
 }
 
@@ -799,12 +799,12 @@ void Simplex::pruneBounds(alloc::Arena<> *alloc, std::ptrdiff_t numSlack) {
   // is satisfiable.
   const std::ptrdiff_t num_con = getNumCons(), num_var = getNumVars(),
                        num_fix = x.size();
-  Simplex *sub_simp{
+  Simplex &sub_simp{
     Simplex::create(&alloc, row(num_con), col(num_var - num_fix))};
   // subSimp.tableau(0, 0) = 0;
   // subSimp.tableau(0, 1) = 0;
   auto fC{getTableau()};
-  auto sC{sub_simp->getTableau()};
+  auto sC{sub_simp.getTableau()};
   sC[_, 0] << fC[_, 0] - fC[_, _(1 + off, 1 + off + num_fix)] * x.t();
   // sC(_, 0) = fC(_, 0);
   // for (std::ptrdiff_t i = 0; i < numFix; ++i)
@@ -812,7 +812,7 @@ void Simplex::pruneBounds(alloc::Arena<> *alloc, std::ptrdiff_t numSlack) {
   sC[_, _(1, 1 + off)] << fC[_, _(1, 1 + off)];
   sC[_, _(1 + off, end)] << fC[_, _(1 + off + num_fix, end)];
   // returns `true` if unsatisfiable
-  return sub_simp->initiateFeasible();
+  return sub_simp.initiateFeasible();
 }
 [[nodiscard]] auto Simplex::satisfiable(alloc::Arena<> alloc,
                                         PtrVector<std::int64_t> x,
@@ -833,13 +833,13 @@ Simplex::unSatisfiableZeroRem(alloc::Arena<> alloc, PtrVector<std::int64_t> x,
   // is satisfiable.
   invariant(numRow <= getNumCons());
   const std::ptrdiff_t num_fix = x.size();
-  Simplex *sub_simp{Simplex::create(&alloc, row(numRow), col(off++))};
+  Simplex &sub_simp{Simplex::create(&alloc, row(numRow), col(off++))};
   auto fC{getConstraints()};
-  auto sC{sub_simp->getConstraints()};
+  auto sC{sub_simp.getConstraints()};
   sC[_, 0] << fC[_(begin, numRow), 0] -
                 fC[_(begin, numRow), _(off, off + num_fix)] * x.t();
   sC[_, _(1, off)] << fC[_(begin, numRow), _(1, off)];
-  return sub_simp->initiateFeasible();
+  return sub_simp.initiateFeasible();
 }
 /// indsFree gives how many variables are free to take  any >= 0 value
 /// indOne is var ind greater than indsFree that's pinned to 1
@@ -851,13 +851,13 @@ Simplex::unSatisfiableZeroRem(alloc::Arena<> alloc, std::ptrdiff_t iFree,
                               std::array<std::ptrdiff_t, 2> inds,
                               std::ptrdiff_t numRow) const -> bool {
   invariant(numRow <= getNumCons());
-  Simplex *sub_simp{Simplex::create(&alloc, row(numRow), col(iFree++))};
+  Simplex &sub_simp{Simplex::create(&alloc, row(numRow), col(iFree++))};
   auto fC{getConstraints()};
-  auto sC{sub_simp->getConstraints()};
+  auto sC{sub_simp.getConstraints()};
   auto r = _(0, numRow);
   sC[_, 0] << fC[r, 0] - (fC[r, inds[0] + iFree] + fC[r, inds[1] + iFree]);
   sC[_, _(1, iFree)] << fC[r, _(1, iFree)];
-  return sub_simp->initiateFeasible();
+  return sub_simp.initiateFeasible();
 }
 [[nodiscard]] auto
 Simplex::satisfiableZeroRem(alloc::Arena<> alloc, PtrVector<std::int64_t> x,
@@ -882,22 +882,22 @@ void Simplex::printResult(std::ptrdiff_t numSlack) {
   }
 }
 auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var)
-  -> Valid<Simplex> {
+  -> Simplex& {
   return create(alloc, num_con, num_var, capacity(std::ptrdiff_t(num_con)),
                 stride(std::ptrdiff_t(num_var) + std::ptrdiff_t(num_con)));
 }
 auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var,
                      Capacity<> con_cap, RowStride<> var_cap)
-  -> Valid<Simplex> {
+  -> Simplex& {
   var_cap = alignVarCapacity(var_cap);
   auto c_cap = std::ptrdiff_t(con_cap), v_cap = std::ptrdiff_t(var_cap);
   std::size_t mem_needed = requiredMemory(c_cap, v_cap);
-  auto *mem = (Simplex *)alloc->allocate<alignof(Simplex)>(mem_needed);
+  auto mem = static_cast<Simplex *>(alloc->allocate<alignof(Simplex)>(mem_needed));
   mem->num_constraints_ = num_con;
   mem->num_vars_ = num_var;
   mem->constraint_capacity_ = con_cap;
   mem->var_capacity_p1_ = var_cap;
-  return mem;
+  return *mem;
 }
 
 auto Simplex::malloc(Row<> numCon, Col<> numVar) -> Simplex * {
@@ -949,15 +949,15 @@ DEBUGUSED void Simplex::Solution::print() const {
 }
 
 auto Simplex::create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-                     std::ptrdiff_t numSlack) -> Valid<Simplex> {
+                     std::ptrdiff_t numSlack) -> Simplex& {
   std::ptrdiff_t con_cap = std::ptrdiff_t(numCon),
                  var_cap = std::ptrdiff_t(numVar) + numSlack + con_cap;
   return create(alloc, numCon, numVar, capacity(con_cap), stride(var_cap));
 }
-auto Simplex::copy(alloc::Arena<> *alloc) const -> Valid<Simplex> {
-  Valid<Simplex> res = create(alloc, row(getNumCons()), col(getNumVars()),
+auto Simplex::copy(alloc::Arena<> *alloc) const -> Simplex& {
+  Simplex& res = create(alloc, row(getNumCons()), col(getNumVars()),
                               getConCap(), getVarCap());
-  *res << *this;
+  res << *this;
   return res;
 }
 auto Simplex::operator<<(const Simplex &other) -> Simplex & {

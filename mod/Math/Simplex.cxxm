@@ -34,11 +34,11 @@ public:
 
   // Static factory methods
   static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar)
-    -> Valid<Simplex>;
+    ->Simplex&;
   static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-                     Capacity<> conCap, RowStride<> varCap) -> Valid<Simplex>;
+                     Capacity<> conCap, RowStride<> varCap) -> Simplex&;
   static auto create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-                     std::ptrdiff_t numSlack) -> Valid<Simplex>;
+                     std::ptrdiff_t numSlack) ->Simplex&;
   static auto malloc(Row<> numCon, Col<> numVar) -> Simplex *;
   static auto malloc(Row<> numCon, Col<> numVar, Capacity<> conCap,
                      RowStride<> varCap) -> Simplex *;
@@ -46,11 +46,11 @@ public:
   // Static utility methods for creating simplex problems
   static auto positiveVariables(alloc::Arena<> *alloc,
                                 PtrMatrix<std::int64_t> A)
-    -> Optional<Simplex *>;
+    -> Optional<Simplex &>;
   static auto positiveVariables(alloc::Arena<> *alloc,
                                 PtrMatrix<std::int64_t> A,
                                 PtrMatrix<std::int64_t> B)
-    -> Optional<Simplex *>;
+    -> Optional<Simplex &>;
 
   // Memory access functions
   [[gnu::returns_nonnull, nodiscard]] auto basicConsPointer() const
@@ -166,7 +166,7 @@ public:
 
   // Debug and utility methods
   void printResult(std::ptrdiff_t numSlack = 0);
-  auto copy(alloc::Arena<> *alloc) const -> Valid<Simplex>;
+  auto copy(alloc::Arena<> *alloc) const ->Simplex&;
   auto operator<<(const Simplex &other) -> Simplex &;
   void print() const;
 #ifndef NDEBUG

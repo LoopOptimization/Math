@@ -15,6 +15,8 @@ export namespace utils {
 /// std::unsigned_integral T: std::numeric_limits<T>::max();
 /// T&: wraps a pointer, `nullptr` indicates empty.
 template <typename T> struct Optional {
+  static_assert(!std::is_reference_v<T>);
+  static_assert(!std::is_pointer_v<T>);
   std::optional<T> opt_;
   TRIVIAL [[nodiscard]] constexpr auto hasValue() const -> bool {
     return opt_.has_value();

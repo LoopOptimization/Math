@@ -17,16 +17,16 @@ using utils::operator""_mat;
 using namespace boost::ut;
 
 auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
-  -> Valid<Simplex> {
+  -> Simplex & {
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
   std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
-  Simplex *simp{Simplex::create(alloc, row(numCon), col(numVar))};
+  Simplex &simp{Simplex::create(alloc, row(numCon), col(numVar))};
   static constexpr auto check_invalid = [](auto x) {
     return x == std::numeric_limits<std::int64_t>::min();
   };
   invariant(find_first(tableau, check_invalid) < 0);
-  simp->getTableau() << tableau;
-  PtrMatrix<Simplex::value_type> C{simp->getConstraints()};
+  simp.getTableau() << tableau;
+  PtrMatrix<Simplex::value_type> C{simp.getConstraints()};
   invariant(find_first(C, check_invalid) < 0);
   return simp;
 }
@@ -42,13 +42,13 @@ auto main(int argc, const char **argv) -> int {
     IntMatrix<> A{"[10 3 2 1; 15 2 5 3]"_mat};
     IntMatrix<> B{DenseDims<>{row(0), col(4)}};
     IntMatrix<> D{"[0 0 0 -2 -3 -4; 10 1 0  3  2  1; 15 0 1  2  5  3 ]"_mat};
-    Optional<Simplex *> optS0{Simplex::positiveVariables(&alloc, A)};
+    Optional<Simplex &> optS0{Simplex::positiveVariables(&alloc, A)};
     expect(fatal(optS0.hasValue()));
-    Optional<Simplex *> optS1{Simplex::positiveVariables(&alloc, A, B)};
+    Optional<Simplex &> optS1{Simplex::positiveVariables(&alloc, A, B)};
     expect(fatal(optS1.hasValue()));
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
-      Simplex *S{i ? *optS1 : *optS0};
-      MutPtrVector<Simplex::value_type> C{S->getCost()};
+      Simplex &S{i ? *optS1 : *optS0};
+      MutPtrVector<Simplex::value_type> C{S.getCost()};
       // minimize -2x - 3y - 4z
       C[0] = 0;
       C[1] = 0;
@@ -59,9 +59,9 @@ auto main(int argc, const char **argv) -> int {
       // utils::print("S.tableau =");
       // S->getTableau().print();
       // utils::print('\n');
-      expect(S->getTableau() == D);
-      expect(S->run() == 20);
-      auto s{S->getSolution()};
+      expect(S.getTableau() == D);
+      expect(S.run() == 20);
+      auto s{S.getSolution()};
       expect(s[0] == 5);
       expect(allZero(s[_(1, last)]));
       expect(s[last] == 5);
@@ -75,10 +75,10 @@ auto main(int argc, const char **argv) -> int {
     // -15 == -2x - 5y - 3z + s1
     IntMatrix<> tableau{"[-10 0 1 -1 -2 -3; -15 1 0 -3 -5 -2]"_mat};
     // IntMatrix A{"[-10 -3 -2 -1; -15 -2 -5 -3]"_mat};
-    Simplex *simp{Simplex::create(&alloc, row(2), col(5))};
-    simp->getConstraints() << tableau;
+    Simplex &simp{Simplex::create(&alloc, row(2), col(5))};
+    simp.getConstraints() << tableau;
     Vector<Rational> sol(length(5));
-    expect(!(simp->initiateFeasible()));
+    expect(!(simp.initiateFeasible()));
     // utils::print("S.tableau =");
     // simp->getTableau().print();
     // utils::print('\n');
@@ -126,7 +126,7 @@ auto main(int argc, const char **argv) -> int {
     //   20  11  0 -1 -5 -30
     //   25  0  11  7  2  1 ]
 
-    simp->rLexMin(sol);
+    simp.rLexMin(sol);
     // utils::print("S.tableau =");
     // simp->getTableau().print();
     // utils::print('\n');
@@ -300,11 +300,11 @@ auto main(int argc, const char **argv) -> int {
     // clang-format on
     tableau[0, _] << -5859553999884210514;
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
+    Simplex &simp{simplexFromTableau(&alloc, tableau)};
     Vector<Rational> sol(length(37));
     expect(sol.size() == 37);
-    expect(!(simp->initiateFeasible()));
-    simp->rLexMin(sol);
+    expect(!(simp.initiateFeasible()));
+    simp.rLexMin(sol);
     std::ptrdiff_t sol_sum = 0;
     for (auto s : sol) {
       sol_sum += s.numerator_;
@@ -316,12 +316,12 @@ auto main(int argc, const char **argv) -> int {
     {
       // test that we didn't invalidate the simplex
       // note that we do not initiate feasible
-      auto C{simp->getCost()};
+      auto C{simp.getCost()};
       C[_(0, end - 36)].zero();
       expect(::math::allZero(C[_(0, end - 36)]));
       C[_(end - 36, end)] << 1;
-      expect(simp->run() == -3);
-      Vector<Rational> sol2 = simp->getSolution();
+      expect(simp.run() == -3);
+      Vector<Rational> sol2 = simp.getSolution();
       std::ptrdiff_t sum = 0;
       for (std::ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
         Rational r = sol2[i];
@@ -334,13 +334,13 @@ auto main(int argc, const char **argv) -> int {
     }
     {
       // test new simplex
-      Valid<Simplex> simp2{simplexFromTableau(&alloc, tableau)};
-      expect(!(simp2->initiateFeasible()));
-      auto C{simp2->getCost()};
+      Simplex &simp2{simplexFromTableau(&alloc, tableau)};
+      expect(!(simp2.initiateFeasible()));
+      auto C{simp2.getCost()};
       C[_(0, end - 36)] << 0;
       C[_(end - 36, end)] << 1;
-      expect(simp2->run() == -3);
-      auto sol2 = simp2->getSolution();
+      expect(simp2.run() == -3);
+      auto sol2 = simp2.getSolution();
       std::ptrdiff_t sum = 0;
       Rational rsum = 0; // test summing rationals
       for (std::ptrdiff_t i = sol2.size() - 38; i < sol2.size(); ++i) {
@@ -423,11 +423,11 @@ auto main(int argc, const char **argv) -> int {
     "1 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 ]"_mat};
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, tableau)};
+    Simplex &simp{simplexFromTableau(&alloc, tableau)};
     Vector<Rational> sol(length(15));
     expect(sol.size() == 15);
-    expect(!(simp->initiateFeasible()));
-    auto s = simp->rLexMinLast(15);
+    expect(!(simp.initiateFeasible()));
+    auto s = simp.rLexMinLast(15);
     {
       std::ptrdiff_t solSum = 0, i = 0;
       bool allNumerZero = true;
@@ -456,7 +456,7 @@ auto main(int argc, const char **argv) -> int {
       }
       expect(allNumerZero);
     }
-    sol << simp->getSolution()[_(end - 15, end)];
+    sol << simp.getSolution()[_(end - 15, end)];
     std::ptrdiff_t solSum = 0;
     for (std::ptrdiff_t i = 0; i < 5; ++i) {
       solSum += sol[i] != 0;
@@ -476,11 +476,11 @@ auto main(int argc, const char **argv) -> int {
     {
       // test that we didn't invalidate the simplex
       // note that we do not initiate feasible
-      auto C{simp->getCost()};
+      auto C{simp.getCost()};
       C[_(0, end - 10)] << 0;
       C[_(end - 10, end)] << 1;
-      expect(simp->run() == 0);
-      Vector<Rational> sol2 = simp->getSolution();
+      expect(simp.run() == 0);
+      Vector<Rational> sol2 = simp.getSolution();
       // utils::print("sol2 = ");
       // sol2.print();
       // utils::print('\n');
@@ -1339,8 +1339,8 @@ auto main(int argc, const char **argv) -> int {
     C[219, 294] = 1;
     C[219, 295] = 1;
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, C)};
-    expect(simp->initiateFeasible());
+    Simplex &simp{simplexFromTableau(&alloc, C)};
+    expect(simp.initiateFeasible());
   };
   "DynsolveDynamicDistance"_test = [&managed_alloc] -> void {
     // clang-format off
@@ -1367,30 +1367,30 @@ auto main(int argc, const char **argv) -> int {
     // clang-format on
     {
       alloc::Arena<> alloc = managed_alloc;
-      Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-      expect(fatal(!simp->initiateFeasible()));
+      Simplex &simp{simplexFromTableau(&alloc, t)};
+      expect(fatal(!simp.initiateFeasible()));
       std::ptrdiff_t num_nuisance = 22;
-      Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+      Simplex::Solution sol = simp.rLexMinStop(num_nuisance);
       // sol.print();
       expect(sol[::math::last] == 1);
       expect(eq(sol.size(), 5));
     }
     {
       alloc::Arena<> alloc = managed_alloc;
-      Simplex *S{Simplex::create(&alloc, row(8), col(11))};
-      MutPtrMatrix<Simplex::value_type> C{S->getConstraints()};
+      Simplex &S{Simplex::create(&alloc, row(8), col(11))};
+      MutPtrMatrix<Simplex::value_type> C{S.getConstraints()};
       C[_, 0] << 0;
       C[_, _(1, 10)] << t[_(2, 10), _(2, 11)];
       C[_, _(10, 12)] << 0;
       C[6, 10] = -1;
       C[6, 11] = 1;
-      expect(fatal(!S->initiateFeasible()));
-      MutPtrVector<Simplex::value_type> c{S->getCost()};
+      expect(fatal(!S.initiateFeasible()));
+      MutPtrVector<Simplex::value_type> c{S.getCost()};
       c.zero();
       c[1] = -1;
       c[3] = -1;
       c[5] = -1;
-      expect(S->run() <= 0);
+      expect(S.run() <= 0);
     }
   };
   "DynsolveAppendEqualMatching"_test = [&managed_alloc] -> void {
@@ -1465,10 +1465,10 @@ auto main(int argc, const char **argv) -> int {
            // What about k_dst == 0? What if we add this constraint?
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
+    Simplex &simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp.initiateFeasible()));
     std::ptrdiff_t num_nuisance = 26;
-    Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+    Simplex::Solution sol = simp.rLexMinStop(num_nuisance);
     // sol.print();
     expect(allZero(sol));
     expect(eq(sol.size(), 5));
@@ -1505,10 +1505,10 @@ auto main(int argc, const char **argv) -> int {
        // "1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 -1 -1  1  0  0  0  0 0  0  0  0 0;"
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
+    Simplex &simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp.initiateFeasible()));
     std::ptrdiff_t num_nuisance = 24;
-    Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+    Simplex::Solution sol = simp.rLexMinStop(num_nuisance);
     // sol.print();
     expect(allZero(sol));
     expect(eq(sol.size(), 5));
@@ -1529,9 +1529,9 @@ auto main(int argc, const char **argv) -> int {
 
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
-    Simplex::Solution sol = simp->rLexMinStop(11);
+    Simplex &simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp.initiateFeasible()));
+    Simplex::Solution sol = simp.rLexMinStop(11);
     expect(eq(sol.size(), 2));
     expect(sol[last - 1] == 1);
     expect(sol[last] == 0);
@@ -1571,14 +1571,14 @@ auto main(int argc, const char **argv) -> int {
       case 1: tableau = n; break;
       default: tableau = k; break;
       }
-      Valid<Simplex> S{simplexFromTableau(&alloc, tableau)};
-      expect(fatal(!S->initiateFeasible()));
-      MutPtrVector<Simplex::value_type> C{S->getCost()};
+      Simplex &S{simplexFromTableau(&alloc, tableau)};
+      expect(fatal(!S.initiateFeasible()));
+      MutPtrVector<Simplex::value_type> C{S.getCost()};
       C.zero();
       C[_(1, 4)] << -1;
       C[_(5, 8)] << -1;
-      if (i) expect(S->run() > 0); // means infeasible
-      else expect(S->run() <= 0);  // means feasible
+      if (i) expect(S.run() > 0); // means infeasible
+      else expect(S.run() <= 0);  // means feasible
     }
   };
   "Dynsolve1"_test = [&managed_alloc] -> void {
@@ -1603,9 +1603,9 @@ auto main(int argc, const char **argv) -> int {
 
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
-    Simplex::Solution sol = simp->rLexMinStop(18);
+    Simplex &simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp.initiateFeasible()));
+    Simplex::Solution sol = simp.rLexMinStop(18);
     expect(eq(sol.size(), 4));
     expect(sol[last - 3] == 1);
     expect(sol[last - 2] == 0);
@@ -1630,9 +1630,9 @@ auto main(int argc, const char **argv) -> int {
 
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
-    Simplex::Solution sol = simp->rLexMinStop(10);
+    Simplex &simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp.initiateFeasible()));
+    Simplex::Solution sol = simp.rLexMinStop(10);
     expect(eq(sol.size(), 4));
     expect(2 * sol[last - 3] == 1);
     expect(2 * sol[last - 2] == 1);
@@ -1651,6 +1651,7 @@ auto main(int argc, const char **argv) -> int {
             "0 0  0 0  0 0  1  0 -1  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
             "0 0  0 0  0 0  0  1  0 -1 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
             "0 0  0 0 -1 1  0 -1  0  1 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
+
             "0 0 -1 1  0 0 -1  0  1  0 0  0 0  0 0  0  0  0  0 0  0  0  0  0;"
             "0 0  0 0  0 0  0  0  0  0 1 -1 0 -1 0  0  0  0  0 0 -1  0  0  0;"
             "0 0  0 0  0 0  0  0  0  0 0  1 0  0 0  0  0  0  0 0  0 -1  0  0;"
@@ -1663,10 +1664,10 @@ auto main(int argc, const char **argv) -> int {
 
     // clang-format on
     alloc::Arena<> alloc = managed_alloc;
-    Valid<Simplex> simp{simplexFromTableau(&alloc, t)};
-    expect(fatal(!simp->initiateFeasible()));
+    Simplex &simp{simplexFromTableau(&alloc, t)};
+    expect(fatal(!simp.initiateFeasible()));
     std::ptrdiff_t num_nuisance = 18;
-    Simplex::Solution sol = simp->rLexMinStop(num_nuisance);
+    Simplex::Solution sol = simp.rLexMinStop(num_nuisance);
     // sol.print();
     expect(allZero(sol));
     expect(eq(sol.size(), 5));
@@ -1697,11 +1698,11 @@ auto main(int argc, const char **argv) -> int {
 
     for (int i = 0; i < 2; ++i) {
       alloc::Arena<> alloc = managed_alloc;
-      Valid<Simplex> S{simplexFromTableau(&alloc, i ? t1 : t0)};
-      expect(fatal(!S->initiateFeasible()));
-      MutPtrVector<Simplex::value_type> C{S->getCost()};
+      Simplex &S{simplexFromTableau(&alloc, i ? t1 : t0)};
+      expect(fatal(!S.initiateFeasible()));
+      MutPtrVector<Simplex::value_type> C{S.getCost()};
       // is x >= a ?
-      //   m  a b x y 
+      //   m  a b x y
       // [ 0 -1 0 1 0  ]
       C.zero(); // zeros the vector
       // minimize x - a
@@ -1709,12 +1710,12 @@ auto main(int argc, const char **argv) -> int {
       C[x] = 1;
       // means x-a >= 0, i.e. x >= a
       // run returns negative, so value <= 0 means proven
-      expect(S->run() == -i);
+      expect(S.run() == -i);
       C.zero();
       // minimize x - y
       C[x] = 1;
       C[y] = -1;
-      expect(S->run() == std::numeric_limits<std::int64_t>::max());
+      expect(S.run() == std::numeric_limits<std::int64_t>::max());
     }
   };
   "CheckEmptyFarkas"_test = [&managed_alloc] -> void {
@@ -1741,23 +1742,23 @@ auto main(int argc, const char **argv) -> int {
 
     for (int i = 0; i < 2; ++i) {
       alloc::Arena<> alloc = managed_alloc;
-      Simplex *S{simplexFromTableau(&alloc, t)};
-      expect(!S->initiateFeasible());
+      Simplex &S{simplexFromTableau(&alloc, t)};
+      expect(!S.initiateFeasible());
       // S->run() returns the negative answer (fix that?)
       // if b'y < 0, A'y=0, y>=0, then there is no solution Ax<=b
       // Thus, we minimize b'y, if a value < 0 (s a return >0),
       // then there is no feasible solution
-      MutPtrVector<Simplex::value_type> C{S->getCost()};
+      MutPtrVector<Simplex::value_type> C{S.getCost()};
       C.zero();
       if (i) {
         // we make it infeasible, by setting j <= i-1
         C[_(1, 5)] << -1;
-        expect(S->run() > 0);
+        expect(S.run() > 0);
       } else {
         // we make it feasible, by setting j <= i
         C[1] = -1;
         C[3] = -1;
-        expect(S->run() <= 0);
+        expect(S.run() <= 0);
       }
     }
     // S = simplexFromTableau(&alloc, t1);
