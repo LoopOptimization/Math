@@ -30,7 +30,8 @@ if(ENABLE_NATIVE_COMPILATION)
 endif()
 if(APPLE)
   add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CXX>:-nostdinc++;-nostdlib++;-isystem;/opt/homebrew/opt/llvm/include/c++/v1>")
+    "$<$<COMPILE_LANGUAGE:CXX>:-nostdinc++;-nostdlib++;-isystem;/opt/homebrew/opt/llvm/include/c++/v1>"
+  )
   add_link_options(
     "$<$<COMPILE_LANGUAGE:CXX>:-L/opt/homebrew/opt/llvm/lib/c++;-Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++;-lc++>"
   )
@@ -155,6 +156,9 @@ foreach(test_source ${test_sources})
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(
       ${test_name} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
+    # -fexperimental-new-constant-interpreter
+
+    # TODO: try if this passes with clang 22
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_compile_options(
       ${test_name}

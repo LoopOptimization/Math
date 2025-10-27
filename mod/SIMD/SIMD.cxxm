@@ -294,7 +294,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     return __builtin_bit_cast(__m256, m);
   }
   template <std::size_t NewBytes>
-  TRIVIAL constexpr auto operator Vector<W, NewBytes>() const
+  TRIVIAL constexpr operator Vector<W, NewBytes>() const
     requires(NewBytes != Bytes) {
     using J = utils::signed_integer_t<NewBytes>;
     return {__builtin_convertvector(m, Vec<W, J>)};
@@ -439,8 +439,27 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   }
   TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
     std::uint32_t mask{};
-    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= stati_cast<bool>(m[w]) << w;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= static_cast<bool>(m[w]) << w;
     return mask;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
+    int count = static_cast<bool>(m[0]);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t w = 1; w < W; ++w) count += static_cast<bool>(m[w]);
+    return count;
+  }
+  template <std::size_t NewBytes>
+  TRIVIAL constexpr operator Vector<W, NewBytes>() const
+    requires(NewBytes != Bytes) {
+    using J = utils::signed_integer_t<NewBytes>;
+    return {__builtin_convertvector(m, Vec<W, J>)};
+  }
+  TRIVIAL constexpr auto operator~() const -> Vector { return {~m}; }
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    -> std::array<Vector<W / 2, Bytes>, 2> {
+    auto s = ::simd::split(m);
+    return {s[0], s[1]};
   }
 
 private:
@@ -3490,10 +3509,11 @@ TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
 
 #endif
 #ifndef __AVX512F__
-template <typename T, std::ptrdiff_t W>
-TRIVIAL constexpr auto select(mask::Vector<W, sizeof(T)> m, Vec<W, T> x,
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL constexpr auto select(mask::Vector<W, Bytes> m, Vec<W, T> x,
                               Vec<W, T> y) -> Vec<W, T> {
-  return m.m ? x : y;
+  if constexpr (Bytes == sizeof(T)) return m.m ? x : y;
+  else return mask::Vector<W, sizeof(T)>(m).m ? x : y;
 }
 #endif
 #ifdef __AVX512CD__
@@ -3821,6 +3841,11 @@ private:
 
     return applyop<true>(a, Unroll::vbroadcast(b),
                          [](auto x, auto y) { return x == y; });
+  }
+  TRIVIAL friend constexpr auto operator!=(Unroll a, T b) {
+
+    return applyop<true>(a, Unroll::vbroadcast(b),
+                         [](auto x, auto y) { return x != y; });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
