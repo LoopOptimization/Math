@@ -3794,6 +3794,30 @@ struct Unroll {
   }
 
 private:
+  TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll b;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      b.data_[i] = __builtin_elementwise_floor(a.data_[i]);
+    return b;
+  }
+  TRIVIAL friend constexpr auto max(Unroll a, Unroll b) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll c;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c.data_[i] = __builtin_elementwise_maximum(a.data_[i], b.data_[i]);
+    return c;
+  }
+  TRIVIAL friend constexpr auto min(Unroll a, Unroll b) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll c;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c.data_[i] = __builtin_elementwise_minimum(a.data_[i], b.data_[i]);
+    return c;
+  }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
@@ -4234,6 +4258,18 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   }
 
 private:
+  TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
+    if constexpr (W == 1) return {std::trunc(a.vec_)};
+    else return {__builtin_elementwise_floor(a.vec_)};
+  }
+  TRIVIAL friend constexpr auto max(Unroll a, Unroll b) -> Unroll {
+    if constexpr (W == 1) return {std::max(a.vec_, b.vec_)};
+    else return {__builtin_elementwise_maximum(a.vec_, b.vec_)};
+  }
+  TRIVIAL friend constexpr auto min(Unroll a, Unroll b) -> Unroll {
+    if constexpr (W == 1) return {std::min(a.vec_, b.vec_)};
+    else return {__builtin_elementwise_minimum(a.vec_, b.vec_)};
+  }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
@@ -5623,5 +5659,8 @@ TRIVIAL constexpr auto load(const T *p) {
   static constexpr std::ptrdiff_t L = simd::Width<T>;
   return simd::loadunroll<1, W / L, L>(p, math::RowStride<0>{}, {});
 }
+template <typename T> using Batch = simd::Unroll<1Z, 1Z, simd::Width<T>, T>;
 
 } // namespace simd
+
+namespace math { using std::trunc; } // namespace math

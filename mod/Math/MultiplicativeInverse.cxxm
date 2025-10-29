@@ -3,6 +3,7 @@ export module MultiplicativeInverse;
 
 import Int8;
 import BaseUtils;
+import SIMD;
 import std;
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
@@ -65,6 +66,13 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     // push away from zero, before flooring to zero
     // hacky attempt to accomodate rounding error
     return std::trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
+  friend constexpr auto operator/(simd::Batch<T> a, MultiplicativeInverse b)
+    -> simd::Batch<T> {
+    simd::Batch<T> x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   friend constexpr auto cld(T a, MultiplicativeInverse b) -> T {
     T x = a * b.inverse_;

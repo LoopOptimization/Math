@@ -355,6 +355,12 @@ private:
   TRIVIAL friend inline constexpr auto operator!(strong x) -> bool {
     return !static_cast<bool>(x);
   }
+  TRIVIAL friend constexpr auto max(strong x, strong y) -> strong {
+    return x > y ? x : y;
+  }
+  TRIVIAL friend constexpr auto min(strong x, strong y) -> strong {
+    return x > y ? y : x;
+  }
 };
 static_assert(++static_cast<IntWrapper<int, 0, true>::strong>(3) == 4);
 
@@ -368,4 +374,3 @@ static_assert(bool(i8{1}));
 static_assert(bool(u8{1}));
 
 } // namespace numbers
-

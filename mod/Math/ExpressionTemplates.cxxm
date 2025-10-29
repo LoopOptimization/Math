@@ -143,6 +143,13 @@ struct AbstractSelect {
 
 // constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
 
+struct Max {
+  static constexpr auto operator()(auto a, auto b) { return a > b ? a : b; }
+};
+struct Min {
+  static constexpr auto operator()(auto a, auto b) { return a > b ? b : a; }
+};
+
 export namespace math {
 
 // expression template base class
@@ -184,6 +191,26 @@ template <typename T, typename A> class Expr {
   TRIVIAL friend constexpr auto operator*(std::convertible_to<T> auto b,
                                           const A &a) {
     return elementwise(b, a.view(), std::multiplies<>{});
+  }
+  TRIVIAL friend constexpr auto max(std::convertible_to<T> auto b, const A &a) {
+    return elementwise(b, a.view(), Max{});
+  }
+  TRIVIAL friend constexpr auto min(std::convertible_to<T> auto b, const A &a) {
+    return elementwise(b, a.view(), Min{});
+  }
+  TRIVIAL friend constexpr auto max(const A &a, std::convertible_to<T> auto b) {
+    return elementwise(a.view(), b, Max{});
+  }
+  TRIVIAL friend constexpr auto min(const A &a, std::convertible_to<T> auto b) {
+    return elementwise(a.view(), b, Min{});
+  }
+  template <Compatible<A> B>
+  TRIVIAL friend constexpr auto max(const A &a, const B &b) {
+    return elementwise(a.view(), b.view(), Max{});
+  }
+  template <Compatible<A> B>
+  TRIVIAL friend constexpr auto min(const A &a, const B &b) {
+    return elementwise(a.view(), b.view(), Min{});
   }
 
 public:
