@@ -18,7 +18,11 @@ struct UniformScalingMaskedOp {
   static constexpr bool is_known_identity =
     std::is_same_v<std::remove_cvref_t<D>, std::true_type>;
   static constexpr std::size_t mask_bytes = is_known_identity ? 8 : sizeof(D);
+#ifdef __AVX512VL__
+  simd::mask::Unroll<R, C, W> mask_;
+#else
   simd::mask::Unroll<R, C, W, mask_bytes> mask_;
+#endif
   [[no_unique_address]] D value_;
 
   template <typename O>
@@ -38,8 +42,13 @@ struct UniformScalingMaskedOp {
     return ret;
   }
   TRIVIAL constexpr UniformScalingMaskedOp(
+#ifdef __AVX512VL__
+    simd::mask::Unroll<R, C, W> mask, D value)
+#else
     simd::mask::Unroll<R, C, W, mask_bytes> mask, D value)
-    : mask_(mask), value_(value) {}
+#endif
+    : mask_(mask), value_(value) {
+  }
 
   template <typename T>
   TRIVIAL constexpr auto operator+(const simd::Unroll<R, C, W, T> &unroll) const
@@ -145,7 +154,11 @@ template <class T> struct UniformScaling {
     -> UniformScalingMaskedOp<R, C, W, T> {
     using I = utils::signed_integer_t<sizeof(value_type)>;
     using VI = simd::Vec<W, I>;
+#ifdef __AVX512VL__
+    simd::mask::Unroll<R, C, W>
+#else
     simd::mask::Unroll<R, C, W, UniformScalingMaskedOp<R, C, W, T>::mask_bytes>
+#endif
       mask_result;
 
     if constexpr (R * C == 1) {

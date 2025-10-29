@@ -963,8 +963,12 @@ TRIVIAL inline auto firstoff() {
 }
 
 namespace mask {
+#ifdef __AVX512VL__
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+#else
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
           std::size_t Bytes>
+#endif
 struct Unroll {
   static constexpr std::ptrdiff_t W =
     std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
@@ -1036,8 +1040,13 @@ struct Unroll {
     static constexpr std::ptrdiff_t Chalf = C >> 1;
     static constexpr std::ptrdiff_t Rhalf = R >> 1;
     static constexpr std::ptrdiff_t L = (R * C) >> 1;
+#ifdef __AVX512VL__
+    using U =
+      std::conditional_t<R == 1, Unroll<1Z, Chalf, N>, Unroll<Rhalf, 1Z, N>>;
+#else
     using U = std::conditional_t<R == 1, Unroll<1Z, Chalf, N, Bytes>,
                                  Unroll<Rhalf, 1Z, N, Bytes>>;
+#endif
 
     if constexpr (L > 1) {
       std::array<U, 2> ret{};
@@ -1083,7 +1092,11 @@ private:
 };
 
 // Specialization for 1x1 Unroll
+#ifdef __AVX512VL__
+template <std::ptrdiff_t N> struct Unroll<1Z, 1Z, N> {
+#else
 template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
+#endif
   static constexpr std::ptrdiff_t W =
     std::ptrdiff_t(std::bit_ceil(std::size_t(N)));
 #ifdef __AVX512VL__
@@ -1093,7 +1106,7 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
     W == 1, bool,
     std::conditional_t<Bytes * W == 64, mask::Bit<W>, mask::Vector<W, Bytes>>>;
 #else
-  using MaskType = std::conditional_t<W == 1, bool, mask::Vector<W, Bytes>>;
+using MaskType = std::conditional_t<W == 1, bool, mask::Vector<W, Bytes>>;
 #endif
   MaskType mask_;
 
@@ -1142,7 +1155,11 @@ template <std::ptrdiff_t N, std::size_t Bytes> struct Unroll<1Z, 1Z, N, Bytes> {
     -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z));
 
   [[nodiscard]] TRIVIAL constexpr auto split() const {
+#ifdef __AVX512VL__
+    using U = Unroll<1Z, 1Z, N / 2>;
+#else
     using U = Unroll<1Z, 1Z, N / 2, Bytes>;
+#endif
     auto s = mask_.split();
     return std::array<U, 2>{U{s[0]}, U{s[1]}};
   }
@@ -4077,17 +4094,25 @@ private:
       static_assert(C == C1);
       if constexpr (R == R1) {
         // Both have the same index across rows
+#ifdef __AVX512VL__
+        std::conditional_t<IsMask, mask::Unroll<R, C, W>, Unroll<R, C, W, T>>
+#else
         std::conditional_t<IsMask, mask::Unroll<R, C, W, sizeof(T)>,
                            Unroll<R, C, W, T>>
+#endif
           c;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t i = 0; i < R * C; ++i)
           c.data_[i] = {op(a.data_[i], b.data_[i])};
         return c;
       } else if constexpr (R == 1) { // R1 > 0
-        // `a` was indexed across cols only
+                                     // `a` was indexed across cols only
+#ifdef __AVX512VL__
+        std::conditional_t<IsMask, mask::Unroll<R1, C, W>, Unroll<R1, C, W, T>>
+#else
         std::conditional_t<IsMask, mask::Unroll<R1, C, W, sizeof(T)>,
                            Unroll<R1, C, W, T>>
+#endif
           z;
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t r = 0; r < R1; ++r) {
@@ -4098,9 +4123,13 @@ private:
         return z;
       } else {
         static_assert(R1 == 1); // R > 0
-        // `b` was indexed across cols only
+                                // `b` was indexed across cols only
+#ifdef __AVX512VL__
+        std::conditional_t<IsMask, mask::Unroll<R, C, W>, Unroll<R, C, W, T>>
+#else
         std::conditional_t<IsMask, mask::Unroll<R, C, W, sizeof(T)>,
                            Unroll<R, C, W, T>>
+#endif
           z;
         if constexpr (C == 1) {
           POLYMATHFULLUNROLL
@@ -4120,8 +4149,13 @@ private:
       static_assert(R == 1 || C == 1);
       static constexpr std::ptrdiff_t R2 = R == 1 ? C : R;
       // `a` was indexed by row only
+#ifdef __AVX512VL__
+      std::conditional_t<IsMask, mask::Unroll<R2, C1, W1>,
+                         Unroll<R2, C1, W1, T>>
+#else
       std::conditional_t<IsMask, mask::Unroll<R2, C1, W1, sizeof(T)>,
                          Unroll<R2, C1, W1, T>>
+#endif
         z;
       static_assert(R1 == R2 || R1 == 1);
       static_assert(R2 != 1);
@@ -4145,8 +4179,12 @@ private:
       static_assert(R1 == 1 || C1 == 1);
       constexpr std::ptrdiff_t R2 = R1 == 1 ? C1 : R1;
       // `b` was indexed by row only
+#ifdef __AVX512VL__
+      std::conditional_t<IsMask, mask::Unroll<R2, C, W>, Unroll<R2, C, W, T>>
+#else
       std::conditional_t<IsMask, mask::Unroll<R2, C, W, sizeof(T)>,
                          Unroll<R2, C, W, T>>
+#endif
         z;
       static_assert(R == R2 || R == 1);
       if constexpr (R2 == 1) {
@@ -4345,75 +4383,147 @@ private:
   }
 
   TRIVIAL friend constexpr auto operator<(Unroll a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::lt<W, T>(a.vec_, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>(Unroll a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::gt<W, T>(a.vec_, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator<=(Unroll a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::le<W, T>(a.vec_, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>=(Unroll a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ge<W, T>(a.vec_, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator==(Unroll a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::eq<W, T>(a.vec_, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator!=(Unroll a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ne<W, T>(a.vec_, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator<(Unroll a, VT b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::lt<W, T>(a.vec_, b)};
   }
   TRIVIAL friend constexpr auto operator>(Unroll a, VT b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::gt<W, T>(a.vec_, b)};
   }
   TRIVIAL friend constexpr auto operator<=(Unroll a, VT b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::le<W, T>(a.vec_, b)};
   }
   TRIVIAL friend constexpr auto operator>=(Unroll a, VT b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ge<W, T>(a.vec_, b)};
   }
   TRIVIAL friend constexpr auto operator==(Unroll a, VT b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::eq<W, T>(a.vec_, b)};
   }
   TRIVIAL friend constexpr auto operator!=(Unroll a, VT b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ne<W, T>(a.vec_, b)};
   }
   TRIVIAL friend constexpr auto operator<(VT a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::lt<W, T>(a, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>(VT a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::gt<W, T>(a, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator<=(VT a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::le<W, T>(a, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>=(VT a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ge<W, T>(a, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator==(VT a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::eq<W, T>(a, b.vec_)};
   }
   TRIVIAL friend constexpr auto operator!=(VT a, Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ne<W, T>(a, b.vec_)};
   }
 
@@ -4526,121 +4636,183 @@ private:
 
   TRIVIAL friend constexpr auto operator<(Unroll a,
                                           std::convertible_to<T> auto b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::lt<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator>(Unroll a,
                                           std::convertible_to<T> auto b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::gt<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator<=(Unroll a,
                                            std::convertible_to<T> auto b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::le<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator>=(Unroll a,
                                            std::convertible_to<T> auto b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ge<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator==(Unroll a,
                                            std::convertible_to<T> auto b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::eq<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator!=(Unroll a,
                                            std::convertible_to<T> auto b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ne<W, T>(a.vec_, ::simd::vbroadcast<W, T>(b))};
   }
   TRIVIAL friend constexpr auto operator<(std::convertible_to<T> auto a,
                                           Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::lt<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>(std::convertible_to<T> auto a,
                                           Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::gt<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator<=(std::convertible_to<T> auto a,
                                            Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::le<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator>=(std::convertible_to<T> auto a,
                                            Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::ge<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator==(std::convertible_to<T> auto a,
                                            Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N> {
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
+#endif
     return {cmp::eq<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
   }
   TRIVIAL friend constexpr auto operator!=(std::convertible_to<T> auto a,
                                            Unroll b)
+#ifdef __AVX512VL__
+    -> mask::Unroll<1, 1, N>{
+#else
     -> mask::Unroll<1, 1, N, sizeof(T)> {
-    return {cmp::ne<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)};
-  }
+#endif
+      return {
+        cmp::ne<W, T>(::simd::vbroadcast<W, T>(a), b.vec_)
+      };
+}
 
-  template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1,
-            std::ptrdiff_t W1, typename T1, typename Op>
-  TRIVIAL friend constexpr auto applyop(Unroll a, Unroll<R1, C1, W1, T1> b,
-                                        Op op) {
-    // Possibilities:
-    // 1. All match
-    // 2. We had separate unrolls across rows and columns, and some arrays
-    // were indexed by one or two of them.
-    // In the latter case, we could have arrays indexed by rows, cols, or both.
-    if constexpr (!std::same_as<T, T1>) {
-      using PT = std::common_type_t<T, T1>;
-      return applyop<IsMask>(Unroll<1, 1, W, PT>(a), Unroll<R1, C1, W1, PT>(b),
-                             op);
-    } else if constexpr (W == W1) {
-      // both were indexed by cols, and `C`s should also match
-      // or neither were, and they should still match.
-      static_assert(C1 == 1);
-      if constexpr (R1 != 1) {
-        // `a` was indexed across cols only
+template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+          typename T1, typename Op>
+TRIVIAL friend constexpr auto applyop(Unroll a, Unroll<R1, C1, W1, T1> b,
+                                      Op op) {
+  // Possibilities:
+  // 1. All match
+  // 2. We had separate unrolls across rows and columns, and some arrays
+  // were indexed by one or two of them.
+  // In the latter case, we could have arrays indexed by rows, cols, or both.
+  if constexpr (!std::same_as<T, T1>) {
+    using PT = std::common_type_t<T, T1>;
+    return applyop<IsMask>(Unroll<1, 1, W, PT>(a), Unroll<R1, C1, W1, PT>(b),
+                           op);
+  } else if constexpr (W == W1) {
+    // both were indexed by cols, and `C`s should also match
+    // or neither were, and they should still match.
+    static_assert(C1 == 1);
+    if constexpr (R1 != 1) {
+      // `a` was indexed across cols only
+#ifdef __AVX512VL__
+      std::conditional_t<IsMask, mask::Unroll<R1, 1, W>, Unroll<R1, 1, W, T>>
+#else
         std::conditional_t<IsMask, mask::Unroll<R1, 1, W, sizeof(T)>,
                            Unroll<R1, 1, W, T>>
-          z;
-        POLYMATHFULLUNROLL
-        for (std::ptrdiff_t r = 0; r < R1; ++r)
-          z.data_[r] = op(a.vec_, b.data_[r]);
-        return z;
-      } else return Unroll<1, 1, W, T>{op(a.vec_, b.vec_)};
-    } else if constexpr (W == 1) {
-      // `a` was indexed by row only
-      static_assert(R1 == 1);
-      if constexpr (C1 != 1) {
+#endif
+        z;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t r = 0; r < R1; ++r)
+        z.data_[r] = op(a.vec_, b.data_[r]);
+      return z;
+    } else return Unroll<1, 1, W, T>{op(a.vec_, b.vec_)};
+  } else if constexpr (W == 1) {
+    // `a` was indexed by row only
+    static_assert(R1 == 1);
+    if constexpr (C1 != 1) {
+#ifdef __AVX512VL__
+      std::conditional_t<IsMask, mask::Unroll<1, C1, W1>, Unroll<1, C1, W1, T>>
+#else
         std::conditional_t<IsMask, mask::Unroll<1, C1, W1, sizeof(T)>,
                            Unroll<1, C1, W1, T>>
-          z;
-        POLYMATHFULLUNROLL
-        for (std::ptrdiff_t c = 0; c < C1; ++c)
-          z.data_[c] = op(a.vec_, b.data_[c]);
-        return z;
-      } else return Unroll<1, 1, W1, T>{op(a.vec_, b.vec_)};
-    } else {
-      static_assert(W1 == 1);
-      static_assert(R1 == 1 || C1 == 1);
-      constexpr std::ptrdiff_t R = R1 == 1 ? C1 : R1;
-      // `b` was indexed by row only
-      if constexpr (R != 1) {
+#endif
+        z;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t c = 0; c < C1; ++c)
+        z.data_[c] = op(a.vec_, b.data_[c]);
+      return z;
+    } else return Unroll<1, 1, W1, T>{op(a.vec_, b.vec_)};
+  } else {
+    static_assert(W1 == 1);
+    static_assert(R1 == 1 || C1 == 1);
+    constexpr std::ptrdiff_t R = R1 == 1 ? C1 : R1;
+    // `b` was indexed by row only
+    if constexpr (R != 1) {
+#ifdef __AVX512VL__
+      std::conditional_t<IsMask, mask::Unroll<R, 1, W>, Unroll<R, 1, W, T>>
+#else
         std::conditional_t<IsMask, mask::Unroll<R, 1, W, sizeof(T)>,
                            Unroll<R, 1, W, T>>
-          z;
-        POLYMATHFULLUNROLL
-        for (std::ptrdiff_t r = 0; r < R; ++r)
-          z.data_[r] = op(a.vec_, b.data_[r]);
-        return z;
-      } else return Unroll{op(a.vec_, b.vec_)};
-    }
+#endif
+        z;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t r = 0; r < R; ++r)
+        z.data_[r] = op(a.vec_, b.data_[r]);
+      return z;
+    } else return Unroll{op(a.vec_, b.vec_)};
   }
-};
+}
+}; // namespace simd
 
 template <std::ptrdiff_t C, std::ptrdiff_t W, typename T>
 TRIVIAL constexpr auto transpose(Unroll<1, C, W, T> u)
@@ -5434,13 +5606,20 @@ inline constexpr bool issimd<Unroll<U, W, M>> = true;
 } // namespace index
 
 namespace mask {
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
-          std::size_t Bytes>
-template <typename T>
-constexpr auto
+#ifdef __AVX512VL__
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+#else
+  std::size_t Bytes >
+#endif
+  template <typename T>
+  constexpr auto
+#ifdef __AVX512VL__
+  Unroll<R, C, N>::select(const ::simd::Unroll<R, C, N, T> &x,
+#else
 Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, C, N, T> &x,
-                               const ::simd::Unroll<R, C, N, T> &y)
-  -> ::simd::Unroll<R, C, N, T> {
+#endif
+                          const ::simd::Unroll<R, C, N, T> &y)
+    -> ::simd::Unroll<R, C, N, T> {
   ::simd::Unroll<R, C, N, T> ret;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t r = 0; r < R; ++r) {
@@ -5452,19 +5631,30 @@ Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, C, N, T> &x,
   }
   return ret;
 }
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
-          std::size_t Bytes>
-template <typename T, std::ptrdiff_t CU, std::ptrdiff_t W>
-[[nodiscard]] TRIVIAL constexpr auto
+#ifdef __AVX512VL__
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+#else
+  std::size_t Bytes >
+#endif
+  template <typename T, std::ptrdiff_t CU, std::ptrdiff_t W>
+  [[nodiscard]] TRIVIAL constexpr auto
+#ifdef __AVX512VL__
+  Unroll<R, C, N>::select(const ::simd::Unroll<R, CU, W, T> &x,
+#else
 Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, CU, W, T> &x,
-                               const ::simd::Unroll<R, CU, W, T> &y)
-  -> ::simd::Unroll<R, CU, W, T> requires((CU * W == C * N) && (CU != C)) {
+#endif
+                          const ::simd::Unroll<R, CU, W, T> &y)
+    -> ::simd::Unroll<R, CU, W, T> requires((CU * W == C * N) && (CU != C)) {
   if constexpr (C < CU) {
     // We will double `C` and cut `N` in half.
     static constexpr std::ptrdiff_t C2 = C << 1;
     static constexpr std::ptrdiff_t Nhalf = N >> 1;
     static constexpr std::ptrdiff_t L = R * C;
+#ifdef __AVX512VL__
+    Unroll<R, C2, Nhalf> s;
+#else
     Unroll<R, C2, Nhalf, Bytes> s;
+#endif
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i) {
       auto splt = data_[i].split();
@@ -5489,22 +5679,42 @@ Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, CU, W, T> &x,
     return select(a, b);
   }
 }
+#ifdef __AVX512VL__
+template <std::ptrdiff_t N>
+#else
 template <std::ptrdiff_t N, std::size_t Bytes>
+#endif
 template <typename T>
 constexpr auto
+#ifdef __AVX512VL__
+Unroll<1Z, 1Z, N>::select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
+#else
 Unroll<1Z, 1Z, N, Bytes>::select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
-                                 const ::simd::Unroll<1Z, 1Z, N, T> &y)
+#endif
+                          const ::simd::Unroll<1Z, 1Z, N, T> &y)
   -> ::simd::Unroll<1Z, 1Z, N, T> {
   return {::simd::select(mask_, x.vec_, y.vec_)};
 }
+#ifdef __AVX512VL__
+template <std::ptrdiff_t N>
+#else
 template <std::ptrdiff_t N, std::size_t Bytes>
+#endif
 template <typename T, std::ptrdiff_t C, std::ptrdiff_t W>
 [[nodiscard]] TRIVIAL constexpr auto
+#ifdef __AVX512VL__
+Unroll<1Z, 1Z, N>::select(const ::simd::Unroll<1Z, C, W, T> &x,
+#else
 Unroll<1Z, 1Z, N, Bytes>::select(const ::simd::Unroll<1Z, C, W, T> &x,
-                                 const ::simd::Unroll<1Z, C, W, T> &y)
+#endif
+                          const ::simd::Unroll<1Z, C, W, T> &y)
   -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
   static constexpr std::ptrdiff_t Nhalf = N >> 1;
+#ifdef __AVX512VL__
+  Unroll<1Z, 2Z, Nhalf> s;
+#else
   Unroll<1Z, 2Z, Nhalf, Bytes> s;
+#endif
   auto splt = mask_.split();
   s.data_[0] = splt[0], s.data_[1] = splt[1];
   // either `s` matches, or continues the recursion
