@@ -141,6 +141,8 @@ int main() {
       "[12 -20 4 40 -16 24 16 16; 16 24 12 -4 24 4 -16 0; -28 -8 0 0 -40 -8 "
       "12 28; 8 -28 -20 -20 -28 -20 4 -28; 8 -32 8 28 16 36 24 -12; -8 -32 "
       "-20 0 40 -16 20 -12]"_mat};
+    static_assert(A4[0, _].size() == 8);
+    static_assert(A4[_(::math::Row<3>()), _].size() == 24);
     // IntMatrix B{A*4};
     auto templateA4{A * 4};
     IntMatrix<> C{templateA4};

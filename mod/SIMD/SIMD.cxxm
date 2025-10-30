@@ -3816,12 +3816,28 @@ private:
       b.data_[i] = __builtin_elementwise_floor(a.data_[i]);
     return b;
   }
+  TRIVIAL friend constexpr auto ceil(Unroll a) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll b;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      b.data_[i] = __builtin_elementwise_ceil(a.data_[i]);
+    return b;
+  }
+  TRIVIAL friend constexpr auto abs(Unroll a) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll b;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      b.data_[i] = __builtin_elementwise_abs(a.data_[i]);
+    return b;
+  }
   TRIVIAL friend constexpr auto max(Unroll a, Unroll b) -> Unroll {
     static constexpr std::ptrdiff_t L = R * C;
     Unroll c;
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i)
-      c.data_[i] = __builtin_elementwise_maximum(a.data_[i], b.data_[i]);
+      c.data_[i] = __builtin_elementwise_max(a.data_[i], b.data_[i]);
     return c;
   }
   TRIVIAL friend constexpr auto min(Unroll a, Unroll b) -> Unroll {
@@ -3829,7 +3845,7 @@ private:
     Unroll c;
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i)
-      c.data_[i] = __builtin_elementwise_minimum(a.data_[i], b.data_[i]);
+      c.data_[i] = __builtin_elementwise_min(a.data_[i], b.data_[i]);
     return c;
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
@@ -4295,6 +4311,14 @@ private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
     if constexpr (N == 1) return {std::trunc(a.vec_)};
     else return {__builtin_elementwise_floor(a.vec_)};
+  }
+  TRIVIAL friend constexpr auto ceil(Unroll a) -> Unroll {
+    if constexpr (N == 1) return {std::ceil(a.vec_)};
+    else return {__builtin_elementwise_ceil(a.vec_)};
+  }
+  TRIVIAL friend constexpr auto abs(Unroll a) -> Unroll {
+    if constexpr (N == 1) return {std::abs(a.vec_)};
+    else return {__builtin_elementwise_abs(a.vec_)};
   }
   TRIVIAL friend constexpr auto max(Unroll a, Unroll b) -> Unroll {
     if constexpr (N == 1) return {std::max(a.vec_, b.vec_)};
@@ -5865,8 +5889,7 @@ TRIVIAL constexpr auto load(const T *p) {
   static constexpr std::ptrdiff_t L = simd::Width<T>;
   return simd::loadunroll<1, W / L, L>(p, math::RowStride<0>{}, {});
 }
-template <typename T> using Batch = simd::Unroll<1Z, 1Z, simd::Width<T>, T>;
 
 } // namespace simd
 
-namespace math { using std::trunc; } // namespace math
+namespace math { using std::trunc, std::ceil; } // namespace math

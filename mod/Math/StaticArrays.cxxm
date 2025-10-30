@@ -376,7 +376,7 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   static constexpr std::ptrdiff_t L = (N + W - 1) / W;
   static constexpr bool can_flatten = L * W == N;
   static_assert(L * W == calcPaddedCols<T, N, Align>());
-  using V = simd::Vec<W, T>;
+  using V = simd::El<W, T>;
   // simd::Vec<W, T> data[M][L];
   V memory_[M * L]{};
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
@@ -920,7 +920,10 @@ private:
 };
 
 template <class T, std::ptrdiff_t N, std::ptrdiff_t Compress = false>
-using SVector = StaticArray<T, 1z, N, Compress>;
+using SVector = StaticArray<T, 1Z, N, Compress>;
+template <class T, std::ptrdiff_t M, std::ptrdiff_t N,
+          std::ptrdiff_t Compress = false>
+using SMatrix = StaticArray<T, M, N, Compress>;
 static_assert(
   std::same_as<Row<1>, decltype(SVector<std::int64_t, 3, true>::numRow())>);
 static_assert(

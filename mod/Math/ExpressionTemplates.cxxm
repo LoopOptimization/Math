@@ -144,10 +144,34 @@ struct AbstractSelect {
 // constexpr auto bin2(std::integral auto x) { return (x * (x - 1)) >> 1; }
 
 struct Max {
-  static constexpr auto operator()(auto a, auto b) { return a > b ? a : b; }
+  TRIVIAL static constexpr auto operator()(auto a, auto b) {
+    using std::max;
+    return max(a, b);
+  }
 };
 struct Min {
-  static constexpr auto operator()(auto a, auto b) { return a > b ? b : a; }
+  TRIVIAL static constexpr auto operator()(auto a, auto b) {
+    using std::min;
+    return min(a, b);
+  }
+};
+struct Trunc {
+  TRIVIAL static constexpr auto operator()(auto a) {
+    using std::trunc;
+    return trunc(a);
+  }
+};
+struct Ceil {
+  TRIVIAL static constexpr auto operator()(auto a) {
+    using std::ceil;
+    return ceil(a);
+  }
+};
+struct Abs {
+  TRIVIAL static constexpr auto operator()(auto a) {
+    using std::abs;
+    return abs(a);
+  }
 };
 
 export namespace math {
@@ -211,6 +235,15 @@ template <typename T, typename A> class Expr {
   template <Compatible<A> B>
   TRIVIAL friend constexpr auto min(const A &a, const B &b) {
     return elementwise(a.view(), b.view(), Min{});
+  }
+  TRIVIAL friend constexpr auto trunc(const A &a) {
+    return elementwise(a.view(), Trunc{});
+  }
+  TRIVIAL friend constexpr auto ceil(const A &a) {
+    return elementwise(a.view(), Ceil{});
+  }
+  TRIVIAL friend constexpr auto abs(const A &a) {
+    return elementwise(a.view(), Abs{});
   }
 
 public:

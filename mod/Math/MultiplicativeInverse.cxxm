@@ -1,9 +1,10 @@
 module;
+#include "Macros.hxx"
 export module MultiplicativeInverse;
 
 import Int8;
 import BaseUtils;
-import SIMD;
+import StaticArray;
 import std;
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
@@ -41,7 +42,7 @@ template <std::integral T> CLANGNOUBSAN constexpr auto mul_high(T a, T b) -> T {
 
 export namespace math {
 using numbers::i8, numbers::u8;
-template <std::integral T> constexpr auto cld(T a, T b) -> T {
+template <std::integral T> TRIVIAL constexpr auto cld(T a, T b) -> T {
   T d = a / b;
   if constexpr (std::is_signed_v<T>)
     return d + (((a > 0) == (b > 0)) & (d * b != a));
@@ -53,8 +54,7 @@ template <typename T> class MultiplicativeInverse;
 template <std::floating_point T> class MultiplicativeInverse<T> {
   using I = utils::signed_integer_t<sizeof(T)>;
   using U = utils::unsigned_integer_t<sizeof(T)>;
-  T divisor_;
-  T inverse_;
+  T divisor_, inverse_;
   friend constexpr auto operator*(T a, MultiplicativeInverse b) -> T {
     return a * b.divisor_;
   }
@@ -67,9 +67,11 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     // hacky attempt to accomodate rounding error
     return std::trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
-  friend constexpr auto operator/(simd::Batch<T> a, MultiplicativeInverse b)
-    -> simd::Batch<T> {
-    simd::Batch<T> x = a * b.inverse_;
+  template <std::ptrdiff_t L>
+  friend constexpr auto operator/(math::SVector<T, L> a,
+                                  MultiplicativeInverse b)
+    -> math::SVector<T, L> {
+    math::SVector<T, L> x = a * b.inverse_;
     // push away from zero, before flooring to zero
     // hacky attempt to accomodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
@@ -100,6 +102,62 @@ public:
   constexpr MultiplicativeInverse(T d) : divisor_(d), inverse_{T{1} / d} {}
   constexpr MultiplicativeInverse() = default;
   [[nodiscard]] constexpr auto inv() const -> T { return inverse_; }
+};
+template <std::floating_point T, std::ptrdiff_t L>
+class MultiplicativeInverse<SVector<T, L>> {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  using U = utils::unsigned_integer_t<sizeof(T)>;
+  using V = SVector<T, L>;
+  V divisor_, inverse_;
+  TRIVIAL friend constexpr auto operator*(V a, MultiplicativeInverse b) -> V {
+    return a * b.divisor_;
+  }
+  TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a, V b) -> V {
+    return a.divisor_ * b;
+  }
+  TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
+    T x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return std::trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
+  TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
+  TRIVIAL friend constexpr auto cld(V a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push towards -infinity, before rounding up
+    // hacky attempt to accomodate rounding error
+    return std::ceil(x - (std::numeric_limits<T>::epsilon() * std::abs(x)));
+  }
+  TRIVIAL friend constexpr auto operator%(V a, MultiplicativeInverse b) -> V {
+    return std::round(a - ((a / b) * b.divisor_));
+  }
+
+public:
+  TRIVIAL explicit constexpr operator V() const { return divisor_; }
+  TRIVIAL explicit constexpr operator SVector<I, L>() const {
+    return I(divisor_);
+  }
+  // casts to unsigned by first going through a signed integer.
+  // This is because the signed->unsigned is a noop, our primary use is for
+  // `Unroll`s which are always positive, and x64 CPUs without AVX512 lack a
+  // `vcvtsd2usi` instruction, but may have `vcvtsd2si` from AVX, or at least
+  // `cvtsd2si` from SSE.
+  TRIVIAL explicit constexpr operator SVector<U, L>() const {
+    return U(I(divisor_));
+  }
+  TRIVIAL constexpr auto divrem(V a) -> std::array<V, 2> {
+    T d = a / (*this);
+    return {d, std::round(a - (d / inverse_))};
+  }
+  TRIVIAL constexpr MultiplicativeInverse(V d)
+    : divisor_(d), inverse_{V{1} / d} {}
+  TRIVIAL constexpr MultiplicativeInverse() = default;
+  TRIVIAL [[nodiscard]] constexpr auto inv() const -> V { return inverse_; }
 };
 
 template <std::integral T> class MultiplicativeInverse<T> {
