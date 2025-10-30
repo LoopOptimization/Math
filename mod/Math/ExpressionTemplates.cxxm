@@ -603,13 +603,23 @@ struct Select : public AbstractSelect<C, A, B>,
     requires LinearlyIndexable<C, bool> &&
              LinearlyIndexableOrConvertible<A, value_type> &&
              LinearlyIndexableOrConvertible<B, value_type> {
-    if constexpr (LinearlyIndexable<A, value_type>)
-      if constexpr (LinearlyIndexable<B, value_type>)
-        return this->c[i] ? this->a[i] : this->b[i];
-      else return this->c[i] ? this->a[i] : this->b;
-    else if constexpr (LinearlyIndexable<B, value_type>)
-      return this->c[i] ? this->a : this->b[i];
-    else return this->c[i] ? this->a : this->b;
+    if constexpr (std::convertible_to<decltype(this->c[i]), bool>) {
+      if constexpr (LinearlyIndexable<A, value_type>)
+        if constexpr (LinearlyIndexable<B, value_type>)
+          return this->c[i] ? this->a[i] : this->b[i];
+        else return this->c[i] ? this->a[i] : this->b;
+      else if constexpr (LinearlyIndexable<B, value_type>)
+        return this->c[i] ? this->a : this->b[i];
+      else return this->c[i] ? this->a : this->b;
+    } else {
+      if constexpr (LinearlyIndexable<A, value_type>)
+        if constexpr (LinearlyIndexable<B, value_type>)
+          return this->c[i].select(this->a[i], this->b[i]);
+        else return this->c[i].select(this->a[i], this->b);
+      else if constexpr (LinearlyIndexable<B, value_type>)
+        return this->c[i].select(this->a, this->b[i]);
+      else return this->c[i].select(this->a, this->b);
+    }
   }
   TRIVIAL constexpr auto operator[](auto i, auto j) const
     requires CartesianIndexableOrConvertible<C, bool> &&
@@ -624,6 +634,14 @@ struct Select : public AbstractSelect<C, A, B>,
     else return this->c[i, j] ? this->a : this->b;
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const -> Select { return *this; };
+  [[nodiscard]] TRIVIAL constexpr auto flatview() const {
+    if constexpr (can_flatten) {
+      auto fc{flatten_if_possible(this->c)};
+      auto fa{flatten_if_possible(this->a)};
+      auto fb{flatten_if_possible(this->b)};
+      return Select<decltype(fc), decltype(fa), decltype(fb)>({fc, fa, fb});
+    } else return *this;
+  };
 };
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
@@ -851,7 +869,10 @@ TRIVIAL constexpr auto elementwise(A a, B b, Op op)
 
 TRIVIAL constexpr auto select(const AbstractTensor auto &c, const auto &a,
                               const auto &b) {
-  return Select(view(c), view(a), view(b));
+  auto vc{view(c)};
+  auto va{view(a)};
+  auto vb{view(b)};
+  return Select<decltype(vc), decltype(va), decltype(vb)>({vc, va, vb});
 }
 TRIVIAL constexpr auto conditional(auto op, const AbstractTensor auto &c,
                                    const auto &a, const auto &b) {

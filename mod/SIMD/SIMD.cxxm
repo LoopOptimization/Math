@@ -1146,11 +1146,49 @@ using MaskType = std::conditional_t<N == 1, bool, mask::Vector<N, Bytes>>;
   select(const ::simd::Unroll<1Z, 1Z, N, T> &x,
          const ::simd::Unroll<1Z, 1Z, N, T> &y) -> ::simd::Unroll<1Z, 1Z, N, T>;
 
+  template <typename T, std::convertible_to<T> S>
+  [[nodiscard]] TRIVIAL constexpr auto
+  select(S x, const ::simd::Unroll<1Z, 1Z, N, T> &y)
+    -> ::simd::Unroll<1Z, 1Z, N, T> {
+    return select(::simd::Unroll<1Z, 1Z, N, T>::vbroadcast(x), y);
+  }
+  template <typename T, std::convertible_to<T> S>
+  [[nodiscard]] TRIVIAL constexpr auto
+  select(const ::simd::Unroll<1Z, 1Z, N, T> &x, S y)
+    -> ::simd::Unroll<1Z, 1Z, N, T> {
+    return select(x, ::simd::Unroll<1Z, 1Z, N, T>::vbroadcast(y));
+  }
+  template <typename T>
+  [[nodiscard]] TRIVIAL constexpr auto select(T x, T y)
+    -> ::simd::Unroll<1Z, 1Z, N, T> {
+    return select(::simd::Unroll<1Z, 1Z, N, T>::vbroadcast(x),
+                  ::simd::Unroll<1Z, 1Z, N, T>::vbroadcast(y));
+  }
+
   template <typename T, std::ptrdiff_t C, std::ptrdiff_t W>
   [[nodiscard]] TRIVIAL constexpr auto
   select(const ::simd::Unroll<1Z, C, W, T> &x,
          const ::simd::Unroll<1Z, C, W, T> &y)
     -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z));
+
+  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W, std::convertible_to<T> S>
+  [[nodiscard]] TRIVIAL constexpr auto
+  select(S x, const ::simd::Unroll<1Z, C, W, T> &y)
+    -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
+    select(::simd::Unroll<1Z, C, W, T>::vbroadcast(x), y);
+  }
+  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W, std::convertible_to<T> S>
+  [[nodiscard]] TRIVIAL constexpr auto
+  select(const ::simd::Unroll<1Z, C, W, T> &x, S y)
+    -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
+    select(x, ::simd::Unroll<1Z, C, W, T>::vbroadcast(y));
+  }
+  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W>
+  [[nodiscard]] TRIVIAL constexpr auto select(T x, T y)
+    -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
+    select(::simd::Unroll<1Z, C, W, T>::vbroadcast(x),
+           ::simd::Unroll<1Z, C, W, T>::vbroadcast(y));
+  }
 
   [[nodiscard]] TRIVIAL constexpr auto split() const {
 #ifdef __AVX512VL__
@@ -3715,11 +3753,13 @@ struct Unroll {
   }
   TRIVIAL constexpr auto operator-() {
     Unroll a;
+    POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i) a.data_[i] = -data_[i];
     return a;
   }
   TRIVIAL constexpr auto operator~() {
     Unroll a;
+    POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i) a.data_[i] = ~data_[i];
     return a;
   }
@@ -3824,6 +3864,14 @@ private:
       b.data_[i] = __builtin_elementwise_ceil(a.data_[i]);
     return b;
   }
+  TRIVIAL friend constexpr auto round(Unroll a) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll b;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      b.data_[i] = __builtin_elementwise_round(a.data_[i]);
+    return b;
+  }
   TRIVIAL friend constexpr auto abs(Unroll a) -> Unroll {
     static constexpr std::ptrdiff_t L = R * C;
     Unroll b;
@@ -3894,49 +3942,49 @@ private:
   TRIVIAL friend constexpr auto operator==(Unroll a, T b) {
 
     return applyop<true>(a, Unroll::vbroadcast(b),
-                         [](auto x, auto y) { return x == y; });
+                         [](auto x, auto y) { return cmp::eq(x, y); });
   }
   TRIVIAL friend constexpr auto operator!=(Unroll a, T b) {
 
     return applyop<true>(a, Unroll::vbroadcast(b),
-                         [](auto x, auto y) { return x != y; });
+                         [](auto x, auto y) { return cmp::ne(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator==(Unroll a,
                                            const Unroll<R1, C1, W1, T1> &b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x == y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::eq(x, y); });
   }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator!=(Unroll a,
                                            const Unroll<R1, C1, W1, T1> &b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x != y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::ne(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator<(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x < y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::lt(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator>(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x > y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::gt(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator<=(Unroll a,
                                            const Unroll<R1, C1, W1, T1> &b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x <= y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::le(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator>=(Unroll a,
                                            const Unroll<R1, C1, W1, T1> &b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x >= y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::ge(x, y); });
   }
 
   TRIVIAL friend constexpr auto operator+(Unroll a, VT b) -> Unroll {
@@ -4316,6 +4364,10 @@ private:
     if constexpr (N == 1) return {std::ceil(a.vec_)};
     else return {__builtin_elementwise_ceil(a.vec_)};
   }
+  TRIVIAL friend constexpr auto round(Unroll a) -> Unroll {
+    if constexpr (N == 1) return {std::round(a.vec_)};
+    else return {__builtin_elementwise_round(a.vec_)};
+  }
   TRIVIAL friend constexpr auto abs(Unroll a) -> Unroll {
     if constexpr (N == 1) return {std::abs(a.vec_)};
     else return {__builtin_elementwise_abs(a.vec_)};
@@ -4374,32 +4426,32 @@ private:
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator>(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x > y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::gt(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator<(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x < y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::lt(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator==(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x == y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::eq(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator!=(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x != y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::ne(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator>=(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x >= y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::ge(x, y); });
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator<=(Unroll a, Unroll<R1, C1, W1, T1> b) {
-    return applyop<true>(a, b, [](auto x, auto y) { return x <= y; });
+    return applyop<true>(a, b, [](auto x, auto y) { return cmp::le(x, y); });
   }
 
   TRIVIAL friend constexpr auto operator<(Unroll a, Unroll b)

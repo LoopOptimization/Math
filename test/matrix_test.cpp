@@ -675,5 +675,46 @@ int main() {
     // 1 + 2 + 3 - 4 + 5 - 6 == 1
     expect(A - B + C + D + E + F == I);
   };
+  "Select Test"_test = [] {
+    // Test with vectors
+    auto a = "[1 5 3 8 2]"_mat;
+    auto b = "[4 2 6 1 7]"_mat;
+    auto min_ab = "[1 2 3 1 2]"_mat;
+    auto max_ab = "[4 5 6 8 7]"_mat;
+
+    Vector<std::int64_t> result_min = select(a < b, a, b);
+    expect(result_min == min_ab);
+
+    Vector<std::int64_t> result_max = select(a > b, a, b);
+    expect(result_max == max_ab);
+
+    // Test with different comparison operators
+    auto result_le = select(a <= b, a, b);
+    expect(result_le == min_ab);
+
+    auto result_ge = select(a >= b, a, b);
+    expect(result_ge == max_ab);
+
+    // Test with matrices
+    auto A = "[3 1 4; 1 5 9; 2 6 5]"_mat;
+    auto B = "[2 7 1; 8 2 8; 1 8 2]"_mat;
+    auto expected_min = "[2 1 1; 1 2 8; 1 6 2]"_mat;
+
+    IntMatrix<> mat_result{select(A < B, A, B)};
+    expect(mat_result == expected_min);
+
+    // Test with expression templates
+    auto c = "[10 20 30]"_mat;
+    auto d = "[15 18 25]"_mat;
+    Vector<std::int64_t> expr_result = select(c * 2 > d * 2, c, d);
+    auto expected_expr = "[15 20 30]"_mat;
+    expect(expr_result == expected_expr);
+
+    // Test with scalar comparison
+    auto v = "[-3 5 -1 8 -7 2]"_mat;
+    Vector<std::int64_t> clamped = select(v < 0, 0, v);
+    auto expected_clamped = "[0 5 0 8 0 2]"_mat;
+    expect(clamped == expected_clamped);
+  };
   return 0;
 }
