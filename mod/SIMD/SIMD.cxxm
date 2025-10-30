@@ -1171,13 +1171,15 @@ using MaskType = std::conditional_t<N == 1, bool, mask::Vector<N, Bytes>>;
          const ::simd::Unroll<1Z, C, W, T> &y)
     -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z));
 
-  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W, std::convertible_to<T> S>
+  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W,
+            std::convertible_to<T> S>
   [[nodiscard]] TRIVIAL constexpr auto
   select(S x, const ::simd::Unroll<1Z, C, W, T> &y)
     -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
     select(::simd::Unroll<1Z, C, W, T>::vbroadcast(x), y);
   }
-  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W, std::convertible_to<T> S>
+  template <typename T, std::ptrdiff_t C, std::ptrdiff_t W,
+            std::convertible_to<T> S>
   [[nodiscard]] TRIVIAL constexpr auto
   select(const ::simd::Unroll<1Z, C, W, T> &x, S y)
     -> ::simd::Unroll<1Z, C, W, T> requires((C * W == N) && (C != 1Z)) {
