@@ -2,6 +2,7 @@ module;
 #include "Macros.hxx"
 export module MultiplicativeInverse;
 
+import Array;
 import Int8;
 import BaseUtils;
 import StaticArray;
@@ -115,6 +116,21 @@ class MultiplicativeInverse<SVector<T, L>> {
   TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a, V b) -> V {
     return a.divisor_ * b;
   }
+  TRIVIAL friend constexpr auto operator*(math::Array<T, math::Length<L>> a,
+                                          MultiplicativeInverse b) -> V {
+    return a * b.divisor_;
+  }
+  TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a,
+                                          math::Array<T, math::Length<L>> b)
+    -> V {
+    return a.divisor_ * b;
+  }
+  TRIVIAL friend constexpr auto operator*(T a, MultiplicativeInverse b) -> V {
+    return a * b.divisor_;
+  }
+  TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a, T b) -> V {
+    return a.divisor_ * b;
+  }
   TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push away from zero, before flooring to zero
@@ -122,6 +138,12 @@ class MultiplicativeInverse<SVector<T, L>> {
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   TRIVIAL friend constexpr auto cld(V a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push towards -infinity, before rounding up
+    // hacky attempt to accomodate rounding error
+    return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
+  }
+  TRIVIAL friend constexpr auto cld(T a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push towards -infinity, before rounding up
     // hacky attempt to accomodate rounding error
