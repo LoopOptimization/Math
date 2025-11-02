@@ -5,7 +5,7 @@ import std;
 using namespace boost::ut;
 
 int main() {
-  "BitTest BasicAssertions"_test = [] {
+  "BitTest"_test = [] {
     for (int i = 0; i < 63; ++i) {
       auto e2 = double(std::uint64_t(1) << i);
       expect(bit::exp2unchecked(i) == e2);
@@ -18,6 +18,8 @@ int main() {
       double x = dist(gen);
       expect(bit::next_pow2(x) == std::exp2(std::ceil(std::log2(x))));
     }
+    expect(eq(bit::scale(2.5, 5), 80.0));
+    expect(eq(bit::scale(80.0, -5), 2.5));
   };
   return 0;
 }

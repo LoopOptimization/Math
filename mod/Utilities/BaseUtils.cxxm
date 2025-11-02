@@ -132,8 +132,13 @@ template <typename T> using value_t = typename InParameter<T>::type;
 
 export namespace bit {
 
-constexpr auto exp2unchecked(std::integral auto x) {
+constexpr auto exp2unchecked(std::integral auto x) -> double {
   return std::bit_cast<double>(static_cast<std::int64_t>(1023 + x) << 52);
+}
+/// scale(x, y) = x * pow(2,y)
+constexpr auto scale(double x, std::integral auto y) -> double {
+  return std::bit_cast<double>(std::bit_cast<std::int64_t>(x) +
+                               (static_cast<std::int64_t>(y) << 52));
 }
 
 constexpr auto next_pow2(double x) -> double {
