@@ -3917,6 +3917,42 @@ private:
       c.data_[i] = __builtin_elementwise_min(a.data_[i], b.data_[i]);
     return c;
   }
+  TRIVIAL friend constexpr auto max(T a, Unroll b) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll c;
+    VT va{::simd::vbroadcast<N>(a)};
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c.data_[i] = __builtin_elementwise_max(va, b.data_[i]);
+    return c;
+  }
+  TRIVIAL friend constexpr auto min(T a, Unroll b) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll c;
+    VT va{::simd::vbroadcast<N>(a)};
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c.data_[i] = __builtin_elementwise_min(va, b.data_[i]);
+    return c;
+  }
+  TRIVIAL friend constexpr auto max(Unroll a, T b) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll c;
+    VT vb{::simd::vbroadcast<N>(b)};
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c.data_[i] = __builtin_elementwise_max(a.data_[i], vb);
+    return c;
+  }
+  TRIVIAL friend constexpr auto min(Unroll a, T b) -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll c;
+    VT vb{::simd::vbroadcast<N>(b)};
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      c.data_[i] = __builtin_elementwise_min(a.data_[i], vb);
+    return c;
+  }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
   TRIVIAL friend constexpr auto operator+(Unroll a, Unroll<R1, C1, W1, T1> b) {
@@ -4432,6 +4468,26 @@ private:
   TRIVIAL friend constexpr auto min(Unroll a, Unroll b) -> Unroll {
     if constexpr (N == 1) return {std::min(a.vec_, b.vec_)};
     else return {__builtin_elementwise_minimum(a.vec_, b.vec_)};
+  }
+  TRIVIAL friend constexpr auto max(T a, Unroll b) -> Unroll {
+    if constexpr (N == 1) return {std::max(a, b.vec_)};
+    else
+      return {__builtin_elementwise_maximum(::simd::vbroadcast<N>(a), b.vec_)};
+  }
+  TRIVIAL friend constexpr auto min(T a, Unroll b) -> Unroll {
+    if constexpr (N == 1) return {std::min(a, b.vec_)};
+    else
+      return {__builtin_elementwise_minimum(::simd::vbroadcast<N>(a), b.vec_)};
+  }
+  TRIVIAL friend constexpr auto max(Unroll a, T b) -> Unroll {
+    if constexpr (N == 1) return {std::max(a.vec_, b)};
+    else
+      return {__builtin_elementwise_maximum(a.vec_, ::simd::vbroadcast<N>(b))};
+  }
+  TRIVIAL friend constexpr auto min(Unroll a, T b) -> Unroll {
+    if constexpr (N == 1) return {std::min(a.vec_, b)};
+    else
+      return {__builtin_elementwise_minimum(a.vec_, ::simd::vbroadcast<N>(b))};
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>

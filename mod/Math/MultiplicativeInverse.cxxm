@@ -15,7 +15,6 @@ import std;
 #else
 #define CLANGNOUBSAN
 #endif
-namespace math::detail {
 CLANGNOUBSAN constexpr auto mul_high(__uint128_t a, __uint128_t b)
   -> __uint128_t {
   static constexpr auto shift = 16 * 4;
@@ -39,7 +38,6 @@ template <std::integral T> CLANGNOUBSAN constexpr auto mul_high(T a, T b) -> T {
   return T((utils::widen(a) * utils::widen(b)) >> (8 * sizeof(T)));
 }
 #undef CLANGNOUBSAN
-} // namespace math::detail
 
 export namespace math {
 using numbers::i8, numbers::u8;
@@ -131,6 +129,12 @@ class MultiplicativeInverse<SVector<T, L>> {
   TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a, T b) -> V {
     return a.divisor_ * b;
   }
+  TRIVIAL friend constexpr auto operator/(T a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
   TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push away from zero, before flooring to zero
@@ -191,7 +195,7 @@ template <std::integral T> class MultiplicativeInverse<T> {
     return a.divisor_ * b;
   }
   friend constexpr auto operator/(T a, MultiplicativeInverse b) -> T {
-    T x = ::math::detail::mul_high(a, b.multiplier_);
+    T x = ::mul_high(a, b.multiplier_);
     if constexpr (issigned) {
       x += a * T(b.addmul_);
       return ((b.divisor_ == 1) || (b.divisor_ == -1))

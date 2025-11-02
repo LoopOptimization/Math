@@ -1,6 +1,8 @@
 import boost.ut;
 
+import BaseUtils;
 import MultiplicativeInverse;
+import StaticArray;
 import std;
 
 using namespace boost::ut;
@@ -74,7 +76,40 @@ void testBasicAssertions() {
                 123456 / 5);
 }
 
+void svector() {
+  using S = ::math::SVector<double, 8>;
+  using M = MultiplicativeInverse<S>;
+  int l2d0 = 3; // vectorization
+  S u{2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 18.0};
+  S c{6.0, 9.0, 12.0, 15.0, 18.0, 21.0, 24.0, 27.0};
+  M umi{u};
+  // Currently using contig for load/store costs...
+  // Without the need for shuffles, this should be >= discontig
+  // TODO: double check for for `u` not being a power of 2
+  S ufactor = u.max(bit::exp2unchecked(4));
+  double lc = 0.5, sc = 1.0, ld = 4.5, sd = 9.0;
+
+  S lcf = lc * ufactor, scf = sc * ufactor, shuf_count = u * l2d0,
+    shuf_ratio = c / umi;
+  auto prefer_shuf_over_gather = (lcf + shuf_count * lc) < ld * u,
+       prefer_shuf_over_scatter = (scf + shuf_count * sc) < sd * u;
+  S load_cost = select(prefer_shuf_over_gather, lcf * shuf_ratio, ld * c),
+    stow_cost = select(prefer_shuf_over_scatter, scf * shuf_ratio, sd * c),
+    comp_cost = select(prefer_shuf_over_gather, shuf_count * lc, 0.0);
+  comp_cost << select(prefer_shuf_over_scatter, comp_cost + shuf_count * sc,
+                      comp_cost);
+  // comp_cost.print();
+  // TODO: validate that these make sense?
+  S load_ref{27, 24, 24, 24, 24, 24, 24, 9},
+    stow_ref{54, 48, 48, 48, 48, 48, 48, 18},
+    comp_ref{0, 13.5, 18, 22.5, 27, 31.5, 36, 81};
+  expect(load_cost == load_ref);
+  expect(stow_cost == stow_ref);
+  expect(comp_cost == comp_ref);
+}
+
 int main() {
-  "MultiplicativeInverse BasicAssertions"_test = [] { testBasicAssertions(); };
+  "MultiplicativeInverseScalar"_test = [] { testBasicAssertions(); };
+  "MultiplicativeInverseVector"_test = [] { svector(); };
   return 0;
 }

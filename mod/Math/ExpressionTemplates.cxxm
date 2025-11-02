@@ -247,6 +247,9 @@ template <typename T, typename A> class Expr {
   }
 
 public:
+  TRIVIAL constexpr auto max(std::convertible_to<T> auto b) const {
+    return elementwise(v(), b, Max{});
+  }
   TRIVIAL constexpr auto operator-() const {
     return elementwise(v(), std::negate<>{});
   }
@@ -292,13 +295,15 @@ public:
     if constexpr (!std::convertible_to<std::remove_cvref_t<B>, T>) {
       auto AA{v()};
       auto BB{b.view()};
-      invariant(std::ptrdiff_t(numCols(AA)), std::ptrdiff_t(numRows(BB)));
-      if constexpr (RowVector<decltype(AA)> && ColVector<decltype(BB)>)
-        return dot(AA, BB.t());
-      else if constexpr (AbstractVector<decltype(AA)> &&
-                         AbstractVector<decltype(BB)>)
+      if constexpr ((RowVector<decltype(AA)> && RowVector<decltype(BB)>) ||
+                    (ColVector<decltype(AA)> && ColVector<decltype(BB)>))
         return elementwise(AA, BB, std::multiplies<>{});
-      else return MatMatMul<decltype(AA), decltype(BB)>{.a_ = AA, .b_ = BB};
+      else {
+        invariant(std::ptrdiff_t(numCols(AA)), std::ptrdiff_t(numRows(BB)));
+        if constexpr (RowVector<decltype(AA)> && ColVector<decltype(BB)>)
+          return dot(AA, BB.t());
+        else return MatMatMul<decltype(AA), decltype(BB)>{.a_ = AA, .b_ = BB};
+      }
     } else return elementwise(v(), b, std::multiplies<>{});
   }
 
