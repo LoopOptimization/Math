@@ -78,14 +78,12 @@ inline void flush() {
 #endif
 }
 inline void print(char c) { std::putchar(c); }
+inline void println(char c) { std::putchar(c), std::putchar('\n'); }
 inline void print(std::string_view s) {
   std::fwrite(s.data(), 1, s.size(), stdout);
 }
 inline void print(TinyString s) { print(std::string_view{s}); }
-inline void println(std::string_view s) {
-  print(s);
-  std::putchar('\n');
-}
+inline void println(std::string_view s) { print(s), std::putchar('\n'); }
 inline void println(TinyString s) {
   print(std::string_view{s.push_back('\n')});
 }

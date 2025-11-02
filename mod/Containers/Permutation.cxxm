@@ -1,0 +1,352 @@
+module;
+
+export module Permutation;
+import Array;
+import ArrayConcepts;
+import BaseUtils;
+import BitSet;
+import CorePrint;
+import Int8;
+import MatDim;
+import Range;
+import std;
+import TinyVector;
+
+export namespace utils {
+using math::_;
+using ::numbers::i8;
+
+/// Supports loop nests up to 15 deep
+/// Assumes 1-based indexing for loops; 0 refers to top-level
+/// Assumed order outer
+template <bool sized = true> struct Order {
+  using value_type = int;
+  std::uint64_t order_;
+  // bottom 4 bits are size
+  // other bits give idx
+  [[nodiscard]] constexpr auto size() const -> int requires(sized) {
+    return static_cast<int>(order_ >> 60);
+  }
+  [[nodiscard]] constexpr auto operator[](int idx) const -> int {
+    if constexpr (sized) utils::invariant(idx < size());
+    return static_cast<int>((order_ >> (4 * idx)) & 0xF);
+  }
+  static constexpr auto create(std::initializer_list<int> l) -> Order {
+    Order o{};
+    for (int x : l | std::views::reverse) o.push_front(x);
+    return o;
+  }
+  struct ProxyRef {
+    Order &ord_;
+    int idx_;
+    auto operator=(int x) -> ProxyRef & {
+      ord_.order_ =
+        (ord_.order_ & ~(0xFLL << idx_)) | (std::uint64_t(x) << idx_);
+      return *this;
+    }
+    operator int() const {
+      return static_cast<int>((ord_.order_ >> idx_) & 0xF);
+    }
+    auto operator++() -> int {
+      int ret = static_cast<int>(*this) + 1;
+      *this = ret;
+      return ret;
+    }
+    auto operator++(int) -> int {
+      int ret = static_cast<int>(*this);
+      *this = ret + 1;
+      return ret;
+    }
+
+  private:
+    friend void swap(ProxyRef a, ProxyRef b) {
+      int x = a, y = b;
+      a = y, b = x;
+    }
+  };
+  auto operator[](int idx) -> ProxyRef {
+    if constexpr (sized) utils::invariant(idx < size());
+    return {.ord_ = *this, .idx_ = 4 * idx};
+  }
+  auto push_front(int x) -> Order & {
+    invariant(x < 15);
+    if constexpr (sized) {
+      std::uint64_t len = size();
+      invariant(len < 15);
+      order_ <<= 4;
+      order_ |= x;
+      order_ |= (len + 1) << 60;
+    } else {
+      order_ <<= 4;
+      order_ |= x;
+    }
+    return *this;
+  }
+  struct Iterator {
+    std::uint64_t data_;
+    int cnt_;
+    constexpr auto operator==(Iterator other) const -> bool {
+      return cnt_ == other.cnt_;
+    }
+    constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return cnt_ == 0;
+    }
+    constexpr auto operator++() -> Iterator & {
+      data_ >>= 4;
+      --cnt_;
+      return *this;
+    }
+    constexpr auto operator++(int) -> Iterator {
+      std::uint64_t old{data_};
+      data_ >>= 4;
+      return {.data_ = old, .cnt_ = cnt_--};
+    }
+    constexpr auto operator*() const -> std::ptrdiff_t {
+      return std::ptrdiff_t(data_ & 0xF);
+    }
+  };
+  [[nodiscard]] constexpr auto begin() const -> Iterator requires(sized) {
+    return {.data_ = order_, .cnt_ = size()};
+  }
+  static constexpr auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+  auto operator==(const Order &) const -> bool = default;
+  void print() const requires(sized) {
+    utils::print('[');
+    bool comma = false;
+    for (auto x : *this) {
+      if (comma) utils::print(", ");
+      utils::print(x);
+      comma = true;
+    }
+    utils::print("]\n");
+    utils::flush();
+  }
+};
+
+// Permutation iterator using Heap's algorithm
+// https://en.wikipedia.org/wiki/Heap%27s_algorithm
+// This is the non-recursive variant, with the `while` loop moved
+// into the iterator increment.
+struct PermutationIterator {
+  Order<true> v_{};
+  Order<false> c_{};
+  int i_{1};
+  constexpr PermutationIterator(int len) {
+    utils::invariant(len < 16);
+    while (len) v_.push_front(--len);
+  }
+  constexpr PermutationIterator(Order<true> v, Order<false> c) : v_{v}, c_{c} {}
+  constexpr auto operator*() const -> const Order<true> & { return v_; }
+  constexpr auto operator++() -> PermutationIterator & {
+    using std::swap;
+    auto sz = v_.size();
+    while ((i_ < sz) && (c_[i_] >= i_)) c_[i_++] = 0;
+    if (i_ < sz) {
+      int swap_idx = (i_ & 1) ? c_[i_] : 0;
+      swap(v_[swap_idx], v_[i_]);
+      ++c_[i_];
+      i_ = 1;
+    }
+    return *this;
+  }
+  constexpr auto operator==(std::default_sentinel_t) const -> bool {
+    return i_ >= v_.size();
+  }
+};
+struct Permutations {
+  int len_;
+  constexpr Permutations(int x) : len_{x} { invariant(x < 16); }
+  [[nodiscard]] constexpr auto begin() const -> PermutationIterator {
+    return {len_};
+  }
+  static constexpr auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+};
+
+using LoopSet = containers::BitSet<std::array<std::uint16_t, 1>>;
+static_assert(sizeof(LoopSet) == 2);
+
+template <std::unsigned_integral U> constexpr auto flipMask(U u, U count) -> U {
+  U on = (U(1) << count) - U(1);
+  return (~u) & on;
+}
+
+/// This is for iterating over restricted subsets of loops.
+/// E.g., if we have
+/// for i, j, k, l
+/// we may wish to consider all permutations such that
+/// `k` and `l` are nested inside `i` and `j`.
+/// In this case, we'd have subperms `{{i, j}, {k, l}}`.
+///
+struct LoopPermutations {
+  using SubPerms = containers::TinyVector<LoopSet, 15, std::int16_t>;
+  SubPerms subperms_;
+  int num_loops_;
+  LoopPermutations(SubPerms subperms, int num_loops)
+    : subperms_{subperms}, num_loops_{num_loops} {}
+  // To iterate, we're imagining a nested loop, with nesting depth equal to
+  // `subperms.size()`. Each level of the loop nest uses Heap's algorithm to
+  // iterate over all permutations of the corresponding element `subperms`.
+  struct Iterator {
+    // from outside, in
+    Order<false> state_{};              // `v` field in `PermutationIterator`
+    Order<false> iterator_positions_; // `c` field in `PermutationIterator`
+    Order<false> perm_offsets_{};
+    // const SubPerms &subperms_;
+    int nperms_, num_loops_, i_ = 1;
+    bool done_{false};
+    // return `State` by value to avoid modification risk, and because it is
+    // trivially copyable
+    constexpr Iterator(SubPerms sp, int num_loops)
+      : nperms_{int(sp.size())}, num_loops_{num_loops} {
+      // constexpr Iterator(SubPerms sp) : subperms_(sp) {
+      int cumulative_len = num_loops;
+      perm_offsets_.push_front(num_loops);
+      // sp{{0,1}, {2,3,4}};
+      // state = {2,3,4,0,1} // bit order
+      // state = {1,0,4,3,2} // index order
+      // perm_offsets = {5, 2, 0} // bit order
+      // perm_offsets = {0, 2, 5} // index order
+      // iterator_positions_ = {0,0,2,2,2}
+      for (int i = sp.size(); i--;) {
+        // for (LoopSet ls : sp | std::views::reverse) {
+        LoopSet ls = sp[i];
+        cumulative_len -= ls.size();
+        perm_offsets_.push_front(cumulative_len);
+        for (int j : ls) {
+          invariant(j < 16);
+          state_.push_front(j);
+          iterator_positions_.push_front(cumulative_len);
+        }
+      }
+      invariant(cumulative_len == 0);
+    }
+    constexpr auto operator*() const -> Order<true> {
+      Order<true> ret{state_.order_};
+      ret.order_ |= static_cast<std::uint64_t>(num_loops_) << 60;
+      return ret;
+    }
+    constexpr auto operator++() -> Iterator & {
+      // perm_idx_ gives the active permutation
+      if (done_) return *this;
+      int perm_idx = 0;
+      int start = perm_offsets_[perm_idx], stop = perm_offsets_[perm_idx + 1];
+      while (i_ >= stop) {
+        if (++perm_idx == nperms_) {
+          done_ = true;
+          return *this;
+        }
+        start = stop;
+        stop = perm_offsets_[perm_idx + 1];
+        ++i_; // skip first
+      }
+      // Heap's algorithm:
+      // swaps:
+      // state = {0, 1, 2}
+      // i = 1
+      // swap: 0, 1
+      // pos = {0,1,0}
+      // state = {1, 0, 2}
+      //
+      // i = 2
+      // swap: 0, 2
+      // pos = {0, 0, 1}
+      // state = {2, 0, 1}
+      //
+      // i = 1
+      // swap: 0, 2
+      // pos = {0, 1, 1}
+      // state = {0, 2, 1}
+      //
+      // i = 2
+      // swap: 0, 2
+      // pos = {0, 0, 2}
+      // state = {1, 2, 0}
+      //
+      // i = 1
+      // swap: 0, 1
+      // pos = {0, 1, 2}
+      // state = {2, 1, 0}
+      //
+      // We extend with multiple partitions
+      int pos = iterator_positions_[i_];
+      while (pos >= i_) {
+        iterator_positions_[i_] = start;
+        while (++i_ >= stop) {
+          if (++perm_idx == nperms_) {
+            done_ = true;
+            return *this;
+          }
+          start = stop;
+          stop = perm_offsets_[perm_idx + 1];
+        }
+        pos = iterator_positions_[i_];
+      }
+      int swap_idx = (i_ - start) & 1 ? pos : start;
+      swap(state_[swap_idx], state_[i_]);
+      ++iterator_positions_[i_];
+      i_ = 1;
+      return *this;
+
+      // // lvl is the level we're incrementing. Here, 0 refers to the deepest
+      // // level. If a perm is at its end, we increment to ascend.
+      // if (done_) return *this;
+      // std::ptrdiff_t lvl{0}, offset{0}, n_perms = subperms_.size();
+      // while (true) {
+      //   if (++PermutationIterator{permIterator(lvl, offset)} ==
+      //       std::default_sentinel) {
+      //     std::ptrdiff_t prev_lvl = lvl++;
+      //     done_ = lvl == n_perms;
+      //     if (done_) return *this;
+      //     offset = resetLevel(prev_lvl, offset);
+      //   } else return *this;
+      // }
+    }
+    constexpr auto operator==(std::default_sentinel_t) const -> bool {
+      return done_;
+    }
+
+    // private:
+    //   constexpr auto permIterator(std::ptrdiff_t lvl, std::ptrdiff_t offset)
+    //     -> PermutationIterator {
+    //     std::ptrdiff_t L = subperms_[lvl].size();
+    //     return {math::MutPtrVector<i8>{state_.begin() + offset,
+    //     math::length(L)},
+    //             math::MutPtrVector<i8>{iterator_positions_.begin() + offset,
+    //                                    math::length(L)}};
+    //   }
+    //   constexpr auto resetLevel(std::ptrdiff_t lvl, std::ptrdiff_t offset)
+    //     -> std::ptrdiff_t {
+    //     // when reseting the level, we don't actually need to reset the state
+    //     // we can use the last ending state as the initial state, iterating
+    //     // through its permutations from there.
+    //     std::ptrdiff_t sz = subperms_[lvl].size();
+    //     for (std::ptrdiff_t i = 0; i < sz; ++i)
+    //       iterator_positions_[i + offset] = 0;
+    //     return sz + offset;
+    //     // for (std::ptrdiff_t i : subperms[lvl]) {
+    //     //   invariant(i < 16);
+    //     //   state[offset] = std::int8_t(i);
+    //     //   iterator_positions[offset++] = 0;
+    //     // }
+    //     // return offset;
+    //   }
+  };
+  [[nodiscard]] constexpr auto empty() const -> bool {
+    return subperms_.empty();
+  }
+  [[nodiscard]] constexpr auto size() const -> std::ptrdiff_t {
+    return subperms_.size();
+  }
+  [[nodiscard]] constexpr auto begin() const -> Iterator {
+    return {subperms_, num_loops_};
+  }
+  static constexpr auto end() -> std::default_sentinel_t {
+    return std::default_sentinel;
+  }
+};
+
+} // namespace utils
