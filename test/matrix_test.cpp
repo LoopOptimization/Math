@@ -328,7 +328,7 @@ int main() {
   };
   "TinyVectorTest BasicAssertions"_test = [] {
     {
-      containers::TinyVector<int, 5> v{};
+      containers::TinyVector<int, 5> v{}, a{};
       static_assert(std::same_as<utils::eltype_t<decltype(v)>, int>);
       expect(v.empty());
       expect(v.size() == 0);
@@ -360,9 +360,14 @@ int main() {
       expect(v.back() == 2);
       v.push_back(21);
       expect(v.back() == 21);
+      for (int x : v | std::views::reverse) a.push_back(x);
       int s = 0;
-      for (auto x : v) s += x;
-      expect(s == 28);
+      for (int x : v) {
+        s += x;
+        expect(eq(x, a.pop_back_val()));
+      }
+      expect(eq(s, 28));
+      expect(a.empty());
     }
     {
       containers::TinyVector<std::int8_t, 5, std::int8_t> v{};
