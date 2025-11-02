@@ -140,18 +140,10 @@ public:
   TRIVIAL constexpr auto end() const -> const T * {
     return data_.data() + size();
   }
-  TRIVIAL constexpr auto rbegin() -> T * {
-    return std::reverse_iterator(end());
-  }
-  TRIVIAL constexpr auto rbegin() const -> const T * {
-    return std::reverse_iterator(end());
-  }
-  TRIVIAL constexpr auto rend() -> T * {
-    return std::reverse_iterator(begin());
-  }
-  TRIVIAL constexpr auto rend() const -> const T * {
-    return std::reverse_iterator(begin());
-  }
+  TRIVIAL constexpr auto rbegin() { return std::reverse_iterator(end()); }
+  TRIVIAL constexpr auto rbegin() const { return std::reverse_iterator(end()); }
+  TRIVIAL constexpr auto rend() { return std::reverse_iterator(begin()); }
+  TRIVIAL constexpr auto rend() const { return std::reverse_iterator(begin()); }
   TRIVIAL constexpr void resize(L new_size) {
     // initialize new data
     for (std::ptrdiff_t i = size(); i < new_size; ++i)
