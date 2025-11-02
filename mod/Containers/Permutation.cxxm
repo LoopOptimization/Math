@@ -33,7 +33,7 @@ template <bool sized = true> struct Order {
   }
   static constexpr auto create(std::initializer_list<int> l) -> Order {
     Order o{};
-    for (int x : l | std::views::reverse) o.push_front(x);
+    for (int x : std::views::reverse(l)) o.push_front(x);
     return o;
   }
   struct ProxyRef {
@@ -192,7 +192,7 @@ struct LoopPermutations {
   // iterate over all permutations of the corresponding element `subperms`.
   struct Iterator {
     // from outside, in
-    Order<false> state_{};              // `v` field in `PermutationIterator`
+    Order<false> state_{};            // `v` field in `PermutationIterator`
     Order<false> iterator_positions_; // `c` field in `PermutationIterator`
     Order<false> perm_offsets_{};
     // const SubPerms &subperms_;

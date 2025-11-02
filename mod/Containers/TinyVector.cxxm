@@ -163,5 +163,9 @@ public:
   TRIVIAL constexpr auto mview() -> std::span<T> {
     return {data(), std::size_t(std::ptrdiff_t(len_))};
   }
+  template <std::invocable<TinyVector> F>
+  TRIVIAL constexpr auto operator|(F &&f) const {
+    return std::forward<F>(f)(*this);
+  }
 };
 } // namespace containers
