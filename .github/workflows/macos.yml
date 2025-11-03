@@ -27,7 +27,8 @@ jobs:
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
       - run: git submodule update --init --recursive
-      - run: brew install boost llvm jemalloc cmake-format git
+      - run: brew install boost llvm jemalloc git
+      - run: pip3 install cmake-format
       - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  libc++.modules.json
       - name: Add LLVM to PATH
         run: |
