@@ -17,6 +17,8 @@ jobs:
     runs-on: macos-latest
     env:
         CTEST_PARALLEL_LEVEL: 2
+        LDFLAGS: -L/usr/local/opt/llvm/lib
+        CPPFLAGS: -I/usr/local/opt/llvm/include
 
     steps:
       - uses: actions/checkout@v5
@@ -29,6 +31,17 @@ jobs:
 
       - run: git submodule update --init --recursive
       - run: brew install boost llvm
+      - name: Add LLVM to PATH
+        run: |
+            echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+            echo "LDFLAGS=-L$(brew --prefix llvm)/lib" >> $GITHUB_ENV
+            echo "CPPFLAGS=-I$(brew --prefix llvm)/include" >> $GITHUB_ENV
+    
+      - name: Verify LLVM is being used
+        run: |
+            which clang
+            clang --version
+            llvm-config --version
       - name: no-san
         run: make clang-no-san
       - name: san
