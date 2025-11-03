@@ -17,9 +17,6 @@ jobs:
     runs-on: macos-latest
     env:
         CTEST_PARALLEL_LEVEL: 2
-        LDFLAGS: -L/usr/local/opt/llvm/lib
-        CPPFLAGS: -I/usr/local/opt/llvm/include
-
     steps:
       - uses: actions/checkout@v5
         with:
