@@ -26,9 +26,11 @@ jobs:
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
       - run: git submodule update --init --recursive
-      - run: brew install boost
+      - run: brew install boost llvm
       - name: no-san
         run: make clang-no-san
-
+        env:
+            SDKROOT="$(xcrun --show-sdk-path)"
+            CTEST_PARALLEL_LEVEL=2
       - name: san
         run: make clang-san
