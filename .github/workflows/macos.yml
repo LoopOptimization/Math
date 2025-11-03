@@ -27,13 +27,8 @@ jobs:
 
       - run: git submodule update --init --recursive
       - run: brew install boost
-      - name: configure
-        run: cmake -Stest -Bbuild -DCMAKE_BUILD_TYPE=Debug
+      - name: no-san
+        run: make clang-no-san
 
-      - name: build
-        run: cmake --build build -j4
-
-      - name: test
-        run: |
-          cd build
-          ctest --build-config Debug
+      - name: san
+        run: make clang-san
