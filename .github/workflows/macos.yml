@@ -28,7 +28,12 @@ jobs:
 
       - run: git submodule update --init --recursive
       - run: brew install boost llvm jemalloc git
-      - run: pip3 install cmake-format
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+            python-version: '3.11'
+      - name: Install cmake-format
+        run: pip install cmake-format
       - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  libc++.modules.json
       - name: Add LLVM to PATH
         run: |
