@@ -32,6 +32,7 @@ jobs:
         run: |
             pipx install cmakelang
       - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  libc++.modules.json
+      - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  test/libc++.modules.json
       - name: Add LLVM to PATH
         run: |
             echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
