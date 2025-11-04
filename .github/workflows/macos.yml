@@ -30,7 +30,7 @@ jobs:
       - run: git submodule update --init --recursive
       - name: Set up Python and install cmake-format
         run: |
-            pipx install cmake-format
+            pipx install cmakelang
       - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  libc++.modules.json
       - name: Add LLVM to PATH
         run: |
