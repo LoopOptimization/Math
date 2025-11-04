@@ -35,9 +35,7 @@ jobs:
       - name: Set up Python and install cmake-format
         run: |
             pipx install cmakelang
-      - run: sed -i '' \
-          's/print\-file\-name\=\${\_clang\_modules\_json\_impl}\.modules\.json/print\-file\-name\=\/opt\/homebrew\/opt\/llvm\/lib\/c\+\+\/libc\+\+.modules\.json/' \
-          /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
+      - run: sed -i '' 's/print\-file\-name\=\${\_clang\_modules\_json\_impl}\.modules\.json/print\-file\-name\=\/opt\/homebrew\/opt\/llvm\/lib\/c\+\+\/libc\+\+.modules\.json/' /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
       - run: |
           grep print-file-name /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
       - name: Add LLVM to PATH
