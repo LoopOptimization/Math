@@ -17,6 +17,10 @@ jobs:
     runs-on: macos-latest
     env:
         CTEST_PARALLEL_LEVEL: 2
+        cc: /usr/bin/gcc $CFLAGS -fno-semantic-interposition
+        c++: /usr/bin/g++ $CXXFLAGS -fno-semantic-interposition
+
+
     steps:
       - uses: actions/checkout@v5
         with:
@@ -31,9 +35,8 @@ jobs:
       - name: Set up Python and install cmake-format
         run: |
             pipx install cmakelang
-      - run: |
-          echo ${_clang_modules_json_impl}
-          sed -i '' 's/print\-file\-name\=\${\_clang\_modules\_json\_impl}\.modules\.json/print\-file\-name\=\/opt\/homebrew\/opt\/llvm\/lib\/c\+\+\/libc\+\+.modules\.json/' \
+      - run: sed -i '' \
+          's/print\-file\-name\=\${\_clang\_modules\_json\_impl}\.modules\.json/print\-file\-name\=\/opt\/homebrew\/opt\/llvm\/lib\/c\+\+\/libc\+\+.modules\.json/' \
           /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
       - run: |
           grep print-file-name /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
@@ -42,7 +45,8 @@ jobs:
             echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
             echo "CPPFLAGS=-I$(brew --prefix llvm)/include" >> $GITHUB_ENV
             echo "LDFLAGS=-L$LLVM_PREFIX/lib/c++ -Wl,-rpath,$LLVM_PREFIX/lib/c++ -lc++" >> $GITHUB_ENV
-    
+            echo "GPG_TTY=$(tty)" >> $GITHUB_ENV
+            echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
       - name: Verify LLVM is being used
         run: |
             which clang
