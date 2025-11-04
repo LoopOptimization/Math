@@ -882,17 +882,17 @@ void Simplex::printResult(std::ptrdiff_t numSlack) {
   }
 }
 auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var)
-  -> Simplex& {
+  -> Simplex & {
   return create(alloc, num_con, num_var, capacity(std::ptrdiff_t(num_con)),
                 stride(std::ptrdiff_t(num_var) + std::ptrdiff_t(num_con)));
 }
 auto Simplex::create(alloc::Arena<> *alloc, Row<> num_con, Col<> num_var,
-                     Capacity<> con_cap, RowStride<> var_cap)
-  -> Simplex& {
+                     Capacity<> con_cap, RowStride<> var_cap) -> Simplex & {
   var_cap = alignVarCapacity(var_cap);
   auto c_cap = std::ptrdiff_t(con_cap), v_cap = std::ptrdiff_t(var_cap);
   std::size_t mem_needed = requiredMemory(c_cap, v_cap);
-  auto mem = static_cast<Simplex *>(alloc->allocate<alignof(Simplex)>(mem_needed));
+  auto mem =
+    static_cast<Simplex *>(alloc->allocate<alignof(Simplex)>(mem_needed));
   mem->num_constraints_ = num_con;
   mem->num_vars_ = num_var;
   mem->constraint_capacity_ = con_cap;
@@ -949,14 +949,14 @@ DEBUGUSED void Simplex::Solution::print() const {
 }
 
 auto Simplex::create(alloc::Arena<> *alloc, Row<> numCon, Col<> numVar,
-                     std::ptrdiff_t numSlack) -> Simplex& {
+                     std::ptrdiff_t numSlack) -> Simplex & {
   std::ptrdiff_t con_cap = std::ptrdiff_t(numCon),
                  var_cap = std::ptrdiff_t(numVar) + numSlack + con_cap;
   return create(alloc, numCon, numVar, capacity(con_cap), stride(var_cap));
 }
-auto Simplex::copy(alloc::Arena<> *alloc) const -> Simplex& {
-  Simplex& res = create(alloc, row(getNumCons()), col(getNumVars()),
-                              getConCap(), getVarCap());
+auto Simplex::copy(alloc::Arena<> *alloc) const -> Simplex & {
+  Simplex &res = create(alloc, row(getNumCons()), col(getNumVars()),
+                        getConCap(), getVarCap());
   res << *this;
   return res;
 }
