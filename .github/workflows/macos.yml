@@ -32,9 +32,8 @@ jobs:
         run: |
             pipx install cmakelang
       - run: |
-            sed -i '' \
-            's|print-file-name=libc++.modules.json|print-file-name=/opt/homebrew/opt/llvm/lib/c++/libc++.modules.json' \
-            /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
+          sed -i '' 's/print\-file\-name\=libc\+\+\.modules\.json/print\-file\-name\=\/opt\/homebrew\/opt\/llvm\/lib\/c\+\+\/libc\+\+.modules\.json/' \
+          /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
       - name: Add LLVM to PATH
         run: |
             echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
