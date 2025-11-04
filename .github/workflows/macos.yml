@@ -26,12 +26,11 @@ jobs:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
-      - run: brew install boost llvm jemalloc git
+      - run: brew install boost llvm jemalloc git pipx
       - run: git submodule update --init --recursive
       - name: Set up Python and install cmake-format
         run: |
-            brew install python@3.14
-            python3.14 -m pip install cmake-format
+            pipx install cmake-format
       - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  libc++.modules.json
       - name: Add LLVM to PATH
         run: |
