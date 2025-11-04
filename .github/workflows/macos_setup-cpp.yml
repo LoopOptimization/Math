@@ -37,9 +37,9 @@ jobs:
           cmake: false
           ninja: true
           cppcheck: true
-      - run: sed -i '' \
-          's|print-file-name=libc++.modules.json|print-file-name=/opt/homebrew/opt/llvm@20/lib/c++/libc++.modules.json|' \
-          /opt/homebrew/share/cmake/Modules/Compiler/Clang-CXX-CXXImportStd.cmake
+      - run: cp /opt/homebrew/opt/llvm@20/lib/c++/libc++.modules.json  libc++.modules.json
+      - run: cp /opt/homebrew/opt/llvm@20/lib/c++/libc++.modules.json  test/libc++.modules.json
+
       - name: no-san
         run: make clang-no-san
       - name: san
