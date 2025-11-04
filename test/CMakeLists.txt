@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 # ---- Options ----
 
 option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)

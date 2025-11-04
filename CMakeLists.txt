@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 cmake_policy(SET CMP0167 NEW) # new find boost
 # Dependencies; Boost:
 find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
