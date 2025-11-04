@@ -25,7 +25,9 @@ jobs:
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
-      - run: brew install boost
+      - run: brew install boost jemalloc git pipx
+      - name: Set up Python and install cmake-format
+        run: pipx install cmakelang
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
@@ -33,7 +35,6 @@ jobs:
           vcvarsall: true
           cmake: true
           ninja: true
-          vcpkg: true
           cppcheck: true
       - name: no-san
         run: make clang-no-san
