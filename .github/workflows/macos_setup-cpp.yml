@@ -39,7 +39,8 @@ jobs:
           cppcheck: true
       - run: cp /opt/homebrew/opt/llvm@20/lib/c++/libc++.modules.json  libc++.modules.json
       - run: cp /opt/homebrew/opt/llvm@20/lib/c++/libc++.modules.json  test/libc++.modules.json
-
+      - run: mkdir -p /share/libc++/v1/
+      - run: cp /opt/homebrew/opt/llvm@20/share/libc++/v1/std.cppm /share/libc++/v1/std.cppm
       - name: no-san
         run: make clang-no-san
       - name: san
