@@ -30,9 +30,7 @@ jobs:
       - run: git submodule update --init --recursive
       - name: Set up Python and install cmake-format
         run: |
-            echo "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin" >> $GITHUB_PATH
-            export PATH="/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin:$PATH"
-            python3.14 --version
+            brew install python@3.14
             python3.14 -m pip install cmake-format
       - run: cp /opt/homebrew/opt/llvm/lib/c++/libc++.modules.json  libc++.modules.json
       - name: Add LLVM to PATH
