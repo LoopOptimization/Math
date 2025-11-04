@@ -26,6 +26,7 @@ jobs:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
       - run: brew install boost jemalloc git pipx
+      - run: git submodule update --init --recursive
       - name: Set up Python and install cmake-format
         run: pipx install cmakelang
       - name: Setup Cpp
