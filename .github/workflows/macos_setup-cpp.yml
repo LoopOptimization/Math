@@ -34,7 +34,7 @@ jobs:
         with:
           compiler: ${{ matrix.compiler }}
           vcvarsall: true
-          cmake: true
+          cmake: false
           ninja: true
           cppcheck: true
       - name: no-san
