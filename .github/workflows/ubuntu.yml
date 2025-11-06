@@ -40,20 +40,32 @@ jobs:
           cmake --version
       - name: Install Clang 21
         run: |
-           # Add LLVM repository
-           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main"
-           sudo apt-get update
+          # Add LLVM repository
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main"
+          sudo apt-get update
         
-           # Install Clang 21
-           sudo apt-get install -y clang-21 clang++-21
+          # Install Clang 21 and related tools
+          sudo apt-get install -y clang-21 clang++-21 libc++-21-dev libc++abi-21-dev
         
-           # Set as default
-           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
-           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+          # Remove old alternatives if they exist
+          sudo update-alternatives --remove-all clang || true
+          sudo update-alternatives --remove-all clang++ || true
         
-           # Verify
-           clang++ --version
+          # Set Clang 21 as default with high priority
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 1000
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 1000
+          sudo update-alternatives --set clang /usr/bin/clang-21
+          sudo update-alternatives --set clang++ /usr/bin/clang++-21
+        
+          # Verify the versions
+          echo "Clang version:"
+          clang --version
+          echo "Clang++ version:"
+          clang++ --version
+          echo "Which clang++:"
+          which clang++
+          ls -la /usr/bin/clang++
       - name: install boost
         run: sudo apt install libboost-all-dev
       - run: git submodule update --init --recursive
