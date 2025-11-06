@@ -66,8 +66,12 @@ jobs:
           echo "Which clang++:"
           which clang++
           ls -la /usr/bin/clang++
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+          echo "CPPFLAGS=-I$(brew --prefix llvm)/include" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$LLVM_PREFIX/lib/c++ -Wl,-rpath,$LLVM_PREFIX/lib/c++ -lc++" >> $GITHUB_ENV
+
       - name: install boost
-        run: sudo apt install libboost-all-dev
+        run: sudo apt install libboost-all-dev libjemalloc2
       - run: git submodule update --init --recursive
       - name: no-san
         run: make clang-no-san
