@@ -21,30 +21,23 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 2
-      - name: install-llvm
-        run: |
-          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-          sudo wget https://apt.llvm.org/llvm.sh
-          sudo chmod +x llvm.sh
-          sudo ./llvm.sh 18 all
       - uses: actions/cache@v4
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
-
-      - name: configure
-        run: cmake -Stest -Bbuild -DENABLE_TEST_COVERAGE=1 -DCMAKE_BUILD_TYPE=Debug
-        env:
-          CXX: clang++-18
-          CXXFLAGS: -stdlib=libc++ -fconstexpr-steps=1048576
-          # CXX: g++-14
-      - name: build
-        run: cmake --build build -j4
-
-      - name: test
+      - name: install-llvm and boost
         run: |
-          cd build
-          ctest --build-config Debug
-
+          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+          sudo wget https://apt.llvm.org/llvm.sh
+          sudo chmod +x llvm.sh
+          sudo ./llvm.sh 21 all
+          sudo apt update
+      - name: install boost
+        run: sudo apt install libboost-all-dev
+      - run: git submodule update --init --recursive
+      - name: no-san
+        run: make clang-no-san
+      - name: san
+        run: make clang-san
       - name: collect code coverage
         run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
