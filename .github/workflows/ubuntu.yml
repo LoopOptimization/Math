@@ -71,7 +71,7 @@ jobs:
           echo "LDFLAGS=-L/usr/lib/llvm-21/lib -L/usr/lib/llvm-21/lib/x86_64-unknown-linux-gnu -Wl,-rpath,/usr/lib/llvm-21/lib" >> $GITHUB_ENV
 
       - name: install boost
-        run: sudo apt install libboost-all-dev libjemalloc
+        run: sudo apt install libboost-all-dev libjemalloc2
       - run: git submodule update --init --recursive
       - name: no-san
         run: make clang-no-san
