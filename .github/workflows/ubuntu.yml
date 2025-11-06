@@ -38,12 +38,22 @@ jobs:
         
           # Verify installation
           cmake --version
-      - name: install-llvm and boost
+      - name: Install Clang 21
         run: |
-          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-          sudo wget https://apt.llvm.org/llvm.sh
-          sudo chmod +x llvm.sh
-          sudo ./llvm.sh 21 all
+           # Add LLVM repository
+           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main"
+           sudo apt-get update
+        
+           # Install Clang 21
+           sudo apt-get install -y clang-21 clang++-21
+        
+           # Set as default
+           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
+           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+        
+           # Verify
+           clang++ --version
       - name: install boost
         run: sudo apt install libboost-all-dev
       - run: git submodule update --init --recursive
