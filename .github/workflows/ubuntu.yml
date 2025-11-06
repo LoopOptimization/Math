@@ -25,13 +25,25 @@ jobs:
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
+      - name: Install CMake 4.0
+        run: |
+          sudo apt-get remove --purge cmake -y
+          sudo apt-get autoremove -y
+        
+          # Download and install CMake 4.0
+          CMAKE_VERSION=4.0.0
+          wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          sudo ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
+        
+          # Verify installation
+          cmake --version
       - name: install-llvm and boost
         run: |
           sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
           sudo wget https://apt.llvm.org/llvm.sh
           sudo chmod +x llvm.sh
           sudo ./llvm.sh 21 all
-          sudo apt update
       - name: install boost
         run: sudo apt install libboost-all-dev
       - run: git submodule update --init --recursive
