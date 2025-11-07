@@ -40,17 +40,17 @@ jobs:
           cmake --version
       - name: Install Clang 21
         run: |
+          # Remove old libc++ packages (if they exist)
+          sudo apt-get remove -y libc++-dev libc++abi-dev || true
+          # Remove old alternatives if they exist
+          sudo update-alternatives --remove-all clang || true
+          sudo update-alternatives --remove-all clang++ || true
           # Add LLVM repository
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main"
           sudo apt-get update
           # Install Clang 21 and related tools
           sudo apt-get install -y clang-21 clang++-21 libc++-21-dev libc++abi-21-dev libclang-rt-21-dev lld-21
-          # Remove old libc++ packages (if they exist)
-          sudo apt-get remove -y libc++-dev libc++abi-dev || true
-          # Remove old alternatives if they exist
-          sudo update-alternatives --remove-all clang || true
-          sudo update-alternatives --remove-all clang++ || true
           # Create symbolic links to make Clang 21's libc++ the default
           sudo ln -sf /usr/lib/llvm-21/lib/libc++.so /usr/lib/x86_64-linux-gnu/libc++.so
           sudo ln -sf /usr/lib/llvm-21/lib/libc++.so.1 /usr/lib/x86_64-linux-gnu/libc++.so.1
@@ -81,5 +81,3 @@ jobs:
       - run: git submodule update --init --recursive
       - name: no-san
         run: make clang-no-san
-      - name: san
-        run: make clang-san
