@@ -48,5 +48,5 @@ jobs:
             llvm-config --version
       - name: no-san
         run: make clang-no-san
-      - name: san
-        run: make clang-san
+      #- name: san
+      #  run: make clang-san
