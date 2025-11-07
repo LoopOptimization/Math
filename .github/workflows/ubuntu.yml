@@ -44,9 +44,6 @@ jobs:
           wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main"
           sudo apt-get update
-          #sudo apt-get install clang-format clang-tidy clang-tools clang clangd libc++-dev libc++1 libc++abi-dev
-          #sudo apt-get install libc++abi1 libclang-dev libclang1 liblldb-dev libllvm-ocaml-dev libomp-dev libomp5
-          #sudo apt-get install lld lldb llvm-dev llvm-runtime llvm python3-clang
           # Install Clang 21 and related tools
           sudo apt-get install -y clang-21 clang++-21 libc++-21-dev libc++abi-21-dev libclang-rt-21-dev lld-21
           # Remove old libc++ packages (if they exist)
@@ -75,19 +72,12 @@ jobs:
           clang --version
           echo "Clang++ version:"
           clang++ --version
-          echo "Which clang++:"
-          which clang++
-          ls -la /usr/bin/clang++
-          echo "libc++ location:"
-          ldconfig -p | grep libc++
-          echo "C++ headers:"
-          ls -la /usr/include/c++/v1 | head -n 5
           echo "/usr/lib/llvm-21/bin" >> $GITHUB_PATH
           echo "CPPFLAGS=-I/usr/lib/llvm-21/include/c++/v1 -I/usr/lib/llvm-21/include" >> $GITHUB_ENV
           echo "LDFLAGS=-L/usr/lib/llvm-21/lib -L/usr/lib/llvm-21/lib/x86_64-unknown-linux-gnu -Wl,-rpath,/usr/lib/llvm-21/lib" >> $GITHUB_ENV
 
       - name: install boost
-        run: sudo apt install libboost-all-dev libjemalloc2
+        run: sudo apt install libboost-all-dev
       - run: git submodule update --init --recursive
       - name: no-san
         run: make clang-no-san
