@@ -19,8 +19,6 @@ jobs:
         CTEST_PARALLEL_LEVEL: 2
         cc: /usr/bin/gcc $CFLAGS -fno-semantic-interposition
         c++: /usr/bin/g++ $CXXFLAGS -fno-semantic-interposition
-
-
     steps:
       - uses: actions/checkout@v5
         with:
@@ -29,7 +27,6 @@ jobs:
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
-
       - run: brew install boost llvm jemalloc git pipx
       - run: git submodule update --init --recursive
       - name: Set up Python and install cmake-format
