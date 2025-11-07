@@ -31,7 +31,7 @@ jobs:
           sudo apt-get autoremove -y
         
           # Download and install CMake 4.0
-          CMAKE_VERSION=4.0.0
+          CMAKE_VERSION=4.1.1
           wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
           chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
           sudo ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
