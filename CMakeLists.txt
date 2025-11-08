@@ -88,7 +88,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
-    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics)# -ftime-trace)
+    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics) # -ftime-trace)
   # -fexperimental-new-constant-interpreter)
 
   # TODO: try if this passes with clang 22
