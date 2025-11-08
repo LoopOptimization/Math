@@ -88,4 +88,4 @@ jobs:
           Write-Host "`nBoost location:"
           Test-Path "C:\boost\boost" | Write-Host
       - name: build no-san
-        run: make no-san
+        run: make clang-no-san
