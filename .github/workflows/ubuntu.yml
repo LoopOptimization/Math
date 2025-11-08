@@ -87,5 +87,7 @@ jobs:
       - run: git submodule update --init --recursive
       - name: no-san
         run: make clang-no-san
+      - name: san
+        run: make clang-san
       - name: test-format
         run: cmake --build build-clang/no-san --target check-format
