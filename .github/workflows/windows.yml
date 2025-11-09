@@ -58,17 +58,17 @@ jobs:
           & "C:\Program Files\LLVM\bin\clang.exe" --version
 
       # Install Boost (precompiled)
-      - name: Install Boost (precompiled)
-        shell: powershell
-        run: |
-          $url = "https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2"
-          $output = "boost_1_87_0.tar.bz2"
-          Write-Host "Downloading Boost 1.87.0 from archives.boost.io..."
-          Invoke-WebRequest -Uri $url -OutFile $output
-          Write-Host "Extracting Boost..."
-          tar -xjf $output -C C:\
-          Rename-Item "C:\boost_1_87_0" "C:\boost"
-          Write-Host "Boost 1.87.0 extracted to C:\boost"
+      # - name: Install Boost (precompiled)
+      #   shell: powershell
+      #   run: |
+      #     $url = "https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2"
+      #     $output = "boost_1_87_0.tar.bz2"
+      #     Write-Host "Downloading Boost 1.87.0 from archives.boost.io..."
+      #     Invoke-WebRequest -Uri $url -OutFile $output
+      #     Write-Host "Extracting Boost..."
+      #     tar -xjf $output -C C:\
+      #     Rename-Item "C:\boost_1_87_0" "C:\boost"
+      #     Write-Host "Boost 1.87.0 extracted to C:\boost"
 
       # Add to PATH
       - name: Update PATH
@@ -76,7 +76,7 @@ jobs:
         run: |
           $env:Path = "C:\Program Files\CMake\bin;C:\Program Files\LLVM\bin;$env:Path"
           echo "PATH=$env:Path" >> $env:GITHUB_ENV
-          echo "BOOST_ROOT=C:\boost" >> $env:GITHUB_ENV
+          # echo "BOOST_ROOT=C:\boost" >> $env:GITHUB_ENV
 
       - name: Verify installations
         shell: powershell
@@ -85,7 +85,7 @@ jobs:
           cmake --version
           Write-Host "`nClang version:"
           clang --version
-          Write-Host "`nBoost location:"
-          Test-Path "C:\boost\boost" | Write-Host
+          # Write-Host "`nBoost location:"
+          # Test-Path "C:\boost\boost" | Write-Host
       - name: build no-san
         run: make clang-no-san
