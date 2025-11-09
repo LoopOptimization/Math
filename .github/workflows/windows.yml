@@ -27,6 +27,8 @@ jobs:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
+      - run: git submodule update --init --recursive
+
       # Install CMake 4.1.1
       - name: Install CMake 4.1.1
         shell: powershell
@@ -89,3 +91,5 @@ jobs:
           # Test-Path "C:\boost\boost" | Write-Host
       - name: build no-san
         run: make clang-no-san
+      - name: build san
+        run: make clang-san
