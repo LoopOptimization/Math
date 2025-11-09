@@ -407,6 +407,12 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
                                                                       szf};
   }
 
+  [[nodiscard]] constexpr auto operator==(T x) const noexcept {
+    return ::math::elementwise(view(), x, std::equal_to<>{});
+  }
+  [[nodiscard]] constexpr auto operator!=(T x) const noexcept {
+    return ::math::elementwise(view(), x, std::not_equal_to<>{});
+  }
   [[nodiscard]] constexpr auto operator==(const Array &other) const noexcept
     -> bool {
     if constexpr (MatrixDimension<S> && !DenseLayout<S>) {
@@ -492,14 +498,14 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
       }
     }
   }
-  [[nodiscard]] friend constexpr auto operator<=>(Array x, Array y)
-    -> std::strong_ordering {
-    std::ptrdiff_t M = x.size();
-    std::ptrdiff_t N = y.size();
-    for (std::ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
-      if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
-    return M <=> N;
-  };
+  // [[nodiscard]] friend constexpr auto operator<=>(Array x, Array y)
+  //   -> std::strong_ordering {
+  //   std::ptrdiff_t M = x.size();
+  //   std::ptrdiff_t N = y.size();
+  //   for (std::ptrdiff_t i = 0, L = std::min(M, N); i < L; ++i)
+  //     if (auto cmp = x[i] <=> y[i]; cmp != 0) return cmp;
+  //   return M <=> N;
+  // };
   TRIVIAL [[nodiscard]] constexpr auto eachRow() const
     -> SliceRange<const T, false, S::ncol, S::nstride>
     requires(MatrixDimension<S>) {
