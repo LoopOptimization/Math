@@ -27,13 +27,69 @@ jobs:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
 
-      - name: configure
-        run: cmake -Stest -Bbuild
+      - run: git submodule update --init --recursive
 
-      - name: build
-        run: cmake --build build --config Debug -j4
-
-      - name: test
+      # Install CMake 4.1.1
+      - name: Install CMake 4.1.1
+        shell: powershell
         run: |
-          cd build
-          ctest --build-config Debug
+          $CMAKE_VERSION = "4.1.1"
+          $url = "https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-windows-x86_64.msi"
+          $output = "cmake-installer.msi"
+          Write-Host "Downloading CMake $CMAKE_VERSION..."
+          Invoke-WebRequest -Uri $url -OutFile $output
+          Write-Host "Installing CMake..."
+          Start-Process msiexec.exe -ArgumentList "/i", $output, "/quiet", "/norestart" -Wait
+          $env:Path = "C:\Program Files\CMake\bin;$env:Path"
+          Write-Host "CMake installed:"
+          & "C:\Program Files\CMake\bin\cmake.exe" --version
+  
+      # Install LLVM/Clang 21
+      - name: Install Clang 21
+        shell: powershell
+        run: |
+          $LLVM_VERSION = "21.1.5"
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/LLVM-$LLVM_VERSION-win64.exe"
+          $output = "LLVM-installer.exe"
+          Write-Host "Downloading LLVM/Clang $LLVM_VERSION..."
+          Invoke-WebRequest -Uri $url -OutFile $output
+          Write-Host "Installing LLVM/Clang..."
+          Start-Process -FilePath $output -ArgumentList "/S" -Wait
+          $env:Path = "C:\Program Files\LLVM\bin;$env:Path"
+          Write-Host "Clang installed:"
+          & "C:\Program Files\LLVM\bin\clang.exe" --version
+
+      # Install Boost (precompiled)
+      # - name: Install Boost (precompiled)
+      #   shell: powershell
+      #   run: |
+      #     $url = "https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2"
+      #     $output = "boost_1_87_0.tar.bz2"
+      #     Write-Host "Downloading Boost 1.87.0 from archives.boost.io..."
+      #     Invoke-WebRequest -Uri $url -OutFile $output
+      #     Write-Host "Extracting Boost..."
+      #     tar -xjf $output -C C:\
+      #     Rename-Item "C:\boost_1_87_0" "C:\boost"
+      #     Write-Host "Boost 1.87.0 extracted to C:\boost"
+
+      # Add to PATH
+      - name: Update PATH
+        shell: powershell
+        run: |
+          $env:Path = "C:\Program Files\CMake\bin;C:\Program Files\LLVM\bin;$env:Path"
+          echo "PATH=$env:Path" >> $env:GITHUB_ENV
+          # echo "BOOST_ROOT=C:\boost" >> $env:GITHUB_ENV
+
+      - name: Verify installations
+        shell: powershell
+        run: |
+          Write-Host "CMake version:"
+          cmake --version
+          Write-Host "`nClang version:"
+          clang --version
+          # Write-Host "`nBoost location:"
+          # Test-Path "C:\boost\boost" | Write-Host
+      - name: build no-san
+        run: make clang-no-san
+      - name: build san
+        run: make clang-san
