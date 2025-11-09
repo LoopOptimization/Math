@@ -16,11 +16,11 @@ auto main() -> int {
     // Select: where a > 2, choose a, otherwise choose b
     result << ::math::select(a > 2, a, b);
 
-    expect(result[0] == 5_i);  // a[0] = 1 !> 2, so b[0] = 5
-    expect(result[1] == 4_i);  // a[1] = 2 !> 2, so b[1] = 4
-    expect(result[2] == 3_i);  // a[2] = 3 > 2, so a[2] = 3
-    expect(result[3] == 4_i);  // a[3] = 4 > 2, so a[3] = 4
-    expect(result[4] == 5_i);  // a[4] = 5 > 2, so a[4] = 5
+    expect(result[0] == 5_i); // a[0] = 1 !> 2, so b[0] = 5
+    expect(result[1] == 4_i); // a[1] = 2 !> 2, so b[1] = 4
+    expect(result[2] == 3_i); // a[2] = 3 > 2, so a[2] = 3
+    expect(result[3] == 4_i); // a[3] = 4 > 2, so a[3] = 4
+    expect(result[4] == 5_i); // a[4] = 5 > 2, so a[4] = 5
   };
 
   "select between two arrays"_test = [] {
@@ -31,10 +31,10 @@ auto main() -> int {
     // Select based on comparison: where a > b, choose a, otherwise choose b
     result << ::math::select(a > b, a, b);
 
-    expect(result[0] == 15_i);  // 10 !> 15, so b[0] = 15
-    expect(result[1] == 20_i);  // 20 > 5, so a[1] = 20
-    expect(result[2] == 35_i);  // 30 !> 35, so b[2] = 35
-    expect(result[3] == 40_i);  // 40 > 25, so a[3] = 40
+    expect(result[0] == 15_i); // 10 !> 15, so b[0] = 15
+    expect(result[1] == 20_i); // 20 > 5, so a[1] = 20
+    expect(result[2] == 35_i); // 30 !> 35, so b[2] = 35
+    expect(result[3] == 40_i); // 40 > 25, so a[3] = 40
   };
 
   "select with scalar broadcast"_test = [] {
@@ -129,13 +129,9 @@ auto main() -> int {
     // Select based on midpoint
     result << ::math::select(a < (N / 2), a, b);
 
-    for (std::ptrdiff_t i = 0; i < N; ++i) {
-      if (i < N / 2) {
-        expect(approx(result[i], static_cast<double>(i), 1e-10));
-      } else {
-        expect(approx(result[i], static_cast<double>(N - i), 1e-10));
-      }
-    }
+    for (std::ptrdiff_t i = 0; i < N; ++i)
+      if (i < N / 2) expect(approx(result[i], static_cast<double>(i), 1e-10));
+      else expect(approx(result[i], static_cast<double>(N - i), 1e-10));
   };
 
   "select with nested operations"_test = [] {
@@ -193,8 +189,8 @@ auto main() -> int {
     expect(result[0] == 1_i);
     expect(result[1] == 5_i);
     expect(result[2] == 10_i);
-    expect(result[3] == 10_i);   // Clamped to 10
-    expect(result[4] == 10_i);   // Clamped to 10
+    expect(result[3] == 10_i); // Clamped to 10
+    expect(result[4] == 10_i); // Clamped to 10
   };
 
   return 0;
