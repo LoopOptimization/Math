@@ -696,7 +696,7 @@ struct Conditional
             x.data_[u] = c.data_[u] ? y.data_[u] : x.data_[u];
           else x.data_[u] = c.data_[u].select(y.data_[u], x.data_[u]);
       } else if constexpr (std::convertible_to<decltype(this->c[i]), bool>)
-        x.vec_ = c.vec_ ? y.vec_ : x.vec_;
+        x.vec_ = c.mask_ ? y.vec_ : x.vec_;
       else x.vec_ = c.select(y.vec_, x.vec_);
       return x;
     } else if constexpr (LinearlyIndexable<B, value_type>) {
@@ -710,7 +710,7 @@ struct Conditional
           if constexpr (LinearlyIndexable<B, value_type>)
             y.data_[u] = c.data_[u] ? y.data_[u] : x;
       } else if constexpr (std::convertible_to<decltype(this->c[i]), bool>)
-        y.vec_ = c.vec_ ? y.vec_ : x;
+        y.vec_ = c.mask_ ? y.vec_ : x;
       else y.vec_ = c.select(y.vec_, x);
       return y;
     } else {
@@ -724,7 +724,7 @@ struct Conditional
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t u = 0; u < U; ++u) z.data_[u] = c.data_[u] ? y : x;
       } else if constexpr (std::convertible_to<decltype(this->c[i]), bool>)
-        z.vec_ = c.vec_ ? y : x;
+        z.vec_ = c.mask_ ? y : x;
       else z.vec_ = c.select(y, x);
       return z;
     }
@@ -757,6 +757,15 @@ struct Conditional
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const -> Conditional {
     return *this;
+  };
+  [[nodiscard]] TRIVIAL constexpr auto flatview() const {
+    if constexpr (can_flatten) {
+      auto fc{flatten_if_possible(this->c)};
+      auto fa{flatten_if_possible(this->a)};
+      auto fb{flatten_if_possible(this->b)};
+      return Conditional<decltype(fc), decltype(fa), decltype(fb), Op>{
+        {fc, fa, fb}, {}};
+    } else return *this;
   };
 
 private:

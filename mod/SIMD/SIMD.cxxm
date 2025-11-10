@@ -1914,6 +1914,79 @@ TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, std::uint32_t> x,
     Vec<8, std::uint32_t>,
     _mm256_mask_mov_epi32(yi, std::uint8_t(m.mask_), xi));
 }
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, double> x,
+                              Vec<4, double> y) -> Vec<4, double> {
+  return __builtin_bit_cast(Vec<4, double>,
+                            _mm256_mask_mov_pd(__builtin_bit_cast(__m256d, y),
+                                               std::uint8_t(m.mask_),
+                                               __builtin_bit_cast(__m256d, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::int64_t> x,
+                              Vec<4, std::int64_t> y) -> Vec<4, std::int64_t> {
+  return __builtin_bit_cast(
+    Vec<4, std::int64_t>,
+    _mm256_mask_mov_epi64(__builtin_bit_cast(__m256i, y), std::uint8_t(m.mask_),
+                          __builtin_bit_cast(__m256i, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::uint64_t> x,
+                              Vec<4, std::uint64_t> y)
+  -> Vec<4, std::uint64_t> {
+  return __builtin_bit_cast(
+    Vec<4, std::uint64_t>,
+    _mm256_mask_mov_epi64(__builtin_bit_cast(__m256i, y), std::uint8_t(m.mask_),
+                          __builtin_bit_cast(__m256i, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, float> x, Vec<4, float> y)
+  -> Vec<4, float> {
+  return __builtin_bit_cast(Vec<4, float>,
+                            _mm_mask_mov_ps(__builtin_bit_cast(__m128, y),
+                                            std::uint8_t(m.mask_),
+                                            __builtin_bit_cast(__m128, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::int32_t> x,
+                              Vec<4, std::int32_t> y) -> Vec<4, std::int32_t> {
+  return __builtin_bit_cast(Vec<4, std::int32_t>,
+                            _mm_mask_mov_epi32(__builtin_bit_cast(__m128i, y),
+                                               std::uint8_t(m.mask_),
+                                               __builtin_bit_cast(__m128i, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::uint32_t> x,
+                              Vec<4, std::uint32_t> y)
+  -> Vec<4, std::uint32_t> {
+  return __builtin_bit_cast(Vec<4, std::uint32_t>,
+                            _mm_mask_mov_epi32(__builtin_bit_cast(__m128i, y),
+                                               std::uint8_t(m.mask_),
+                                               __builtin_bit_cast(__m128i, x)));
+}
+TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, double> x,
+                              Vec<2, double> y) -> Vec<2, double> {
+  return __builtin_bit_cast(Vec<2, double>,
+                            _mm_mask_mov_pd(__builtin_bit_cast(__m128d, y),
+                                            std::uint8_t(m.mask_),
+                                            __builtin_bit_cast(__m128d, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, std::int64_t> x,
+                              Vec<2, std::int64_t> y) -> Vec<2, std::int64_t> {
+  return __builtin_bit_cast(Vec<2, std::int64_t>,
+                            _mm_mask_mov_epi64(__builtin_bit_cast(__m128i, y),
+                                               std::uint8_t(m.mask_),
+                                               __builtin_bit_cast(__m128i, x)));
+}
+
+TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, std::uint64_t> x,
+                              Vec<2, std::uint64_t> y)
+  -> Vec<2, std::uint64_t> {
+  return __builtin_bit_cast(Vec<2, std::uint64_t>,
+                            _mm_mask_mov_epi64(__builtin_bit_cast(__m128i, y),
+                                               std::uint8_t(m.mask_),
+                                               __builtin_bit_cast(__m128i, x)));
+}
 #endif
 
 TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, float> x,
@@ -2192,8 +2265,6 @@ TRIVIAL inline auto gather(const std::uint64_t *p, mask::None<8>,
   return __builtin_bit_cast(Vec<8, std::uint64_t>,
                             _mm512_i32gather_epi64(inds, pi, 8));
 }
-#endif
-#ifdef __AVX512F__
 TRIVIAL inline auto gather(const double *p, mask::None<8>,
                            Vec<8, std::int64_t> indv) -> Vec<8, double> {
   auto inds = __builtin_bit_cast(__m512i, indv);
@@ -2550,79 +2621,6 @@ TRIVIAL inline auto fnmadd(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c,
                                        std::uint8_t(m.mask_)));
     }
   }
-}
-TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, double> x,
-                              Vec<4, double> y) -> Vec<4, double> {
-  return __builtin_bit_cast(Vec<4, double>,
-                            _mm256_mask_mov_pd(__builtin_bit_cast(__m256d, y),
-                                               std::uint8_t(m.mask_),
-                                               __builtin_bit_cast(__m256d, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::int64_t> x,
-                              Vec<4, std::int64_t> y) -> Vec<4, std::int64_t> {
-  return __builtin_bit_cast(
-    Vec<4, std::int64_t>,
-    _mm256_mask_mov_epi64(__builtin_bit_cast(__m256i, y), std::uint8_t(m.mask_),
-                          __builtin_bit_cast(__m256i, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::uint64_t> x,
-                              Vec<4, std::uint64_t> y)
-  -> Vec<4, std::uint64_t> {
-  return __builtin_bit_cast(
-    Vec<4, std::uint64_t>,
-    _mm256_mask_mov_epi64(__builtin_bit_cast(__m256i, y), std::uint8_t(m.mask_),
-                          __builtin_bit_cast(__m256i, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, float> x, Vec<4, float> y)
-  -> Vec<4, float> {
-  return __builtin_bit_cast(Vec<4, float>,
-                            _mm_mask_mov_ps(__builtin_bit_cast(__m128, y),
-                                            std::uint8_t(m.mask_),
-                                            __builtin_bit_cast(__m128, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::int32_t> x,
-                              Vec<4, std::int32_t> y) -> Vec<4, std::int32_t> {
-  return __builtin_bit_cast(Vec<4, std::int32_t>,
-                            _mm_mask_mov_epi32(__builtin_bit_cast(__m128i, y),
-                                               std::uint8_t(m.mask_),
-                                               __builtin_bit_cast(__m128i, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<4> m, Vec<4, std::uint32_t> x,
-                              Vec<4, std::uint32_t> y)
-  -> Vec<4, std::uint32_t> {
-  return __builtin_bit_cast(Vec<4, std::uint32_t>,
-                            _mm_mask_mov_epi32(__builtin_bit_cast(__m128i, y),
-                                               std::uint8_t(m.mask_),
-                                               __builtin_bit_cast(__m128i, x)));
-}
-TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, double> x,
-                              Vec<2, double> y) -> Vec<2, double> {
-  return __builtin_bit_cast(Vec<2, double>,
-                            _mm_mask_mov_pd(__builtin_bit_cast(__m128d, y),
-                                            std::uint8_t(m.mask_),
-                                            __builtin_bit_cast(__m128d, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, std::int64_t> x,
-                              Vec<2, std::int64_t> y) -> Vec<2, std::int64_t> {
-  return __builtin_bit_cast(Vec<2, std::int64_t>,
-                            _mm_mask_mov_epi64(__builtin_bit_cast(__m128i, y),
-                                               std::uint8_t(m.mask_),
-                                               __builtin_bit_cast(__m128i, x)));
-}
-
-TRIVIAL constexpr auto select(mask::Bit<2> m, Vec<2, std::uint64_t> x,
-                              Vec<2, std::uint64_t> y)
-  -> Vec<2, std::uint64_t> {
-  return __builtin_bit_cast(Vec<2, std::uint64_t>,
-                            _mm_mask_mov_epi64(__builtin_bit_cast(__m128i, y),
-                                               std::uint8_t(m.mask_),
-                                               __builtin_bit_cast(__m128i, x)));
 }
 
 #else // No AVX512VL
