@@ -159,7 +159,7 @@ else()
   FetchContent_MakeAvailable(boost_unordered)
 
   target_include_directories(${PROJECT_NAME}
-                             PRIVATE ${Boost_SOURCE_DIR}/include)
+                             PRIVATE ${boost_unordered_SOURCE_DIR}/include)
 endif()
 # Link Boost
 
