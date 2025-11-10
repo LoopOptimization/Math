@@ -9,14 +9,14 @@ import std;
 using namespace boost::ut;
 using ::math::DenseMatrix, ::math::DenseDims, ::math::row, ::math::col;
 
+namespace {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-void testBasicAssertions() {
-  std::random_device rd;
-  std::mt19937 gen(rd());
+void testBasicAssertions(int rng_init) {
+  std::mt19937 gen(rng_init);
   std::uniform_int_distribution<> distrib(-2, 2);
 
-  constexpr std::ptrdiff_t M = 7;
-  constexpr std::ptrdiff_t N = 7;
+  static constexpr std::ptrdiff_t M = 7;
+  static constexpr std::ptrdiff_t N = 7;
   std::int64_t mem[M * N * 2];
   alloc::OwningArena<> alloc;
   ::math::MutDensePtrMatrix<std::int64_t> A{mem, DenseDims<>{row(M), col(N)}};
@@ -44,10 +44,18 @@ void testBasicAssertions() {
 #endif
   }
 }
+} // namespace
 
-int main() {
-  "OrthogonalizeMatricesTest BasicAssertions"_test = [] {
-    testBasicAssertions();
+auto main(int argc, char **args) -> int {
+  int rng_init;
+  if (argc > 1) {
+    rng_init = std::atoi(args[1]);
+  } else {
+    std::random_device rd;
+    rng_init = rd();
+  }
+  "OrthogonalizeMatricesTest BasicAssertions"_test = [=] {
+    testBasicAssertions(rng_init);
   };
   return 0;
 }

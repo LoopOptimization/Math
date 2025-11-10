@@ -21,30 +21,73 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 2
-      - name: install-llvm
-        run: |
-          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-          sudo wget https://apt.llvm.org/llvm.sh
-          sudo chmod +x llvm.sh
-          sudo ./llvm.sh 18 all
       - uses: actions/cache@v4
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
-
-      - name: configure
-        run: cmake -Stest -Bbuild -DENABLE_TEST_COVERAGE=1 -DCMAKE_BUILD_TYPE=Debug
-        env:
-          CXX: clang++-18
-          CXXFLAGS: -stdlib=libc++ -fconstexpr-steps=1048576
-          # CXX: g++-14
-      - name: build
-        run: cmake --build build -j4
-
-      - name: test
+      - name: Install CMake 4.0
         run: |
-          cd build
-          ctest --build-config Debug
+          sudo apt-get remove --purge cmake -y
+          sudo apt-get autoremove -y
+        
+          # Download and install CMake 4.0
+          CMAKE_VERSION=4.1.1
+          wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          chmod +x cmake-${CMAKE_VERSION}-linux-x86_64.sh
+          sudo ./cmake-${CMAKE_VERSION}-linux-x86_64.sh --skip-license --prefix=/usr/local
+        
+          # Verify installation
+          cmake --version
+      - name: Install Clang 21
+        run: |
+          # Remove old libc++ packages (if they exist)
+          sudo apt-get remove -y libc++-dev libc++abi-dev || true
+          # Remove old alternatives if they exist
+          sudo update-alternatives --remove-all clang || true
+          sudo update-alternatives --remove-all clang++ || true
+          sudo update-alternatives --remove-all clang-format || true
+          # Add LLVM repository
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-21 main"
+          sudo apt-get update
+          # Install Clang 21 and related tools
+          sudo apt-get install -y clang-21 clang++-21 libc++-21-dev libc++abi-21-dev libclang-rt-21-dev lld-21
+          sudo apt-get install -y clang-format-21
+          # Create symbolic links to make Clang 21's libc++ the default
+          sudo ln -sf /usr/lib/llvm-21/lib/libc++.so /usr/lib/x86_64-linux-gnu/libc++.so
+          sudo ln -sf /usr/lib/llvm-21/lib/libc++.so.1 /usr/lib/x86_64-linux-gnu/libc++.so.1
+          sudo ln -sf /usr/lib/llvm-21/lib/libc++abi.so /usr/lib/x86_64-linux-gnu/libc++abi.so
+          sudo ln -sf /usr/lib/llvm-21/lib/libc++abi.so.1 /usr/lib/x86_64-linux-gnu/libc++abi.so.1
+          # Create symbolic links for headers
+          sudo rm -rf /usr/include/c++/v1 || true
+          sudo ln -sf /usr/lib/llvm-21/include/c++/v1 /usr/include/c++/v1
+          # Update ldconfig cache
+          echo "/usr/lib/llvm-21/lib" | sudo tee /etc/ld.so.conf.d/llvm-21.conf
+          sudo ldconfig
+          # Set Clang 21 as default with high priority
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 1000
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 1000
+          sudo update-alternatives --set clang /usr/bin/clang-21
+          sudo update-alternatives --set clang++ /usr/bin/clang++-21
+          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 100
+          # Verify the versions
+          echo "Clang version:"
+          clang --version
+          echo "Clang++ version:"
+          clang++ --version
+          echo "/usr/lib/llvm-21/bin" >> $GITHUB_PATH
+          echo "CPPFLAGS=-I/usr/lib/llvm-21/include/c++/v1 -I/usr/lib/llvm-21/include" >> $GITHUB_ENV
+          echo "LDFLAGS=-L/usr/lib/llvm-21/lib -L/usr/lib/llvm-21/lib/x86_64-unknown-linux-gnu -Wl,-rpath,/usr/lib/llvm-21/lib" >> $GITHUB_ENV
 
-      - name: collect code coverage
-        run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
+      - name: install cmake-format
+        run: |
+          sudo apt install python3-pip
+          pip install cmake-format
+
+      - run: git submodule update --init --recursive
+      - name: no-san
+        run: make clang-no-san
+      - name: san
+        run: make clang-san
+      - name: test-format
+        run: cmake --build build-clang/no-san --target check-format

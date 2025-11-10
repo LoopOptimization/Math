@@ -837,29 +837,29 @@ auto orthogonalize(IntMatrix<> A)
 // FIXME: why do we have two?
 auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
   -> MutDensePtrMatrix<std::int64_t> {
-  if ((A.numCol() < 2) || (A.numRow() == 0)) return A;
+  std::ptrdiff_t num_rows = std::ptrdiff_t(A.numRow()),
+                 num_cols = std::ptrdiff_t(A.numCol());
+  if ((num_cols < 2) || (num_rows == 0)) return A;
   normalizeByGCD(A[0, _]);
-  if (A.numRow() == 1) return A;
+  if (num_rows == 1) return A;
   auto s = alloc->scope();
-  MutPtrVector<Rational> buff{
-    vector<Rational>(alloc, std::ptrdiff_t(A.numCol()))};
-  // Vector<Rational, 8> buff;
-  // buff.resizeForOverwrite(std::ptrdiff_t(A.numCol()));
+  MutPtrVector<Rational> buff{vector<Rational>(alloc, num_cols)};
   std::ptrdiff_t offset = 0;
-  for (std::ptrdiff_t i = 1; i < A.numRow(); ++i) {
+  while (allZero(A[0, _])) A[0, _] << A[--num_rows, _];
+  for (std::ptrdiff_t i = 1; i < num_rows; ++i) {
     buff << A[i, _];
     for (std::ptrdiff_t j = 0; j < i - offset; ++j) {
       std::int64_t n = 0;
       std::int64_t d = 0;
-      for (std::ptrdiff_t k = 0; k < A.numCol(); ++k) {
+      for (std::ptrdiff_t k = 0; k < num_cols; ++k) {
         n += A[i, k] * A[j, k];
         d += A[j, k] * A[j, k];
       }
-      for (std::ptrdiff_t k = 0; k < A.numCol(); ++k)
+      for (std::ptrdiff_t k = 0; k < num_cols; ++k)
         buff[k] -= Rational::createPositiveDenominator(A[j, k] * n, d);
     }
     bool all_zero = true;
-    for (std::ptrdiff_t k = 0; k < A.numCol(); ++k) {
+    for (std::ptrdiff_t k = 0; k < num_cols; ++k) {
       if (buff[k].numerator_) {
         all_zero = false;
         break;
@@ -870,12 +870,12 @@ auto orthogonalize(Arena<> *alloc, MutDensePtrMatrix<std::int64_t> A)
       continue;
     }
     std::int64_t lm = 1;
-    for (std::ptrdiff_t k = 0; k < A.numCol(); ++k)
+    for (std::ptrdiff_t k = 0; k < num_cols; ++k)
       lm = lcm(lm, buff[k].denominator_);
-    for (std::ptrdiff_t k = 0; k < A.numCol(); ++k)
+    for (std::ptrdiff_t k = 0; k < num_cols; ++k)
       A[i - offset, k] = buff[k].numerator_ * (lm / buff[k].denominator_);
   }
-  return A[_(end - offset), _];
+  return A[_(num_rows - offset), _];
 }
 
 [[nodiscard]] auto orthogonalNullSpace(Arena<> *alloc,
