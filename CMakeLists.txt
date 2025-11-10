@@ -143,7 +143,7 @@ endif()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_EXCEPTION_DISABLE)
 
-find_package(Boost 1.83.0 COMPONENTS headers)
+find_package(Boost 1.90.0 COMPONENTS headers)
 if(Boost_FOUND)
   target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers)
 else()
@@ -151,9 +151,16 @@ else()
   FetchContent_Declare(
     Boost
     URL https://github.com/boostorg/boost/releases/download/boost-1.89.0/boost-1.89.0-cmake.tar.xz
-        EXCLUDE_FROM_ALL)
+        EXCLUDE_FROM_ALL
+        SYSTEM
+        CONFIGURE_COMMAND
+        "" # No configure step needed
+        BUILD_COMMAND
+        "" # No build step needed
+  )
   FetchContent_MakeAvailable(Boost)
-  target_link_libraries(${PROJECT_NAME} PRIVATE Boost::unordered)
+  target_include_directories(${PROJECT_NAME}
+                             PRIVATE ${Boost_SOURCE_DIR}/libs/unordered/include)
 endif()
 # Link Boost
 
