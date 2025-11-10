@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 cmake_policy(SET CMP0167 NEW) # new find boost
-# Dependencies; Boost:
-find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
@@ -88,7 +86,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(
-    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics -ftime-trace)
+    ${PROJECT_NAME} PRIVATE -ferror-limit=8 -fcolor-diagnostics) # -ftime-trace)
   # -fexperimental-new-constant-interpreter)
 
   # TODO: try if this passes with clang 22
@@ -144,8 +142,20 @@ endif()
 # --- Boost Unordered ---
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_EXCEPTION_DISABLE)
-find_package(Boost 1.81.0 REQUIRED COMPONENTS headers)
-target_link_libraries(${PROJECT_NAME} PUBLIC Boost::headers)
+
+find_package(Boost 1.83.0 COMPONENTS headers)
+if(Boost_FOUND)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers)
+else()
+  include(FetchContent)
+  FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-1.89.0/boost-1.89.0-cmake.tar.xz
+        EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(Boost)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Boost::unordered)
+endif()
+# Link Boost
 
 # ---- Create an installable target ----
 # this allows users to install and find the library via `find_package()`.
