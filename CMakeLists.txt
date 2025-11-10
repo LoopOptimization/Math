@@ -159,8 +159,9 @@ else()
         "" # No build step needed
   )
   FetchContent_MakeAvailable(Boost)
-  target_include_directories(${PROJECT_NAME}
-                             PRIVATE ${Boost_SOURCE_DIR}/libs/unordered/include)
+  target_include_directories(
+    ${PROJECT_NAME} PRIVATE ${Boost_SOURCE_DIR}/libs/unordered/include
+                            ${Boost_SOURCE_DIR}/libs/container_hash/include)
 endif()
 # Link Boost
 
