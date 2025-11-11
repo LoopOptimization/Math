@@ -58,11 +58,8 @@ jobs:
           sudo ln -sf /usr/lib/llvm-21/lib/libc++abi.so /usr/lib/x86_64-linux-gnu/libc++abi.so
           sudo ln -sf /usr/lib/llvm-21/lib/libc++abi.so.1 /usr/lib/x86_64-linux-gnu/libc++abi.so.1
           # Create symbolic links for headers
-          sudo rm -rf /usr/include/c++/v1 || true
-          sudo ln -sf /usr/lib/llvm-21/include/c++/v1 /usr/include/c++/v1
-          # Update ldconfig cache
-          echo "/usr/lib/llvm-21/lib" | sudo tee /etc/ld.so.conf.d/llvm-21.conf
-          sudo ldconfig
+          # sudo rm -rf /usr/include/c++/v1 || true
+          # sudo ln -sf /usr/lib/llvm-21/include/c++/v1 /usr/include/c++/v1
           # Set Clang 21 as default with high priority
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 1000
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 1000
@@ -75,18 +72,19 @@ jobs:
           echo "Clang++ version:"
           clang++ --version
           echo "/usr/lib/llvm-21/bin" >> $GITHUB_PATH
-          echo "CPPFLAGS=-I/usr/lib/llvm-21/include/c++/v1 -I/usr/lib/llvm-21/include" >> $GITHUB_ENV
-          echo "LDFLAGS=-L/usr/lib/llvm-21/lib -L/usr/lib/llvm-21/lib/x86_64-unknown-linux-gnu -Wl,-rpath,/usr/lib/llvm-21/lib" >> $GITHUB_ENV
-          echo "/usr/lib/llvm-21"
+          echo "CPPFLAGS='-I/usr/lib/llvm-21/include/c++/v1 -I/usr/lib/llvm-21/include'" >> $GITHUB_ENV
+          echo "LDFLAGS='-L/usr/lib/llvm-21/lib -L/usr/lib/llvm-21/lib/x86_64-unknown-linux-gnu -Wl,-rpath,/usr/lib/llvm-21/lib'" >> $GITHUB_ENV
+          echo "ls /usr/lib/llvm-21"
           ls /usr/lib/llvm-21
-          echo "/usr/lib/llvm-21/include"
+          echo "ls /usr/lib/llvm-21/include"
           ls /usr/lib/llvm-21/include
-          echo "/usr/lib/llvm-21/include/c++"
+          echo "ls /usr/lib/llvm-21/include/c++"
           ls /usr/lib/llvm-21/include/c++
-          echo "/usr/lib/llvm-21/include/c++/v1"
+          echo "ls /usr/lib/llvm-21/include/c++/v1"
           ls /usr/lib/llvm-21/include/c++/v1
-          echo "/lib/share/libc++/v1"
-          ls /lib/share/libc++/v1
+          # Update ldconfig cache
+          echo "/usr/lib/llvm-21/lib" | sudo tee /etc/ld.so.conf.d/llvm-21.conf
+          sudo ldconfig
 
       - name: install cmake-format
         run: |
