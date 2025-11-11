@@ -19,7 +19,7 @@ int main() {
     // Test static arrays
     SVector<double, 3> sa{1.0, 2.0, 3.0};
     SVector<double, 3> sb{4.0, 5.0, 6.0};
-    expect(dot(sa, sb) == 32.0_d);
+    expect(dot(sa.scale(3), sb) == 256.0_d);
 
     // Test mixed types
     expect(dot(a, sa) == 14.0_d);
