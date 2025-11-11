@@ -194,6 +194,12 @@ public:
     return {HalfInv{precomputed_inverse, d[0], i[0]},
             HalfInv{precomputed_inverse, d[1], i[1]}};
   }
+  [[nodiscard]] TRIVIAL constexpr auto cat(MultiplicativeInverse b) const
+    -> MultiplicativeInverse<SVector<T, L << 1>> {
+    auto d = divisor_.cat(b.divisor_);
+    auto i = inverse_.cat(b.inverse_);
+    return MultiplicativeInverse<SVector<T, L << 1>>{precomputed_inverse, d, i};
+  }
 };
 
 template <std::integral T> class MultiplicativeInverse<T> {

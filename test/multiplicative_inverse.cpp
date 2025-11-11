@@ -195,9 +195,77 @@ void testSplit() {
   expect(result_f_1[1] == 80.0f / 16.0f);
 }
 
+void testCat() {
+  // Test SVector<double, 8> split and cat
+  using S8 = ::math::SVector<double, 8>;
+  using M8 = MultiplicativeInverse<S8>;
+
+  S8 v8{2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+
+  // Test that cat(split(x)) == x for StaticArray
+  auto halves = v8.split();
+  S8 v8_reconstructed = halves[0].cat(halves[1]);
+  expect(v8 == v8_reconstructed);
+
+  // Test that cat(split(x)) == x for MultiplicativeInverse
+  M8 m8{v8};
+  auto m_halves = m8.split();
+  auto m8_reconstructed = m_halves[0].cat(m_halves[1]);
+
+  // Verify divisors match
+  expect(S8(m8_reconstructed) == v8);
+
+  // Verify inverses match
+  auto inv_orig = m8.inv();
+  auto inv_reconstructed = m8_reconstructed.inv();
+  expect(inv_orig == inv_reconstructed);
+
+  // Verify division still works correctly
+  S8 test_vals{10.0, 12.0, 16.0, 20.0, 24.0, 28.0, 32.0, 36.0};
+  S8 result_orig = test_vals / m8;
+  S8 result_reconstructed = test_vals / m8_reconstructed;
+  expect(result_orig == result_reconstructed);
+
+  // Test SVector<float, 4> split and cat
+  using F4 = ::math::SVector<float, 4>;
+  using MF4 = MultiplicativeInverse<F4>;
+
+  F4 vf4{2.0f, 4.0f, 8.0f, 16.0f};
+  auto f_halves = vf4.split();
+  F4 vf4_reconstructed = f_halves[0].cat(f_halves[1]);
+  expect(vf4 == vf4_reconstructed);
+
+  MF4 mf4{vf4};
+  auto mf_halves = mf4.split();
+  auto mf4_reconstructed = mf_halves[0].cat(mf_halves[1]);
+
+  expect(F4(mf4_reconstructed) == vf4);
+
+  F4 test_f{10.0f, 20.0f, 40.0f, 80.0f};
+  F4 result_f_orig = test_f / mf4;
+  F4 result_f_reconstructed = test_f / mf4_reconstructed;
+  expect(result_f_orig == result_f_reconstructed);
+
+  // Test larger vectors that need multiple SIMD registers
+  using S16 = ::math::SVector<double, 16>;
+  using M16 = MultiplicativeInverse<S16>;
+
+  S16 v16{1.0, 2.0,  3.0,  4.0,  5.0,  6.0,  7.0,  8.0,
+          9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0};
+  auto halves16 = v16.split();
+  S16 v16_reconstructed = halves16[0].cat(halves16[1]);
+  expect(v16 == v16_reconstructed);
+
+  M16 m16{v16};
+  auto m16_halves = m16.split();
+  auto m16_reconstructed = m16_halves[0].cat(m16_halves[1]);
+  expect(S16(m16_reconstructed) == v16);
+}
+
 int main() {
   "MultiplicativeInverseScalar"_test = [] { testBasicAssertions(); };
   "MultiplicativeInverseVector"_test = [] { svector(); };
   "MultiplicativeInverseSplit"_test = [] { testSplit(); };
+  "MultiplicativeInverseCat"_test = [] { testCat(); };
   return 0;
 }

@@ -410,28 +410,39 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
   [[nodiscard]] TRIVIAL constexpr auto split() const requires((M == 1) || (N == 1))
   {
     static_assert(M > 1 || N > 1);
-    static constexpr std::ptrdiff_t Mhalf = M >> 1;
-    static constexpr std::ptrdiff_t Lhalf = L >> 1;
     if constexpr (M == 1) {
       // Row vector case: split columns
       static_assert(L > 1);
+      auto s = simd().split();
       using Half = StaticArray<T, 1, N / 2, false>;
-      std::array<Half, 2> ret{};
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t i = 0; i < Lhalf; ++i) {
-        ret[0].memory_[i] = memory_[i];
-        ret[1].memory_[i] = memory_[i + Lhalf];
-      }
-      return ret;
+      return std::array<Half, 2>{Half{s[0]}, Half{s[1]}};
     } else {
       // Column vector case: split rows
       static_assert(M > 1);
+      auto s = simd().split();
       using Half = StaticArray<T, M / 2, 1, false>;
-      std::array<Half, 2> ret{};
+      return std::array<Half, 2>{Half{s[0]}, Half{s[1]}};
+    }
+  }
+  [[nodiscard]] TRIVIAL constexpr auto cat(StaticArray b) const
+    -> StaticArray<T, M == 1 ? 1 : M << 1, M == 1 ? N << 1 : 1, false>
+    requires((M == 1) || (N == 1)) {
+    if constexpr (M == 1) {
+      // Row vector case: concatenate columns
+      StaticArray<T, 1, N << 1, false> ret;
       POLYMATHFULLUNROLL
-      for (std::ptrdiff_t i = 0; i < Mhalf * L; ++i) {
-        ret[0].memory_[i] = memory_[i];
-        ret[1].memory_[i] = memory_[i + Mhalf * L];
+      for (std::ptrdiff_t i = 0; i < L; ++i) {
+        ret.memory_[i] = memory_[i];
+        ret.memory_[i + L] = b.memory_[i];
+      }
+      return ret;
+    } else {
+      // Column vector case: concatenate rows
+      StaticArray<T, M << 1, 1, false> ret;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < M * L; ++i) {
+        ret.memory_[i] = memory_[i];
+        ret.memory_[i + M * L] = b.memory_[i];
       }
       return ret;
     }
@@ -835,6 +846,29 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     auto s = ::simd::split(data_);
     return {StaticArray<T, 1, N / 2, false>{s[0]},
             StaticArray<T, 1, N / 2, false>{s[1]}};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto cat(StaticArray b) const
+    -> StaticArray<T, 1, N << 1, false> {
+    static constexpr std::ptrdiff_t N2 = N << 1;
+    static constexpr std::ptrdiff_t W2 = simd::VecLen<N2, T>;
+    if constexpr (N2 <= W2) {
+      // Result fits in single SIMD vector - use shufflevector
+      if constexpr (W2 == 2) {
+        return StaticArray<T, 1, N2, false>{simd::Vec<W2, T>{data_[0], b.data_[0]}};
+      } else if constexpr (W2 == 4) {
+        return StaticArray<T, 1, N2, false>{__builtin_shufflevector(data_, b.data_, 0, 1, 2, 3)};
+      } else if constexpr (W2 == 8) {
+        return StaticArray<T, 1, N2, false>{__builtin_shufflevector(data_, b.data_, 0, 1, 2, 3, 4, 5, 6, 7)};
+      } else if constexpr (W2 == 16) {
+        return StaticArray<T, 1, N2, false>{__builtin_shufflevector(data_, b.data_, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)};
+      }
+    } else {
+      // Result needs multiple SIMD vectors
+      StaticArray<T, 1, N2, false> ret;
+      ret.memory_[0] = data_;
+      ret.memory_[1] = b.data_;
+      return ret;
+    }
   }
   TRIVIAL constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r)
     -> MutPtrVector<T> {
