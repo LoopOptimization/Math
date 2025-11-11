@@ -78,6 +78,10 @@ jobs:
           echo "/usr/lib/llvm-21/bin" >> $GITHUB_PATH
           echo "CPPFLAGS=-I/usr/lib/llvm-21/include/c++/v1 -I/usr/lib/llvm-21/include" >> $GITHUB_ENV
           echo "LDFLAGS=-L/usr/lib/llvm-21/lib -L/usr/lib/llvm-21/lib/x86_64-unknown-linux-gnu -Wl,-rpath,/usr/lib/llvm-21/lib" >> $GITHUB_ENV
+          ls /usr/lib/llvm-21
+          ls /usr/lib/llvm-21/include
+          ls /usr/lib/llvm-21/include/c++
+          ls /usr/lib/llvm-21/include/c++/v1
           ls /lib/share/libc++/v1
 
       - name: install cmake-format
