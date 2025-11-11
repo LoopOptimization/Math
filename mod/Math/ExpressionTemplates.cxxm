@@ -1,6 +1,4 @@
 module;
-// We'll follow Julia style, so anything that's not a constructor, destructor,
-// nor an operator will be outside of the struct/class.
 
 #include "LoopMacros.hxx"
 #include "Macros.hxx"
@@ -19,13 +17,16 @@ import std;
 using namespace math;
 
 using utils::TriviallyCopyable;
-
+// Defines type constraints for the expression system.
+// Ensures types can be combined in operations
+template <class T, class C>
+concept CompatibleArray = (AbstractVector<C> && AbstractVector<T>) ||
+                          (AbstractMatrix<C> && AbstractMatrix<T>);
 template <class T, class C>
 concept Compatible =
   (AbstractTensor<C> && std::convertible_to<T, utils::eltype_t<C>>) ||
   (AbstractTensor<T> && std::convertible_to<C, utils::eltype_t<T>>) ||
-  (AbstractVector<C> && AbstractVector<T>) ||
-  (AbstractMatrix<C> && AbstractMatrix<T>);
+  CompatibleArray<T, C>;
 template <typename T, typename C>
 concept TrivialCompatible = utils::TriviallyCopyable<T> && Compatible<T, C>;
 template <typename T>
@@ -37,9 +38,10 @@ using indextype_t =
   std::conditional_t<AbstractTensor<B> &&
                        std::convertible_to<A, utils::eltype_t<B>>,
                      A, utils::eltype_t<A>>;
-
+/// @brief can Op be called on elements of A?
 template <typename Op, typename A>
 concept FuncOfElt = std::is_invocable_v<Op, utils::eltype_t<A>>;
+/// @brief can Op be called on elements of A and B?
 template <typename Op, typename A, typename B>
 concept BinaryFuncOfElts =
   std::is_invocable_v<Op, indextype_t<A, B>, indextype_t<B, A>>;
@@ -56,6 +58,8 @@ TRIVIAL constexpr auto size(const AbstractVector auto &x) -> std::ptrdiff_t {
   return x.size();
 }
 
+/// @brief Types with concrete size store their size information directly
+/// (either at compile-time or runtime)
 template <typename T>
 concept HasConcreteSize = requires(T) {
   std::is_same_v<typename std::remove_reference_t<T>::concrete, std::true_type>;
@@ -94,13 +98,16 @@ TRIVIAL constexpr auto elementwise(A, B, Op)
 
 template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
+/// @brief a base class/mixin that provides common functionality for conditional
+/// selection operations.
 struct AbstractSelect {
   using value_type = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
   static constexpr bool isvector = AbstractVector<C>;
-  [[no_unique_address]] C c;
-  [[no_unique_address]] A a;
-  [[no_unique_address]] B b;
-
+  [[no_unique_address]] C c; ///< Condition (boolean tensor)
+  [[no_unique_address]] A a; ///< First value/operand
+  [[no_unique_address]] B b; ///< Second value/operand
+  /// @brief Check dimension compatibility across c, a, and b
+  /// @return the dimention info of the conditional selection operations
   TRIVIAL [[nodiscard]] constexpr auto numRow() const requires(!isvector) {
     auto n = unwrapRow(c.numRow());
     if constexpr (AbstractMatrix<A>) {
@@ -177,10 +184,59 @@ struct NE {
   TRIVIAL static constexpr auto operator()(auto a, auto b) { return a != b; }
 };
 
+/// @brief checks if two arrays/matrices are equal.
+/// should only be called by the operator == and !=.
+/// @params a, and b can be either an array or a matrix
+template <typename A, CompatibleArray<A> B>
+TRIVIAL [[gnu::flatten, nodiscard]] constexpr auto isEqual(const A &a,
+                                                           const B &b) -> bool {
+  auto [Ma, Na] = shape(a);
+  auto [Mb, Nb] = shape(b);
+
+  if ((Ma != Mb) || (Na != Nb)) return false;
+  using CT = std::common_type_t<utils::eltype_t<A>, utils::eltype_t<B>>;
+  auto M = check_sizes(Ma, Mb);
+  auto N = check_sizes(Na, Nb);
+  auto av{view(a)};
+  auto bv{view(b)};
+  if constexpr (simd::Width<CT> <= 2) {
+    if constexpr (AbstractMatrix<A>) {
+      for (std::ptrdiff_t r = 0; r < M; ++r)
+        for (std::ptrdiff_t i = 0; i < N; ++i)
+          if (a[r, i] != b[r, i]) return false;
+    } else {
+      std::ptrdiff_t L = RowVector<A> ? N : M;
+      for (std::ptrdiff_t i = 0; i < L; ++i)
+        if (a[i] != b[i]) return false;
+    }
+  } else if constexpr (AbstractMatrix<A>) {
+    constexpr std::ptrdiff_t W = simd::getWidth<CT, decltype(N)>();
+    for (std::ptrdiff_t r = 0; r < M; ++r) {
+      for (std::ptrdiff_t i = 0;; i += W) {
+        auto u{simd::index::unrollmask<1, W>(N, i)};
+        if (!u) break;
+        if (simd::cmp::ne<W, CT>(a[r, u], b[r, u]).any()) return false;
+      }
+    }
+  } else {
+    constexpr std::ptrdiff_t W = RowVector<A>
+                                   ? simd::getWidth<CT, decltype(N)>()
+                                   : simd::getWidth<CT, decltype(M)>();
+    std::ptrdiff_t L = RowVector<A> ? N : M;
+    for (std::ptrdiff_t i = 0;; i += W) {
+      auto u{simd::index::unrollmask<1, W>(L, i)};
+      if (!u) break;
+      if (simd::cmp::ne<W, CT>(a[u], b[u]).any()) return false;
+    }
+  }
+  return true;
+}
+
 export namespace math {
 
-// expression template base class
+/// @brief expression template base class
 template <typename T, typename A> class Expr {
+  /// @brief CRTP Pattern to call view() function of derived class objects
   TRIVIAL constexpr auto v() const {
     return static_cast<const A *>(this)->view();
   }
@@ -293,60 +349,13 @@ public:
     } else return elementwise(v(), b, std::multiplies<>{});
   }
 
-  TRIVIAL [[gnu::flatten]] constexpr auto
-  isEqual(const AbstractTensor auto &B) const -> bool {
-    auto [Ma, Na] = shape(v());
-    auto [Mb, Nb] = shape(B);
-
-    if ((Ma != Mb) || (Na != Nb)) return false;
-    using CT = std::common_type_t<T, utils::eltype_t<decltype(B)>>;
-    auto M = check_sizes(Ma, Mb);
-    auto N = check_sizes(Na, Nb);
-    auto a{v()};
-    auto b{view(B)};
-    if constexpr (simd::Width<CT> <= 2) {
-      if constexpr (AbstractMatrix<A>) {
-        for (std::ptrdiff_t r = 0; r < M; ++r)
-          for (std::ptrdiff_t i = 0; i < N; ++i)
-            if (a[r, i] != b[r, i]) return false;
-      } else {
-        std::ptrdiff_t L = RowVector<A> ? N : M;
-        for (std::ptrdiff_t i = 0; i < L; ++i)
-          if (a[i] != b[i]) return false;
-      }
-    } else if constexpr (AbstractMatrix<A>) {
-      constexpr std::ptrdiff_t W = simd::getWidth<CT, decltype(N)>();
-      for (std::ptrdiff_t r = 0; r < M; ++r) {
-        for (std::ptrdiff_t i = 0;; i += W) {
-          auto u{simd::index::unrollmask<1, W>(N, i)};
-          if (!u) break;
-          if (simd::cmp::ne<W, CT>(a[r, u], b[r, u]).any()) return false;
-        }
-      }
-    } else {
-      constexpr std::ptrdiff_t W = RowVector<A>
-                                     ? simd::getWidth<CT, decltype(N)>()
-                                     : simd::getWidth<CT, decltype(M)>();
-      std::ptrdiff_t L = RowVector<A> ? N : M;
-      for (std::ptrdiff_t i = 0;; i += W) {
-        auto u{simd::index::unrollmask<1, W>(L, i)};
-        if (!u) break;
-        if (simd::cmp::ne<W, CT>(a[u], b[u]).any()) return false;
-      }
-    }
-    return true;
+  template <Compatible<A> B>
+  TRIVIAL constexpr auto operator==(const B &b) const {
+    return elementwise(v(), view(b), std::equal_to<>{});
   }
-  TRIVIAL [[gnu::flatten]] constexpr auto
-  operator==(const AbstractTensor auto &B) const -> bool {
-    return isEqual(B);
-  }
-
-  // Scalar comparison operators
-  TRIVIAL constexpr auto operator!=(std::convertible_to<T> auto b) const {
-    return elementwise(v(), b, std::not_equal_to<>{});
-  }
-  TRIVIAL constexpr auto operator==(std::convertible_to<T> auto b) const {
-    return elementwise(v(), b, std::equal_to<>{});
+  template <Compatible<A> B>
+  TRIVIAL constexpr auto operator!=(const B &b) const {
+    return elementwise(v(), view(b), std::not_equal_to<>{});
   }
   template <Compatible<A> B>
   TRIVIAL constexpr auto operator<(const B &b) const {
@@ -431,7 +440,7 @@ struct Transpose : public Expr<T, Transpose<T, A>> {
 template <typename A> Transpose(A) -> Transpose<utils::eltype_t<A>, A>;
 
 } // namespace math
-
+/// @brief Wraps single-argument operations like -x, abs(x), !x
 template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 struct Elementwise : public Expr<decltype(std::declval<Op>()(
                                    std::declval<utils::eltype_t<A>>())),
@@ -546,6 +555,15 @@ struct ElementwiseBinaryOp
   [[nodiscard]] TRIVIAL constexpr auto size() const {
     return unwrapRow(numRow()) * unwrapCol(numCol());
   }
+  /// @brief convert to boolean type. Only works for comparision operators
+  /// on two arrays/matrrices
+  [[nodiscard]] TRIVIAL constexpr operator bool() const
+    requires(CompatibleArray<A, B> && (std::same_as<Op, std::equal_to<>> ||
+                                       std::same_as<Op, std::not_equal_to<>>)) {
+    bool is_equal = isEqual(a_, b_);
+    if constexpr (std::same_as<Op, std::equal_to<>>) return is_equal;
+    if constexpr (std::same_as<Op, std::not_equal_to<>>) return !is_equal;
+  };
   [[nodiscard]] TRIVIAL constexpr auto view() const { return *this; };
   [[nodiscard]] TRIVIAL constexpr auto untransposed_view() const {
     if constexpr (is_transposed) {
@@ -560,7 +578,7 @@ struct ElementwiseBinaryOp
       auto fb{flatten_if_possible(b_)};
       return elementwise(fa, fb, op_);
     } else return *this;
-  };
+  }
   template <typename T> TRIVIAL constexpr auto reinterpretImpl() {
     auto ra = reinterpret<T>(a_);
     auto rb = reinterpret<T>(b_);
@@ -882,7 +900,7 @@ template <utils::TriviallyCopyable A, FuncOfElt<A> Op>
 TRIVIAL constexpr auto elementwise(A a, Op op) -> Elementwise<A, Op> {
   return {.a_ = a, .op_ = op};
 }
-
+/// @brief Handles binary operations
 template <utils::TriviallyCopyable A, utils::TriviallyCopyable B,
           BinaryFuncOfElts<A, B> Op>
 TRIVIAL constexpr auto elementwise(A a, B b, Op op)

@@ -186,7 +186,8 @@ constexpr auto lower_bound_factor(T N, T a) -> std::array<T, 2> {
 
 } // namespace math
 export namespace utils {
-
+// invariant() function is used to assert program invariants -
+// conditions that must always be true at specific points in the code
 #ifndef NDEBUG
 TRIVIAL constexpr void invariant(bool condition) {
   if (!condition) [[unlikely]]

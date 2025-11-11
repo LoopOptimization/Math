@@ -582,6 +582,7 @@ template <utils::HasEltype A> struct GetEltype<A> {
 };
 } // namespace detail
 
+// element type of a container object
 template <typename T>
 using eltype_t =
   typename detail::GetEltype<std::remove_reference_t<T>>::value_type;
