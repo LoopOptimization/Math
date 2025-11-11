@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 cmake_policy(SET CMP0167 NEW) # new find boost
+cmake_policy(SET CMP0174 NEW) # parse empty args
 
 option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
