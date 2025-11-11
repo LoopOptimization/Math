@@ -4,7 +4,7 @@ module NormalForm;
 // Implementation unit for NormalForm module
 
 using namespace math;
-using containers::tie, containers::Tuple;
+using containers::Pair, containers::Tuple;
 
 namespace math::NormalForm {
 auto gcdxScale(std::int64_t a, std::int64_t b) -> std::array<std::int64_t, 4> {
@@ -28,15 +28,15 @@ void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A,
       {
         MutPtrVector<std::int64_t> Ai{A[i, _(0, minMN)]}, Aj{A[j, _(0, minMN)]},
           Ki{K[i, _(0, minMN)]}, Kj{K[j, _(0, minMN)]};
-        tie(Ai, Aj, Ki, Kj) << Tuple(p * Ai + q * Aj, Aiir * Aj - Aijr * Ai,
-                                     p * Ki + q * Kj, Aiir * Kj - Aijr * Ki);
+        Tuple(Ai, Aj, Ki, Kj) << Tuple(p * Ai + q * Aj, Aiir * Aj - Aijr * Ai,
+                                       p * Ki + q * Kj, Aiir * Kj - Aijr * Ki);
       }
       if (std::ptrdiff_t(M) > std::ptrdiff_t(N)) {
         MutPtrVector<std::int64_t> Ki{K[i, _(N, M)]}, Kj{K[j, _(N, M)]};
-        tie(Ki, Kj) << Tuple(p * Ki + q * Kj, Aiir * Kj - Aijr * Ki);
+        Pair(Ki, Kj) << Tuple(p * Ki + q * Kj, Aiir * Kj - Aijr * Ki);
       } else if (std::ptrdiff_t(N) > std::ptrdiff_t(M)) {
         MutPtrVector<std::int64_t> Ai{A[i, _(M, N)]}, Aj{A[j, _(M, N)]};
-        tie(Ai, Aj) << Tuple(p * Ai + q * Aj, Aiir * Aj - Aijr * Ai);
+        Pair(Ai, Aj) << Tuple(p * Ai + q * Aj, Aiir * Aj - Aijr * Ai);
       }
     }
   }
@@ -104,7 +104,7 @@ void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r) {
     if (std::int64_t Aij = A[j, c]) {
       const auto [p, q, Aiir, Aijr] = NormalForm::gcdxScale(Aii, Aij);
       MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-      tie(Ar, Aj) << Tuple(p * Ar + q * Aj, Aiir * Aj - Aijr * Ar);
+      Pair(Ar, Aj) << Tuple(p * Ar + q * Aj, Aiir * Aj - Aijr * Ar);
     }
   }
 }
@@ -118,9 +118,9 @@ void zeroSupDiagonal(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c,
     if (!Aij) continue;
     const auto [p, q, Aiir, Aijr] = NormalForm::gcdxScale(Aii, Aij);
     MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-    tie(Ar, Aj) << Tuple(p * Ar + q * Aj, Aiir * Aj - Aijr * Ar);
+    Pair(Ar, Aj) << Tuple(p * Ar + q * Aj, Aiir * Aj - Aijr * Ar);
     MutPtrVector<std::int64_t> Br = B[r, _], Bj = B[j, _];
-    tie(Br, Bj) << Tuple(p * Br + q * Bj, Aiir * Bj - Aijr * Br);
+    Pair(Br, Bj) << Tuple(p * Br + q * Bj, Aiir * Bj - Aijr * Br);
   }
 }
 void reduceSubDiagonal(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r) {
@@ -282,7 +282,7 @@ void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c,
     const auto [p, q, Arcr, Ajcr] = NormalForm::gcdxScale(Arc, Ajc);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutPtrVector<std::int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
-      tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+      Pair(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
     }
   }
 }
@@ -309,7 +309,7 @@ void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Row<> r,
     const auto [p, q, Arcr, Ajcr] = NormalForm::gcdxScale(Arc, Arj);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutArray<std::int64_t, StridedRange<>> Ac = AB[i][_, c], Aj = AB[i][_, j];
-      tie(Ac, Aj) << Tuple(q * Aj + p * Ac, Arcr * Aj - Ajcr * Ac);
+      Pair(Ac, Aj) << Tuple(q * Aj + p * Ac, Arcr * Aj - Ajcr * Ac);
     }
   }
 }
@@ -331,7 +331,7 @@ void zeroColumn(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r) {
     if (!Ajc) continue;
     const auto [p, q, Arcr, Ajcr] = NormalForm::gcdxScale(Arc, Ajc);
     MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
-    tie(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+    Pair(Ar, Aj) << Pair(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
   }
 }
 
