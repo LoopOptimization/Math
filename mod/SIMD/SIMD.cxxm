@@ -6097,6 +6097,29 @@ TRIVIAL constexpr auto load(const T *p) {
   return simd::loadunroll<1, W / L, L>(p, math::RowStride<0>{}, {});
 }
 
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto exp2unchecked(Vec<W, T> x) -> Vec<W, double> {
+  Vec<W, std::int64_t> y;
+  if constexpr (std::same_as<T, std::int64_t>) y = x;
+  else y = __builtin_convertvector(x, Vec<W, std::int64_t>);
+  return __builtin_bit_cast(Vec<W, double>, (y + 1023) << 52);
+}
+/// scale(x, y) = x * pow(2,y)
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, double> xt, Vec<W, T> yt)
+  -> Vec<W, double> {
+  Vec<W, std::int64_t> y, x = __builtin_bit_cast(Vec<W, std::int64_t>, xt);
+  if constexpr (std::same_as<T, std::int64_t>) y = yt;
+  else y = __builtin_convertvector(yt, Vec<W, std::int64_t>);
+  return __builtin_bit_cast(Vec<W, double>, x + (y << 52));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, double> x, T y) -> Vec<W, double> {
+  return __builtin_bit_cast(Vec<W, double>,
+                            __builtin_bit_cast(Vec<W, std::int64_t>, x) +
+                              (static_cast<std::int64_t>(y) << 52));
+}
+
 } // namespace simd
 
 namespace math { using std::trunc, std::ceil; } // namespace math
