@@ -108,8 +108,96 @@ void svector() {
   expect(comp_cost == comp_ref);
 }
 
+void testSplit() {
+  // Test SVector<double, 8> split
+  using S8 = ::math::SVector<double, 8>;
+  using S4 = ::math::SVector<double, 4>;
+  using M8 = MultiplicativeInverse<S8>;
+  // using M4 = MultiplicativeInverse<S4>;
+
+  S8 v8{2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+
+  // Test StaticArray split
+  auto halves = v8.split();
+  expect(halves[0][0] == 2.0);
+  expect(halves[0][1] == 3.0);
+  expect(halves[0][2] == 4.0);
+  expect(halves[0][3] == 5.0);
+  expect(halves[1][0] == 6.0);
+  expect(halves[1][1] == 7.0);
+  expect(halves[1][2] == 8.0);
+  expect(halves[1][3] == 9.0);
+
+  // Test MultiplicativeInverse split
+  M8 m8{v8};
+  auto m_halves = m8.split();
+
+  // Check that the divisors were split correctly
+  expect(S4(m_halves[0]) == halves[0]);
+  expect(S4(m_halves[1]) == halves[1]);
+
+  // Check that division still works correctly with split inverses
+  S4 test_val_0{10.0, 12.0, 16.0, 20.0};
+  S4 test_val_1{24.0, 28.0, 32.0, 36.0};
+
+  S4 result_0 = test_val_0 / m_halves[0];
+  S4 result_1 = test_val_1 / m_halves[1];
+
+  expect(result_0[0] == 10.0 / 2.0);
+  expect(result_0[1] == 12.0 / 3.0);
+  expect(result_0[2] == 16.0 / 4.0);
+  expect(result_0[3] == 20.0 / 5.0);
+
+  expect(result_1[0] == 24.0 / 6.0);
+  expect(result_1[1] == 28.0 / 7.0);
+  expect(result_1[2] == 32.0 / 8.0);
+  expect(result_1[3] == 36.0 / 9.0);
+
+  // Test that inverse is actually split, not recomputed
+  // (this is more of a check that the implementation is efficient)
+  auto inv_orig = m8.inv();
+  auto inv_halves_0 = m_halves[0].inv();
+  auto inv_halves_1 = m_halves[1].inv();
+
+  expect(inv_halves_0[0] == inv_orig[0]);
+  expect(inv_halves_0[1] == inv_orig[1]);
+  expect(inv_halves_0[2] == inv_orig[2]);
+  expect(inv_halves_0[3] == inv_orig[3]);
+  expect(inv_halves_1[0] == inv_orig[4]);
+  expect(inv_halves_1[1] == inv_orig[5]);
+  expect(inv_halves_1[2] == inv_orig[6]);
+  expect(inv_halves_1[3] == inv_orig[7]);
+
+  // Test SVector<float, 4> split
+  using F4 = ::math::SVector<float, 4>;
+  using F2 = ::math::SVector<float, 2>;
+  using MF4 = MultiplicativeInverse<F4>;
+
+  F4 vf4{2.0f, 4.0f, 8.0f, 16.0f};
+  auto f_halves = vf4.split();
+  expect(f_halves[0][0] == 2.0f);
+  expect(f_halves[0][1] == 4.0f);
+  expect(f_halves[1][0] == 8.0f);
+  expect(f_halves[1][1] == 16.0f);
+
+  MF4 mf4{vf4};
+  auto mf_halves = mf4.split();
+
+  F2 test_f_0{10.0f, 20.0f};
+  F2 test_f_1{40.0f, 80.0f};
+
+  F2 result_f_0 = test_f_0 / mf_halves[0];
+  F2 result_f_1 = test_f_1 / mf_halves[1];
+
+  expect(result_f_0[0] == 10.0f / 2.0f);
+  expect(result_f_0[1] == 20.0f / 4.0f);
+  expect(result_f_1[0] == 40.0f / 8.0f);
+  expect(result_f_1[1] == 80.0f / 16.0f);
+}
+
 int main() {
   "MultiplicativeInverseScalar"_test = [] { testBasicAssertions(); };
   "MultiplicativeInverseVector"_test = [] { svector(); };
+  "MultiplicativeInverseSplit"_test = [] { testSplit(); };
   return 0;
 }

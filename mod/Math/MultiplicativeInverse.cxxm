@@ -39,8 +39,12 @@ template <std::integral T> CLANGNOUBSAN constexpr auto mul_high(T a, T b) -> T {
 }
 #undef CLANGNOUBSAN
 
+struct PrecomputedInverseTag {};
+inline constexpr PrecomputedInverseTag precomputed_inverse;
+
 export namespace math {
 using numbers::i8, numbers::u8;
+
 template <std::integral T> TRIVIAL constexpr auto cld(T a, T b) -> T {
   T d = a / b;
   if constexpr (std::is_signed_v<T>)
@@ -108,6 +112,7 @@ class MultiplicativeInverse<SVector<T, L>> {
   using U = utils::unsigned_integer_t<sizeof(T)>;
   using V = SVector<T, L>;
   V divisor_, inverse_;
+
   TRIVIAL friend constexpr auto operator*(V a, MultiplicativeInverse b) -> V {
     return a * b.divisor_;
   }
@@ -176,8 +181,19 @@ public:
   }
   TRIVIAL constexpr MultiplicativeInverse(V d)
     : divisor_(d), inverse_{V{1} / d} {}
+  // Constructor with precomputed inverse (internal use, e.g., for split())
+  TRIVIAL constexpr MultiplicativeInverse(PrecomputedInverseTag, V d, V inv)
+    : divisor_(d), inverse_{inv} {}
   TRIVIAL constexpr MultiplicativeInverse() = default;
   TRIVIAL [[nodiscard]] constexpr auto inv() const -> V { return inverse_; }
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    -> std::array<MultiplicativeInverse<SVector<T, L / 2>>, 2> {
+    auto d = divisor_.split();
+    auto i = inverse_.split();
+    using HalfInv = MultiplicativeInverse<SVector<T, L / 2>>;
+    return {HalfInv{precomputed_inverse, d[0], i[0]},
+            HalfInv{precomputed_inverse, d[1], i[1]}};
+  }
 };
 
 template <std::integral T> class MultiplicativeInverse<T> {
