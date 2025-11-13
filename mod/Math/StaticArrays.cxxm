@@ -116,6 +116,11 @@ struct MATH_GSL_OWNER StaticArray
     invariant(list.size() <= std::size_t(capacity));
     std::copy_n(list.begin(), list.size(), data());
   }
+  TRIVIAL static constexpr auto fill(T val) -> StaticArray {
+    StaticArray ret;
+    std::fill_n(ret.memory_, capacity, val);
+    return ret;
+  }
   template <AbstractSimilar<S> V>
   TRIVIAL constexpr StaticArray(const V &b) noexcept {
     vcopyTo(mview(), b, detail::CopyAssign{});
@@ -282,9 +287,6 @@ struct MATH_GSL_OWNER StaticArray
     -> decltype(auto) {
     return index<T>(data(), S{}, r, c);
   }
-  TRIVIAL constexpr void fill(T value) {
-    std::fill_n(data(), std::ptrdiff_t(dim()), value);
-  }
   TRIVIAL [[nodiscard]] constexpr auto diag() noexcept {
     if constexpr (N <= M)
       return MutArray<T, StridedRange<N, PaddedCols + 1>>{data(), {}};
@@ -389,6 +391,13 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     -> StaticArray requires(L *W == N) {
     return StaticArray{*p};
   }
+  TRIVIAL static constexpr auto fill(T val) -> StaticArray {
+    V v{simd::vbroadcast<W>(val)};
+    StaticArray ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < M * L; ++i) ret.memory_[i] = v;
+    return ret;
+  }
 
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
   // constexpr operator compressed_type() { return compressed_type{*this}; }
@@ -407,8 +416,8 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     for (std::ptrdiff_t i = 0; i < M * L; ++i) ret.data_[i] = memory_[i];
     return ret;
   }
-  [[nodiscard]] TRIVIAL constexpr auto split() const requires((M == 1) || (N == 1))
-  {
+  [[nodiscard]] TRIVIAL constexpr auto split() const
+    requires((M == 1) || (N == 1)) {
     static_assert(M > 1 || N > 1);
     if constexpr (M == 1) {
       // Row vector case: split columns
@@ -772,9 +781,9 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   static constexpr std::ptrdiff_t L = 1;
   static constexpr bool can_flatten = false; // already flat
 
-  constexpr void compress(compressed_type *p) const { *p << *this; }
+  constexpr void compress(compressed_type *p) const { *p = *this; }
   constexpr void compress(actually_compressed_type *p) const requires(W == N) {
-    *p << *this;
+    *p = *this;
   }
   static constexpr auto decompress(const compressed_type *p) -> StaticArray {
     return StaticArray{*p};
@@ -820,6 +829,9 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     for (std::size_t i = 0; i < list.size(); ++i)
       data_[i] = *(list.begin() + i);
   }
+  TRIVIAL static constexpr auto fill(T val) -> StaticArray {
+    return {simd::vbroadcast<W>(val)};
+  }
   TRIVIAL [[nodiscard]] constexpr auto scale(std::int64_t x) const
     -> StaticArray requires(std::same_as<T, double>) {
     return {::simd::scale(data_, x)};
@@ -854,13 +866,18 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     if constexpr (N2 <= W2) {
       // Result fits in single SIMD vector - use shufflevector
       if constexpr (W2 == 2) {
-        return StaticArray<T, 1, N2, false>{simd::Vec<W2, T>{data_[0], b.data_[0]}};
+        return StaticArray<T, 1, N2, false>{
+          simd::Vec<W2, T>{data_[0], b.data_[0]}};
       } else if constexpr (W2 == 4) {
-        return StaticArray<T, 1, N2, false>{__builtin_shufflevector(data_, b.data_, 0, 1, 2, 3)};
+        return StaticArray<T, 1, N2, false>{
+          __builtin_shufflevector(data_, b.data_, 0, 1, 2, 3)};
       } else if constexpr (W2 == 8) {
-        return StaticArray<T, 1, N2, false>{__builtin_shufflevector(data_, b.data_, 0, 1, 2, 3, 4, 5, 6, 7)};
+        return StaticArray<T, 1, N2, false>{
+          __builtin_shufflevector(data_, b.data_, 0, 1, 2, 3, 4, 5, 6, 7)};
       } else if constexpr (W2 == 16) {
-        return StaticArray<T, 1, N2, false>{__builtin_shufflevector(data_, b.data_, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)};
+        return StaticArray<T, 1, N2, false>{
+          __builtin_shufflevector(data_, b.data_, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                  10, 11, 12, 13, 14, 15)};
       }
     } else {
       // Result needs multiple SIMD vectors
