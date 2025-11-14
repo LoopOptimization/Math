@@ -337,7 +337,7 @@ template <class T, class S, class P> class ArrayOps {
   static_assert(std::is_copy_assignable_v<T> ||
                 (std::is_trivially_copyable_v<T> &&
                  std::is_trivially_move_assignable_v<T>));
-  TRIVIAL constexpr auto data_() { return static_cast<P *>(this)->data(); }
+  TRIVIAL constexpr auto data_ptr_() { return static_cast<P *>(this)->data(); }
   // [[gnu::returns_nonnull]] constexpr auto data_() const -> const T * {
   //   return static_cast<const P *>(this)->data();
   // }
@@ -367,7 +367,7 @@ public:
   [[gnu::flatten]] TRIVIAL constexpr auto operator<<(const UniformScaling<Y> &B)
     -> P & {
     static_assert(MatrixDimension<S>);
-    std::memset(data_(), 0, std::ptrdiff_t(this->dim_()) * sizeof(T));
+    std::memset(data_ptr_(), 0, std::ptrdiff_t(this->dim_()) * sizeof(T));
     static_cast<P *>(this)->diag() << T(B.value_);
     return *static_cast<P *>(this);
   }
