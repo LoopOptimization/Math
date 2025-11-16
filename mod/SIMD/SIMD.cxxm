@@ -161,6 +161,12 @@ template <std::ptrdiff_t W> struct Bit {
     -> std::array<Bit<W / 2>, 2> {
     return {Bit<W / 2>{mask_}, Bit<W / 2>{mask_ >> W}};
   }
+  [[nodiscard]] TRIVIAL constexpr auto cat(Bit<W> b) const -> Bit<2 * W> {
+    static_assert(W <= 32);
+    invariant(mask_ & ((1ULL << W) - 1ULL) == a.mask_);
+    invariant(b.mask_ & ((1ULL << W) - 1ULL) == b.mask_);
+    return {mask_ | (b.mask_ << W)};
+  }
   template <typename T>
   [[nodiscard]] TRIVIAL constexpr auto select(Vec<W, T> a, Vec<W, T> b) const
     -> Vec<W, T>;
@@ -308,6 +314,19 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     -> std::array<Vector<W / 2, Bytes>, 2> {
     auto s = ::simd::split(m);
     return {s[0], s[1]};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto cat(Vector<W, Bytes> b) const
+    -> Vector<2 * W, Bytes> requires(W == 1 || W == 2 || W == 4 || W == 8) {
+    if constexpr (W == 8) {
+      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                      11, 12, 13, 14, 15)};
+    } else if constexpr (W == 4) {
+      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7)};
+    } else if constexpr (W == 2) {
+      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3)};
+    } else if constexpr (W == 1) {
+      return {__builtin_shufflevector(m, b.m, 0, 1)};
+    }
   }
   template <typename T> requires(sizeof(T) == Bytes)
   [[nodiscard]] TRIVIAL constexpr auto select(Vec<W, T> a, Vec<W, T> b) const
@@ -469,6 +488,19 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
     -> std::array<Vector<W / 2, Bytes>, 2> {
     auto s = ::simd::split(m);
     return {s[0], s[1]};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto cat(Vector<W, Bytes> b) const
+    -> Vector<2 * W, Bytes> requires(W == 1 || W == 2 || W == 4 || W == 8) {
+    if constexpr (W == 8) {
+      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                      11, 12, 13, 14, 15)};
+    } else if constexpr (W == 4) {
+      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7)};
+    } else if constexpr (W == 2) {
+      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3)};
+    } else if constexpr (W == 1) {
+      return {__builtin_shufflevector(m, b.m, 0, 1)};
+    }
   }
   template <typename T> requires(sizeof(T) == Bytes)
   [[nodiscard]] TRIVIAL constexpr auto select(Vec<W, T> a, Vec<W, T> b) const
@@ -1090,6 +1122,50 @@ struct Unroll {
       }
       return ret;
     } else return std::array<U, 2>{U{data_[0]}, U{data_[1]}};
+  }
+
+  // Cast operator to convert Unroll<R,C,W> to Unroll<R,CU,N> where CU*N == C*W
+  // When C > CU, we concatenate pairs of masks using cat()
+#ifdef __AVX512VL__
+  template <std::ptrdiff_t CU, std::ptrdiff_t N>
+  TRIVIAL constexpr operator Unroll<R, CU, N>() const
+#else
+  template <std::ptrdiff_t CU, std::ptrdiff_t N, std::size_t NewBytes>
+  TRIVIAL constexpr operator Unroll<R, CU, N, NewBytes>() const
+#endif
+    requires((CU * N == C * W) && (CU < C) && (C % CU == 0)) {
+    static_assert(std::popcount(std::size_t(C / CU)) == 1,
+                  "C / CU must be a power of 2");
+    if constexpr (C == 2 * CU) {
+      // Base case: concatenate pairs of masks
+#ifdef __AVX512VL__
+      Unroll<R, CU, N> result;
+#else
+      Unroll<R, CU, N, NewBytes> result;
+#endif
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t r = 0; r < R; ++r) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t cu = 0; cu < CU; ++cu) {
+          std::ptrdiff_t src_idx0 = (r * C) + (2 * cu);
+          std::ptrdiff_t src_idx1 = src_idx0 + 1;
+          std::ptrdiff_t dst_idx = (r * CU) + cu;
+          Vector<W, NewBytes> s0 = data_[src_idx0], s1 = data_[src_idx1];
+          result.data_[dst_idx] = s0.cat(s1);
+        }
+      }
+      return result;
+    } else {
+      // Recursive case: first convert to intermediate size
+      static constexpr std::ptrdiff_t C2 = C >> 1;
+      static constexpr std::ptrdiff_t W2 = W << 1;
+#ifdef __AVX512VL__
+      Unroll<R, C2, W2> intermediate = *this;
+#else
+      Unroll<R, C2, W2, Bytes> intermediate = *this;
+#endif
+      return intermediate;
+    }
   }
 
   TRIVIAL constexpr auto operator~() const -> Unroll {
@@ -5884,26 +5960,33 @@ Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, CU, W, T> &x,
 #endif
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i) {
-      auto splt = data_[i].split();
+      auto splt = ::simd::split(data_[i]);
       s.data_[2 * i] = splt[0], s.data_[(2 * i) + 1] = splt[1];
     }
     // either `s` matches, or continues the recursion
     return s.select(x, y);
   } else { // C > CU
-    // We will double `CU` and cut `W` in half.
-    static constexpr std::ptrdiff_t C2 = CU << 1;
-    static constexpr std::ptrdiff_t Whalf = W >> 1;
-    static constexpr std::ptrdiff_t L = R * CU;
-    ::simd::Unroll<R, C2, Whalf, T> a, b;
-    POLYMATHFULLUNROLL
-    for (std::ptrdiff_t i = 0; i < L; ++i) {
-      auto xsplt = x.data_[i].split();
-      auto ysplt = y.data_[i].split();
-      a.data_[2 * i] = xsplt[0], a.data_[(2 * i) + 1] = xsplt[1];
-      b.data_[2 * i] = ysplt[0], b.data_[(2 * i) + 1] = ysplt[1];
-    }
-    // either matches, or continues the recursion
-    return select(a, b);
+#ifdef __AVX512VL__
+    using UMask = mask::Unroll<R, CU, W>;
+#else
+    using UMask = mask::Unroll<R, CU, W, sizeof(T)>;
+#endif
+    return static_cast<UMask>(*this).select(x, y);
+    // // We will double `CU` and cut `W` in half.
+    // static constexpr std::ptrdiff_t C2 = CU << 1;
+    // static constexpr std::ptrdiff_t Whalf = W >> 1;
+    // static constexpr std::ptrdiff_t L = R * CU;
+    // // C=8, N=2; CU=4, W=4
+    // ::simd::Unroll<R, C2, Whalf, T> a, b;
+    // POLYMATHFULLUNROLL
+    // for (std::ptrdiff_t i = 0; i < L; ++i) {
+    //   auto xsplt = ::simd::split(x.data_[i]);
+    //   auto ysplt = ::simd::split(y.data_[i]);
+    //   a.data_[2 * i] = xsplt[0], a.data_[(2 * i) + 1] = xsplt[1];
+    //   b.data_[2 * i] = ysplt[0], b.data_[(2 * i) + 1] = ysplt[1];
+    // }
+    // // either matches, or continues the recursion
+    // return select(a, b);
   }
 }
 #ifdef __AVX512VL__
