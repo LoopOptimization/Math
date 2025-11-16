@@ -398,6 +398,15 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     for (std::ptrdiff_t i = 0; i < M * L; ++i) ret.memory_[i] = v;
     return ret;
   }
+  TRIVIAL constexpr auto findFirstEqIdx(T x) -> std::ptrdiff_t {
+    V v = simd::vbroadcast<W>(x);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < M * L; ++i) {
+      auto mask = simd::cmp::eq(memory_[i], v);
+      if (mask.any()) return mask.onBegin() + (i * W);
+    }
+    return -1;
+  }
 
   // std::array<std::array<simd::Vec<W, T>, L>, M> data;
   // constexpr operator compressed_type() { return compressed_type{*this}; }
@@ -886,6 +895,10 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
       ret.memory_[1] = b.data_;
       return ret;
     }
+  }
+  TRIVIAL constexpr auto findFirstEqIdx(T x) -> std::ptrdiff_t {
+    auto mask = simd::cmp::eq(data_, simd::vbroadcast<W>(x));
+    return mask.any() ? mask.onBegin() : -1;
   }
   TRIVIAL constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r)
     -> MutPtrVector<T> {

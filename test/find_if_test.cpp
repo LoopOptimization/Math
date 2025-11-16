@@ -33,6 +33,16 @@ int main() {
     // Find first element == 1
     idx = find_first(vec, [](auto x) { return x == 1; });
     expect(idx == 0_i); // Should find 1 at index 0
+
+    expect(vec.findFirstEqIdx(1) == 0_i);
+    expect(vec.findFirstEqIdx(2) == 1_i);
+    expect(vec.findFirstEqIdx(3) == 2_i);
+    expect(vec.findFirstEqIdx(4) == 3_i);
+    expect(vec.findFirstEqIdx(5) == 4_i);
+    expect(vec.findFirstEqIdx(6) == 5_i);
+    expect(vec.findFirstEqIdx(7) == 6_i);
+    expect(vec.findFirstEqIdx(8) == 7_i);
+    expect(vec.findFirstEqIdx(9) == -1_i);
   };
 
   "find_if matrix tests"_test = [] {

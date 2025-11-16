@@ -2,12 +2,12 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-no-simd clang-base-arch clang-release clang-avx2 clang-avx512
-# all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-no-simd clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release clang-avx2 clang-avx512
+# all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
 else ifeq ($(HAVE_AVX2),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-no-simd clang-base-arch clang-release gcc-release gcc-avx2
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-base-arch clang-release gcc-release gcc-avx2
 else
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-no-simd clang-base-arch clang-release gcc-release
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-base-arch clang-release gcc-release
 endif
 #TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
