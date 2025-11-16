@@ -1,0 +1,8 @@
+export module Sort;
+import StaticArray;
+
+export namespace utils {
+
+auto sort(math::SVector<double, 16> x) -> math::SVector<double, 16>;
+
+} // namespace utils
