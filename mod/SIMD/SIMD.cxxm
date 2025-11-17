@@ -163,8 +163,8 @@ template <std::ptrdiff_t W> struct Bit {
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(Bit<W> b) const -> Bit<2 * W> {
     static_assert(W <= 32);
-    invariant(mask_ & ((1ULL << W) - 1ULL) == a.mask_);
-    invariant(b.mask_ & ((1ULL << W) - 1ULL) == b.mask_);
+    utils::invariant((mask_ & ((1ULL << W) - 1ULL)) == mask_);
+    utils::invariant((b.mask_ & ((1ULL << W) - 1ULL)) == b.mask_);
     return {mask_ | (b.mask_ << W)};
   }
   template <typename T>
@@ -1138,23 +1138,25 @@ struct Unroll {
                   "C / CU must be a power of 2");
     if constexpr (C == 2 * CU) {
       // Base case: concatenate pairs of masks
+      if constexpr (R * CU > 1) {
 #ifdef __AVX512VL__
-      Unroll<R, CU, N> result;
+        Unroll<R, CU, N> result;
 #else
-      Unroll<R, CU, N, NewBytes> result;
+        Unroll<R, CU, N, NewBytes> result;
 #endif
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t r = 0; r < R; ++r) {
         POLYMATHFULLUNROLL
-        for (std::ptrdiff_t cu = 0; cu < CU; ++cu) {
-          std::ptrdiff_t src_idx0 = (r * C) + (2 * cu);
-          std::ptrdiff_t src_idx1 = src_idx0 + 1;
-          std::ptrdiff_t dst_idx = (r * CU) + cu;
-          Vector<W, NewBytes> s0 = data_[src_idx0], s1 = data_[src_idx1];
-          result.data_[dst_idx] = s0.cat(s1);
+        for (std::ptrdiff_t r = 0; r < R; ++r) {
+          POLYMATHFULLUNROLL
+          for (std::ptrdiff_t cu = 0; cu < CU; ++cu) {
+            std::ptrdiff_t src_idx0 = (r * C) + (2 * cu);
+            std::ptrdiff_t src_idx1 = src_idx0 + 1;
+            std::ptrdiff_t dst_idx = (r * CU) + cu;
+            auto s0 = data_[src_idx0], s1 = data_[src_idx1];
+            result.data_[dst_idx] = s0.cat(s1);
+          }
         }
-      }
-      return result;
+        return result;
+      } else return {data_[0].cat(data_[1])};
     } else {
       // Recursive case: first convert to intermediate size
       static constexpr std::ptrdiff_t C2 = C >> 1;

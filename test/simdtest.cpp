@@ -8,6 +8,7 @@ import std;
 
 using namespace boost::ut;
 
+namespace {
 void testBasicAssertions() {
 
   ::math::Vector<double> x{
@@ -64,18 +65,18 @@ void testMaskCat() {
 #endif
 }
 
-void testMaskUnrollCast() {
+template <std::ptrdiff_t N> void testMaskUnrollCast() {
   // Test mask::Unroll cast from Unroll<1,8,2> to Unroll<1,4,4>
   // Create a mask pattern: alternating true/false
 #ifdef __AVX512VL__
-  simd::mask::Unroll<1, 8, 2> mask_8_2;
-  for (std::ptrdiff_t i = 0; i < 8; ++i) {
+  simd::mask::Unroll<1, 2 * N, 2> mask_8_2;
+  for (std::ptrdiff_t i = 0; i < 2 * N; ++i) {
     mask_8_2[i] =
       simd::mask::Bit<2>{static_cast<std::uint64_t>(i % 2 ? 0b11 : 0b00)};
   }
 
   // Cast to Unroll<1,4,4>
-  simd::mask::Unroll<1, 4, 4> mask_4_4 = mask_8_2;
+  simd::mask::Unroll<1, N, 4> mask_4_4 = mask_8_2;
 
   // Verify the pattern is preserved
   // mask_8_2: [00, 11, 00, 11, 00, 11, 00, 11]
@@ -83,14 +84,16 @@ void testMaskUnrollCast() {
   for (std::ptrdiff_t i = 0; i < 4; ++i)
     expect(eq(mask_4_4[i].intmask(), 0b1100));
 #else
-  using Vec2 = simd::mask::Vector<2, 8>;
-  simd::mask::Unroll<1, 8, 2, 8> mask_8_2;
-  for (std::ptrdiff_t i = 0; i < 8; ++i)
+  static constexpr std::size_t OldBytes = 8;
+  static constexpr std::size_t NewBytes = 4;
+  using Vec2 = simd::mask::Vector<2, OldBytes>;
+  simd::mask::Unroll<1, 2 * N, 2, OldBytes> mask_8_2;
+  for (std::ptrdiff_t i = 0; i < 2 * N; ++i)
     if (i % 2) mask_8_2[i] = Vec2{{-1, -1}};
     else mask_8_2[i] = Vec2{{0, 0}};
 
   // Cast to Unroll<1,4,4>
-  simd::mask::Unroll<1, 4, 4, sizeof(int)> mask_4_4 = mask_8_2;
+  simd::mask::Unroll<1, N, 4, NewBytes> mask_4_4 = mask_8_2;
 
   // Verify the pattern is preserved
   for (std::ptrdiff_t i = 0; i < 4; ++i)
@@ -151,11 +154,15 @@ void testMaskSelectWithCast() {
   }
 #endif
 }
+} // namespace
 
-int main() {
-  "ElementarySIMD BasicAssertions"_test = [] { testBasicAssertions(); };
-  "MaskCat"_test = [] { testMaskCat(); };
-  "MaskUnrollCast"_test = [] { testMaskUnrollCast(); };
-  "MaskSelectWithCast"_test = [] { testMaskSelectWithCast(); };
+auto main() -> int {
+  "ElementarySIMD BasicAssertions"_test = [] -> void { testBasicAssertions(); };
+  "MaskCat"_test = [] -> void { testMaskCat(); };
+  "MaskUnrollCast"_test = [] -> void {
+    testMaskUnrollCast<4>();
+    testMaskUnrollCast<1>();
+  };
+  "MaskSelectWithCast"_test = [] -> void { testMaskSelectWithCast(); };
   return 0;
 }
