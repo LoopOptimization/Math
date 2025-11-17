@@ -163,8 +163,8 @@ template <std::ptrdiff_t W> struct Bit {
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(Bit<W> b) const -> Bit<2 * W> {
     static_assert(W <= 32);
-    invariant(mask_ & ((1ULL << W) - 1ULL) == a.mask_);
-    invariant(b.mask_ & ((1ULL << W) - 1ULL) == b.mask_);
+    utils::invariant((mask_ & ((1ULL << W) - 1ULL)) == mask_);
+    utils::invariant((b.mask_ & ((1ULL << W) - 1ULL)) == b.mask_);
     return {mask_ | (b.mask_ << W)};
   }
   template <typename T>
@@ -1150,7 +1150,7 @@ struct Unroll {
           std::ptrdiff_t src_idx0 = (r * C) + (2 * cu);
           std::ptrdiff_t src_idx1 = src_idx0 + 1;
           std::ptrdiff_t dst_idx = (r * CU) + cu;
-          Vector<W, NewBytes> s0 = data_[src_idx0], s1 = data_[src_idx1];
+          auto s0 = data_[src_idx0], s1 = data_[src_idx1];
           result.data_[dst_idx] = s0.cat(s1);
         }
       }
