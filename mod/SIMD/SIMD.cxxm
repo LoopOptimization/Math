@@ -3777,37 +3777,65 @@ template <typename T, typename I> consteval auto getWidth() -> std::ptrdiff_t {
 }
 
 namespace reduce {
-template <std::ptrdiff_t W, typename T, typename Op>
-TRIVIAL constexpr auto reduce_op(simd::Vec<W, T> v) -> T {
-  if constexpr (W == 1) {
-    return v;
-  } else if constexpr (W == 2) {
-    T lo = v[0], hi = v[1];
-    return Op{}(lo, hi);
-  } else if constexpr (W == 4) {
-    Vec<2, T> lo = __builtin_shufflevector(v, v, 0, 1),
-              hi = __builtin_shufflevector(v, v, 2, 3);
-    return reduce_op<2, T, Op>(Op{}(lo, hi));
-  } else if constexpr (W == 8) {
-    Vec<4, T> lo = __builtin_shufflevector(v, v, 0, 1, 2, 3),
-              hi = __builtin_shufflevector(v, v, 4, 5, 6, 7);
-    return reduce_op<4, T, Op>(Op{}(lo, hi));
-  } else if constexpr (W == 16) {
-    Vec<8, T> lo = __builtin_shufflevector(v, v, 0, 1, 2, 3, 4, 5, 6, 7),
-              hi = __builtin_shufflevector(v, v, 8, 9, 10, 11, 12, 13, 14, 15);
-    return reduce_op<8, T, Op>(Op{}(lo, hi));
-  } else {
-    static_assert(false, "Unsupported vector width for reduction");
+template <std::ptrdiff_t W, typename T, typename Op, std::ptrdiff_t O = 1>
+// TRIVIAL
+auto reduce_op(Vec<W, T> v) -> El<O, T> {
+  static_assert(O <= W && std::popcount(std::size_t(O)) == 1 &&
+                std::popcount(std::size_t(W)) == 1);
+  if constexpr (W > O) {
+    auto [a, b] = ::simd::split(v);
+    El<W / 2, T> c = Op{}(a, b);
+    if constexpr (W == O * 2) return c;
+    else return reduce_op<W / 2, T, Op, O>(c);
+  } else return v;
+}
+template <std::ptrdiff_t W, typename T, std::ptrdiff_t O = 1>
+// TRIVIAL
+constexpr auto sum(simd::Vec<W, T> v) -> T {
+  return reduce_op<W, T, std::plus<>, O>(v);
+}
+template <std::ptrdiff_t W, typename T, std::ptrdiff_t O = 1>
+// TRIVIAL
+constexpr auto prod(simd::Vec<W, T> v) -> T {
+  return reduce_op<W, T, std::multiplies<>, O>(v);
+}
+
+struct Max {
+  template <std::ptrdiff_t W, typename T>
+  //   TRIVIAL
+  static constexpr auto operator()(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+    return __builtin_elementwise_max(a, b);
   }
+  template <typename T> requires(std::is_arithmetic_v<T>)
+  //   TRIVIAL
+  static constexpr auto operator()(T a, T b) -> T {
+    return std::max(a, b);
+  }
+};
+
+struct Min {
+  template <std::ptrdiff_t W, typename T>
+  //   TRIVIAL
+  static constexpr auto operator()(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+    return __builtin_elementwise_min(a, b);
+  }
+  template <typename T> requires(std::is_arithmetic_v<T>)
+  //   TRIVIAL
+  static constexpr auto operator()(T a, T b) -> T {
+    return std::min(a, b);
+  }
+};
+template <std::ptrdiff_t W, typename T, std::ptrdiff_t O = 1>
+// TRIVIAL
+constexpr auto max(simd::Vec<W, T> v) -> T {
+  return reduce_op<W, T, Max, O>(v);
 }
-template <std::ptrdiff_t W, typename T>
-TRIVIAL constexpr auto sum(simd::Vec<W, T> v) -> T {
-  return reduce_op<W, T, std::plus<>>(v);
+template <std::ptrdiff_t W, typename T, std::ptrdiff_t O = 1>
+// TRIVIAL
+constexpr auto min(simd::Vec<W, T> v) -> T {
+  return reduce_op<W, T, Min, O>(v);
 }
-template <std::ptrdiff_t W, typename T>
-TRIVIAL constexpr auto prod(simd::Vec<W, T> v) -> T {
-  return reduce_op<W, T, std::multiplies<>>(v);
-}
+
 } // namespace reduce
 
 namespace index {
@@ -3964,6 +3992,83 @@ struct Unroll {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i) u.data_[i] = v;
     return u;
+  }
+  TRIVIAL constexpr auto maximum() const -> T {
+    static constexpr std::ptrdiff_t L = R * C;
+    static constexpr std::ptrdiff_t H = L / 2;
+    if constexpr (H > 1) {
+      Unroll<1, H, N, T> r;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 0; l < H; ++l)
+        r.data_[l] =
+          __builtin_elementwise_max(data_[2 * l], data_[(2 * l) + 1]);
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 2 * H; l < L; ++l)
+        r.data_[l - (2 * H)] =
+          __builtin_elementwise_max(r.data_[l - (2 * H)], data_[l]);
+      return r.maximum();
+    } else {
+      VT x = __builtin_elementwise_max(data_[0], data_[1]);
+      if constexpr (L == 3) x = __builtin_elementwise_max(x, data_[2]);
+      return reduce::max(x);
+    }
+  }
+  // TRIVIAL
+  constexpr auto minimum() const -> T {
+    static constexpr std::ptrdiff_t L = R * C;
+    static constexpr std::ptrdiff_t H = L / 2;
+    if constexpr (H > 1) {
+      Unroll<1, H, N, T> r;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 0; l < H; ++l)
+        r.data_[l] =
+          __builtin_elementwise_min(data_[2 * l], data_[(2 * l) + 1]);
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 2 * H; l < L; ++l)
+        r.data_[l - (2 * H)] =
+          __builtin_elementwise_min(r.data_[l - (2 * H)], data_[l]);
+      return r.minimum();
+    } else {
+      VT x = __builtin_elementwise_min(data_[0], data_[1]);
+      if constexpr (L == 3) x = __builtin_elementwise_min(x, data_[2]);
+      return reduce::min(x);
+    }
+  }
+  TRIVIAL constexpr auto sum() const -> T {
+    static constexpr std::ptrdiff_t L = R * C;
+    static constexpr std::ptrdiff_t H = L / 2;
+    if constexpr (H > 1) {
+      Unroll<1, H, N, T> r;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 0; l < H; ++l)
+        r.data_[l] = (data_[2 * l] + data_[(2 * l) + 1]);
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 2 * H; l < L; ++l)
+        r.data_[l - (2 * H)] = r.data_[l - (2 * H)] + data_[l];
+      return r.sum();
+    } else {
+      VT x = (data_[0] + data_[1]);
+      if constexpr (L == 3) x = (x + data_[2]);
+      return reduce::sum(x);
+    }
+  }
+  TRIVIAL constexpr auto prod() const -> T {
+    static constexpr std::ptrdiff_t L = R * C;
+    static constexpr std::ptrdiff_t H = L / 2;
+    if constexpr (H > 1) {
+      Unroll<1, H, N, T> r;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 0; l < H; ++l)
+        r.data_[l] = (data_[2 * l] * data_[(2 * l) + 1]);
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t l = 2 * H; l < L; ++l)
+        r.data_[l - (2 * H)] = r.data_[l - (2 * H)] * data_[l];
+      return r.prod();
+    } else {
+      VT x = (data_[0] * data_[1]);
+      if constexpr (L == 3) x = (x * data_[2]);
+      return reduce::prod(x);
+    }
   }
 
 private:
@@ -4549,6 +4654,14 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   TRIVIAL static constexpr auto vbroadcast(T x) -> Unroll {
     return {::simd::vbroadcast<N>(x)};
   }
+  TRIVIAL constexpr auto maximum() const -> T {
+    return simd::reduce::max(vec_);
+  }
+  TRIVIAL constexpr auto minimum() const -> T {
+    return simd::reduce::min(vec_);
+  }
+  TRIVIAL constexpr auto sum() const -> T { return simd::reduce::sum(vec_); }
+  TRIVIAL constexpr auto prod() const -> T { return simd::reduce::prod(vec_); }
 
 private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
