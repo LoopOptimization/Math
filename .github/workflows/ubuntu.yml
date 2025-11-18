@@ -61,6 +61,8 @@ jobs:
           # Create symbolic links for headers
           sudo rm -rf /usr/include/c++/v1 || true
           sudo ln -sf /usr/lib/llvm-21/include/c++/v1 /usr/include/c++/v1
+          sudo rm -rf /lib/share/libc++/v1 || true
+          sudo ln -sf /usr/lib/llvm-21/share/libc++/v1 /lib/share/libc++/v1
           # Update ldconfig cache
           echo "/usr/lib/llvm-21/lib" | sudo tee /etc/ld.so.conf.d/llvm-21.conf
           sudo ldconfig
