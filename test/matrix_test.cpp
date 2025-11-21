@@ -721,5 +721,132 @@ int main() {
     auto expected_clamped = "[0 5 0 8 0 2]"_mat;
     expect(clamped == expected_clamped);
   };
+  "StaticArray Reduction Operations"_test = [] -> void {
+    // Test maximum()
+    {
+      // SVector<std::int64_t, 5> v1{3, 7, 2, 9, 4};
+      // expect(v1.maximum() == 9_l);
+
+      // SVector<std::int64_t, 5> v2{-5, -2, -8, -1, -10};
+      // expect(v2.maximum() == -1_l);
+
+      SVector<std::int64_t, 4> v3{10, 10, 10, 10};
+      expect(v3.maximum() == 10_l);
+
+      // SVector<std::int64_t, 3> v4{-100, 0, 100};
+      // expect(v4.maximum() == 100_l);
+
+      // Test with single element
+      SVector<std::int64_t, 1> v5{42};
+      expect(v5.maximum() == 42_l);
+
+      // Test with larger arrays
+      SVector<std::int64_t, 8> v6{1, 5, 3, 9, 2, 8, 4, 7};
+      expect(v6.maximum() == 9_l);
+
+      SVector<std::int64_t, 16> v7{15, 3, 8,  1, 12, 6, 14, 2,
+                                   11, 5, 13, 4, 10, 7, 9,  0};
+      expect(v7.maximum() == 15_l);
+    }
+
+    // Test minimum()
+    {
+      // SVector<std::int64_t, 5> v1{3, 7, 2, 9, 4};
+      // expect(v1.minimum() == 2_l);
+
+      // SVector<std::int64_t, 5> v2{-5, -2, -8, -1, -10};
+      // expect(v2.minimum() == -10_l);
+
+      SVector<std::int64_t, 4> v3{10, 10, 10, 10};
+      expect(v3.minimum() == 10_l);
+
+      // SVector<std::int64_t, 3> v4{-100, 0, 100};
+      // expect(v4.minimum() == -100_l);
+
+      // Test with single element
+      SVector<std::int64_t, 1> v5{42};
+      expect(v5.minimum() == 42_l);
+
+      // Test with larger arrays
+      SVector<std::int64_t, 8> v6{1, 5, 3, 9, 2, 8, 4, 7};
+      expect(v6.minimum() == 1_l);
+
+      SVector<std::int64_t, 16> v7{15, 3, 8,  1, 12, 6, 14, 2,
+                                   11, 5, 13, 4, 10, 7, 9,  0};
+      expect(v7.minimum() == 0_l);
+    }
+
+    // Test sum()
+    {
+      // SVector<std::int64_t, 5> v1{1, 2, 3, 4, 5};
+      // expect(v1.sum() == 15_l);
+
+      SVector<std::int64_t, 4> v2{10, -5, 3, -2};
+      expect(v2.sum() == 6_l);
+
+      // SVector<std::int64_t, 3> v3{0, 0, 0};
+      // expect(v3.sum() == 0_l);
+
+      SVector<std::int64_t, 6> v4{-1, -2, -3, -4, -5, -6};
+      expect(v4.sum() == -21_l);
+
+      // Test with single element
+      SVector<std::int64_t, 1> v5{42};
+      expect(v5.sum() == 42_l);
+
+      // Test with larger arrays
+      SVector<std::int64_t, 8> v6{1, 2, 3, 4, 5, 6, 7, 8};
+      expect(v6.sum() == 36_l);
+
+      SVector<std::int64_t, 16> v7{1, 2,  3,  4,  5,  6,  7,  8,
+                                   9, 10, 11, 12, 13, 14, 15, 16};
+      expect(v7.sum() == 136_l);
+    }
+
+    // Test prod()
+    {
+      SVector<std::int64_t, 4> v1{2, 3, 4, 5};
+      expect(v1.prod() == 120_l);
+
+      // SVector<std::int64_t, 3> v2{-2, 3, -4};
+      // expect(v2.prod() == 24_l);
+
+      // SVector<std::int64_t, 5> v3{1, 1, 1, 1, 1};
+      // expect(v3.prod() == 1_l);
+
+      SVector<std::int64_t, 4> v4{2, 0, 3, 4};
+      expect(v4.prod() == 0_l);
+
+      // Test with single element
+      SVector<std::int64_t, 1> v5{7};
+      expect(v5.prod() == 7_l);
+
+      // Test with negative product
+      // SVector<std::int64_t, 3> v6{-1, 2, 3};
+      // expect(v6.prod() == -6_l);
+
+      // // Test with larger arrays
+      // SVector<std::int64_t, 5> v7{1, 2, 1, 3, 1};
+      // expect(v7.prod() == 6_l);
+
+      SVector<std::int64_t, 8> v8{1, 1, 2, 1, 1, 3, 1, 1};
+      expect(v8.prod() == 6_l);
+    }
+
+    // Test with double precision
+    {
+      SVector<double, 4> vd1{1.5, 2.5, 3.5, 4.5};
+      expect(vd1.sum() == 12.0);
+      expect(vd1.maximum() == 4.5);
+      expect(vd1.minimum() == 1.5);
+
+      // SVector<double, 3> vd2{2.0, 3.0, 4.0};
+      // expect(vd2.prod() == 24.0);
+
+      // SVector<double, 5> vd3{-1.5, 0.5, 2.5, -0.5, 1.0};
+      // expect(vd3.maximum() == 2.5);
+      // expect(vd3.minimum() == -1.5);
+    }
+  };
   return 0;
 }

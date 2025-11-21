@@ -331,6 +331,18 @@ struct MATH_GSL_OWNER StaticArray
       utils::flush();
     }
   }
+  TRIVIAL constexpr auto maximum() const -> T requires(M *N == 1) {
+    return memory_[0];
+  }
+  TRIVIAL constexpr auto minimum() const -> T requires(M *N == 1) {
+    return memory_[0];
+  }
+  TRIVIAL constexpr auto sum() const -> T requires(M *N == 1) {
+    return memory_[0];
+  }
+  TRIVIAL constexpr auto prod() const -> T requires(M *N == 1) {
+    return memory_[0];
+  }
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t M, std::ptrdiff_t N>
@@ -751,6 +763,18 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       ret.memory_[i] = ::simd::scale(memory_[i], x);
     return ret;
   }
+  TRIVIAL constexpr auto maximum() const -> T requires(can_flatten) {
+    return simd().maximum();
+  }
+  TRIVIAL constexpr auto minimum() const -> T requires(can_flatten) {
+    return simd().minimum();
+  }
+  TRIVIAL constexpr auto sum() const -> T requires(can_flatten) {
+    return simd().sum();
+  }
+  TRIVIAL constexpr auto prod() const -> T requires(can_flatten) {
+    return simd().prod();
+  }
 };
 
 template <simd::SIMDSupported T, std::ptrdiff_t N>
@@ -895,6 +919,18 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
       ret.memory_[1] = b.data_;
       return ret;
     }
+  }
+  TRIVIAL constexpr auto maximum() const -> T requires(N == W) {
+    return simd::reduce::max(data_);
+  }
+  TRIVIAL constexpr auto minimum() const -> T requires(N == W) {
+    return simd::reduce::min(data_);
+  }
+  TRIVIAL constexpr auto sum() const -> T requires(N == W) {
+    return simd::reduce::sum(data_);
+  }
+  TRIVIAL constexpr auto prod() const -> T requires(N == W) {
+    return simd::reduce::prod(data_);
   }
   TRIVIAL constexpr auto findFirstEqIdx(T x) -> std::ptrdiff_t {
     auto mask = simd::cmp::eq(data_, simd::vbroadcast<W>(x));
