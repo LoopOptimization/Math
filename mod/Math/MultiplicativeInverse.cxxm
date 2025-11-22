@@ -163,6 +163,10 @@ class MultiplicativeInverse<SVector<T, L>> {
   }
 
 public:
+  TRIVIAL static constexpr auto fromComponents(V divisor, V inverse)
+    -> MultiplicativeInverse {
+    return {precomputed_inverse, divisor, inverse};
+  }
   TRIVIAL explicit constexpr operator V() const { return divisor_; }
   TRIVIAL explicit constexpr operator SVector<I, L>() const {
     return I(divisor_);
