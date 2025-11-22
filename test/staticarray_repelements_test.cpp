@@ -82,7 +82,8 @@ void testRepElements4WithInt() {
 
   auto result = arr.repElements4();
 
-  // Result should be [10, 10, 10, 10, 20, 20, 20, 20, 30, 30, 30, 30, 40, 40, 40, 40]
+  // Result should be [10, 10, 10, 10, 20, 20, 20, 20, 30, 30, 30, 30, 40, 40,
+  // 40, 40]
   static_assert(decltype(result)::numCol() == 16);
   for (std::ptrdiff_t i = 0; i < 4; ++i) expect(eq(result[i], 10_i));
   for (std::ptrdiff_t i = 4; i < 8; ++i) expect(eq(result[i], 20_i));
