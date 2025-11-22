@@ -959,28 +959,52 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   }
   [[nodiscard]] TRIVIAL constexpr auto repElements4() const
     -> StaticArray<T, 1, 4 * N> {
-    static_assert(simd::Width<T> == W,
-                  "Not handling growing vector sizes for now.");
+    static constexpr std::ptrdiff_t native = simd::Width<T>;
     StaticArray<T, 1, 4 * N> ret;
     if constexpr (W == 2) {
-      V a = simd::vbroadcast<2>(data_[0]), b = simd::vbroadcast<2>(data_[1]);
-      ret.memory_[0] = a, ret.memory_[1] = a;
-      ret.memory_[2] = b, ret.memory_[3] = b;
+      if constexpr (native == 2) {
+        V a = simd::vbroadcast<2>(data_[0]), b = simd::vbroadcast<2>(data_[1]);
+        ret.memory_[0] = a, ret.memory_[1] = a;
+        ret.memory_[2] = b, ret.memory_[3] = b;
+      } else if constexpr (native == 4) {
+        V a = simd::vbroadcast<4>(data_[0]), b = simd::vbroadcast<4>(data_[1]);
+        ret.memory_[0] = a, ret.memory_[1] = b;
+      } else {
+        return {__builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1, 1, 1)};
+      }
     } else if constexpr (W == 4) {
-      ret.memory_[0] = simd::vbroadcast<4>(data_[0]);
-      ret.memory_[1] = simd::vbroadcast<4>(data_[1]);
-      ret.memory_[2] = simd::vbroadcast<4>(data_[2]);
-      ret.memory_[3] = simd::vbroadcast<4>(data_[3]);
+      if constexpr (native == 4) {
+        ret.memory_[0] = simd::vbroadcast<4>(data_[0]);
+        ret.memory_[1] = simd::vbroadcast<4>(data_[1]);
+        ret.memory_[2] = simd::vbroadcast<4>(data_[2]);
+        ret.memory_[3] = simd::vbroadcast<4>(data_[3]);
+      } else if constexpr (native == 8) {
+        ret.memory_[0] =
+          __builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1, 1, 1);
+        ret.memory_[1] =
+          __builtin_shufflevector(data_, data_, 2, 2, 2, 2, 3, 3, 3, 3);
+      } else {
+        return {__builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1, 1, 1, 2,
+                                        2, 2, 2, 3, 3, 3, 3)};
+      }
     } else {
       static_assert(W == 8);
-      ret.memory_[0] =
-        __builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1, 1, 1);
-      ret.memory_[1] =
-        __builtin_shufflevector(data_, data_, 2, 2, 2, 2, 3, 3, 3, 3);
-      ret.memory_[2] =
-        __builtin_shufflevector(data_, data_, 4, 4, 4, 4, 5, 5, 5, 5);
-      ret.memory_[3] =
-        __builtin_shufflevector(data_, data_, 6, 6, 6, 6, 7, 7, 7, 7);
+      if constexpr (native == 8) {
+        ret.memory_[0] =
+          __builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1, 1, 1);
+        ret.memory_[1] =
+          __builtin_shufflevector(data_, data_, 2, 2, 2, 2, 3, 3, 3, 3);
+        ret.memory_[2] =
+          __builtin_shufflevector(data_, data_, 4, 4, 4, 4, 5, 5, 5, 5);
+        ret.memory_[3] =
+          __builtin_shufflevector(data_, data_, 6, 6, 6, 6, 7, 7, 7, 7);
+      } else {
+        static_assert(native == 16, "not supporting smaller types for now");
+        ret.memory_[0] = __builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1,
+                                                 1, 1, 2, 2, 2, 2, 3, 3, 3, 3);
+        ret.memory_[1] = __builtin_shufflevector(data_, data_, 4, 4, 4, 4, 5, 5,
+                                                 5, 5, 6, 6, 6, 6, 7, 7, 7, 7);
+      }
     }
     return ret;
   }
