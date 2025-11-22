@@ -968,9 +968,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
         ret.memory_[0] = a, ret.memory_[1] = a;
         ret.memory_[2] = b, ret.memory_[3] = b;
       } else if constexpr (native == 4) {
-        simd::Vec<4, T> a = simd::vbroadcast<4, T>(data_[0]),
-                        b = simd::vbroadcast<4, T>(data_[1]);
-        ret.memory_[0] = a, ret.memory_[1] = b;
+        ret.memory_[0] = simd::vbroadcast<4, T>(data_[0]);
+        ret.memory_[1] = simd::vbroadcast<4, T>(data_[1]);
       } else {
         return {__builtin_shufflevector(data_, data_, 0, 0, 0, 0, 1, 1, 1, 1)};
       }
