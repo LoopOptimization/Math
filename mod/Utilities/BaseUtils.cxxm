@@ -135,10 +135,17 @@ export namespace bit {
 constexpr auto exp2unchecked(std::integral auto x) -> double {
   return std::bit_cast<double>(static_cast<std::int64_t>(1023 + x) << 52);
 }
+constexpr auto exp2funchecked(std::integral auto x) -> float {
+  return std::bit_cast<float>(static_cast<std::int32_t>(127 + x) << 23);
+}
 /// scale(x, y) = x * pow(2,y)
 constexpr auto scale(double x, std::integral auto y) -> double {
   return std::bit_cast<double>(std::bit_cast<std::int64_t>(x) +
                                (static_cast<std::int64_t>(y) << 52));
+}
+constexpr auto scalef(float x, std::integral auto y) -> float {
+  return std::bit_cast<float>(std::bit_cast<std::int32_t>(x) +
+                              (static_cast<std::int32_t>(y) << 23));
 }
 
 constexpr auto next_pow2(double x) -> double {
