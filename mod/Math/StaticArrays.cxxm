@@ -767,6 +767,14 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       ret.memory_[i] = ::simd::scale(memory_[i], x);
     return ret;
   }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const
+    -> StaticArray requires(std::same_as<T, float>) {
+    StaticArray ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < M * L; ++i)
+      ret.memory_[i] = ::simd::scale(memory_[i], x);
+    return ret;
+  }
   TRIVIAL constexpr auto maximum() const -> T requires(can_flatten) {
     return simd().maximum();
   }
@@ -871,6 +879,10 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
   }
   TRIVIAL [[nodiscard]] constexpr auto scale(std::int64_t x) const
     -> StaticArray requires(std::same_as<T, double>) {
+    return {::simd::scale(data_, x)};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const
+    -> StaticArray requires(std::same_as<T, float>) {
     return {::simd::scale(data_, x)};
   }
   TRIVIAL constexpr auto data() -> T * { return reinterpret_cast<T *>(&data_); }

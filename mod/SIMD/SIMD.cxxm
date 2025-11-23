@@ -3858,6 +3858,35 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M,
 inline constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
 
 } // namespace index
+/// scale(x, y) = x * pow(2,y)
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, double> xt, Vec<W, T> yt)
+  -> Vec<W, double> {
+  Vec<W, std::int64_t> y, x = __builtin_bit_cast(Vec<W, std::int64_t>, xt);
+  if constexpr (std::same_as<T, std::int64_t>) y = yt;
+  else y = __builtin_convertvector(yt, Vec<W, std::int64_t>);
+  return __builtin_bit_cast(Vec<W, double>, x + (y << 52));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, double> x, T y) -> Vec<W, double> {
+  return __builtin_bit_cast(Vec<W, double>,
+                            __builtin_bit_cast(Vec<W, std::int64_t>, x) +
+                              (static_cast<std::int64_t>(y) << 52));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, float> xt, Vec<W, T> yt) -> Vec<W, float> {
+  Vec<W, std::int32_t> y, x = __builtin_bit_cast(Vec<W, std::int32_t>, xt);
+  if constexpr (std::same_as<T, std::int32_t>) y = yt;
+  else y = __builtin_convertvector(yt, Vec<W, std::int32_t>);
+  return __builtin_bit_cast(Vec<W, float>, x + (y << 23));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, float> x, T y) -> Vec<W, float> {
+  return __builtin_bit_cast(Vec<W, float>,
+                            __builtin_bit_cast(Vec<W, std::int32_t>, x) +
+                              (static_cast<std::int32_t>(y) << 23));
+}
+
 template <class From, class To>
 concept ConvertibleToAndScalar =
   std::convertible_to<From, To> && std::is_scalar_v<From>;
@@ -4157,6 +4186,22 @@ public:
         }
       }
     }
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int64_t x) const -> Unroll
+    requires(std::same_as<T, double>) {
+    Unroll ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      ret.data_[i] = ::simd::scale(data_[i], x);
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const -> Unroll
+    requires(std::same_as<T, float>) {
+    Unroll ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      ret.data_[i] = ::simd::scale(data_[i], x);
     return ret;
   }
 
@@ -4806,6 +4851,14 @@ public:
       }
     }
     return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int64_t x) const -> Unroll
+    requires(std::same_as<T, double>) {
+    return {::simd::scale(vec_, x)};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const -> Unroll
+    requires(std::same_as<T, float>) {
+    return {::simd::scale(vec_, x)};
   }
 
 private:
@@ -6446,21 +6499,6 @@ TRIVIAL constexpr auto exp2unchecked(Vec<W, T> x) -> Vec<W, double> {
   if constexpr (std::same_as<T, std::int64_t>) y = x;
   else y = __builtin_convertvector(x, Vec<W, std::int64_t>);
   return __builtin_bit_cast(Vec<W, double>, (y + 1023) << 52);
-}
-/// scale(x, y) = x * pow(2,y)
-template <std::ptrdiff_t W, std::integral T>
-TRIVIAL constexpr auto scale(Vec<W, double> xt, Vec<W, T> yt)
-  -> Vec<W, double> {
-  Vec<W, std::int64_t> y, x = __builtin_bit_cast(Vec<W, std::int64_t>, xt);
-  if constexpr (std::same_as<T, std::int64_t>) y = yt;
-  else y = __builtin_convertvector(yt, Vec<W, std::int64_t>);
-  return __builtin_bit_cast(Vec<W, double>, x + (y << 52));
-}
-template <std::ptrdiff_t W, std::integral T>
-TRIVIAL constexpr auto scale(Vec<W, double> x, T y) -> Vec<W, double> {
-  return __builtin_bit_cast(Vec<W, double>,
-                            __builtin_bit_cast(Vec<W, std::int64_t>, x) +
-                              (static_cast<std::int64_t>(y) << 52));
 }
 
 } // namespace simd
