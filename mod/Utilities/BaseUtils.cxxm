@@ -154,6 +154,12 @@ constexpr auto next_pow2(double x) -> double {
   return j != i ? std::bit_cast<double>(j + (std::int64_t(1) << 52)) : x;
 }
 
+constexpr auto next_pow2(float x) -> double {
+  static constexpr std::int32_t mantissa_mask = ~((std::int64_t(1) << 23) - 1);
+  std::int32_t i = std::bit_cast<std::int32_t>(x), j = i & mantissa_mask;
+  return j != i ? std::bit_cast<float>(j + (std::int32_t(1) << 23)) : x;
+}
+
 } // namespace bit
 export namespace math {
 
