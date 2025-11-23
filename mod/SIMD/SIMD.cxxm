@@ -4204,6 +4204,14 @@ public:
       ret.data_[i] = ::simd::scale(data_[i], x);
     return ret;
   }
+  TRIVIAL [[nodiscard]] static constexpr auto range(T offset) -> Unroll {
+    Unroll ret;
+    static constexpr Vec<N, T> r = ::simd::range<N, T>();
+    Vec<N, T> off = ::simd::vbroadcast<N>(offset);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t u = 0; u < R * C; ++u) ret.data_[u] = r + off + (N * u);
+    return ret;
+  }
 
 private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
@@ -4859,6 +4867,11 @@ public:
   TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const -> Unroll
     requires(std::same_as<T, float>) {
     return {::simd::scale(vec_, x)};
+  }
+  TRIVIAL [[nodiscard]] static constexpr auto range(T offset) -> Unroll {
+    static constexpr Vec<N, T> r = ::simd::range<N, T>();
+    Vec<N, T> off = ::simd::vbroadcast<N>(offset);
+    return {off + r};
   }
 
 private:
@@ -6273,7 +6286,7 @@ Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, CU, W, T> &x,
 #endif
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i) {
-      auto splt = ::simd::split(data_[i]);
+      auto splt = data_[i].split();
       s.data_[2 * i] = splt[0], s.data_[(2 * i) + 1] = splt[1];
     }
     // either `s` matches, or continues the recursion
