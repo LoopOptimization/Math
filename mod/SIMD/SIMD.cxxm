@@ -3858,6 +3858,35 @@ template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename M,
 inline constexpr bool issimd<UnrollDims<R, C, W, M, Transposed, X>> = true;
 
 } // namespace index
+/// scale(x, y) = x * pow(2,y)
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, double> xt, Vec<W, T> yt)
+  -> Vec<W, double> {
+  Vec<W, std::int64_t> y, x = __builtin_bit_cast(Vec<W, std::int64_t>, xt);
+  if constexpr (std::same_as<T, std::int64_t>) y = yt;
+  else y = __builtin_convertvector(yt, Vec<W, std::int64_t>);
+  return __builtin_bit_cast(Vec<W, double>, x + (y << 52));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, double> x, T y) -> Vec<W, double> {
+  return __builtin_bit_cast(Vec<W, double>,
+                            __builtin_bit_cast(Vec<W, std::int64_t>, x) +
+                              (static_cast<std::int64_t>(y) << 52));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, float> xt, Vec<W, T> yt) -> Vec<W, float> {
+  Vec<W, std::int32_t> y, x = __builtin_bit_cast(Vec<W, std::int32_t>, xt);
+  if constexpr (std::same_as<T, std::int32_t>) y = yt;
+  else y = __builtin_convertvector(yt, Vec<W, std::int32_t>);
+  return __builtin_bit_cast(Vec<W, float>, x + (y << 23));
+}
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto scale(Vec<W, float> x, T y) -> Vec<W, float> {
+  return __builtin_bit_cast(Vec<W, float>,
+                            __builtin_bit_cast(Vec<W, std::int32_t>, x) +
+                              (static_cast<std::int32_t>(y) << 23));
+}
+
 template <class From, class To>
 concept ConvertibleToAndScalar =
   std::convertible_to<From, To> && std::is_scalar_v<From>;
@@ -4069,6 +4098,119 @@ struct Unroll {
       if constexpr (L == 3) x = (x * data_[2]);
       return reduce::prod(x);
     }
+  }
+
+private:
+  static constexpr std::ptrdiff_t Rep4W = VecLen<4 * C * N, T>;
+  using Rep4Type = Unroll<R, 4 * C * N / Rep4W, Rep4W, T>;
+
+public:
+  [[nodiscard]] TRIVIAL constexpr auto repElements4() const -> Rep4Type {
+    Rep4Type ret;
+    if constexpr (N == 2) {
+      if constexpr (Rep4W == 2) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]}, a = simd::vbroadcast<2>(v[0]),
+                          b = simd::vbroadcast<2>(v[1]);
+          ret.data_[4 * i] = a, ret.data_[(4 * i) + 1] = a;
+          ret.data_[(4 * i) + 2] = b, ret.data_[(4 * i) + 3] = b;
+        }
+      } else if constexpr (Rep4W == 4) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[2 * i] = simd::vbroadcast<4>(v[0]);
+          ret.data_[(2 * i) + 1] = simd::vbroadcast<4>(v[1]);
+        }
+      } else {
+        static_assert(Rep4W == 8);
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[i] = __builtin_shufflevector(v, v, 0, 0, 0, 0, 1, 1, 1, 1);
+        }
+      }
+    } else if constexpr (N == 4) {
+      if constexpr (Rep4W == 4) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[4 * i] = simd::vbroadcast<4>(v[0]);
+          ret.data_[(4 * i) + 1] = simd::vbroadcast<4>(v[1]);
+          ret.data_[(4 * i) + 2] = simd::vbroadcast<4>(v[2]);
+          ret.data_[(4 * i) + 3] = simd::vbroadcast<4>(v[3]);
+        }
+      } else if constexpr (Rep4W == 8) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[2 * i] =
+            __builtin_shufflevector(v, v, 0, 0, 0, 0, 1, 1, 1, 1);
+          ret.data_[(2 * i) + 1] =
+            __builtin_shufflevector(v, v, 2, 2, 2, 2, 3, 3, 3, 3);
+        }
+      } else {
+        static_assert(Rep4W == 16);
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[i] = __builtin_shufflevector(v, v, 0, 0, 0, 0, 1, 1, 1, 1,
+                                                 2, 2, 2, 2, 3, 3, 3, 3);
+        }
+      }
+    } else {
+      static_assert(N == 8);
+      if constexpr (Rep4W == 8) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[4 * i] =
+            __builtin_shufflevector(v, v, 0, 0, 0, 0, 1, 1, 1, 1);
+          ret.data_[(4 * i) + 1] =
+            __builtin_shufflevector(v, v, 2, 2, 2, 2, 3, 3, 3, 3);
+          ret.data_[(4 * i) + 2] =
+            __builtin_shufflevector(v, v, 4, 4, 4, 4, 5, 5, 5, 5);
+          ret.data_[(4 * i) + 3] =
+            __builtin_shufflevector(v, v, 6, 6, 6, 6, 7, 7, 7, 7);
+        }
+      } else {
+        static_assert(Rep4W == 16, "not supporting smaller types for now");
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          VT v{data_[i]};
+          ret.data_[2 * i] = __builtin_shufflevector(v, v, 0, 0, 0, 0, 1, 1, 1,
+                                                     1, 2, 2, 2, 2, 3, 3, 3, 3);
+          ret.data_[(2 * i) + 1] = __builtin_shufflevector(
+            v, v, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7);
+        }
+      }
+    }
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int64_t x) const -> Unroll
+    requires(std::same_as<T, double>) {
+    Unroll ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      ret.data_[i] = ::simd::scale(data_[i], x);
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const -> Unroll
+    requires(std::same_as<T, float>) {
+    Unroll ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      ret.data_[i] = ::simd::scale(data_[i], x);
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] static constexpr auto range(T offset) -> Unroll {
+    Unroll ret;
+    static constexpr Vec<N, T> r = ::simd::range<N, T>();
+    Vec<N, T> off = ::simd::vbroadcast<N>(offset);
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t u = 0; u < R * C; ++u) ret.data_[u] = r + off + (N * u);
+    return ret;
   }
 
 private:
@@ -4662,6 +4804,75 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   }
   TRIVIAL constexpr auto sum() const -> T { return simd::reduce::sum(vec_); }
   TRIVIAL constexpr auto prod() const -> T { return simd::reduce::prod(vec_); }
+
+private:
+  static constexpr std::ptrdiff_t Rep4W = VecLen<4 * N, T>;
+  using Rep4Type = Unroll<1Z, 4 * N / Rep4W, Rep4W, T>;
+
+public:
+  [[nodiscard]] TRIVIAL constexpr auto repElements4() const -> Rep4Type {
+    Rep4Type ret;
+    if constexpr (N == 2) {
+      if constexpr (Rep4W == 2) {
+        Vec<2, T> a = simd::vbroadcast<2, T>(vec_[0]),
+                  b = simd::vbroadcast<2, T>(vec_[1]);
+        ret.data_[0] = a, ret.data_[1] = a;
+        ret.data_[2] = b, ret.data_[3] = b;
+      } else if constexpr (Rep4W == 4) {
+        ret.data_[0] = simd::vbroadcast<4, T>(vec_[0]);
+        ret.data_[1] = simd::vbroadcast<4, T>(vec_[1]);
+      } else {
+        return {__builtin_shufflevector(vec_, vec_, 0, 0, 0, 0, 1, 1, 1, 1)};
+      }
+    } else if constexpr (N == 4) {
+      if constexpr (Rep4W == 4) {
+        ret.data_[0] = simd::vbroadcast<4, T>(vec_[0]);
+        ret.data_[1] = simd::vbroadcast<4, T>(vec_[1]);
+        ret.data_[2] = simd::vbroadcast<4, T>(vec_[2]);
+        ret.data_[3] = simd::vbroadcast<4, T>(vec_[3]);
+      } else if constexpr (Rep4W == 8) {
+        ret.data_[0] =
+          __builtin_shufflevector(vec_, vec_, 0, 0, 0, 0, 1, 1, 1, 1);
+        ret.data_[1] =
+          __builtin_shufflevector(vec_, vec_, 2, 2, 2, 2, 3, 3, 3, 3);
+      } else {
+        return {__builtin_shufflevector(vec_, vec_, 0, 0, 0, 0, 1, 1, 1, 1, 2,
+                                        2, 2, 2, 3, 3, 3, 3)};
+      }
+    } else {
+      static_assert(N == 8);
+      if constexpr (Rep4W == 8) {
+        ret.data_[0] =
+          __builtin_shufflevector(vec_, vec_, 0, 0, 0, 0, 1, 1, 1, 1);
+        ret.data_[1] =
+          __builtin_shufflevector(vec_, vec_, 2, 2, 2, 2, 3, 3, 3, 3);
+        ret.data_[2] =
+          __builtin_shufflevector(vec_, vec_, 4, 4, 4, 4, 5, 5, 5, 5);
+        ret.data_[3] =
+          __builtin_shufflevector(vec_, vec_, 6, 6, 6, 6, 7, 7, 7, 7);
+      } else {
+        static_assert(Rep4W == 16, "not supporting smaller types for now");
+        ret.data_[0] = __builtin_shufflevector(vec_, vec_, 0, 0, 0, 0, 1, 1, 1,
+                                               1, 2, 2, 2, 2, 3, 3, 3, 3);
+        ret.data_[1] = __builtin_shufflevector(vec_, vec_, 4, 4, 4, 4, 5, 5, 5,
+                                               5, 6, 6, 6, 6, 7, 7, 7, 7);
+      }
+    }
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int64_t x) const -> Unroll
+    requires(std::same_as<T, double>) {
+    return {::simd::scale(vec_, x)};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto scale(std::int32_t x) const -> Unroll
+    requires(std::same_as<T, float>) {
+    return {::simd::scale(vec_, x)};
+  }
+  TRIVIAL [[nodiscard]] static constexpr auto range(T offset) -> Unroll {
+    static constexpr Vec<N, T> r = ::simd::range<N, T>();
+    Vec<N, T> off = ::simd::vbroadcast<N>(offset);
+    return {off + r};
+  }
 
 private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
@@ -6075,7 +6286,7 @@ Unroll<R, C, N, Bytes>::select(const ::simd::Unroll<R, CU, W, T> &x,
 #endif
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i) {
-      auto splt = ::simd::split(data_[i]);
+      auto splt = data_[i].split();
       s.data_[2 * i] = splt[0], s.data_[(2 * i) + 1] = splt[1];
     }
     // either `s` matches, or continues the recursion
@@ -6301,21 +6512,6 @@ TRIVIAL constexpr auto exp2unchecked(Vec<W, T> x) -> Vec<W, double> {
   if constexpr (std::same_as<T, std::int64_t>) y = x;
   else y = __builtin_convertvector(x, Vec<W, std::int64_t>);
   return __builtin_bit_cast(Vec<W, double>, (y + 1023) << 52);
-}
-/// scale(x, y) = x * pow(2,y)
-template <std::ptrdiff_t W, std::integral T>
-TRIVIAL constexpr auto scale(Vec<W, double> xt, Vec<W, T> yt)
-  -> Vec<W, double> {
-  Vec<W, std::int64_t> y, x = __builtin_bit_cast(Vec<W, std::int64_t>, xt);
-  if constexpr (std::same_as<T, std::int64_t>) y = yt;
-  else y = __builtin_convertvector(yt, Vec<W, std::int64_t>);
-  return __builtin_bit_cast(Vec<W, double>, x + (y << 52));
-}
-template <std::ptrdiff_t W, std::integral T>
-TRIVIAL constexpr auto scale(Vec<W, double> x, T y) -> Vec<W, double> {
-  return __builtin_bit_cast(Vec<W, double>,
-                            __builtin_bit_cast(Vec<W, std::int64_t>, x) +
-                              (static_cast<std::int64_t>(y) << 52));
 }
 
 } // namespace simd

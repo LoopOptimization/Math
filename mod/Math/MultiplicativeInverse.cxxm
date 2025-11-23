@@ -6,6 +6,7 @@ import Array;
 import Int8;
 import BaseUtils;
 import StaticArray;
+import SIMD;
 import std;
 #ifdef __clang__
 // clang requires linking compiler-rt for 128-bit integer mul_with_overflow
@@ -75,6 +76,15 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
                                   MultiplicativeInverse b)
     -> math::SVector<T, L> {
     math::SVector<T, L> x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
+  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
+  friend constexpr auto operator/(::simd::Unroll<R, C, W, T> a,
+                                  MultiplicativeInverse b)
+    -> ::simd::Unroll<R, C, W, T> {
+    ::simd::Unroll<R, C, W, T> x = a * b.inverse_;
     // push away from zero, before flooring to zero
     // hacky attempt to accomodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
@@ -203,6 +213,90 @@ public:
     auto d = divisor_.cat(b.divisor_);
     auto i = inverse_.cat(b.inverse_);
     return MultiplicativeInverse<SVector<T, L << 1>>{precomputed_inverse, d, i};
+  }
+};
+
+template <std::floating_point T, std::ptrdiff_t C, std::ptrdiff_t W>
+class MultiplicativeInverse<simd::Unroll<1, C, W, T>> {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  using U = utils::unsigned_integer_t<sizeof(T)>;
+  using V = simd::Unroll<1, C, W, T>;
+  using HalfInv = MultiplicativeInverse<
+    simd::Unroll<1Z, (C > 1 ? C / 2 : 1Z), (C > 1 ? W : W / 2), T>>;
+  V divisor_, inverse_;
+
+  TRIVIAL friend constexpr auto operator*(V a, MultiplicativeInverse b) -> V {
+    return a * b.divisor_;
+  }
+  TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a, V b) -> V {
+    return a.divisor_ * b;
+  }
+  TRIVIAL friend constexpr auto operator*(T a, MultiplicativeInverse b) -> V {
+    return a * b.divisor_;
+  }
+  TRIVIAL friend constexpr auto operator*(MultiplicativeInverse a, T b) -> V {
+    return a.divisor_ * b;
+  }
+  TRIVIAL friend constexpr auto operator/(T a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
+  TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push away from zero, before flooring to zero
+    // hacky attempt to accomodate rounding error
+    return trunc((std::numeric_limits<T>::epsilon() * x) + x);
+  }
+  TRIVIAL friend constexpr auto cld(V a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push towards -infinity, before rounding up
+    // hacky attempt to accomodate rounding error
+    return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
+  }
+  TRIVIAL friend constexpr auto cld(T a, MultiplicativeInverse b) -> V {
+    V x = a * b.inverse_;
+    // push towards -infinity, before rounding up
+    // hacky attempt to accomodate rounding error
+    return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
+  }
+  TRIVIAL friend constexpr auto operator%(V a, MultiplicativeInverse b) -> V {
+    return round(a - ((a / b) * b.divisor_));
+  }
+
+public:
+  TRIVIAL static constexpr auto fromComponents(V divisor, V inverse)
+    -> MultiplicativeInverse {
+    return {precomputed_inverse, divisor, inverse};
+  }
+  TRIVIAL explicit constexpr operator V() const { return divisor_; }
+  // casts to unsigned by first going through a signed integer.
+  // This is because the signed->unsigned is a noop, our primary use is for
+  // `Unroll`s which are always positive, and x64 CPUs without AVX512 lack a
+  // `vcvtsd2usi` instruction, but may have `vcvtsd2si` from AVX, or at least
+  // `cvtsd2si` from SSE.
+  TRIVIAL constexpr auto divrem(V a) -> std::array<V, 2> {
+    T d = a / (*this);
+    return {d, std::round(a - (d / inverse_))};
+  }
+  TRIVIAL constexpr MultiplicativeInverse(V d)
+    : divisor_(d), inverse_{V{1} / d} {}
+  // Constructor with precomputed inverse (internal use, e.g., for split())
+  TRIVIAL constexpr MultiplicativeInverse(PrecomputedInverseTag, V d, V inv)
+    : divisor_(d), inverse_{inv} {}
+  TRIVIAL constexpr MultiplicativeInverse() = default;
+  TRIVIAL [[nodiscard]] constexpr auto inv() const -> V { return inverse_; }
+  [[nodiscard]] TRIVIAL constexpr auto split() const -> std::array<HalfInv, 2> {
+    auto d = divisor_.split();
+    auto i = inverse_.split();
+    return {HalfInv{precomputed_inverse, d[0], i[0]},
+            HalfInv{precomputed_inverse, d[1], i[1]}};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto cat(MultiplicativeInverse b) const {
+    auto d = divisor_.cat(b.divisor_);
+    auto i = inverse_.cat(b.inverse_);
+    return MultiplicativeInverse<decltype(d)>{precomputed_inverse, d, i};
   }
 };
 
