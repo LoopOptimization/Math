@@ -3753,6 +3753,9 @@ constexpr std::ptrdiff_t VecLen =
   (N < Width<T>) ? std::ptrdiff_t(std::bit_ceil(std::size_t(N)))
                  : std::max(Width<T>, std::ptrdiff_t(1));
 
+template <typename T, std::ptrdiff_t W = Width<T>>
+using SVec = Unroll<1Z, W / VecLen<W, T>, VecLen<W, T>, T>;
+
 // returns { vector_size, num_vectors, remainder }
 template <std::ptrdiff_t L, typename T>
 consteval auto VectorDivRem() -> std::array<std::ptrdiff_t, 3> {
@@ -4210,6 +4213,23 @@ public:
     Vec<N, T> off = ::simd::vbroadcast<N>(offset);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t u = 0; u < R * C; ++u) ret.data_[u] = r + off + (N * u);
+    return ret;
+  }
+  TRIVIAL [[nodiscard]] constexpr auto cat(Unroll other) const
+    -> Unroll<1Z, 2Z * C, N, T> requires(R == 1Z) {
+    Unroll<1Z, 2Z * C, N, T> ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t u = 0; u < C; ++u)
+      ret.data_[u] = data_[u], ret.data_[u + C] = other.data_[u];
+    return ret;
+  }
+  /// x.selfcatx2() is equivalent to `x.cat(x)`.
+  TRIVIAL [[nodiscard]] constexpr auto selfcatx2() const
+    -> Unroll<1Z, 2Z * C, N, T> requires(R == 1Z) {
+    Unroll<1Z, 2Z * C, N, T> ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t u = 0; u < C; ++u)
+      ret.data_[u] = ret.data_[u + C] = data_[u];
     return ret;
   }
 
@@ -4872,6 +4892,33 @@ public:
     static constexpr Vec<N, T> r = ::simd::range<N, T>();
     Vec<N, T> off = ::simd::vbroadcast<N>(offset);
     return {off + r};
+  }
+  TRIVIAL [[nodiscard]] constexpr auto cat(Unroll other) const
+    -> SVec<T, 2Z * N> {
+    if constexpr (N == Width<T>) {
+      return {vec_, other.vec_};
+    } else if constexpr (N == 2) {
+      return {__builtin_shufflevector(vec_, other.vec_, 0, 1, 2, 3)};
+    } else if constexpr (N == 4) {
+      return {
+        __builtin_shufflevector(vec_, other.vec_, 0, 1, 2, 3, 4, 5, 6, 7)};
+    } else if constexpr (N == 8) {
+      return {__builtin_shufflevector(vec_, other.vec_, 0, 1, 2, 3, 4, 5, 6, 7,
+                                      8, 9, 10, 11, 12, 13, 14, 15)};
+    } else static_assert(false, "Not yet supporting larger SIMD.");
+  }
+  /// x.selfcatx2() is equivalent to `x.cat(x)`.
+  TRIVIAL [[nodiscard]] constexpr auto selfcatx2() const -> SVec<T, 2Z * N> {
+    if constexpr (N == Width<T>) {
+      return {vec_, vec_};
+    } else if constexpr (N == 2) {
+      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3)};
+    } else if constexpr (N == 4) {
+      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7)};
+    } else if constexpr (N == 8) {
+      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                      10, 11, 12, 13, 14, 15)};
+    } else static_assert(false, "Not yet supporting larger SIMD.");
   }
 
 private:
