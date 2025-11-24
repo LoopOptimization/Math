@@ -118,7 +118,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 23)
 # "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 
 # --- Allocator override ----
-set(SEARCH_JE_MALLOC USE_JE_MALLOC)
+set(SEARCH_JE_MALLOC ${USE_JE_MALLOC})
 if(USE_MI_MALLOC)
   find_package(mimalloc) # REQUIRED)
   if(mimalloc_FOUND)
