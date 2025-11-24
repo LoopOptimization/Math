@@ -20,7 +20,7 @@ jobs:
         cc: /usr/bin/gcc $CFLAGS -fno-semantic-interposition
         c++: /usr/bin/g++ $CXXFLAGS -fno-semantic-interposition
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
       - uses: actions/cache@v4
