@@ -4223,8 +4223,8 @@ public:
       ret.data_[u] = data_[u], ret.data_[u + C] = other.data_[u];
     return ret;
   }
-  /// x.selfcatx2() is equivalent to `x.cat(x)`.
-  TRIVIAL [[nodiscard]] constexpr auto selfcatx2() const
+  /// x.cat() is equivalent to `x.cat(x)`.
+  TRIVIAL [[nodiscard]] constexpr auto cat() const
     -> Unroll<1Z, 2Z * C, N, T> requires(R == 1Z) {
     Unroll<1Z, 2Z * C, N, T> ret;
     POLYMATHFULLUNROLL
@@ -4232,6 +4232,8 @@ public:
       ret.data_[u] = ret.data_[u + C] = data_[u];
     return ret;
   }
+  TRIVIAL constexpr auto operator=(const Unroll &) & -> Unroll & = default;
+  auto operator=(const Unroll &) && -> Unroll & = delete;
 
 private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
@@ -4907,8 +4909,8 @@ public:
                                       8, 9, 10, 11, 12, 13, 14, 15)};
     } else static_assert(false, "Not yet supporting larger SIMD.");
   }
-  /// x.selfcatx2() is equivalent to `x.cat(x)`.
-  TRIVIAL [[nodiscard]] constexpr auto selfcatx2() const -> SVec<T, 2Z * N> {
+  /// x.cat() is equivalent to `x.cat(x)`.
+  TRIVIAL [[nodiscard]] constexpr auto cat() const -> SVec<T, 2Z * N> {
     if constexpr (N == Width<T>) {
       return {vec_, vec_};
     } else if constexpr (N == 2) {
@@ -4920,6 +4922,8 @@ public:
                                       10, 11, 12, 13, 14, 15)};
     } else static_assert(false, "Not yet supporting larger SIMD.");
   }
+  TRIVIAL constexpr auto operator=(const Unroll &) & -> Unroll & = default;
+  auto operator=(const Unroll &) && -> Unroll & = delete;
 
 private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
