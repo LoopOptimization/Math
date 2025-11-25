@@ -208,6 +208,12 @@ public:
     return {HalfInv{precomputed_inverse, d[0], i[0]},
             HalfInv{precomputed_inverse, d[1], i[1]}};
   }
+  [[nodiscard]] TRIVIAL constexpr auto cat() const
+    -> MultiplicativeInverse<SVector<T, L << 1>> {
+    auto d = divisor_.cat();
+    auto i = inverse_.cat();
+    return MultiplicativeInverse<SVector<T, L << 1>>{precomputed_inverse, d, i};
+  }
   [[nodiscard]] TRIVIAL constexpr auto cat(MultiplicativeInverse b) const
     -> MultiplicativeInverse<SVector<T, L << 1>> {
     auto d = divisor_.cat(b.divisor_);
@@ -292,6 +298,11 @@ public:
     auto i = inverse_.split();
     return {HalfInv{precomputed_inverse, d[0], i[0]},
             HalfInv{precomputed_inverse, d[1], i[1]}};
+  }
+  [[nodiscard]] TRIVIAL constexpr auto cat() const {
+    auto d = divisor_.cat();
+    auto i = inverse_.cat();
+    return MultiplicativeInverse<decltype(d)>{precomputed_inverse, d, i};
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(MultiplicativeInverse b) const {
     auto d = divisor_.cat(b.divisor_);
