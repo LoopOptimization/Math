@@ -174,8 +174,13 @@ public:
     deallocate((void *)Ptr, N * sizeof(T));
   }
   constexpr void freeLast(std::ptrdiff_t num_bytes) {
-    if constexpr (BumpUp) slab_ = static_cast<char *>(slab_) - num_bytes;
-    else slab_ = static_cast<char *>(slab_) + num_bytes;
+    if constexpr (BumpUp)
+      slab_ =
+        static_cast<char *>(slab_) - __builtin_align_down(num_bytes, Alignment);
+    else
+      slab_ =
+        static_cast<char *>(slab_) + __builtin_align_up(num_bytes, Alignment);
+    invariant((reinterpret_cast<std::ptrdiff_t>(slab_) % Alignment) == 0);
   }
 
   /// reallocate<ForOverwrite>(void *Ptr, std::ptrdiff_t OldSize, std::ptrdiff_t
@@ -344,6 +349,7 @@ private:
   constexpr auto outOfSlab() -> bool { return outOfSlab(slab_, s_end_); }
   constexpr void initSlab(void *p) {
     slab_ = p;
+    invariant((reinterpret_cast<std::ptrdiff_t>(slab_) % Alignment) == 0);
     s_end_ = getEnd(p);
   }
   // updates SlabCur and returns the allocated pointer
