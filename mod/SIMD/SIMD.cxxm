@@ -3920,6 +3920,9 @@ struct Unroll {
     -> VT {
     return data_[(r * C) + c];
   }
+  TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const -> T {
+    return data_[idx >> N][idx & ((1 << N) - 1)];
+  }
   template <typename U>
   TRIVIAL constexpr operator Unroll<R, C, N, U>() const
     requires(!std::same_as<T, U>) {
@@ -4747,6 +4750,9 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     -> VT {
     return vec_;
   }
+  TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const -> T {
+    return vec_[idx];
+  }
   TRIVIAL constexpr operator VT() const { return vec_; }
   template <typename U>
   TRIVIAL constexpr operator Unroll<1, 1, N, U>() const
@@ -5521,6 +5527,7 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 2, T> u)
   for (std::ptrdiff_t zc = 0; zc < R; ++zc) {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t zr = 0; zr < C; ++zr) {
+      std::ptrdiff_t zr2 = 2Z * zr;
       if constexpr (R2 % 8 == 0) {
         std::ptrdiff_t r8 = 8 * zc;
         Vec<2, T> a{u[r8, zr]}, b{u[r8 + 1, zr]}, c{u[r8 + 2, zr]},
@@ -5535,9 +5542,8 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 2, T> u)
           l{__builtin_shufflevector(g, h, 0, 1, 2, 3)};
         Vec<8, T> m{__builtin_shufflevector(i, j, 0, 1, 2, 3, 4, 5, 6, 7)},
           n{__builtin_shufflevector(k, l, 0, 1, 2, 3, 4, 5, 6, 7)};
-        z[2 * zr, zc] =
-          __builtin_shufflevector(m, n, 0, 2, 4, 6, 8, 10, 12, 14);
-        z[2 * zr + 1, zc] =
+        z[zr2, zc] = __builtin_shufflevector(m, n, 0, 2, 4, 6, 8, 10, 12, 14);
+        z[zr2 + 1, zc] =
           __builtin_shufflevector(m, n, 1, 3, 5, 7, 9, 11, 13, 15);
 
       } else if constexpr (R2 % 4 == 0) {
@@ -5549,14 +5555,14 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 2, T> u)
         //          1 3 5 7
         Vec<4, T> e{__builtin_shufflevector(a, b, 0, 1, 2, 3)},
           f{__builtin_shufflevector(c, d, 0, 1, 2, 3)};
-        z[2 * zr, zc] = __builtin_shufflevector(e, f, 0, 2, 4, 6);
-        z[2 * zr + 1, zc] = __builtin_shufflevector(e, f, 1, 3, 5, 7);
+        z[zr2, zc] = __builtin_shufflevector(e, f, 0, 2, 4, 6);
+        z[zr2 + 1, zc] = __builtin_shufflevector(e, f, 1, 3, 5, 7);
 
       } else {
         std::ptrdiff_t r2 = 2 * zc;
         Vec<2, T> a{u[r2, zr]}, b{u[r2 + 1, zr]};
-        z[2 * zr, zc] = __builtin_shufflevector(a, b, 0, 2);
-        z[2 * zr + 1, zc] = __builtin_shufflevector(a, b, 1, 3);
+        z[zr2, zc] = __builtin_shufflevector(a, b, 0, 2);
+        z[zr2 + 1, zc] = __builtin_shufflevector(a, b, 1, 3);
       }
     }
   }
@@ -5572,6 +5578,7 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 4, T> u)
   for (std::ptrdiff_t zc = 0; zc < R; ++zc) {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t zr = 0; zr < C; ++zr) {
+      std::ptrdiff_t zr4 = 4Z * zr;
       if constexpr (R2 % 8 == 0) {
         std::ptrdiff_t c8 = 8 * zc;
         Vec<4, T> a{u[c8, zr]}, b{u[c8 + 1, zr]}, c{u[c8 + 2, zr]},
@@ -5590,13 +5597,12 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 4, T> u)
           n{__builtin_shufflevector(i, j, 2, 3, 6, 7, 10, 11, 14, 15)},
           o{__builtin_shufflevector(k, l, 0, 1, 4, 5, 8, 9, 12, 13)},
           p{__builtin_shufflevector(k, l, 2, 3, 6, 7, 10, 11, 14, 15)};
-        z[4 * zr, zc] =
-          __builtin_shufflevector(m, o, 0, 2, 4, 6, 8, 10, 12, 14);
-        z[4 * zr + 1, zc] =
+        z[zr4, zc] = __builtin_shufflevector(m, o, 0, 2, 4, 6, 8, 10, 12, 14);
+        z[zr4 + 1, zc] =
           __builtin_shufflevector(m, o, 1, 3, 5, 7, 9, 11, 13, 15);
-        z[4 * zr + 2, zc] =
+        z[zr4 + 2, zc] =
           __builtin_shufflevector(n, p, 0, 2, 4, 6, 8, 10, 12, 14);
-        z[4 * zr + 3, zc] =
+        z[zr4 + 3, zc] =
           __builtin_shufflevector(n, p, 1, 3, 5, 7, 9, 11, 13, 15);
       } else if constexpr (R2 % 4 == 0) {
         std::ptrdiff_t r4 = 4 * zc;
@@ -5605,18 +5611,19 @@ TRIVIAL constexpr auto transpose(Unroll<R2, C, 4, T> u)
           f{__builtin_shufflevector(a, b, 2, 3, 6, 7)},
           g{__builtin_shufflevector(c, d, 0, 1, 4, 5)},
           h{__builtin_shufflevector(c, d, 2, 3, 6, 7)};
-        z[4 * zr, zc] = __builtin_shufflevector(e, g, 0, 2, 4, 6);
-        z[4 * zr + 1, zc] = __builtin_shufflevector(e, g, 1, 3, 5, 7);
-        z[4 * zr + 2, zc] = __builtin_shufflevector(f, h, 0, 2, 4, 6);
-        z[4 * zr + 3, zc] = __builtin_shufflevector(f, h, 1, 3, 5, 7);
+        z[zr4, zc] = __builtin_shufflevector(e, g, 0, 2, 4, 6);
+        z[zr4 + 1, zc] = __builtin_shufflevector(e, g, 1, 3, 5, 7);
+        z[zr4 + 2, zc] = __builtin_shufflevector(f, h, 0, 2, 4, 6);
+        z[zr4 + 3, zc] = __builtin_shufflevector(f, h, 1, 3, 5, 7);
       } else {
-        Vec<4, T> a{u[2 * zc, zr]}, b{u[2 * zc + 1, zr]},
+        std::ptrdiff_t zc2 = 2Z * zc;
+        Vec<4, T> a{u[zc2, zr]}, b{u[zc2 + 1, zr]},
           e{__builtin_shufflevector(a, b, 0, 4, 2, 6)},
           f{__builtin_shufflevector(a, b, 1, 5, 3, 7)};
-        z[4 * zr, zc] = __builtin_shufflevector(e, e, 0, 1);
-        z[4 * zr + 1, zc] = __builtin_shufflevector(f, f, 0, 1);
-        z[4 * zr + 2, zc] = __builtin_shufflevector(e, e, 2, 3);
-        z[4 * zr + 3, zc] = __builtin_shufflevector(f, f, 2, 3);
+        z[zr4, zc] = __builtin_shufflevector(e, e, 0, 1);
+        z[zr4 + 1, zc] = __builtin_shufflevector(f, f, 0, 1);
+        z[zr4 + 2, zc] = __builtin_shufflevector(e, e, 2, 3);
+        z[zr4 + 3, zc] = __builtin_shufflevector(f, f, 2, 3);
       }
     }
   }
@@ -5633,6 +5640,7 @@ TRIVIAL constexpr auto transpose_droplast(Unroll<R2, C, 4, T> u)
   for (std::ptrdiff_t zc = 0; zc < R; ++zc) {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t zr = 0; zr < C; ++zr) {
+      std::ptrdiff_t zr3 = 3Z * zr;
       if constexpr (R2 % 8 == 0) {
         std::ptrdiff_t c8 = 8 * zc;
         Vec<4, T> a{u[c8, zr]}, b{u[c8 + 1, zr]}, c{u[c8 + 2, zr]},
@@ -5651,11 +5659,10 @@ TRIVIAL constexpr auto transpose_droplast(Unroll<R2, C, 4, T> u)
           n{__builtin_shufflevector(i, j, 2, 3, 6, 7, 10, 11, 14, 15)},
           o{__builtin_shufflevector(k, l, 0, 1, 4, 5, 8, 9, 12, 13)},
           p{__builtin_shufflevector(k, l, 2, 3, 6, 7, 10, 11, 14, 15)};
-        z[3 * zr, zc] =
-          __builtin_shufflevector(m, o, 0, 2, 4, 6, 8, 10, 12, 14);
-        z[3 * zr + 1, zc] =
+        z[zr3, zc] = __builtin_shufflevector(m, o, 0, 2, 4, 6, 8, 10, 12, 14);
+        z[zr3 + 1, zc] =
           __builtin_shufflevector(m, o, 1, 3, 5, 7, 9, 11, 13, 15);
-        z[3 * zr + 2, zc] =
+        z[zr3 + 2, zc] =
           __builtin_shufflevector(n, p, 0, 2, 4, 6, 8, 10, 12, 14);
       } else if constexpr (R2 % 4 == 0) {
         std::ptrdiff_t r4 = 4 * zc;
@@ -5664,16 +5671,16 @@ TRIVIAL constexpr auto transpose_droplast(Unroll<R2, C, 4, T> u)
           f{__builtin_shufflevector(a, b, 2, 3, 6, 7)},
           g{__builtin_shufflevector(c, d, 0, 1, 4, 5)},
           h{__builtin_shufflevector(c, d, 2, 3, 6, 7)};
-        z[3 * zr, zc] = __builtin_shufflevector(e, g, 0, 2, 4, 6);
-        z[3 * zr + 1, zc] = __builtin_shufflevector(e, g, 1, 3, 5, 7);
-        z[3 * zr + 2, zc] = __builtin_shufflevector(f, h, 0, 2, 4, 6);
+        z[zr3, zc] = __builtin_shufflevector(e, g, 0, 2, 4, 6);
+        z[zr3 + 1, zc] = __builtin_shufflevector(e, g, 1, 3, 5, 7);
+        z[zr3 + 2, zc] = __builtin_shufflevector(f, h, 0, 2, 4, 6);
       } else {
-        Vec<4, T> a{u[2 * zc, zr]}, b{u[2 * zc + 1, zr]},
+        Vec<4, T> a{u[2 * zc, zr]}, b{u[(2 * zc) + 1, zr]},
           e{__builtin_shufflevector(a, b, 0, 4, 2, 6)},
           f{__builtin_shufflevector(a, b, 1, 5, 3, 7)};
-        z[3 * zr, zc] = __builtin_shufflevector(e, e, 0, 1);
-        z[3 * zr + 1, zc] = __builtin_shufflevector(f, f, 0, 1);
-        z[3 * zr + 2, zc] = __builtin_shufflevector(e, e, 2, 3);
+        z[zr3, zc] = __builtin_shufflevector(e, e, 0, 1);
+        z[zr3 + 1, zc] = __builtin_shufflevector(f, f, 0, 1);
+        z[zr3 + 2, zc] = __builtin_shufflevector(e, e, 2, 3);
       }
     }
   }
@@ -5846,16 +5853,16 @@ TRIVIAL constexpr auto loadstrideunroll(const T *ptr,
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          ret[r, c] = load(ptr + c * W * s, mask::None<W>{}, s);
+          ret[r, c] = load(ptr + (c * W * s), mask::None<W>{}, s);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          ret[r, c] = load(ptr + c * W * s, masks[c], s);
+          ret[r, c] = load(ptr + (c * W * s), masks[c], s);
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          ret[r, c] = load(ptr + c * W * s, mask::None<W>{}, s);
-        ret[r, C - 1] = load(ptr + (C - 1) * W * s, masks[0], s);
+          ret[r, c] = load(ptr + (c * W * s), mask::None<W>{}, s);
+        ret[r, C - 1] = load(ptr + ((C - 1) * W * s), masks[0], s);
       }
     }
     return ret;
@@ -5898,14 +5905,13 @@ struct UnrollRef {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c) {
           auto msk = masks_[c];
-          store(p + c * W, msk, x[r, c]);
-          // store(p + c * W, masks[c], x[r, c]);
+          store(p + (c * W), msk, x[r, c]);
         }
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          store(p + c * W, mask::None<W>{}, x[r, c]);
-        store(p + (C - 1) * W, masks_[0], x[r, C - 1]);
+          store(p + (c * W), mask::None<W>{}, x[r, c]);
+        store(p + ((C - 1) * W), masks_[0], x[r, C - 1]);
       }
     }
     return *this;
@@ -5919,18 +5925,18 @@ struct UnrollRef {
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W, mask::None<W>{}, x[0, c]);
+          store(p + (c * W), mask::None<W>{}, x[0, c]);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c) {
           auto msk = masks_[c];
-          store(p + c * W, msk, x[0, c]);
+          store(p + (c * W), msk, x[0, c]);
         }
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          store(p + c * W, mask::None<W>{}, x[0, c]);
-        store(p + (C - 1) * W, masks_[0], x[0, C - 1]);
+          store(p + (c * W), mask::None<W>{}, x[0, c]);
+        store(p + ((C - 1) * W), masks_[0], x[0, C - 1]);
       }
     }
     return *this;
@@ -5948,7 +5954,7 @@ struct UnrollRef {
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W, masks_[c], vbroadcast<W>(x[r, c]));
+          store(p + (c * W), masks_[c], vbroadcast<W>(x[r, c]));
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
@@ -5968,15 +5974,15 @@ struct UnrollRef {
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W, mask::None<W>{}, v);
+          store(p + (c * W), mask::None<W>{}, v);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c) store(p + c * W, masks_[c], v);
       } else { // NM == 1
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          store(p + c * W, mask::None<W>{}, v);
-        store(p + (C - 1) * W, masks_[0], v);
+          store(p + (c * W), mask::None<W>{}, v);
+        store(p + ((C - 1) * W), masks_[0], v);
       }
     }
     return *this;
@@ -5989,16 +5995,16 @@ struct UnrollRef {
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W * s, mask::None<W>{}, x[0, c], s);
+          store(p + (c * W * s), mask::None<W>{}, x[0, c], s);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W * s, masks_[c], x[0, c], s);
+          store(p + (c * W * s), masks_[c], x[0, c], s);
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          store(p + c * W * s, mask::None<W>{}, x[0, c], s);
-        store(p + (C - 1) * W * s, masks_[0], x[0, C - 1], s);
+          store(p + (c * W * s), mask::None<W>{}, x[0, c], s);
+        store(p + ((C - 1) * W * s), masks_[0], x[0, C - 1], s);
       }
     }
     return *this;
@@ -6011,16 +6017,16 @@ struct UnrollRef {
       if constexpr (NM == 0) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W * s, mask::None<W>{}, v, s);
+          store(p + (c * W * s), mask::None<W>{}, v, s);
       } else if constexpr (NM == C) {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C; ++c)
-          store(p + c * W * s, masks_[c], v, s);
+          store(p + (c * W * s), masks_[c], v, s);
       } else {
         POLYMATHFULLUNROLL
         for (std::ptrdiff_t c = 0; c < C - 1; ++c)
-          store(p + c * W * s, mask::None<W>{}, v, s);
-        store(p + (C - 1) * W * s, masks_[0], v, s);
+          store(p + (c * W * s), mask::None<W>{}, v, s);
+        store(p + ((C - 1) * W * s), masks_[0], v, s);
       }
     }
     return *this;
@@ -6149,7 +6155,7 @@ private:
       El<W, std::int64_t> v = vbroadcast<W, std::int64_t>(y - x.index_);
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        ret.data[u] = range<W, std::int64_t>() == (v - u * W);
+        ret.data[u] = range<W, std::int64_t>() == (v - (u * W));
       return ret;
     } else
       return ::simd::Unroll<1, 1, W, std::int64_t>{
@@ -6169,7 +6175,7 @@ private:
       El<W, std::int64_t> v = vbroadcast<W, std::int64_t>(y - x.index_);
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        ret.data[u] = range<W, std::int64_t>() != (v - u * W);
+        ret.data[u] = range<W, std::int64_t>() != (v - (u * W));
       return ret;
     } else
       return ::simd::Unroll<1, 1, W, std::int64_t>{
@@ -6189,7 +6195,7 @@ private:
       El<W, std::int64_t> v = vbroadcast<W, std::int64_t>(y - x.index_);
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        ret.data[u] = range<W, std::int64_t>() < (v - u * W);
+        ret.data[u] = range<W, std::int64_t>() < (v - (u * W));
       return ret;
     } else
       return ::simd::Unroll<1, 1, W, std::int64_t>{
@@ -6209,7 +6215,7 @@ private:
       El<W, std::int64_t> v = vbroadcast<W, std::int64_t>(y - x.index_);
       POLYMATHFULLUNROLL
       for (std::ptrdiff_t u = 0; u < U; ++u)
-        ret.data[u] = range<W, std::int64_t>() > (v - u * W);
+        ret.data[u] = range<W, std::int64_t>() > (v - (u * W));
       return ret;
     } else
       return ::simd::Unroll<1, 1, W, std::int64_t>{
