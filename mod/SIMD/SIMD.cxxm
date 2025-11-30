@@ -112,21 +112,26 @@ template <std::ptrdiff_t W, typename T>
 }
 template <std::ptrdiff_t W, typename T>
 [[nodiscard]] TRIVIAL constexpr auto cat(Vec<W, T> a, Vec<W, T> b)
-  -> Vec<2Z * W, T> {
-  if constexpr (W == 16) {
-    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-                                    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-                                    23, 24, 25, 26, 27, 28, 29, 30, 31)};
+  -> Vec<2Z * W, T> requires((std::popcount(std::size_t(W)) == 1) && W <= 32) {
+  if constexpr (W == 1) {
+    return {__builtin_shufflevector(a, b, 0, 1)};
+  } else if constexpr (W == 2) {
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3)};
+  } else if constexpr (W == 4) {
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7)};
   } else if constexpr (W == 8) {
     return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
                                     12, 13, 14, 15)};
-  } else if constexpr (W == 4) {
-    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7)};
-  } else if constexpr (W == 2) {
-    return {__builtin_shufflevector(a, b, 0, 1, 2, 3)};
-  } else if constexpr (W == 1) {
-    return {__builtin_shufflevector(a, b, 0, 1)};
-  } else static_assert(false, "Not yet supporting larger SIMD.");
+  } else if constexpr (W == 16) {
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                                    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                                    23, 24, 25, 26, 27, 28, 29, 30, 31)};
+  } else // if constexpr (W == 32) {
+    return {__builtin_shufflevector(
+      a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+      19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+      37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+      55, 56, 57, 58, 59, 60, 61, 62, 63)};
 }
 
 namespace mask {
