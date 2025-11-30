@@ -206,15 +206,17 @@ auto main() -> int {
   };
   "FromSplitLarger"_test = [] -> void {
     // Test larger split: Unroll<4, 2, W, int> from Vec<8*W, int>
-    static constexpr auto W = simd::Width<int>;
-    constexpr auto v = simd::range<8 * W, int>();
+    static constexpr auto Wint = simd::Width<int>;
+    using I = std::conditional_t<(Wint <= 64), int, std::int64_t>;
+    static constexpr auto W = simd::Width<I>;
+    constexpr auto v = simd::range<8 * W, I>();
 
-    auto u = simd::Unroll<4, 2, W, int>::fromSplit(v);
+    auto u = simd::Unroll<4, 2, W, I>::fromSplit(v);
 
-    // Should split into 4x2 grid of Vec<W, int>
+    // Should split into 4x2 grid of Vec<W, I>
     for (std::ptrdiff_t idx = 0; idx < 8; ++idx)
       for (std::ptrdiff_t i = 0; i < W; ++i)
-        expect(eq(u[idx][i], static_cast<int>(idx * W + i)));
+        expect(eq(u[idx][i], static_cast<I>(idx * W + i)));
     expect(__builtin_reduce_and(u.catToSIMD() == v));
   };
   "FromSplitDouble"_test = [] -> void {
@@ -226,7 +228,7 @@ auto main() -> int {
 
     for (std::ptrdiff_t c = 0; c < 4; ++c)
       for (std::ptrdiff_t i = 0; i < W; ++i)
-        expect(approx(u[c][i], static_cast<double>(c * W + i), 1e-14));
+        expect(eq(u[c][i], static_cast<double>(c * W + i)));
 
     expect(__builtin_reduce_and(u.catToSIMD() == v));
   };
