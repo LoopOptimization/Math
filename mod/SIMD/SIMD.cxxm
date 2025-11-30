@@ -63,35 +63,75 @@ inline constexpr std::ptrdiff_t VECTORWIDTH = 16;
 #endif // __x86_64__
 template <std::ptrdiff_t W,
           typename I = std::conditional_t<W == 2, std::int64_t, std::int32_t>>
-consteval auto range() -> Vec<W, I> {
-  static_assert(std::popcount(std::size_t(W)) == 1);
+consteval auto range() -> Vec<W, I>
+  requires((std::popcount(std::size_t(W)) == 1) && W >= 2 && W <= 64) {
   if constexpr (W == 2) return Vec<W, I>{0, 1};
   else if constexpr (W == 4) return Vec<W, I>{0, 1, 2, 3};
   else if constexpr (W == 8) return Vec<W, I>{0, 1, 2, 3, 4, 5, 6, 7};
   else if constexpr (W == 16)
     return Vec<W, I>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-  else {
-    Vec<W, I> r;
-    for (std::ptrdiff_t w = 0; w < W; ++w) r[w] = I(w);
-    return r;
-  }
+  else if constexpr (W == 32)
+    return Vec<W, I>{0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
+                     11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                     22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+  else // if constexpr (W == 64)
+    return Vec<W, I>{0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12,
+                     13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+                     39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+                     52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63};
 }
 template <std::ptrdiff_t W, typename T>
 [[nodiscard]] TRIVIAL constexpr auto split(Vec<W, T> vec)
   -> std::array<El<W / 2Z, T>, 2>
-  requires(W == 2 || W == 4 || W == 8 || W == 16) {
-  if constexpr (W == 16) {
-    return {__builtin_shufflevector(vec, vec, 0, 1, 2, 3, 4, 5, 6, 7),
-            __builtin_shufflevector(vec, vec, 8, 9, 10, 11, 12, 13, 14, 15)};
-  } else if constexpr (W == 8) {
-    return {__builtin_shufflevector(vec, vec, 0, 1, 2, 3),
-            __builtin_shufflevector(vec, vec, 4, 5, 6, 7)};
+  requires((std::popcount(std::size_t(W)) == 1) && W >= 2 && W <= 64) {
+  if constexpr (W == 2) {
+    return {vec[0], vec[1]};
   } else if constexpr (W == 4) {
     return {__builtin_shufflevector(vec, vec, 0, 1),
             __builtin_shufflevector(vec, vec, 2, 3)};
+  } else if constexpr (W == 8) {
+    return {__builtin_shufflevector(vec, vec, 0, 1, 2, 3),
+            __builtin_shufflevector(vec, vec, 4, 5, 6, 7)};
+  } else if constexpr (W == 16) {
+    return {__builtin_shufflevector(vec, vec, 0, 1, 2, 3, 4, 5, 6, 7),
+            __builtin_shufflevector(vec, vec, 8, 9, 10, 11, 12, 13, 14, 15)};
+  } else if constexpr (W == 32) {
+    return {__builtin_shufflevector(vec, vec, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                    11, 12, 13, 14, 15),
+            __builtin_shufflevector(vec, vec, 16, 17, 18, 19, 20, 21, 22, 23,
+                                    24, 25, 26, 27, 28, 29, 30, 31)};
+  } else // if constexpr (W == 64)
+    return {__builtin_shufflevector(vec, vec, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+                                    11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                                    22, 23, 24, 25, 26, 27, 28, 29, 30, 31),
+            __builtin_shufflevector(vec, vec, 32, 33, 34, 35, 36, 37, 38, 39,
+                                    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+                                    51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+                                    62, 63)};
+}
+template <std::ptrdiff_t W, typename T>
+[[nodiscard]] TRIVIAL constexpr auto cat(Vec<W, T> a, Vec<W, T> b)
+  -> Vec<2Z * W, T> requires((std::popcount(std::size_t(W)) == 1) && W <= 32) {
+  if constexpr (W == 1) {
+    return {__builtin_shufflevector(a, b, 0, 1)};
   } else if constexpr (W == 2) {
-    return {vec[0], vec[1]};
-  } else static_assert("currently only supports W in {2,4,8,16}");
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3)};
+  } else if constexpr (W == 4) {
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7)};
+  } else if constexpr (W == 8) {
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                                    12, 13, 14, 15)};
+  } else if constexpr (W == 16) {
+    return {__builtin_shufflevector(a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                                    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                                    23, 24, 25, 26, 27, 28, 29, 30, 31)};
+  } else // if constexpr (W == 32) {
+    return {__builtin_shufflevector(
+      a, b, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+      19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+      37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+      55, 56, 57, 58, 59, 60, 61, 62, 63)};
 }
 
 namespace mask {
@@ -317,16 +357,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(Vector<W, Bytes> b) const
     -> Vector<2 * W, Bytes> requires(W == 1 || W == 2 || W == 4 || W == 8) {
-    if constexpr (W == 8) {
-      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                      11, 12, 13, 14, 15)};
-    } else if constexpr (W == 4) {
-      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7)};
-    } else if constexpr (W == 2) {
-      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3)};
-    } else if constexpr (W == 1) {
-      return {__builtin_shufflevector(m, b.m, 0, 1)};
-    }
+    return {::simd::cat(m, b.m)};
   }
   template <typename T> requires(sizeof(T) == Bytes)
   [[nodiscard]] TRIVIAL constexpr auto select(Vec<W, T> a, Vec<W, T> b) const
@@ -491,16 +522,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(Vector<W, Bytes> b) const
     -> Vector<2 * W, Bytes> requires(W == 1 || W == 2 || W == 4 || W == 8) {
-    if constexpr (W == 8) {
-      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                      11, 12, 13, 14, 15)};
-    } else if constexpr (W == 4) {
-      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3, 4, 5, 6, 7)};
-    } else if constexpr (W == 2) {
-      return {__builtin_shufflevector(m, b.m, 0, 1, 2, 3)};
-    } else if constexpr (W == 1) {
-      return {__builtin_shufflevector(m, b.m, 0, 1)};
-    }
+    return {::simd::cat(m, b.m)};
   }
   template <typename T> requires(sizeof(T) == Bytes)
   [[nodiscard]] TRIVIAL constexpr auto select(Vec<W, T> a, Vec<W, T> b) const
@@ -4001,21 +4023,32 @@ struct Unroll {
     -> Unroll & requires(N != 1) {
     return (*this) /= ::simd::vbroadcast<N, T>(a);
   }
-  [[nodiscard]] TRIVIAL constexpr auto split() const requires(R == 1 || C == 1)
-  {
-    static_assert(R > 1 || C > 1);
-    static constexpr std::ptrdiff_t Chalf = C >> 1;
-    static constexpr std::ptrdiff_t Rhalf = R >> 1;
+  [[nodiscard]] TRIVIAL constexpr auto split() const requires(!(R & C & 1)) {
+    // we prefer to split `R`
+    static constexpr bool split_r = (R & 1) == 0;
+    static constexpr std::ptrdiff_t Rnew = R >> split_r;
+    static constexpr std::ptrdiff_t Cnew = C >> !split_r;
     static constexpr std::ptrdiff_t L = (R * C) >> 1;
-    using U = std::conditional_t<R == 1, Unroll<1Z, Chalf, N, T>,
-                                 Unroll<Rhalf, 1Z, N, T>>;
+    using U = Unroll<Rnew, Cnew, N, T>;
 
     if constexpr (L > 1) {
       std::array<U, 2> ret{};
-      POLYMATHFULLUNROLL
-      for (std::ptrdiff_t i = 0; i < L; ++i) {
-        ret[0].data_[i] = data_[i];
-        ret[1].data_[i] = data_[i + L];
+      if constexpr (split_r || Cnew == 1) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < L; ++i) {
+          ret[0].data_[i] = data_[i];
+          ret[1].data_[i] = data_[i + L];
+        }
+      } else {
+        // e.g. if R = 3, C = 4
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t r = 0; r < R; ++r) {
+          POLYMATHFULLUNROLL
+          for (std::ptrdiff_t c = 0; c < Cnew; ++c) {
+            ret[0].data_[(r * Cnew) + c] = data_[(r * C) + c];
+            ret[1].data_[(r * Cnew) + c] = data_[(r * C) + c + Cnew];
+          }
+        }
       }
       return ret;
     } else return std::array<U, 2>{U{data_[0]}, U{data_[1]}};
@@ -4027,6 +4060,56 @@ struct Unroll {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i) u.data_[i] = v;
     return u;
+  }
+  TRIVIAL static constexpr auto fromSplit(Vec<R * C * N, T> x) -> Unroll
+    requires(std::popcount(std::size_t(R *C)) == 1) {
+    auto [a, b] = ::simd::split(x);
+    if constexpr (R * C == 2) {
+      return {a, b};
+    } else if constexpr (R * C == 4) {
+      auto [aa, ab] = ::simd::split(a);
+      auto [ba, bb] = ::simd::split(b);
+      return {aa, ab, ba, bb};
+    } else if constexpr (R > 1) {
+      static constexpr std::ptrdiff_t Rhalf = R / 2;
+      auto y = Unroll<Rhalf, C, N, T>::fromSplit(a);
+      auto z = Unroll<Rhalf, C, N, T>::fromSplit(b);
+      Unroll ret;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t r = 0; r < Rhalf; ++r) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t c = 0; c < C; ++c) {
+          std::ptrdiff_t rC = r * C;
+          ret.data_[rC + c] = y.data_[rC + c];
+          ret.data_[rC + c + (Rhalf * C)] = z.data_[rC + c];
+        }
+      }
+      return ret;
+    } else {
+      static constexpr std::ptrdiff_t Chalf = C / 2;
+      auto y = Unroll<1Z, Chalf, N, T>::fromSplit(a);
+      auto z = Unroll<1Z, Chalf, N, T>::fromSplit(b);
+      Unroll ret;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t c = 0; c < Chalf; ++c) {
+        ret.data_[c] = y.data_[c];
+        ret.data_[c + Chalf] = z.data_[c];
+      }
+      return ret;
+    }
+  }
+  TRIVIAL constexpr auto catToSIMD() const
+    -> Vec<R * C * N, T> requires(std::popcount(std::size_t(R *C)) == 1) {
+    if constexpr (R * C == 2) {
+      return ::simd::cat(data_[0], data_[1]);
+    } else if constexpr (R * C == 4) {
+      auto a = ::simd::cat(data_[0], data_[1]);
+      auto b = ::simd::cat(data_[2], data_[3]);
+      return ::simd::cat(a, b);
+    } else {
+      auto [a, b] = this->split();
+      return ::simd::cat(a.catToSIMD(), b.catToSIMD());
+    }
   }
   TRIVIAL constexpr auto maximum() const -> T {
     static constexpr std::ptrdiff_t L = R * C;
@@ -4824,6 +4907,7 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   TRIVIAL static constexpr auto vbroadcast(T x) -> Unroll {
     return {::simd::vbroadcast<N>(x)};
   }
+  TRIVIAL static constexpr auto fromSplit(Vec<N, T> x) -> Unroll { return {x}; }
   TRIVIAL constexpr auto maximum() const -> T {
     return simd::reduce::max(vec_);
   }
@@ -4903,30 +4987,13 @@ public:
   }
   TRIVIAL [[nodiscard]] constexpr auto cat(Unroll other) const
     -> SVec<T, 2Z * N> {
-    if constexpr (N == Width<T>) {
-      return {vec_, other.vec_};
-    } else if constexpr (N == 2) {
-      return {__builtin_shufflevector(vec_, other.vec_, 0, 1, 2, 3)};
-    } else if constexpr (N == 4) {
-      return {
-        __builtin_shufflevector(vec_, other.vec_, 0, 1, 2, 3, 4, 5, 6, 7)};
-    } else if constexpr (N == 8) {
-      return {__builtin_shufflevector(vec_, other.vec_, 0, 1, 2, 3, 4, 5, 6, 7,
-                                      8, 9, 10, 11, 12, 13, 14, 15)};
-    } else static_assert(false, "Not yet supporting larger SIMD.");
+    if constexpr (N == Width<T>) return {vec_, other.vec_};
+    else return {::simd::cat(vec_, other.vec_)};
   }
   /// x.cat() is equivalent to `x.cat(x)`.
   TRIVIAL [[nodiscard]] constexpr auto cat() const -> SVec<T, 2Z * N> {
-    if constexpr (N == Width<T>) {
-      return {vec_, vec_};
-    } else if constexpr (N == 2) {
-      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3)};
-    } else if constexpr (N == 4) {
-      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7)};
-    } else if constexpr (N == 8) {
-      return {__builtin_shufflevector(vec_, vec_, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-                                      10, 11, 12, 13, 14, 15)};
-    } else static_assert(false, "Not yet supporting larger SIMD.");
+    if constexpr (N == Width<T>) return {vec_, vec_};
+    else return {::simd::cat(vec_, vec_)};
   }
   TRIVIAL constexpr auto operator=(const Unroll &) & -> Unroll & = default;
   auto operator=(const Unroll &) && -> Unroll & = delete;

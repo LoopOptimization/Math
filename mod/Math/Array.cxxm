@@ -1004,9 +1004,6 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
     // Process elements in SIMD chunks
     std::ptrdiff_t i = 0;
     for (; i <= src_size - W; i += W) {
-      simd::index::Unroll<1, W> u{i};
-      auto vec = src[u]; // SIMD load - this is an unrolled object
-
       // Extract mask bits for this chunk
       std::uint64_t chunk_mask = (mask >> i) & ((1ULL << W) - 1);
 
@@ -1030,33 +1027,21 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
       // Use SIMD compressstore if we have a non-zero mask
       if (chunk_mask != 0) {
 #ifdef __AVX512F__
-        // AVX512 version using mask::Bit
-        if constexpr (requires {
-                        simd::compressstore(dst.data() + dst_idx,
-                                            simd::mask::Bit<W>{chunk_mask},
-                                            vec);
-                      }) {
-          simd::compressstore(dst.data() + dst_idx,
-                              simd::mask::Bit<W>{chunk_mask}, vec);
-          dst_idx += bits_set;
-        } else {
+        simd::index::Unroll<1, W> u{i};
+        simd::compressstore(dst.data() + dst_idx,
+                            simd::mask::Bit<W>{chunk_mask}, src[u].vec_);
+        dst_idx += bits_set;
 #endif
-          // Fallback for AVX512 when specific width not supported
-          POLYMATHFULLUNROLL
-          for (std::ptrdiff_t w = 0; w < W; ++w)
-            if (chunk_mask & (1ULL << w))
-              dst.data()[dst_idx++] = src[i + w]; // Access source directly
-#ifdef __AVX512F__
-        }
-#endif
+        // Fallback for AVX512 when specific width not supported
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t w = 0; w < W; ++w)
+          if (chunk_mask & (1ULL << w))
+            dst.data()[dst_idx++] = src[i + w]; // Access source directly
       }
     }
 
     // Handle remaining elements using tailmask
     if (std::ptrdiff_t M = src_size - i) {
-      auto u{simd::index::tailmask<W>(i, M)};
-      auto vec = src[u]; // SIMD load with tailmask
-
       // Extract mask bits for remaining elements
       std::uint64_t chunk_mask = (mask >> i) & ((1ULL << M) - 1);
 
@@ -1080,24 +1065,17 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
       if (chunk_mask != 0) {
 #ifdef __AVX512F__
         // AVX512 version using mask::Bit
-        if constexpr (requires {
-                        simd::compressstore(dst.data() + dst_idx,
-                                            simd::mask::Bit<W>{chunk_mask},
-                                            vec);
-                      }) {
-          simd::compressstore(dst.data() + dst_idx,
-                              simd::mask::Bit<W>{chunk_mask}, vec);
-          dst_idx += bits_set;
-        } else {
+        auto u{simd::index::tailmask<W>(i, M)};
+        simd::compressstore(dst.data() + dst_idx,
+                            simd::mask::Bit<W>{chunk_mask}, src[u].vec_);
+        dst_idx += bits_set;
+      } else {
 #endif
-          // Fallback for tail elements on AVX512
-          POLYMATHFULLUNROLL
-          for (std::ptrdiff_t w = 0; w < M; ++w)
-            if (chunk_mask & (1ULL << w))
-              dst.data()[dst_idx++] = src[i + w]; // Access source directly
-#ifdef __AVX512F__
-        }
-#endif
+        // Fallback for tail elements on AVX512
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t w = 0; w < M; ++w)
+          if (chunk_mask & (1ULL << w))
+            dst.data()[dst_idx++] = src[i + w]; // Access source directly
       }
     }
     return;

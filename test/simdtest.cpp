@@ -164,5 +164,73 @@ auto main() -> int {
     testMaskUnrollCast<1>();
   };
   "MaskSelectWithCast"_test = [] -> void { testMaskSelectWithCast(); };
+  "FromSplitBasic"_test = [] -> void {
+    // Test base case: Unroll<1, 2, W, int> from Vec<2*W, int>
+    static constexpr auto W = simd::Width<int>;
+    constexpr auto v = simd::range<2 * W, int>();
+
+    auto u = simd::Unroll<1, 2, W, int>::fromSplit(v);
+
+    // Should split into two Vec<W, int>
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(eq(u[0][i], static_cast<int>(i)));
+      expect(eq(u[1][i], static_cast<int>(W + i)));
+    }
+    expect(__builtin_reduce_and(u.catToSIMD() == v));
+  };
+  "FromSplitColumn"_test = [] -> void {
+    // Test column split: Unroll<1, 4, W, int> from Vec<4*W, int>
+    static constexpr auto W = simd::Width<int>;
+    constexpr auto v = simd::range<4 * W, int>();
+
+    auto u = simd::Unroll<1, 4, W, int>::fromSplit(v);
+
+    // Should split into 4 Vec<W, int>
+    for (std::ptrdiff_t c = 0; c < 4; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        expect(eq(u[c][i], static_cast<int>(c * W + i)));
+    expect(__builtin_reduce_and(u.catToSIMD() == v));
+  };
+  "FromSplitRow"_test = [] -> void {
+    // Test row split: Unroll<2, 2, W, int> from Vec<4*W, int>
+    static constexpr auto W = simd::Width<int>;
+    constexpr auto v = simd::range<4 * W, int>();
+
+    auto u = simd::Unroll<2, 2, W, int>::fromSplit(v);
+
+    // Should split into 2x2 grid of Vec<W, int>
+    for (std::ptrdiff_t idx = 0; idx < 4; ++idx)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        expect(eq(u[idx][i], static_cast<int>(idx * W + i)));
+    expect(__builtin_reduce_and(u.catToSIMD() == v));
+  };
+  "FromSplitLarger"_test = [] -> void {
+    // Test larger split: Unroll<4, 2, W, int> from Vec<8*W, int>
+    static constexpr auto Wint = simd::Width<int>;
+    using I = std::conditional_t<(Wint <= 8), int, std::int64_t>;
+    static constexpr auto W = simd::Width<I>;
+    constexpr auto v = simd::range<8 * W, I>();
+
+    auto u = simd::Unroll<4, 2, W, I>::fromSplit(v);
+
+    // Should split into 4x2 grid of Vec<W, I>
+    for (std::ptrdiff_t idx = 0; idx < 8; ++idx)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        expect(eq(u[idx][i], static_cast<I>(idx * W + i)));
+    expect(__builtin_reduce_and(u.catToSIMD() == v));
+  };
+  "FromSplitDouble"_test = [] -> void {
+    // Test with double type: Unroll<1, 4, W, double> from Vec<4*W, double>
+    static constexpr auto W = simd::Width<double>;
+    constexpr auto v = simd::range<4 * W, double>();
+
+    auto u = simd::Unroll<1, 4, W, double>::fromSplit(v);
+
+    for (std::ptrdiff_t c = 0; c < 4; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        expect(eq(u[c][i], static_cast<double>(c * W + i)));
+
+    expect(__builtin_reduce_and(u.catToSIMD() == v));
+  };
   return 0;
 }
