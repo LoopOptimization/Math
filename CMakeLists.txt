@@ -96,11 +96,11 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     ${PROJECT_NAME}
     PRIVATE -fmax-errors=8 -fconcepts-diagnostics-depth=4
             -fno-semantic-interposition -fdiagnostics-color=always
-            -Wno-comma-subscript -Wno-psabi)
+            -Wno-comma-subscript)
 endif()
-target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow -Werror) # -Wpedantic
-                                                                 # -Wextra -Wall
-# -Wno-reference-tu-local-entity-in-other-tu)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow -Werror -Wno-psabi)
+# -Wall) # TODO: enable Wall
+# -Wpedantic -Wextra -Wall -Wno-reference-tu-local-entity-in-other-tu)
 target_compile_features(
   ${PROJECT_NAME}
   PRIVATE cxx_std_23
