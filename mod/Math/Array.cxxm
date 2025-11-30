@@ -1029,7 +1029,7 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
 #ifdef __AVX512F__
         simd::index::Unroll<1, W> u{i};
         simd::compressstore(dst.data() + dst_idx,
-                            simd::mask::Bit<W>{chunk_mask}, src[u]);
+                            simd::mask::Bit<W>{chunk_mask}, src[u].vec_);
         dst_idx += bits_set;
 #endif
         // Fallback for AVX512 when specific width not supported
@@ -1067,7 +1067,7 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
         // AVX512 version using mask::Bit
         auto u{simd::index::tailmask<W>(i, M)};
         simd::compressstore(dst.data() + dst_idx,
-                            simd::mask::Bit<W>{chunk_mask}, src[u]);
+                            simd::mask::Bit<W>{chunk_mask}, src[u].vec_);
         dst_idx += bits_set;
       } else {
 #endif
