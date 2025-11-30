@@ -207,7 +207,7 @@ auto main() -> int {
   "FromSplitLarger"_test = [] -> void {
     // Test larger split: Unroll<4, 2, W, int> from Vec<8*W, int>
     static constexpr auto Wint = simd::Width<int>;
-    using I = std::conditional_t<(Wint <= 64), int, std::int64_t>;
+    using I = std::conditional_t<(Wint <= 8), int, std::int64_t>;
     static constexpr auto W = simd::Width<I>;
     constexpr auto v = simd::range<8 * W, I>();
 
