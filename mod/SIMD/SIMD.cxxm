@@ -63,9 +63,10 @@ inline constexpr std::ptrdiff_t VECTORWIDTH = 16;
 #endif // __x86_64__
 template <std::ptrdiff_t W,
           typename I = std::conditional_t<W == 2, std::int64_t, std::int32_t>>
-consteval auto range() -> Vec<W, I> {
-  static_assert(std::popcount(std::size_t(W)) == 1);
-  if constexpr (W == 2) return Vec<W, I>{0, 1};
+consteval auto range()
+  -> Vec<W, I> requires((std::popcount(std::size_t(W)) == 1) && W <= 64) {
+  if constexpr (W == 1) return Vec<W, I>{0};
+  else if constexpr (W == 2) return Vec<W, I>{0, 1};
   else if constexpr (W == 4) return Vec<W, I>{0, 1, 2, 3};
   else if constexpr (W == 8) return Vec<W, I>{0, 1, 2, 3, 4, 5, 6, 7};
   else if constexpr (W == 16)
@@ -74,11 +75,12 @@ consteval auto range() -> Vec<W, I> {
     return Vec<W, I>{0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
                      11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
                      22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
-  else {
-    Vec<W, I> r;
-    for (std::ptrdiff_t w = 0; w < W; ++w) r[w] = I(w);
-    return r;
-  }
+  else // if constexpr (W == 64)
+    return Vec<W, I>{0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12,
+                     13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+                     39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+                     52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63};
 }
 template <std::ptrdiff_t W, typename T>
 [[nodiscard]] TRIVIAL constexpr auto split(Vec<W, T> vec)
