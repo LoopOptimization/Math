@@ -98,7 +98,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -fno-semantic-interposition -fdiagnostics-color=always
             -Wno-comma-subscript)
 endif()
-target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow -Werror -Wno-psabi)
+target_compile_options(${PROJECT_NAME} PUBLIC -Wno-psabi)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow -Werror)
 # -Wall) # TODO: enable Wall
 # -Wpedantic -Wextra -Wall -Wno-reference-tu-local-entity-in-other-tu)
 target_compile_features(
