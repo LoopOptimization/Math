@@ -182,11 +182,11 @@ template <std::unsigned_integral U> constexpr auto flipMask(U u, U count) -> U {
 /// In this case, we'd have subperms `{{i, j}, {k, l}}`.
 ///
 struct LoopPermutations {
-  using SubPerms = containers::TinyVector<LoopSet, 15, std::int16_t>;
+  using SubPerms = containers::TinyVector<LoopSet, 14, std::int16_t>;
   SubPerms subperms_;
-  int num_loops_;
+  std::int16_t num_loops_;
   LoopPermutations(SubPerms subperms, int num_loops)
-    : subperms_{subperms}, num_loops_{num_loops} {}
+    : subperms_{subperms}, num_loops_{static_cast<std::int16_t>(num_loops)} {}
   // To iterate, we're imagining a nested loop, with nesting depth equal to
   // `subperms.size()`. Each level of the loop nest uses Heap's algorithm to
   // iterate over all permutations of the corresponding element `subperms`.
@@ -348,5 +348,6 @@ struct LoopPermutations {
     return std::default_sentinel;
   }
 };
+static_assert(sizeof(LoopPermutations) == 32);
 
 } // namespace utils

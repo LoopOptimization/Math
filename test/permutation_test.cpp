@@ -23,7 +23,7 @@ auto main() -> int {
   };
   "LoopPermutationTest.BasicAssertions"_test = [] -> void {
     using utils::LoopSet;
-    containers::TinyVector<LoopSet, 15, std::int16_t> cmpts;
+    containers::TinyVector<LoopSet, 14, std::int16_t> cmpts;
     // cmpts are [1], [0,3], [2, 4]
     cmpts.push_back(LoopSet::fromMask(0x02)); // 0x00000010
     cmpts.push_back(LoopSet::fromMask(0x09)); // 0x00001001
