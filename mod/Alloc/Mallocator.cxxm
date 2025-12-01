@@ -258,13 +258,27 @@ concept CanAllocAtLeast = requires(A a) {
     a.allocate_at_least(1)
   } -> std::same_as<AllocResult<typename A::value_type>>;
 };
+template <class A>
+concept CanAlignedAllocAtLeast = requires(A a, std::align_val_t al) {
+  {
+    a.allocate_at_least(1, al)
+  } -> std::same_as<AllocResult<typename A::value_type>>;
+};
 static_assert(CanAllocAtLeast<Mallocator<std::ptrdiff_t>>);
+static_assert(CanAlignedAllocAtLeast<Mallocator<std::ptrdiff_t>>);
 
 template <class A>
 TRIVIAL inline auto alloc_at_least(A a, std::size_t n)
   -> AllocResult<typename A::value_type> {
   if constexpr (CanAllocAtLeast<A>) return a.allocate_at_least(n);
   else return {a.allocate(n), n};
+}
+
+template <class A>
+TRIVIAL inline auto alloc_at_least(A a, std::size_t n, std::align_val_t al)
+  -> AllocResult<typename A::value_type> {
+  if constexpr (CanAlignedAllocAtLeast<A>) return a.allocate_at_least(n, al);
+  else return {a.allocate(n, al), n};
 }
 
 template <typename A>
