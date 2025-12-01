@@ -4098,7 +4098,7 @@ struct Unroll {
       return ret;
     }
   }
-  TRIVIAL constexpr auto catToSIMD() const
+  [[nodiscard]] TRIVIAL constexpr auto catToSIMD() const
     -> Vec<R * C * N, T> requires(std::popcount(std::size_t(R *C)) == 1) {
     if constexpr (R * C == 2) {
       return ::simd::cat(data_[0], data_[1]);
@@ -4111,7 +4111,7 @@ struct Unroll {
       return ::simd::cat(a.catToSIMD(), b.catToSIMD());
     }
   }
-  TRIVIAL constexpr auto maximum() const -> T {
+  [[nodiscard]] TRIVIAL constexpr auto maximum() const -> T {
     static constexpr std::ptrdiff_t L = R * C;
     static constexpr std::ptrdiff_t H = L / 2;
     if constexpr (H > 1) {
@@ -4132,7 +4132,7 @@ struct Unroll {
     }
   }
   // TRIVIAL
-  constexpr auto minimum() const -> T {
+  [[nodiscard]] constexpr auto minimum() const -> T {
     static constexpr std::ptrdiff_t L = R * C;
     static constexpr std::ptrdiff_t H = L / 2;
     if constexpr (H > 1) {
@@ -4152,7 +4152,7 @@ struct Unroll {
       return reduce::min(x);
     }
   }
-  TRIVIAL constexpr auto sum() const -> T {
+  [[nodiscard]] TRIVIAL constexpr auto sum() const -> T {
     static constexpr std::ptrdiff_t L = R * C;
     static constexpr std::ptrdiff_t H = L / 2;
     if constexpr (H > 1) {
@@ -4170,7 +4170,7 @@ struct Unroll {
       return reduce::sum(x);
     }
   }
-  TRIVIAL constexpr auto prod() const -> T {
+  [[nodiscard]] TRIVIAL constexpr auto prod() const -> T {
     static constexpr std::ptrdiff_t L = R * C;
     static constexpr std::ptrdiff_t H = L / 2;
     if constexpr (H > 1) {
@@ -4897,7 +4897,7 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     vec_ /= ::simd::vbroadcast<N, T>(a);
     return *this;
   }
-  [[nodiscard]] TRIVIAL constexpr auto split() const
+  TRIVIAL [[nodiscard]] constexpr auto split() const
     -> std::array<Unroll<1Z, 1Z, N / 2Z, T>, 2>
     requires(N == 2 || N == 4 || N == 8 || N == 16) {
     using U = Unroll<1Z, 1Z, N / 2Z, T>;
@@ -4907,15 +4907,22 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   TRIVIAL static constexpr auto vbroadcast(T x) -> Unroll {
     return {::simd::vbroadcast<N>(x)};
   }
+  TRIVIAL [[nodiscard]] constexpr auto catToSIMD() const -> Vec<N, T> {
+    return vec_;
+  }
   TRIVIAL static constexpr auto fromSplit(Vec<N, T> x) -> Unroll { return {x}; }
-  TRIVIAL constexpr auto maximum() const -> T {
+  TRIVIAL [[nodiscard]] constexpr auto maximum() const -> T {
     return simd::reduce::max(vec_);
   }
-  TRIVIAL constexpr auto minimum() const -> T {
+  TRIVIAL [[nodiscard]] constexpr auto minimum() const -> T {
     return simd::reduce::min(vec_);
   }
-  TRIVIAL constexpr auto sum() const -> T { return simd::reduce::sum(vec_); }
-  TRIVIAL constexpr auto prod() const -> T { return simd::reduce::prod(vec_); }
+  TRIVIAL [[nodiscard]] constexpr auto sum() const -> T {
+    return simd::reduce::sum(vec_);
+  }
+  TRIVIAL [[nodiscard]] constexpr auto prod() const -> T {
+    return simd::reduce::prod(vec_);
+  }
 
 private:
   static constexpr std::ptrdiff_t Rep4W = VecLen<4 * N, T>;
