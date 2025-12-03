@@ -131,7 +131,7 @@ public:
   }
   // [[using gnu: returns_nonnull, alloc_size(2), alloc_align(3), malloc]]
   template <std::size_t Align>
-  constexpr auto allocate(std::size_t Size) -> void * {
+  [[gnu::always_inline]] constexpr auto allocate(std::size_t Size) -> void * {
     static_assert(std::popcount(Align) == 1, "Alignment must be a power of 2");
     if constexpr (Align > Alignment) {
       std::size_t space = Size + Align - Alignment;
