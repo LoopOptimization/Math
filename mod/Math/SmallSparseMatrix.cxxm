@@ -39,7 +39,7 @@ public:
   }
   // [[nodiscard]] constexpr auto view() const -> auto & { return *this; };
   constexpr SmallSparseMatrix(Row<> numRows, Col<> numCols)
-    : rows(length(std::ptrdiff_t(numRows)), 0), ncol{numCols} {
+    : rows(length(std::int32_t(std::ptrdiff_t(numRows))), 0), ncol{numCols} {
     invariant(std::ptrdiff_t(ncol) <= maxElemPerRow);
   }
   constexpr auto get(Row<> i, Col<> j) const -> T {

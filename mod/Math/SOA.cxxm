@@ -172,8 +172,7 @@ struct SOA {
 template <typename T, typename S, typename C, typename... Elts,
           std::size_t... II>
 requires(CanConstructFromMembers<T>::value)
-struct [[gnu::packed]] SOA<T, S, C, Types<Elts...>,
-                           std::index_sequence<II...>> {
+struct SOA<T, S, C, Types<Elts...>, std::index_sequence<II...>> {
   char *data_;
   [[no_unique_address]] S sz_;
   [[no_unique_address]] C capacity_;
@@ -371,7 +370,7 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
     reserve(nsz);
     this->sz_ = nsz;
   }
-  void resize(std::ptrdiff_t nsz) requires(std::same_as<S, Length<>>) {
+  void resize(std::ptrdiff_t nsz) requires(RowVectorDimension<S>) {
     resize(length(nsz));
   }
   constexpr void clear() { this->sz_ = {}; }
@@ -380,14 +379,14 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
   template <typename... Args> void emplace_back(Args &&...args) {
     push_back(T(args...));
   }
-  void push_back(T arg) requires(std::same_as<S, Length<>>) {
+  void push_back(T arg) requires(RowVectorDimension<S>) {
     S osz = this->sz_;
     auto i = std::ptrdiff_t(osz);
     resize(i + 1z);
     (*this)[i] = arg;
   }
   void erase(std::ptrdiff_t pos)
-    requires(std::same_as<S, Length<>> &&
+    requires(RowVectorDimension<S> &&
              std::same_as<C, CapacityCalculators::Explicit>) {
     invariant(pos >= 0);
     std::ptrdiff_t N = (this->size()) - 1;

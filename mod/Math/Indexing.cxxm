@@ -457,8 +457,8 @@ TRIVIAL constexpr auto calcNewDim(StridedDims<> d,
   return simd::index::UnrollDims<1, C, W, M>{c.mask_, stride(d)};
 }
 
-template <std::ptrdiff_t U, std::ptrdiff_t W, typename M, std::ptrdiff_t L>
-TRIVIAL constexpr auto calcNewDim(Length<L>, simd::index::Unroll<U, W, M> i) {
+template <std::ptrdiff_t U, std::ptrdiff_t W, typename M, std::ptrdiff_t L, std::signed_integral I>
+TRIVIAL constexpr auto calcNewDim(Length<L, I>, simd::index::Unroll<U, W, M> i) {
   return simd::index::UnrollDims<1, U, W, M, false, 1>{i.mask_, RowStride<1>{}};
 }
 

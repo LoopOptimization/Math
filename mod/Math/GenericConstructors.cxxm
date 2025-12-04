@@ -28,13 +28,15 @@ using rebound_alloc_t =
 template <alloc::FreeAllocator A>
 constexpr auto vector(A, std::ptrdiff_t M)
   -> ManagedArray<eltype_t<A>, Length<>,
-                  containers::PreAllocStorage<eltype_t<A>, Length<>>(), A> {
+                  containers::PreAllocStorage<eltype_t<A>, Length<-1, int>>(),
+                  A> {
   return {length(M), A{}};
 }
 template <alloc::FreeAllocator A>
 constexpr auto vector(A, std::ptrdiff_t M, eltype_t<A> x)
   -> ManagedArray<eltype_t<A>, Length<>,
-                  containers::PreAllocStorage<eltype_t<A>, Length<>>(), A> {
+                  containers::PreAllocStorage<eltype_t<A>, Length<-1, int>>(),
+                  A> {
   return {length(M), x, A{}};
 }
 

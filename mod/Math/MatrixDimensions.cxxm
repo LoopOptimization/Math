@@ -42,10 +42,11 @@ template <class R, class C> struct CartesianIndex {
     invariant(col_idx_ >= 0);
     return col_idx_;
   }
-  TRIVIAL constexpr operator Length<>() const
+  template <std::signed_integral I>
+  TRIVIAL constexpr operator Length<-1, I>() const
     requires(std::same_as<R, std::integral_constant<std::ptrdiff_t, 1>>) {
     invariant(col_idx_ >= 0);
-    return length(col_idx_);
+    return Length<-1, I>::construct(col_idx_);
   }
   constexpr operator SquareDims<>() const
     requires(std::convertible_to<R, std::ptrdiff_t> &&
@@ -192,9 +193,10 @@ template <std::ptrdiff_t R, std::ptrdiff_t C> struct DenseDims {
   static constexpr std::ptrdiff_t nrow = R;
   static constexpr std::ptrdiff_t ncol = C;
   static constexpr std::ptrdiff_t nstride = C;
-  using dim_t = std::conditional_t<R==-1&&C==-1, std::int32_t, std::ptrdiff_t>;
-  [[no_unique_address]] Row<R,dim_t> m_;
-  [[no_unique_address]] Col<C,dim_t> n_;
+  using dim_t =
+    std::conditional_t<R == -1 && C == -1, std::int32_t, std::ptrdiff_t>;
+  [[no_unique_address]] Row<R, dim_t> m_;
+  [[no_unique_address]] Col<C, dim_t> n_;
   TRIVIAL explicit constexpr DenseDims() = default;
   TRIVIAL constexpr DenseDims(Row<R> m, Col<C> n) : m_{m}, n_{n} {}
   TRIVIAL constexpr DenseDims(Length<1>)
@@ -555,6 +557,9 @@ concept ColVectorDimension =
   std::same_as<decltype(Col(std::declval<D>())), Col<1>>;
 template <typename D>
 concept VectorDimension = RowVectorDimension<D> || ColVectorDimension<D>;
+
+static_assert(VectorDimension<Length<-1, long>>);
+static_assert(VectorDimension<Length<-1, int>>);
 
 template <typename S>
 concept Dimension = VectorDimension<S> != MatrixDimension<S>;

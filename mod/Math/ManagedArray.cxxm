@@ -52,8 +52,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuninitialized"
 #endif
-  constexpr ManagedArray() noexcept
-    : BaseT{S{}, U(math::Capacity<StackStorage, std::ptrdiff_t>{})} {
+  constexpr ManagedArray() noexcept : BaseT{S{}, U::construct(StackStorage)} {
     this->ptr_ = memory_.data();
 #ifndef NDEBUG
     if (!StackStorage) return;
@@ -98,7 +97,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     : ManagedArray(SquareDims<>{row(s)}) {};
   constexpr ManagedArray(S s, T x, A) noexcept : ManagedArray(s, x) {};
 
-  constexpr ManagedArray(T x) noexcept requires(std::same_as<S, Length<>>)
+  constexpr ManagedArray(T x) noexcept requires(RowVectorDimension<S>)
     : BaseT{S{}, U(math::Capacity<StackStorage, std::ptrdiff_t>{})} {
     this->ptr_ = memory_.data();
     if constexpr (StackStorage == 0) this->growUndef(1);
@@ -308,7 +307,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     return identity(std::ptrdiff_t(C));
   }
 
-  TRIVIAL constexpr void reserveForGrow1() requires(std::same_as<S, Length<>>) {
+  TRIVIAL constexpr void reserveForGrow1() requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]]
       reserve(length(newCapacity(c)));
@@ -316,16 +315,15 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
 
   template <class... Args>
   TRIVIAL constexpr auto emplace_back(Args &&...args) -> decltype(auto)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     reserveForGrow1();
     return this->emplace_back_within_capacity(args...);
   }
-  TRIVIAL constexpr void push_back(T value) requires(std::same_as<S, Length<>>)
-  {
+  TRIVIAL constexpr void push_back(T value) requires(RowVectorDimension<S>) {
     reserveForGrow1();
     this->push_back_within_capacity(std::move(value));
   }
-  constexpr auto insert(T *p, T x) -> T * requires(std::same_as<S, Length<>>) {
+  constexpr auto insert(T *p, T x) -> T * requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     if (s == c) [[unlikely]] {
       std::ptrdiff_t d = p - this->data();
@@ -346,13 +344,13 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     this->sz_ = nz;
   }
   TRIVIAL constexpr void resize(Row<> r)
-    requires(std::same_as<S, Length<>> || MatrixDimension<S>) {
-    if constexpr (std::same_as<S, Length<>>) return resize(S(r));
+    requires(RowVectorDimension<S> || MatrixDimension<S>) {
+    if constexpr (RowVectorDimension<S>) return resize(S(r));
     else return resize(auto{this->sz_}.set(r));
   }
   TRIVIAL constexpr void resize(Col<> c)
-    requires(std::same_as<S, Length<>> || MatrixDimension<S>) {
-    if constexpr (std::same_as<S, Length<>>) return resize(S(c));
+    requires(RowVectorDimension<S> || MatrixDimension<S>) {
+    if constexpr (RowVectorDimension<S>) return resize(S(c));
     else if constexpr (MatrixDimension<S>)
       return resize(auto{this->sz_}.set(c));
   }
@@ -369,38 +367,38 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
         std::uninitialized_default_construct_n(new_ptr + oz, nz - oz);
         maybeDeallocate();
         this->ptr_ = new_ptr;
-        this->capacity_ = U(capacity(new_cap));
+        this->capacity_ = U::construct(new_cap);
       } else if (nz > oz)
         std::uninitialized_default_construct_n(old_ptr + oz, nz - oz);
     } else if (nz > std::ptrdiff_t(this->sz_)) growUndef(nz);
     this->sz_ = M;
   }
   TRIVIAL constexpr void resizeForOverwrite(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     resizeForOverwrite(length(M));
   }
   TRIVIAL constexpr void resize(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     resize(length(M));
   }
   TRIVIAL constexpr void reserve(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     reserve(length(M));
   }
   TRIVIAL constexpr void reserveGrow(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     if (std::ptrdiff_t c = std::ptrdiff_t(this->getCapacity()); c < M)
       reserve(length(newCapacity(M)));
   }
   /// @brief Resize and grow capacity aggressively.
   TRIVIAL constexpr void resizeGrow(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     if (std::ptrdiff_t c = std::ptrdiff_t(this->getCapacity()); c < M)
       reserve(length(newCapacity(M)));
     resize(length(M));
   }
   TRIVIAL constexpr void reservePow2(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     // 1 -> 0 -> 64 -> 0
     // 2 -> 1 -> 63 -> 1
     // 3 -> 2 -> 62 -> 2
@@ -415,7 +413,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     reserve(length(std::ptrdiff_t(l2m)));
   }
   constexpr void resizeForOverwrite(Row<> r) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return resizeForOverwrite(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz_;
@@ -423,7 +421,7 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
     }
   }
   constexpr void resizeForOverwrite(Col<> c) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return resizeForOverwrite(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz_;
@@ -505,6 +503,10 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
       resizeForOverwrite(S{M});
     } else resizeForOverwrite(S{M, N});
   }
+  TRIVIAL [[nodiscard]] constexpr auto isSmall() const -> bool {
+    invariant(this->capacity_ >= StackStorage);
+    return this->capacity_ == StackStorage;
+  }
 
 private:
   constexpr void allocateAtLeast(U len) {
@@ -512,11 +514,7 @@ private:
     alloc::AllocResult<storage_type> res = alloc::alloc_at_least(A{}, l);
     this->ptr_ = res.ptr;
     invariant(res.count >= l);
-    this->capacity_ = U(capacity(res.count));
-  }
-  TRIVIAL [[nodiscard]] constexpr auto isSmall() const -> bool {
-    invariant(this->capacity_ >= StackStorage);
-    return this->capacity_ == StackStorage;
+    this->capacity_ = U::construct(res.count);
   }
   TRIVIAL [[nodiscard]] constexpr auto wasAllocated() const -> bool {
     return !isSmall();
@@ -568,7 +566,7 @@ private:
   }
   constexpr void reallocForSize(S nz) {
     S oz = this->sz_;
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       auto ozs = std::ptrdiff_t(oz), nzs = std::ptrdiff_t(nz);
       storage_type *old_ptr = this->data();
       if (nz <= oz) {
@@ -710,9 +708,21 @@ static_assert(sizeof(ManagedArray<std::int64_t, DenseDims<>, 64,
 static_assert(sizeof(ManagedArray<std::int64_t, SquareDims<>, 64,
                                   alloc::Mallocator<std::int64_t>>) == 536);
 
+#ifdef __APPLE__
 template <class T,
-          std::ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
-using Vector = ManagedArray<T, Length<>, N>;
+          std::ptrdiff_t N =
+            containers::PreAllocStorage<T, Length<-1, std::ptrdiff_t>>()>
+using Vector = ManagedArray<T, Length<-1, std::ptrdiff_t>, N>;
+// Apple pads out `Vector` to 24B anyway, so may as well use full-size
+static_assert(sizeof(ManagedArray<std::int64_t, Length<-1, std::int32_t>, 0>) ==
+              24);
+static_assert(sizeof(Vector<std::int64_t, 0>) == 24);
+#else
+template <class T, std::ptrdiff_t N =
+                     containers::PreAllocStorage<T, Length<-1, std::int32_t>>()>
+using Vector = ManagedArray<T, Length<-1, std::int32_t>, N>;
+static_assert(sizeof(Vector<std::int64_t, 0>) == 16);
+#endif
 
 template <class T,
           std::ptrdiff_t L = containers::PreAllocStorage<T, StridedDims<>>()>
@@ -764,6 +774,8 @@ static_assert(std::same_as<IntMatrix<>::value_type, std::int64_t>);
 static_assert(AbstractMatrix<IntMatrix<>>);
 static_assert(std::copyable<IntMatrix<>>);
 static_assert(std::move_constructible<Vector<std::int64_t>>);
+static_assert(DefinesShape<Vector<std::int64_t>>);
+static_assert(RowVectorCore<Vector<std::int64_t>>);
 static_assert(std::copyable<Vector<std::int64_t>>);
 static_assert(AbstractVector<Vector<std::int64_t>>);
 static_assert(!std::is_trivially_copyable_v<Vector<std::int64_t>>);

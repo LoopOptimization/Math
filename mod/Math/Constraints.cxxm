@@ -74,8 +74,13 @@ constexpr auto indsZeroNegPos(Array<T, S> a)
   for (std::ptrdiff_t j = 0; j < a.size(); ++j) ret[orderedCmp(a[j])].insert(j);
   return ret;
 }
-// 4*4 + 8*3 = 40
+#ifdef __APPLE__
+// 4*4 + 8 + 8*2 = 40
 static_assert(sizeof(std::array<Vector<unsigned, 4>, 2>) == 80);
+#else
+// 4*4 + 8 + 4*2 = 32
+static_assert(sizeof(std::array<Vector<unsigned, 4>, 2>) == 64);
+#endif
 
 template <bool NonNegative>
 auto fourierMotzkinCore(MutDensePtrMatrix<std::int64_t> B,
