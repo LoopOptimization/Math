@@ -708,15 +708,18 @@ static_assert(sizeof(ManagedArray<std::int64_t, DenseDims<>, 64,
 static_assert(sizeof(ManagedArray<std::int64_t, SquareDims<>, 64,
                                   alloc::Mallocator<std::int64_t>>) == 536);
 
-template <class T,
-          std::ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
 #ifdef __APPLE__
+template <class T,
+          std::ptrdiff_t N =
+            containers::PreAllocStorage<T, Length<-1, std::ptrdiff_t>>()>
 using Vector = ManagedArray<T, Length<-1, std::ptrdiff_t>, N>;
 // Apple pads out `Vector` to 24B anyway, so may as well use full-size
-static_assert(sizeof(ManagedArray<std::int64_t, Length<-1, std::int32_t>, N>) ==
+static_assert(sizeof(ManagedArray<std::int64_t, Length<-1, std::int32_t>, 0>) ==
               24);
 static_assert(sizeof(Vector<std::int64_t, 0>) == 24);
 #else
+template <class T, std::ptrdiff_t N =
+                     containers::PreAllocStorage<T, Length<-1, std::int32_t>>()>
 using Vector = ManagedArray<T, Length<-1, std::int32_t>, N>;
 static_assert(sizeof(Vector<std::int64_t, 0>) == 16);
 #endif
