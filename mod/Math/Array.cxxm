@@ -216,7 +216,11 @@ struct SliceRange {
 };
 /// Constant Array
 template <class T, Dimension S, bool Compress>
+#ifdef __APPLE__
+struct [[gnu::packed]] Array : public Expr<T, Array<T, S, Compress>> {
+#else
 struct Array : public Expr<T, Array<T, S, Compress>> {
+#endif
   static_assert(!std::is_const_v<T>, "T shouldn't be const");
 
   using storage_type = std::conditional_t<Compress, compressed_t<T>, T>;

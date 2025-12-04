@@ -172,7 +172,11 @@ struct SOA {
 template <typename T, typename S, typename C, typename... Elts,
           std::size_t... II>
 requires(CanConstructFromMembers<T>::value)
+#ifdef __APPLE__
 struct [[gnu::packed]] SOA<T, S, C, Types<Elts...>,
+#else
+struct SOA<T, S, C, Types<Elts...>,
+#endif
                            std::index_sequence<II...>> {
   char *data_;
   [[no_unique_address]] S sz_;
