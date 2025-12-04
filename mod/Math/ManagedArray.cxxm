@@ -711,10 +711,13 @@ static_assert(sizeof(ManagedArray<std::int64_t, SquareDims<>, 64,
 template <class T,
           std::ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
 #ifdef __APPLE__
+static_assert(sizeof(ManagedArray<T, Length<-1, std::int32_t>, N>) == 24);
 // Apple pads out `Vector` to 24B anyway, so may as well use full-size
 using Vector = ManagedArray<T, Length<-1, std::ptrdiff_t>, N>;
+static_assert(sizeof(Vector<std::int64_t, 0>) == 24);
 #else
 using Vector = ManagedArray<T, Length<-1, std::int32_t>, N>;
+static_assert(sizeof(Vector<std::int64_t, 0>) == 16);
 #endif
 
 template <class T,
@@ -777,6 +780,5 @@ static_assert(AbstractVector<Vector<std::int64_t>>,
               "PtrVector<std::int64_t> isa AbstractVector failed");
 static_assert(
   std::same_as<utils::eltype_t<Matrix<std::int64_t>>, std::int64_t>);
-static_assert(sizeof(Vector<std::int64_t, 0>) == 16);
 
 } // namespace math
