@@ -258,7 +258,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
   TRIVIAL constexpr Array(Array<T, V> a) : ptr_{a.data()}, sz_{a.dim()} {}
   template <std::size_t N>
   TRIVIAL constexpr Array(const std::array<T, N> &a)
-    : ptr_(a.data()), sz_(length(N)) {}
+    : ptr_(a.data()), sz_(S::construct(N)) {}
   TRIVIAL [[nodiscard]] constexpr auto data() const noexcept
     -> const storage_type * {
     invariant(ptr_ != nullptr || std::ptrdiff_t(sz_) == 0);
@@ -352,7 +352,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return col(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto rowStride() const noexcept {
-    if constexpr (std::same_as<S, Length<>>) return RowStride<1>{};
+    if constexpr (RowVectorDimension<S>) return RowStride<1>{};
     else return stride(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto empty() const -> bool {
@@ -364,7 +364,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     else return std::ptrdiff_t(sz_);
   }
   TRIVIAL [[nodiscard]] constexpr auto dim() const noexcept -> S { return sz_; }
-  TRIVIAL constexpr void clear() requires(std::same_as<S, Length<>>) {
+  TRIVIAL constexpr void clear() requires(RowVectorDimension<S>) {
     if constexpr (!std::is_trivially_destructible_v<T>)
       std::destroy_n(ptr_, std::ptrdiff_t(sz_));
     sz_ = S{};
@@ -373,7 +373,7 @@ struct Array : public Expr<T, Array<T, S, Compress>> {
     return {*this};
   }
   TRIVIAL void reserve(std::ptrdiff_t n) const { invariant(n <= size()); }
-  constexpr void resize(std::ptrdiff_t nz) requires(std::same_as<S, Length<>>) {
+  constexpr void resize(std::ptrdiff_t nz) requires(RowVectorDimension<S>) {
     reserve(nz);
     sz_ = length(nz);
   }
@@ -626,7 +626,7 @@ struct MutArray : Array<T, S, Compress>,
   TRIVIAL constexpr void truncate(S nz) {
     S oz = this->sz_;
     this->sz_ = nz;
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       invariant(std::ptrdiff_t(nz) <= std::ptrdiff_t(oz));
       if constexpr (!std::is_trivially_destructible_v<T>)
         if (nz < oz) std::destroy_n(this->data() + std::ptrdiff_t(nz), oz - nz);
@@ -662,12 +662,12 @@ struct MutArray : Array<T, S, Compress>,
     }
   }
   TRIVIAL constexpr void truncate(std::ptrdiff_t nz)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     truncate(length(nz));
   }
 
   TRIVIAL constexpr void truncate(Row<> r) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return truncate(S(r));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
@@ -682,7 +682,7 @@ struct MutArray : Array<T, S, Compress>,
     }
   }
   TRIVIAL constexpr void truncate(Col<> c) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return truncate(S(c));
     } else if constexpr (std::is_same_v<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
@@ -782,17 +782,17 @@ struct MutArray : Array<T, S, Compress>,
     StridedRange<> r{l, --rs};
     return MutArray<T, StridedRange<>>{data() + std::ptrdiff_t(c) - 1, r};
   }
-  constexpr void erase(std::ptrdiff_t i) requires(std::same_as<S, Length<>>) {
+  constexpr void erase(std::ptrdiff_t i) requires(RowVectorDimension<S>) {
     auto old_len = std::ptrdiff_t(this->sz_--);
     if (i < this->sz_) std::copy(data() + i + 1, data() + old_len, data() + i);
   }
   constexpr void erase_swap_last(std::ptrdiff_t i)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     --(this->sz_);
     if (i < this->sz_) std::swap(data()[i], data()[std::ptrdiff_t(this->sz_)]);
   }
   constexpr void erase(Row<> r) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return erase(S(r));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
@@ -825,7 +825,7 @@ struct MutArray : Array<T, S, Compress>,
     }
   }
   constexpr void erase(Col<> c) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return erase(S(c));
     } else if constexpr (std::convertible_to<S, DenseDims<>>) {
       static_assert(!std::convertible_to<S, SquareDims<>>,
@@ -1186,7 +1186,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
 
   template <class... Args>
   constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
     T &ret =
@@ -1198,34 +1198,34 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   /// Has a different name to make sure we avoid ambiguities.
   template <class... Args>
   constexpr auto emplace_backa(alloc::Arena<> *alloc, Args &&...args)
-    -> decltype(auto) requires(std::same_as<S, Length<>>) {
+    -> decltype(auto) requires(RowVectorDimension<S>) {
     if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
     return *std::construct_at(this->data() + std::ptrdiff_t(this->sz_++),
                               std::forward<Args>(args)...);
   }
   constexpr void push_back_within_capacity(T value)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
     std::construct_at<T>(this->data() + s, std::move(value));
     this->sz_ = length(s + 1z);
   }
   constexpr void push_back(alloc::Arena<> *alloc, T value)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
     std::construct_at<T>(this->data() + std::ptrdiff_t(this->sz_++),
                          std::move(value));
   }
-  constexpr void pop_back() requires(std::same_as<S, Length<>>) {
+  constexpr void pop_back() requires(RowVectorDimension<S>) {
     invariant(this->sz_ > 0);
     if constexpr (std::is_trivially_destructible_v<T>) --this->sz_;
     else std::destroy_at(this->data() + std::ptrdiff_t(--this->sz_));
   }
-  constexpr auto pop_back_val() -> T requires(std::same_as<S, Length<>>) {
+  constexpr auto pop_back_val() -> T requires(RowVectorDimension<S>) {
     invariant(this->sz_ > 0);
     return std::move(this->data()[std::ptrdiff_t(--this->sz_)]);
   }
-  constexpr void resize(std::ptrdiff_t nz) requires(std::same_as<S, Length<>>) {
+  constexpr void resize(std::ptrdiff_t nz) requires(RowVectorDimension<S>) {
     resize(length(nz));
   }
   // behavior
@@ -1237,7 +1237,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   constexpr void resize(S nz) {
     S oz = this->sz_;
     this->sz_ = nz;
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       auto ozs = std::ptrdiff_t(oz), nzs = std::ptrdiff_t(nz);
       invariant(nzs <= capacity_);
       if constexpr (!std::is_trivially_destructible_v<T>) {
@@ -1303,7 +1303,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
 
   constexpr void resize(Row<> r) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return resize(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz_;
@@ -1311,7 +1311,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     }
   }
   constexpr void resize(Col<> c) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return resize(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz_;
@@ -1330,11 +1330,11 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     this->sz_ = M;
   }
   constexpr void resizeForOverwrite(std::ptrdiff_t M)
-    requires(std::same_as<S, Length<>>) {
+    requires(RowVectorDimension<S>) {
     resizeForOverwrite(length(M));
   }
   constexpr void resizeForOverwrite(Row<> r) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return resizeForOverwrite(S(r));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz_;
@@ -1342,7 +1342,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     }
   }
   constexpr void resizeForOverwrite(Col<> c) {
-    if constexpr (std::same_as<S, Length<>>) {
+    if constexpr (RowVectorDimension<S>) {
       return resizeForOverwrite(S(c));
     } else if constexpr (MatrixDimension<S>) {
       S nz = this->sz_;
@@ -1379,7 +1379,7 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
 
   constexpr auto insert_within_capacity(T *p, T x)
-    -> T * requires(std::same_as<S, Length<>>) {
+    -> T * requires(RowVectorDimension<S>) {
     invariant(p >= this->data());
     T *e = this->data() + std::ptrdiff_t(this->sz_);
     invariant(p <= e);

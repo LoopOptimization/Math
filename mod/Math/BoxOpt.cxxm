@@ -78,10 +78,11 @@ public:
     return *this;
   }
   [[nodiscard]] constexpr auto getLowerBounds() -> MutPtrVector<std::int32_t> {
-    return {i32() + ntotal_, length(ntotal_)};
+    return {i32() + ntotal_, length(std::ptrdiff_t(ntotal_))};
   }
   [[nodiscard]] constexpr auto getUpperBounds() -> MutPtrVector<std::int32_t> {
-    return {i32() + std::ptrdiff_t(2) * ntotal_, length(ntotal_)};
+    return {i32() + std::ptrdiff_t(2) * ntotal_,
+            length(std::ptrdiff_t(ntotal_))};
   }
   // gives max fractional ind on the transformed scale
   template <bool Relative = true>
@@ -105,10 +106,10 @@ public:
     return {k, static_cast<std::int32_t>(lb)};
   }
   [[nodiscard]] constexpr auto getRaw() -> MutPtrVector<double> {
-    return {f64() + std::ptrdiff_t(2) * ntotal_, length(nraw_)};
+    return {f64() + std::ptrdiff_t(2) * ntotal_, length(std::ptrdiff_t(nraw_))};
   }
   [[nodiscard]] constexpr auto getRaw() const -> PtrVector<double> {
-    return {f64() + std::ptrdiff_t(2) * ntotal_, length(nraw_)};
+    return {f64() + std::ptrdiff_t(2) * ntotal_, length(std::ptrdiff_t(nraw_))};
   }
 
 protected:

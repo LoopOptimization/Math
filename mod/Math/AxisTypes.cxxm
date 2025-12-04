@@ -56,10 +56,14 @@ struct Length {
     return std::integral_constant<I, M>{};
   }
 
-  TRIVIAL inline constexpr operator Length<-1>() const;
+  TRIVIAL inline constexpr operator Length<-1, I>() const;
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
 
   TRIVIAL inline constexpr auto flat() const -> Length { return *this; }
+  TRIVIAL static auto construct(I length) -> Length {
+    invariant(M == length);
+    return {};
+  }
 
 private:
   TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length)
@@ -97,12 +101,33 @@ private:
     return {};
   }
 };
+template <std::signed_integral I> struct LenEnum {
+  enum class len : I {};
+};
+
 template <std::signed_integral I> struct Length<-1, I> {
   static constexpr std::ptrdiff_t nrow = 1;
   static constexpr std::ptrdiff_t ncol = -1;
   static constexpr std::ptrdiff_t nstride = -1;
-  enum class len : I {};
+  using len = LenEnum<I>::len;
   len value_;
+
+  // Default constructor
+  TRIVIAL constexpr Length() = default;
+
+  // Constructor from enum value (for brace initialization compatibility)
+  TRIVIAL constexpr Length(len l) : value_{l} {}
+
+  // Constructor from Length with different integral type (runtime to runtime)
+  template <std::integral J>
+  TRIVIAL constexpr Length(Length<-1, J> l) requires(!std::same_as<I, J>)
+    : value_{static_cast<len>(static_cast<I>(J(l)))} {}
+
+  // Constructor from compile-time Length with different integral type
+  template <std::ptrdiff_t M, std::integral J>
+  TRIVIAL constexpr Length(Length<M, J>) requires(M != -1)
+    : value_{static_cast<len>(static_cast<I>(M))} {}
+
   TRIVIAL explicit inline constexpr operator I() const {
     auto m = static_cast<I>(value_);
     invariant(m >= I(0));
@@ -113,6 +138,11 @@ template <std::signed_integral I> struct Length<-1, I> {
     auto m = static_cast<std::ptrdiff_t>(static_cast<I>(value_));
     invariant(m >= 0);
     return m;
+  }
+  TRIVIAL inline constexpr
+  operator typename LenEnum<std::ptrdiff_t>::len() const
+    requires(!std::same_as<I, std::ptrdiff_t>) {
+    return static_cast<Length<-1, std::ptrdiff_t>::len>(value_);
   }
   TRIVIAL explicit inline constexpr operator bool() const {
     return static_cast<std::ptrdiff_t>(value_);
@@ -153,6 +183,9 @@ template <std::signed_integral I> struct Length<-1, I> {
   TRIVIAL [[nodiscard]] inline constexpr auto flat() const -> Length {
     return *this;
   }
+  TRIVIAL static auto construct(I length) -> Length {
+    return {static_cast<len>(length)};
+  }
 
 private:
   TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Length y)
@@ -185,15 +218,15 @@ private:
   TRIVIAL friend inline constexpr auto operator-(Length a, Length b) -> Length {
     auto x = std::ptrdiff_t(a), y = std::ptrdiff_t(b);
     invariant(x >= y);
-    return {static_cast<Length<-1>::len>(x - y)};
+    return {static_cast<Length::len>(x - y)};
   }
 };
 
 // by default, we promote to `std::ptrdiff_t`; smaller sizes
 // are primarilly in case we want smaller storage
 template <std::ptrdiff_t M, std::signed_integral I>
-TRIVIAL inline constexpr Length<M, I>::operator Length<-1>() const {
-  return {static_cast<Length<-1>::len>(M)};
+TRIVIAL inline constexpr Length<M, I>::operator Length<-1, I>() const {
+  return {static_cast<Length<-1, I>::len>(M)};
 }
 
 template <std::ptrdiff_t M = -1, std::signed_integral I = std::ptrdiff_t>
@@ -204,6 +237,10 @@ struct Capacity {
   TRIVIAL inline explicit constexpr operator bool() const { return M; }
   TRIVIAL inline constexpr operator Capacity<-1, I>() const;
   static constexpr auto comptime() -> std::ptrdiff_t { return M; }
+  TRIVIAL static auto construct(I capacity) -> Capacity {
+    invariant(M == capacity);
+    return {};
+  }
 
 private:
   TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Capacity)
@@ -241,6 +278,23 @@ private:
 template <std::integral I> struct Capacity<-1, I> {
   enum class cap : I {};
   cap value_;
+
+  // Default constructor
+  TRIVIAL constexpr Capacity() = default;
+
+  // Constructor from enum value (for brace initialization compatibility)
+  TRIVIAL constexpr Capacity(cap c) : value_{c} {}
+
+  // Constructor from Capacity with different integral type (runtime to runtime)
+  template <std::integral J>
+  TRIVIAL constexpr Capacity(Capacity<-1, J> c) requires(!std::same_as<I, J>)
+    : value_{static_cast<cap>(static_cast<I>(J(c)))} {}
+
+  // Constructor from compile-time Capacity with different integral type
+  template <std::ptrdiff_t M, std::integral J>
+  TRIVIAL constexpr Capacity(Capacity<M, J>) requires(M != -1)
+    : value_{static_cast<cap>(static_cast<I>(M))} {}
+
   TRIVIAL inline explicit constexpr operator I() const {
     auto m = static_cast<I>(value_);
     invariant(m >= 0);
@@ -281,6 +335,9 @@ template <std::integral I> struct Capacity<-1, I> {
     return tmp;
   }
   static constexpr auto comptime() -> std::ptrdiff_t { return -1; }
+  TRIVIAL static auto construct(I capacity) -> Capacity {
+    return {static_cast<cap>(capacity)};
+  }
 
 private:
   TRIVIAL friend inline constexpr auto operator==(std::ptrdiff_t x, Capacity y)
@@ -787,8 +844,8 @@ TRIVIAL inline constexpr auto col(std::ptrdiff_t x) -> Col<> {
   invariant(x >= 0);
   return Col<-1>{static_cast<Col<-1>::col>(x)};
 }
-template <std::ptrdiff_t M>
-TRIVIAL inline constexpr auto col(Length<M> x) -> Col<M> {
+template <std::ptrdiff_t M, std::signed_integral I>
+TRIVIAL inline constexpr auto col(Length<M, I> x) -> Col<M> {
   if constexpr (M != -1) return Col<M>{};
   else return Col<-1>{static_cast<Col<-1>::col>(std::ptrdiff_t(x))};
 }
@@ -796,20 +853,22 @@ TRIVIAL inline constexpr auto stride(std::ptrdiff_t x) -> RowStride<> {
   invariant(x >= 0);
   return RowStride<-1>{static_cast<RowStride<-1>::stride>(x)};
 }
-template <std::signed_integral Int>
-TRIVIAL inline constexpr auto length(Int x)
-  -> Length<-1, Int> requires(!std::same_as<Int, std::ptrdiff_t>) {
-  invariant(x >= 0);
-  return Length<-1, Int>{static_cast<Length<-1, Int>::len>(x)};
-}
 // Overload resolution should prioritize/favor `std::ptrdiff_t`
-TRIVIAL inline constexpr auto length(std::ptrdiff_t x) -> Length<> {
+template <std::integral I>
+TRIVIAL inline constexpr auto length(I x) -> Length<-1, std::make_signed_t<I>> {
   invariant(x >= 0);
-  return Length<>{static_cast<Length<>::len>(x)};
+  using L = Length<-1, std::make_signed_t<I>>;
+  return L{static_cast<typename L::len>(x)};
 }
-TRIVIAL inline constexpr auto capacity(std::ptrdiff_t x) -> Capacity<> {
+template <std::integral I, I value>
+TRIVIAL inline constexpr auto length(std::integral_constant<I, value>)
+  -> Length<value, std::make_signed_t<I>> requires(value >= 0) {
+  return {};
+}
+template <std::signed_integral I>
+TRIVIAL inline constexpr auto capacity(I x) -> Capacity<-1, I> {
   invariant(x >= 0);
-  return Capacity<-1>{static_cast<Capacity<-1>::cap>(x)};
+  return Capacity<-1, I>{static_cast<Capacity<-1, I>::cap>(x)};
 }
 // TRIVIAL inline constexpr auto
 // capacity(std::size_t x) -> Capacity<> {
