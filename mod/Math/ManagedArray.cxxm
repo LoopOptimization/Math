@@ -713,7 +713,8 @@ template <class T,
 #ifdef __APPLE__
 using Vector = ManagedArray<T, Length<-1, std::ptrdiff_t>, N>;
 // Apple pads out `Vector` to 24B anyway, so may as well use full-size
-static_assert(sizeof(ManagedArray<T, Length<-1, std::int32_t>, N>) == 24);
+static_assert(sizeof(ManagedArray<std::int64_t, Length<-1, std::int32_t>, N>) ==
+              24);
 static_assert(sizeof(Vector<std::int64_t, 0>) == 24);
 #else
 using Vector = ManagedArray<T, Length<-1, std::int32_t>, N>;
