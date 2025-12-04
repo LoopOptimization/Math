@@ -710,7 +710,12 @@ static_assert(sizeof(ManagedArray<std::int64_t, SquareDims<>, 64,
 
 template <class T,
           std::ptrdiff_t N = containers::PreAllocStorage<T, Length<>>()>
+#ifdef __APPLE__
+// Apple pads out `Vector` to 24B anyway, so may as well use full-size
+using Vector = ManagedArray<T, Length<-1, std::ptrdiff_t>, N>;
+#else
 using Vector = ManagedArray<T, Length<-1, std::int32_t>, N>;
+#endif
 
 template <class T,
           std::ptrdiff_t L = containers::PreAllocStorage<T, StridedDims<>>()>
