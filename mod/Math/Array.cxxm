@@ -1203,18 +1203,19 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     return *std::construct_at(this->data() + std::ptrdiff_t(this->sz_++),
                               std::forward<Args>(args)...);
   }
-  constexpr void push_back_within_capacity(T value)
+  constexpr auto push_back_within_capacity(T value) -> decltype(auto)
     requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
-    std::construct_at<T>(this->data() + s, std::move(value));
+    auto &ret = *std::construct_at<T>(this->data() + s, std::move(value));
     this->sz_ = length(s + 1z);
+    return ret;
   }
-  constexpr void push_back(alloc::Arena<> *alloc, T value)
+  constexpr auto push_back(alloc::Arena<> *alloc, T value) -> decltype(auto)
     requires(RowVectorDimension<S>) {
     if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
-    std::construct_at<T>(this->data() + std::ptrdiff_t(this->sz_++),
-                         std::move(value));
+    return *std::construct_at<T>(this->data() + std::ptrdiff_t(this->sz_++),
+                                 std::move(value));
   }
   constexpr void pop_back() requires(RowVectorDimension<S>) {
     invariant(this->sz_ > 0);

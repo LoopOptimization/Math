@@ -317,11 +317,12 @@ struct MATH_GSL_OWNER ManagedArray : ResizeableView<T, S> {
   TRIVIAL constexpr auto emplace_back(Args &&...args) -> decltype(auto)
     requires(RowVectorDimension<S>) {
     reserveForGrow1();
-    return this->emplace_back_within_capacity(args...);
+    return this->emplace_back_within_capacity(std::forward<Args>(args)...);
   }
-  TRIVIAL constexpr void push_back(T value) requires(RowVectorDimension<S>) {
+  TRIVIAL constexpr auto push_back(T value) -> decltype(auto)
+    requires(RowVectorDimension<S>) {
     reserveForGrow1();
-    this->push_back_within_capacity(std::move(value));
+    return this->push_back_within_capacity(std::move(value));
   }
   constexpr auto insert(T *p, T x) -> T * requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
