@@ -7,7 +7,7 @@
 // #define NODEBUG
 // #define TRIVIAL
 #define NODEBUG [[gnu::nodebug]]
-#define TRIVIAL [[gnu::nodebug, gnu::always_inline]]
+#define TRIVIAL [[gnu::nodebug, gnu::always_inline, gnu::flatten]]
 // clang-format off
 #define DEBUGABLE_START                                                       \
   _Pragma("clang attribute DoNotOptimize.push (__attribute((optnone)), apply_to = function)")
@@ -18,7 +18,7 @@
 #elifdef __GNUC__
 
 #define NODEBUG [[gnu::optimize("O3")]]
-#define TRIVIAL [[gnu::always_inline, gnu::optimize("O3")]]
+#define TRIVIAL [[gnu::always_inline, gnu::flatten, gnu::optimize("O3")]]
 // clang-format off
 #define DEBUGABLE_START                                                       \
   _Pragma("gcc attribute DoNotOptimize.push (__attribute((optimize(\"O0\"))), apply_to = function)")
