@@ -163,8 +163,8 @@ inline void printMatrix(const bool *A, std::ptrdiff_t M, std::ptrdiff_t N,
 // to avoid allocations. We can use a Vector with a lot of initial capacity,
 // and then resize based on a conservative estimate of the number of chars per
 // elements.
-inline void printMatrix(const double *A, std::ptrdiff_t M, std::ptrdiff_t N,
-                        std::ptrdiff_t X) {
+inline void printMatrix(const std::floating_point auto *A, std::ptrdiff_t M,
+                        std::ptrdiff_t N, std::ptrdiff_t X) {
   if ((!M) || (!N)) return print("[ ]");
   // first, we determine the number of digits needed per column
   // we can't have more than 255 digits

@@ -528,5 +528,109 @@ auto main() -> int {
     expect(buf.empty());
   };
 
+  "Buffer ReserveGrow"_test = [] {
+    Buffer<int> buf;
+    expect(eq(buf.capacity(), 0u));
+
+    // First reserveGrow should allocate at least the requested capacity
+    buf.reserveGrow(10);
+    auto first_cap = buf.capacity();
+    expect(first_cap >= 10u);
+    expect(eq(buf.size(), 0u));
+
+    // reserveGrow should grow by 2x (capacity + capacity) when current
+    // capacity is non-zero
+    buf.reserveGrow(first_cap + 1);
+    auto second_cap = buf.capacity();
+    expect(second_cap > first_cap);
+    // Should be at least 2x the first capacity due to growth strategy
+    expect(second_cap >= first_cap * 2);
+
+    // reserveGrow with smaller size should not reduce capacity
+    auto old_capacity = buf.capacity();
+    buf.reserveGrow(5);
+    expect(eq(buf.capacity(), old_capacity));
+  };
+
+  "Buffer ResizeGrow"_test = [] {
+    Buffer<int> buf{1, 2, 3};
+    auto initial_cap = buf.capacity();
+
+    // resizeGrow should increase size and use growth strategy for capacity
+    buf.resizeGrow(initial_cap + 5);
+    expect(eq(buf.size(), initial_cap + 5));
+    // Should grow by 2x, so capacity should be at least 2x initial capacity
+    expect(buf.capacity() >= initial_cap * 2);
+    // Original elements should be preserved
+    expect(eq(buf[0], 1));
+    expect(eq(buf[1], 2));
+    expect(eq(buf[2], 3));
+
+    // Test with value type that requires initialization
+    Buffer<int> buf2;
+    buf2.resizeGrow(10);
+    expect(eq(buf2.size(), 10u));
+    expect(buf2.capacity() >= 10u);
+  };
+
+  "Buffer PushBackReturnReference"_test = [] {
+    Buffer<int> buf;
+
+    // Test that push_back returns a reference to the inserted element
+    auto &ref1 = buf.push_back(10);
+    expect(eq(ref1, 10));
+    expect(eq(buf.size(), 1u));
+    expect(eq(buf[0], 10));
+
+    // Verify the reference points to the actual element in the buffer
+    ref1 = 20;
+    expect(eq(buf[0], 20));
+
+    // Test with rvalue
+    auto &ref2 = buf.push_back(30);
+    expect(eq(ref2, 30));
+    expect(eq(buf.size(), 2u));
+    expect(eq(buf[1], 30));
+
+    // Test with non-trivial type
+    Buffer<std::string> str_buf;
+    auto &str_ref = str_buf.push_back("hello");
+    expect(str_ref == "hello");
+    str_ref = "world";
+    expect(str_buf[0] == "world");
+
+    // Test push_back with move
+    std::string temp = "moved";
+    auto &moved_ref = str_buf.push_back(std::move(temp));
+    expect(moved_ref == "moved");
+    expect(str_buf[1] == "moved");
+  };
+
+  "Buffer ReserveGrowVsReserve"_test = [] {
+    Buffer<int> buf1;
+    Buffer<int> buf2;
+
+    // Both start with reserve to get initial capacity
+    buf1.reserve(10);
+    buf2.reserve(10);
+
+    auto cap1 = buf1.capacity();
+    auto cap2 = buf2.capacity();
+    expect(eq(cap1, cap2));
+
+    // reserve with larger value
+    buf1.reserve(cap1 + 1);
+    auto new_cap1 = buf1.capacity();
+
+    // reserveGrow with same larger value
+    buf2.reserveGrow(cap1 + 1);
+    auto new_cap2 = buf2.capacity();
+
+    // reserveGrow should allocate more due to growth strategy
+    expect(ge(new_cap2, new_cap1));
+    // reserveGrow should be at least 2x the old capacity
+    expect(ge(new_cap2, cap2 * 2));
+  };
+
   return 0;
 }
