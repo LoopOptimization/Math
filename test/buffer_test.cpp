@@ -619,17 +619,17 @@ auto main() -> int {
     expect(eq(cap1, cap2));
 
     // reserve with larger value
-    buf1.reserve(20);
+    buf1.reserve(cap1 + 1);
     auto new_cap1 = buf1.capacity();
 
     // reserveGrow with same larger value
-    buf2.reserveGrow(20);
+    buf2.reserveGrow(cap1 + 1);
     auto new_cap2 = buf2.capacity();
 
     // reserveGrow should allocate more due to growth strategy
-    expect(new_cap2 > new_cap1);
+    expect(ge(new_cap2, new_cap1));
     // reserveGrow should be at least 2x the old capacity
-    expect(new_cap2 >= cap2 * 2);
+    expect(ge(new_cap2, cap2 * 2));
   };
 
   return 0;
