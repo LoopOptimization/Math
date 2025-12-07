@@ -31,19 +31,14 @@ template <typename T> class MATH_GSL_OWNER Buffer {
       capacity_ = 0;
     }
   }
-
-  void grow(std::uint32_t min_capacity) {
-    invariant(min_capacity > capacity_);
-    // Grow by 1.5x or to min_capacity, whichever is larger
-    std::uint32_t new_cap = std::max(min_capacity, capacity_ + capacity_);
-    auto [new_data, actual_cap] = Alloc::allocate_at_least(new_cap);
-    invariant(actual_cap >= new_cap);
+  void reserveImpl(std::uint32_t min_capacity) {
+    auto [new_data, actual_cap] = Alloc::allocate_at_least(min_capacity);
+    invariant(actual_cap >= min_capacity);
     invariant(actual_cap <= std::numeric_limits<std::uint32_t>::max());
 
-    // Move existing elements
     if (data_) {
       if constexpr (std::is_trivially_copyable_v<T>) {
-        std::memcpy(new_data, data_, size_ * sizeof(T));
+        if (size_ > 0) std::memcpy(new_data, data_, size_ * sizeof(T));
       } else {
         std::uninitialized_move_n(data_, size_, new_data);
         if constexpr (!trivial) std::destroy_n(data_, size_);
@@ -53,6 +48,13 @@ template <typename T> class MATH_GSL_OWNER Buffer {
 
     data_ = new_data;
     capacity_ = static_cast<std::uint32_t>(actual_cap);
+  }
+
+  void grow(std::uint32_t min_capacity) {
+    invariant(min_capacity > capacity_);
+    // Grow by 1.5x or to min_capacity, whichever is larger
+    std::uint32_t new_cap = std::max(min_capacity, capacity_ + capacity_);
+    reserveImpl(new_cap);
   }
 
 public:
@@ -306,24 +308,10 @@ public:
   }
 
   void reserve(std::uint32_t new_capacity) {
-    if (new_capacity > capacity_) {
-      auto [new_data, actual_cap] = Alloc::allocate_at_least(new_capacity);
-      invariant(actual_cap >= new_capacity);
-      invariant(actual_cap <= std::numeric_limits<std::uint32_t>::max());
-
-      if (data_) {
-        if constexpr (std::is_trivially_copyable_v<T>) {
-          if (size_ > 0) std::memcpy(new_data, data_, size_ * sizeof(T));
-        } else {
-          std::uninitialized_move_n(data_, size_, new_data);
-          if constexpr (!trivial) std::destroy_n(data_, size_);
-        }
-        Alloc::deallocate(data_, capacity_);
-      }
-
-      data_ = new_data;
-      capacity_ = static_cast<std::uint32_t>(actual_cap);
-    }
+    if (new_capacity > capacity_) reserveImpl(new_capacity);
+  }
+  void reserveGrow(std::uint32_t new_capacity) {
+    if (new_capacity > capacity_) grow(new_capacity);
   }
 
   void shrink_to_fit() {
@@ -351,16 +339,14 @@ public:
     size_ = 0;
   }
 
-  void push_back(const T &value) {
+  auto push_back(const T &value) -> T & {
     if (size_ >= capacity_) grow(size_ + 1);
-    std::construct_at(data_ + size_, value);
-    ++size_;
+    return *std::construct_at(data_ + size_++, value);
   }
 
-  void push_back(T &&value) {
+  auto push_back(T &&value) -> T & {
     if (size_ >= capacity_) grow(size_ + 1);
-    std::construct_at(data_ + size_, std::move(value));
-    ++size_;
+    return *std::construct_at(data_ + size_++, std::move(value));
   }
 
   template <class... Args> auto emplace_back(Args &&...args) -> T & {
@@ -390,6 +376,12 @@ public:
       if constexpr (!trivial)
         std::destroy_n(data_ + new_size, size_ - new_size);
     }
+    size_ = new_size;
+  }
+  void resizeGrow(std::uint32_t new_size) {
+    invariant(new_size > size_);
+    if (new_size > capacity_) grow(new_size);
+    std::uninitialized_default_construct_n(data_ + size_, new_size - size_);
     size_ = new_size;
   }
 
