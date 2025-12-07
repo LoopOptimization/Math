@@ -1,0 +1,554 @@
+module;
+#include "Macros.hxx"
+#include "Owner.hxx"
+export module Buffer;
+import Allocator;
+import BaseUtils;
+import std;
+
+export namespace containers {
+using utils::invariant;
+
+/// A vector-like container using 32-bit size and capacity
+/// for memory efficiency, using Mallocator for allocation.
+template <typename T> class MATH_GSL_OWNER Buffer {
+  using Alloc = alloc::Mallocator<T>;
+  T *data_{nullptr};
+  std::uint32_t size_{0};
+  std::uint32_t capacity_{0};
+
+  static constexpr bool trivial = std::is_trivially_destructible_v<T>;
+
+  TRIVIAL void destroy_elements() {
+    if constexpr (!trivial)
+      if (data_) std::destroy_n(data_, size_);
+  }
+
+  TRIVIAL void deallocate_storage() {
+    if (data_) {
+      Alloc::deallocate(data_, capacity_);
+      data_ = nullptr;
+      capacity_ = 0;
+    }
+  }
+
+  void grow(std::uint32_t min_capacity) {
+    invariant(min_capacity > capacity_);
+    // Grow by 1.5x or to min_capacity, whichever is larger
+    std::uint32_t new_cap = std::max(min_capacity, capacity_ + capacity_);
+    auto [new_data, actual_cap] = Alloc::allocate_at_least(new_cap);
+    invariant(actual_cap >= new_cap);
+    invariant(actual_cap <= std::numeric_limits<std::uint32_t>::max());
+
+    // Move existing elements
+    if (data_) {
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        std::memcpy(new_data, data_, size_ * sizeof(T));
+      } else {
+        std::uninitialized_move_n(data_, size_, new_data);
+        if constexpr (!trivial) std::destroy_n(data_, size_);
+      }
+      Alloc::deallocate(data_, capacity_);
+    }
+
+    data_ = new_data;
+    capacity_ = static_cast<std::uint32_t>(actual_cap);
+  }
+
+public:
+  using value_type = T;
+  using reference = T &;
+  using const_reference = const T &;
+  using pointer = T *;
+  using const_pointer = const T *;
+  using iterator = T *;
+  using const_iterator = const T *;
+  using reverse_iterator = std::reverse_iterator<iterator>;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using size_type = std::uint32_t;
+  using difference_type = std::ptrdiff_t;
+
+  // Constructors
+  TRIVIAL constexpr Buffer() = default;
+
+  explicit Buffer(std::uint32_t count) : size_(count) {
+    if (count > 0) {
+      auto [ptr, cap] = Alloc::allocate_at_least(count);
+      data_ = ptr;
+      capacity_ = static_cast<std::uint32_t>(cap);
+      std::uninitialized_default_construct_n(data_, size_);
+    }
+  }
+
+  Buffer(std::uint32_t count, const T &value) : size_(count) {
+    if (count > 0) {
+      auto [ptr, cap] = Alloc::allocate_at_least(count);
+      data_ = ptr;
+      capacity_ = static_cast<std::uint32_t>(cap);
+      std::uninitialized_fill_n(data_, size_, value);
+    }
+  }
+
+  Buffer(std::initializer_list<T> init) : size_(init.size()) {
+    invariant(init.size() <= std::numeric_limits<std::uint32_t>::max());
+    if (size_ > 0) {
+      auto [ptr, cap] = Alloc::allocate_at_least(size_);
+      data_ = ptr;
+      capacity_ = static_cast<std::uint32_t>(cap);
+      std::uninitialized_copy_n(init.begin(), size_, data_);
+    }
+  }
+
+  // Copy constructor
+  Buffer(const Buffer &other) : size_(other.size_) {
+    if (size_ > 0) {
+      auto [ptr, cap] = Alloc::allocate_at_least(size_);
+      data_ = ptr;
+      capacity_ = static_cast<std::uint32_t>(cap);
+      std::uninitialized_copy_n(other.data_, size_, data_);
+    }
+  }
+
+  // Move constructor
+  TRIVIAL constexpr Buffer(Buffer &&other) noexcept
+    : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {
+    other.data_ = nullptr;
+    other.size_ = 0;
+    other.capacity_ = 0;
+  }
+
+  // Copy assignment
+  auto operator=(const Buffer &other) -> Buffer & {
+    if (this != &other) {
+      if (other.size_ <= capacity_) {
+        // Reuse existing storage
+        if constexpr (trivial) {
+          if (other.size_ > 0)
+            std::memcpy(data_, other.data_, other.size_ * sizeof(T));
+        } else {
+          std::uint32_t copy_count = std::min(size_, other.size_);
+          std::copy_n(other.data_, copy_count, data_);
+          if (other.size_ > size_) {
+            std::uninitialized_copy_n(other.data_ + size_, other.size_ - size_,
+                                      data_ + size_);
+          } else if (size_ > other.size_) {
+            std::destroy_n(data_ + other.size_, size_ - other.size_);
+          }
+        }
+        size_ = other.size_;
+      } else {
+        // Need to reallocate
+        destroy_elements();
+        deallocate_storage();
+        if (other.size_ > 0) {
+          auto [ptr, cap] = Alloc::allocate_at_least(other.size_);
+          data_ = ptr;
+          capacity_ = static_cast<std::uint32_t>(cap);
+          std::uninitialized_copy_n(other.data_, other.size_, data_);
+        }
+        size_ = other.size_;
+      }
+    }
+    return *this;
+  }
+
+  // Move assignment
+  TRIVIAL auto operator=(Buffer &&other) noexcept -> Buffer & {
+    if (this != &other) {
+      destroy_elements();
+      deallocate_storage();
+      data_ = other.data_;
+      size_ = other.size_;
+      capacity_ = other.capacity_;
+      other.data_ = nullptr;
+      other.size_ = 0;
+      other.capacity_ = 0;
+    }
+    return *this;
+  }
+
+  // Initializer list assignment
+  auto operator=(std::initializer_list<T> init) -> Buffer & {
+    invariant(init.size() <= std::numeric_limits<std::uint32_t>::max());
+    std::uint32_t new_size = init.size();
+    if (new_size <= capacity_) {
+      if constexpr (trivial) {
+        if (new_size > 0) std::copy_n(init.begin(), new_size, data_);
+      } else {
+        std::uint32_t copy_count = std::min(size_, new_size);
+        std::copy_n(init.begin(), copy_count, data_);
+        if (new_size > size_) {
+          std::uninitialized_copy_n(init.begin() + size_, new_size - size_,
+                                    data_ + size_);
+        } else if (size_ > new_size) {
+          std::destroy_n(data_ + new_size, size_ - new_size);
+        }
+      }
+      size_ = new_size;
+    } else {
+      destroy_elements();
+      deallocate_storage();
+      if (new_size > 0) {
+        auto [ptr, cap] = Alloc::allocate_at_least(new_size);
+        data_ = ptr;
+        capacity_ = static_cast<std::uint32_t>(cap);
+        std::uninitialized_copy_n(init.begin(), new_size, data_);
+      }
+      size_ = new_size;
+    }
+    return *this;
+  }
+
+  // Destructor
+  TRIVIAL ~Buffer() {
+    destroy_elements();
+    deallocate_storage();
+  }
+
+  // Element access
+  TRIVIAL constexpr auto operator[](std::uint32_t pos) -> T & {
+    invariant(pos < size_);
+    return data_[pos];
+  }
+
+  TRIVIAL constexpr auto operator[](std::uint32_t pos) const -> const T & {
+    invariant(pos < size_);
+    return data_[pos];
+  }
+
+  constexpr auto at(std::uint32_t pos) -> T & {
+    if (pos >= size_) __builtin_trap();
+    return data_[pos];
+  }
+
+  constexpr auto at(std::uint32_t pos) const -> const T & {
+    if (pos >= size_) __builtin_trap();
+    return data_[pos];
+  }
+
+  TRIVIAL constexpr auto front() -> T & {
+    invariant(size_ > 0);
+    return data_[0];
+  }
+
+  TRIVIAL constexpr auto front() const -> const T & {
+    invariant(size_ > 0);
+    return data_[0];
+  }
+
+  TRIVIAL constexpr auto back() -> T & {
+    invariant(size_ > 0);
+    return data_[size_ - 1];
+  }
+
+  TRIVIAL constexpr auto back() const -> const T & {
+    invariant(size_ > 0);
+    return data_[size_ - 1];
+  }
+
+  TRIVIAL constexpr auto data() noexcept -> T * { return data_; }
+  TRIVIAL constexpr auto data() const noexcept -> const T * { return data_; }
+
+  // Iterators
+  TRIVIAL constexpr auto begin() noexcept -> iterator { return data_; }
+  TRIVIAL constexpr auto begin() const noexcept -> const_iterator {
+    return data_;
+  }
+  TRIVIAL constexpr auto cbegin() const noexcept -> const_iterator {
+    return data_;
+  }
+
+  TRIVIAL constexpr auto end() noexcept -> iterator { return data_ + size_; }
+  TRIVIAL constexpr auto end() const noexcept -> const_iterator {
+    return data_ + size_;
+  }
+  TRIVIAL constexpr auto cend() const noexcept -> const_iterator {
+    return data_ + size_;
+  }
+
+  TRIVIAL constexpr auto rbegin() noexcept -> reverse_iterator {
+    return reverse_iterator(end());
+  }
+  TRIVIAL constexpr auto rbegin() const noexcept -> const_reverse_iterator {
+    return const_reverse_iterator(end());
+  }
+  TRIVIAL constexpr auto crbegin() const noexcept -> const_reverse_iterator {
+    return const_reverse_iterator(end());
+  }
+
+  TRIVIAL constexpr auto rend() noexcept -> reverse_iterator {
+    return reverse_iterator(begin());
+  }
+  TRIVIAL constexpr auto rend() const noexcept -> const_reverse_iterator {
+    return const_reverse_iterator(begin());
+  }
+  TRIVIAL constexpr auto crend() const noexcept -> const_reverse_iterator {
+    return const_reverse_iterator(begin());
+  }
+
+  // Capacity
+  [[nodiscard]] TRIVIAL constexpr auto empty() const noexcept -> bool {
+    return size_ == 0;
+  }
+
+  [[nodiscard]] TRIVIAL constexpr auto size() const noexcept -> std::uint32_t {
+    return size_;
+  }
+
+  [[nodiscard]] TRIVIAL constexpr auto capacity() const noexcept
+    -> std::uint32_t {
+    return capacity_;
+  }
+
+  [[nodiscard]] TRIVIAL static constexpr auto max_size() noexcept
+    -> std::uint32_t {
+    return std::numeric_limits<std::uint32_t>::max();
+  }
+
+  void reserve(std::uint32_t new_capacity) {
+    if (new_capacity > capacity_) {
+      auto [new_data, actual_cap] = Alloc::allocate_at_least(new_capacity);
+      invariant(actual_cap >= new_capacity);
+      invariant(actual_cap <= std::numeric_limits<std::uint32_t>::max());
+
+      if (data_) {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+          if (size_ > 0) std::memcpy(new_data, data_, size_ * sizeof(T));
+        } else {
+          std::uninitialized_move_n(data_, size_, new_data);
+          if constexpr (!trivial) std::destroy_n(data_, size_);
+        }
+        Alloc::deallocate(data_, capacity_);
+      }
+
+      data_ = new_data;
+      capacity_ = static_cast<std::uint32_t>(actual_cap);
+    }
+  }
+
+  void shrink_to_fit() {
+    if (capacity_ > size_) {
+      if (size_ == 0) {
+        deallocate_storage();
+      } else {
+        auto [new_data, actual_cap] = Alloc::allocate_at_least(size_);
+        if constexpr (std::is_trivially_copyable_v<T>) {
+          std::memcpy(new_data, data_, size_ * sizeof(T));
+        } else {
+          std::uninitialized_move_n(data_, size_, new_data);
+          if constexpr (!trivial) std::destroy_n(data_, size_);
+        }
+        Alloc::deallocate(data_, capacity_);
+        data_ = new_data;
+        capacity_ = static_cast<std::uint32_t>(actual_cap);
+      }
+    }
+  }
+
+  // Modifiers
+  TRIVIAL void clear() noexcept {
+    destroy_elements();
+    size_ = 0;
+  }
+
+  void push_back(const T &value) {
+    if (size_ >= capacity_) grow(size_ + 1);
+    std::construct_at(data_ + size_, value);
+    ++size_;
+  }
+
+  void push_back(T &&value) {
+    if (size_ >= capacity_) grow(size_ + 1);
+    std::construct_at(data_ + size_, std::move(value));
+    ++size_;
+  }
+
+  template <class... Args> auto emplace_back(Args &&...args) -> T & {
+    if (size_ >= capacity_) grow(size_ + 1);
+    T *ptr = std::construct_at(data_ + size_, std::forward<Args>(args)...);
+    ++size_;
+    return *ptr;
+  }
+
+  TRIVIAL void pop_back() {
+    invariant(size_ > 0);
+    --size_;
+    if constexpr (!trivial) std::destroy_at(data_ + size_);
+  }
+
+  [[nodiscard]] auto pop_back_val() -> T {
+    invariant(size_ > 0);
+    --size_;
+    return std::move(data_[size_]);
+  }
+
+  void resize(std::uint32_t new_size) {
+    if (new_size > size_) {
+      if (new_size > capacity_) reserve(new_size);
+      std::uninitialized_default_construct_n(data_ + size_, new_size - size_);
+    } else if (new_size < size_) {
+      if constexpr (!trivial)
+        std::destroy_n(data_ + new_size, size_ - new_size);
+    }
+    size_ = new_size;
+  }
+
+  void resize(std::uint32_t new_size, const T &value) {
+    if (new_size > size_) {
+      if (new_size > capacity_) reserve(new_size);
+      std::uninitialized_fill_n(data_ + size_, new_size - size_, value);
+    } else if (new_size < size_) {
+      if constexpr (!trivial)
+        std::destroy_n(data_ + new_size, size_ - new_size);
+    }
+    size_ = new_size;
+  }
+
+  auto insert(const_iterator pos, const T &value) -> iterator {
+    auto offset = pos - data_;
+    invariant(offset >= 0 && offset <= size_);
+    if (size_ >= capacity_) {
+      std::uint32_t new_cap = size_ + 1;
+      auto [new_data, actual_cap] = Alloc::allocate_at_least(new_cap);
+      capacity_ = static_cast<std::uint32_t>(actual_cap);
+
+      // Move elements before insertion point
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        if (offset > 0) std::memcpy(new_data, data_, offset * sizeof(T));
+        if (offset < size_)
+          std::memcpy(new_data + offset + 1, data_ + offset,
+                      (size_ - offset) * sizeof(T));
+      } else {
+        std::uninitialized_move_n(data_, offset, new_data);
+        std::uninitialized_move_n(data_ + offset, size_ - offset,
+                                  new_data + offset + 1);
+        if constexpr (!trivial) std::destroy_n(data_, size_);
+      }
+      std::construct_at(new_data + offset, value);
+
+      if (data_) Alloc::deallocate(data_, capacity_);
+      data_ = new_data;
+    } else {
+      // Shift elements
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        if (offset < size_)
+          std::memmove(data_ + offset + 1, data_ + offset,
+                       (size_ - offset) * sizeof(T));
+      } else {
+        std::move_backward(data_ + offset, data_ + size_, data_ + size_ + 1);
+      }
+      std::construct_at(data_ + offset, value);
+    }
+    ++size_;
+    return data_ + offset;
+  }
+
+  auto insert(const_iterator pos, T &&value) -> iterator {
+    auto offset = pos - data_;
+    invariant(offset >= 0 && offset <= size_);
+    if (size_ >= capacity_) {
+      std::uint32_t new_cap = size_ + 1;
+      auto [new_data, actual_cap] = Alloc::allocate_at_least(new_cap);
+      capacity_ = static_cast<std::uint32_t>(actual_cap);
+
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        if (offset > 0) std::memcpy(new_data, data_, offset * sizeof(T));
+        if (offset < size_)
+          std::memcpy(new_data + offset + 1, data_ + offset,
+                      (size_ - offset) * sizeof(T));
+      } else {
+        std::uninitialized_move_n(data_, offset, new_data);
+        std::uninitialized_move_n(data_ + offset, size_ - offset,
+                                  new_data + offset + 1);
+        if constexpr (!trivial) std::destroy_n(data_, size_);
+      }
+      std::construct_at(new_data + offset, std::move(value));
+
+      if (data_) Alloc::deallocate(data_, capacity_);
+      data_ = new_data;
+    } else {
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        if (offset < size_)
+          std::memmove(data_ + offset + 1, data_ + offset,
+                       (size_ - offset) * sizeof(T));
+      } else {
+        std::move_backward(data_ + offset, data_ + size_, data_ + size_ + 1);
+      }
+      std::construct_at(data_ + offset, std::move(value));
+    }
+    ++size_;
+    return data_ + offset;
+  }
+
+  auto erase(const_iterator pos) -> iterator {
+    auto offset = pos - data_;
+    invariant(offset >= 0 && offset < size_);
+    if constexpr (!trivial) std::destroy_at(data_ + offset);
+    if (offset < size_ - 1) {
+      if constexpr (std::is_trivially_copyable_v<T>) {
+        std::memmove(data_ + offset, data_ + offset + 1,
+                     (size_ - offset - 1) * sizeof(T));
+      } else {
+        std::move(data_ + offset + 1, data_ + size_, data_ + offset);
+      }
+    }
+    --size_;
+    return data_ + offset;
+  }
+
+  auto erase(const_iterator first, const_iterator last) -> iterator {
+    auto offset_first = first - data_;
+    auto offset_last = last - data_;
+    invariant(offset_first >= 0 && offset_first <= size_);
+    invariant(offset_last >= offset_first && offset_last <= size_);
+    auto count = offset_last - offset_first;
+    if (count > 0) {
+      if constexpr (!trivial) std::destroy_n(data_ + offset_first, count);
+      if (offset_last < size_) {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+          std::memmove(data_ + offset_first, data_ + offset_last,
+                       (size_ - offset_last) * sizeof(T));
+        } else {
+          std::move(data_ + offset_last, data_ + size_, data_ + offset_first);
+        }
+      }
+      size_ -= count;
+    }
+    return data_ + offset_first;
+  }
+
+  TRIVIAL void swap(Buffer &other) noexcept {
+    std::swap(data_, other.data_);
+    std::swap(size_, other.size_);
+    std::swap(capacity_, other.capacity_);
+  }
+
+  // Comparison operators
+  TRIVIAL auto operator==(const Buffer &other) const -> bool {
+    if (size_ != other.size_) return false;
+    return std::equal(data_, data_ + size_, other.data_);
+  }
+
+  TRIVIAL auto operator!=(const Buffer &other) const -> bool {
+    return !(*this == other);
+  }
+
+  TRIVIAL auto operator<(const Buffer &other) const -> bool {
+    return std::lexicographical_compare(data_, data_ + size_, other.data_,
+                                        other.data_ + other.size_);
+  }
+
+  TRIVIAL auto operator<=(const Buffer &other) const -> bool {
+    return !(other < *this);
+  }
+
+  TRIVIAL auto operator>(const Buffer &other) const -> bool {
+    return other < *this;
+  }
+
+  TRIVIAL auto operator>=(const Buffer &other) const -> bool {
+    return !(*this < other);
+  }
+};
+
+} // namespace containers
