@@ -223,7 +223,7 @@ private:
 };
 
 // by default, we promote to `std::ptrdiff_t`; smaller sizes
-// are primarilly in case we want smaller storage
+// are primarily in case we want smaller storage
 template <std::ptrdiff_t M, std::signed_integral I>
 TRIVIAL inline constexpr Length<M, I>::operator Length<-1, I>() const {
   return {static_cast<Length<-1, I>::len>(M)};

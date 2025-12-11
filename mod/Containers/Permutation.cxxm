@@ -320,7 +320,7 @@ struct LoopPermutations {
     //   }
     //   constexpr auto resetLevel(std::ptrdiff_t lvl, std::ptrdiff_t offset)
     //     -> std::ptrdiff_t {
-    //     // when reseting the level, we don't actually need to reset the state
+    //     // when resetting the level, we don't actually need to reset the state
     //     // we can use the last ending state as the initial state, iterating
     //     // through its permutations from there.
     //     std::ptrdiff_t sz = subperms_[lvl].size();

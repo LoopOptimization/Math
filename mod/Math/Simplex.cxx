@@ -505,7 +505,7 @@ auto Simplex::runCore(std::int64_t f) -> Rational {
   return std::numeric_limits<std::int64_t>::max(); // unbounded
 }
 /// Set basicVar's costs to 0, and then runCore()
-/// Essentially, minize the `getCost()` expression
+/// Essentially, minimize the `getCost()` expression
 auto Simplex::run() -> Rational {
 #ifndef NDEBUG
   if (!in_canonical_form_) __builtin_trap();

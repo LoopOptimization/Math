@@ -316,18 +316,18 @@ auto main(int argc, const char **argv) -> int {
     auto s = simp.rLexMinLast(15);
     {
       std::ptrdiff_t solSum = 0, i = 0;
-      bool allNumerZero = true;
+      bool allNumeratorsZero = true;
       for (auto x : s) {
         if (i++ < 5) {
           solSum += x != 0;
         } else {
-          allNumerZero &= x.numerator_ == 0;
+          allNumeratorsZero &= x.numerator_ == 0;
           solSum += x.numerator_;
           expect(x.denominator_ == 1);
         }
       }
       expect(solSum == 2);
-      expect(allNumerZero);
+      expect(allNumeratorsZero);
     }
     {
       std::ptrdiff_t solSum = 0;
@@ -335,12 +335,12 @@ auto main(int argc, const char **argv) -> int {
       expect(solSum == 2);
     }
     {
-      bool allNumerZero = true;
+      bool allNumeratorsZero = true;
       for (auto x : s[_(5, end)]) {
-        allNumerZero &= x.numerator_ == 0;
+        allNumeratorsZero &= x.numerator_ == 0;
         expect(x.denominator_ == 1);
       }
-      expect(allNumerZero);
+      expect(allNumeratorsZero);
     }
     sol << simp.getSolution()[_(end - 15, end)];
     std::ptrdiff_t solSum = 0;

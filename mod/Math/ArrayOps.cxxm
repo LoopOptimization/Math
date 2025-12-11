@@ -139,7 +139,7 @@ TRIVIAL constexpr auto promote_shape(const A &a, const B &b) {
                           check_sizes(a.size(), b.size()));
   } else {
     auto sa = shape(a);
-    // broadcasting static sizes is awkward, as it can prevent propogating
+    // broadcasting static sizes is awkward, as it can prevent propagating
     // static size information for copying an `StaticArray` to an `Array` of
     // the same size, when the `StaticArray` has static size of `1`.
     if constexpr (!std::convertible_to<B, utils::eltype_t<A>>) {

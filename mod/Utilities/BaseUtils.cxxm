@@ -109,9 +109,9 @@ concept TriviallyCopyable =
 
 template <typename T> struct InParameter {
   using V = std::remove_cvref_t<T>;
-  static constexpr bool is_trival =
+  static constexpr bool is_trivial =
     std::is_trivially_copyable_v<V> && std::is_trivially_destructible_v<V>;
-  using type = std::conditional_t<is_trival && sizeof(V) <= 16,
+  using type = std::conditional_t<is_trivial && sizeof(V) <= 16,
                                   std::remove_cvref_t<V>, const V &>;
 };
 
