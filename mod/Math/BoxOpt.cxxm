@@ -144,7 +144,7 @@ protected:
   [[nodiscard]] static constexpr auto dataBytes(std::size_t Ntotal)
     -> std::size_t {
     // dataBytes must be a multiple of the alignment to make aligned alloc happy
-    // so, if Ntotal is odd, we padd with an extra 4 bytes
+    // so, if Ntotal is odd, we pad with an extra 4 bytes
     return f64Bytes(Ntotal) + i32Bytes(Ntotal) +
            (Ntotal & 1) * sizeof(std::int32_t);
   }

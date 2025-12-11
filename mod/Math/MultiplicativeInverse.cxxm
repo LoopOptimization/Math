@@ -68,7 +68,7 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
   friend constexpr auto operator/(T a, MultiplicativeInverse b) -> T {
     T x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return std::trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   template <std::ptrdiff_t L>
@@ -77,7 +77,7 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     -> math::SVector<T, L> {
     math::SVector<T, L> x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to  rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
@@ -86,13 +86,13 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     -> ::simd::Unroll<R, C, W, T> {
     ::simd::Unroll<R, C, W, T> x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   friend constexpr auto cld(T a, MultiplicativeInverse b) -> T {
     T x = a * b.inverse_;
     // push towards -infinity, before rounding up
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return std::ceil(x - (std::numeric_limits<T>::epsilon() * std::abs(x)));
   }
   friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
@@ -147,25 +147,25 @@ class MultiplicativeInverse<SVector<T, L>> {
   TRIVIAL friend constexpr auto operator/(T a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   TRIVIAL friend constexpr auto cld(V a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push towards -infinity, before rounding up
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
   }
   TRIVIAL friend constexpr auto cld(T a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push towards -infinity, before rounding up
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
   }
   TRIVIAL friend constexpr auto operator%(V a, MultiplicativeInverse b) -> V {
@@ -246,25 +246,25 @@ class MultiplicativeInverse<simd::Unroll<1, C, W, T>> {
   TRIVIAL friend constexpr auto operator/(T a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   TRIVIAL friend constexpr auto operator/(V a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push away from zero, before flooring to zero
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return trunc((std::numeric_limits<T>::epsilon() * x) + x);
   }
   TRIVIAL friend constexpr auto cld(V a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push towards -infinity, before rounding up
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
   }
   TRIVIAL friend constexpr auto cld(T a, MultiplicativeInverse b) -> V {
     V x = a * b.inverse_;
     // push towards -infinity, before rounding up
-    // hacky attempt to accomodate rounding error
+    // hacky attempt to accommodate rounding error
     return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
   }
   TRIVIAL friend constexpr auto operator%(V a, MultiplicativeInverse b) -> V {

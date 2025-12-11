@@ -342,7 +342,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     data_[d] |= (mask);
   }
   // returns `true` the bitset contained `x`, i.e. if the
-  // removal was succesful.
+  // removal was successful.
   TRIVIAL constexpr auto remove(std::ptrdiff_t x) -> bool {
     std::ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;

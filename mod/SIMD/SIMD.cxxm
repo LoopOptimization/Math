@@ -3871,7 +3871,7 @@ struct UnrollDims {
   static_assert(W != 1 || std::same_as<M, mask::None<1>>,
                 "Only mask vector dims");
   static_assert(W != 1 || !Transposed,
-                "Canonicalize scalar with Tranpose=false");
+                "Canonicalize scalar with Transpose=false");
   [[no_unique_address]] M mask_;
   [[no_unique_address]] math::RowStride<X> rs_;
 };
