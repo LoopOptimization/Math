@@ -3928,6 +3928,13 @@ struct Unroll {
   using VT = El<N, T>;
   static_assert(R * C > 0);
   VT data_[R * C];
+
+  TRIVIAL constexpr Unroll() = default;
+  TRIVIAL constexpr Unroll(const Unroll &other) = default;
+  TRIVIAL constexpr Unroll(VT a, VT b) requires(R *C == 2) : data_{a, b} {};
+  TRIVIAL constexpr Unroll(VT a, VT b, VT c, VT d) requires(R *C == 4)
+    : data_{a, b, c, d} {};
+
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) -> VT & {
     return data_[i];
   }
@@ -4824,6 +4831,10 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   static_assert(std::popcount(std::size_t(N)) == 1);
   using VT = El<N, T>;
   VT vec_;
+
+  TRIVIAL constexpr Unroll() = default;
+  TRIVIAL constexpr Unroll(VT vec) : vec_{vec} {};
+  TRIVIAL constexpr Unroll(const Unroll &other) = default;
   TRIVIAL constexpr auto operator[](std::ptrdiff_t) -> VT & { return vec_; }
   TRIVIAL constexpr auto operator[](std::ptrdiff_t, std::ptrdiff_t) -> VT & {
     return vec_;

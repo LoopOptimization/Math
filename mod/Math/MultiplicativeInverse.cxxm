@@ -287,7 +287,7 @@ public:
     return {d, std::round(a - (d / inverse_))};
   }
   TRIVIAL constexpr MultiplicativeInverse(V d)
-    : divisor_(d), inverse_{V{1} / d} {}
+    : divisor_(d), inverse_{V{V::vbroadcast(1)} / d} {}
   // Constructor with precomputed inverse (internal use, e.g., for split())
   TRIVIAL constexpr MultiplicativeInverse(PrecomputedInverseTag, V d, V inv)
     : divisor_(d), inverse_{inv} {}
