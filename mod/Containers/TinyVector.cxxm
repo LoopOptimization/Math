@@ -124,6 +124,7 @@ public:
     return l;
   }
   [[nodiscard]] TRIVIAL constexpr auto empty() const -> bool {
+    invariant(static_cast<std::size_t>(static_cast<std::ptrdiff_t>(len_)) < N);
     return len_ == 0z;
   }
   TRIVIAL constexpr void clear() {

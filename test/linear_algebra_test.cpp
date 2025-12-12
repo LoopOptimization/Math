@@ -75,11 +75,11 @@ void testDoubleFactorization() {
     // B = A \ B
     // C == A*B == A * (A \ B)
     LU::fact(A).ldiv(MutPtrMatrix<double>(B));
-    expect(norm2(A * B - C) < 1e-10);
+    expect(lt(norm2(A * B - C), 1e-10));
     B << C;
     D << A;
     LU::ldiv(A, MutPtrMatrix<double>(B));
-    expect(norm2(D * B - C) < 1e-10);
+    expect(lt(norm2(D * B - C), 1e-10));
 
     // LDL; make `A` symmetric
     D << A + A.t();
@@ -88,11 +88,11 @@ void testDoubleFactorization() {
     // B = A \ B
     // C == A*B == A * (A \ B)
     LDL::factorize<>(D).ldiv(MutPtrMatrix<double>(B));
-    expect(norm2(A * B - C) < 1e-10);
+    expect(lt(norm2(A * B - C), 1e-10));
     B << C;
     D << A;
     LDL::ldiv<>(A, MutPtrMatrix<double>(B));
-    expect(norm2(D * B - C) < 1e-10);
+    expect(lt(norm2(D * B - C), 1e-10));
   }
 }
 
