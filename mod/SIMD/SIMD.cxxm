@@ -3930,10 +3930,7 @@ struct Unroll {
   VT data_[R * C];
 
   TRIVIAL constexpr Unroll() = default;
-  TRIVIAL constexpr Unroll(const Unroll &other) {
-    POLYMATHFULLUNROLL
-    for (std::ptrdiff_t i = 0; i < R * C; ++i) data_[i] = other.data_[i];
-  }
+  TRIVIAL constexpr Unroll(const Unroll &other) = default;
   TRIVIAL constexpr Unroll(VT a, VT b) requires(R *C == 2) : data_{a, b} {};
   TRIVIAL constexpr Unroll(VT a, VT b, VT c, VT d) requires(R *C == 4)
     : data_{a, b, c, d} {};
