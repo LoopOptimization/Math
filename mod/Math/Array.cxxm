@@ -1185,8 +1185,8 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   }
 
   template <class... Args>
-  constexpr auto emplace_back_within_capacity(Args &&...args) -> decltype(auto)
-    requires(RowVectorDimension<S>) {
+  TRIVIAL constexpr auto emplace_back_within_capacity(Args &&...args)
+    -> decltype(auto) requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
     T &ret =
@@ -1197,13 +1197,13 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
   /// Allocates extra space if needed
   /// Has a different name to make sure we avoid ambiguities.
   template <class... Args>
-  constexpr auto emplace_backa(alloc::Arena<> *alloc, Args &&...args)
+  TRIVIAL constexpr auto emplace_backa(alloc::Arena<> *alloc, Args &&...args)
     -> decltype(auto) requires(RowVectorDimension<S>) {
     if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
     return *std::construct_at(this->data() + std::ptrdiff_t(this->sz_++),
                               std::forward<Args>(args)...);
   }
-  constexpr auto push_back_within_capacity(T value) -> decltype(auto)
+  TRIVIAL constexpr auto push_back_within_capacity(T value) -> decltype(auto)
     requires(RowVectorDimension<S>) {
     auto s = std::ptrdiff_t(this->sz_), c = std::ptrdiff_t(this->capacity_);
     invariant(s < c);
@@ -1211,22 +1211,23 @@ struct MATH_GSL_POINTER ResizeableView : MutArray<T, S> {
     this->sz_ = length(s + 1z);
     return ret;
   }
-  constexpr auto push_back(alloc::Arena<> *alloc, T value) -> decltype(auto)
-    requires(RowVectorDimension<S>) {
+  TRIVIAL constexpr auto push_back(alloc::Arena<> *alloc, T value)
+    -> decltype(auto) requires(RowVectorDimension<S>) {
     if (isFull()) reserve(alloc, (std::ptrdiff_t(capacity_) + 1z) * 2z);
     return *std::construct_at<T>(this->data() + std::ptrdiff_t(this->sz_++),
                                  std::move(value));
   }
-  constexpr void pop_back() requires(RowVectorDimension<S>) {
+  TRIVIAL constexpr void pop_back() requires(RowVectorDimension<S>) {
     invariant(this->sz_ > 0);
     if constexpr (std::is_trivially_destructible_v<T>) --this->sz_;
     else std::destroy_at(this->data() + std::ptrdiff_t(--this->sz_));
   }
-  constexpr auto pop_back_val() -> T requires(RowVectorDimension<S>) {
+  TRIVIAL constexpr auto pop_back_val() -> T requires(RowVectorDimension<S>) {
     invariant(this->sz_ > 0);
     return std::move(this->data()[std::ptrdiff_t(--this->sz_)]);
   }
-  constexpr void resize(std::ptrdiff_t nz) requires(RowVectorDimension<S>) {
+  TRIVIAL constexpr void resize(std::ptrdiff_t nz)
+    requires(RowVectorDimension<S>) {
     resize(length(nz));
   }
   // behavior

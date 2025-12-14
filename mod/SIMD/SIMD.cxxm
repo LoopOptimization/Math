@@ -44,7 +44,7 @@ struct Unroll;
 template <std::ptrdiff_t W, typename T>
 using Vec = T [[clang::ext_vector_type(W)]];
 template <std::ptrdiff_t W, typename T>
-using El = std::conditional_t<W == 1, T, Vec<W, T>>;
+using El = std::conditional_t<W == 1Z, T, Vec<W, T>>;
 #ifdef __x86_64__
 #ifdef __AVX512F__
 inline constexpr std::ptrdiff_t REGISTERS = 32;
