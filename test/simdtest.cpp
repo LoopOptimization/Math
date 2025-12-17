@@ -232,5 +232,33 @@ auto main() -> int {
 
     expect(__builtin_reduce_and(u.catToSIMD() == v));
   };
+  "SelectWiderType"_test = [] -> void {
+    // Test select between wider types using mask from narrower types
+    // Create float vectors for comparison
+    static constexpr auto Wf = simd::Width<float>;
+    using f32 = simd::SVec<float>;
+    f32 x{f32::range(0.F)}, y{f32::vbroadcast(Wf / 2)};
+
+    // Create wider type vectors (uint64_t has same width as float in terms of
+    // SIMD count)
+    using u64 = simd::SVec<float>;
+    u64 a{u64::range(100)}, b{u64::range(200)};
+
+    // Select based on float comparison: where x > y, take a, else take b
+    auto result = (x > y).select(a, b);
+
+    // Verify: elements where i > Wf/2 should come from a, others from b
+    for (std::ptrdiff_t i = 0; i < Wf; ++i) {
+      std::uint64_t r = result.extract_value(i), ai = a.extract_value(i),
+                    bi = b.extract_value(i);
+      if (i > Wf / 2) {
+        expect(eq(r, ai)) << "Failed at index " << i << ": expected " << ai
+                          << ", got " << r;
+      } else {
+        expect(eq(r, bi)) << "Failed at index " << i << ": expected " << bi
+                          << ", got " << r;
+      }
+    }
+  };
   return 0;
 }

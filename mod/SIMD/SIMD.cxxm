@@ -199,7 +199,8 @@ template <std::ptrdiff_t W> struct Bit {
   TRIVIAL constexpr auto operator~() const -> Bit<W> { return {~mask_}; }
   [[nodiscard]] TRIVIAL constexpr auto split() const
     -> std::array<Bit<W / 2>, 2> {
-    return {Bit<W / 2>{mask_}, Bit<W / 2>{mask_ >> W}};
+    static constexpr std::ptrdiff_t Whalf = W / 2;
+    return {Bit<Whalf>{mask_}, Bit<Whalf>{mask_ >> Whalf}};
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(Bit<W> b) const -> Bit<2 * W> {
     static_assert(W <= 32);
