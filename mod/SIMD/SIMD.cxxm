@@ -3951,7 +3951,10 @@ struct Unroll {
     return data_[(r * C) + c];
   }
   TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const -> T {
-    return data_[idx >> N][idx & ((1 << N) - 1)];
+    static constexpr std::ptrdiff_t shift =
+      std::countr_zero(static_cast<unsigned>(N));
+    static constexpr std::ptrdiff_t mask = ((1 << shift) - 1);
+    return data_[idx >> shift][idx & mask];
   }
   template <typename U>
   TRIVIAL constexpr operator Unroll<R, C, N, U>() const
