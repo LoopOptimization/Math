@@ -260,5 +260,68 @@ auto main() -> int {
       }
     }
   };
+  "ExtractValueSingleVec"_test = [] -> void {
+    // Test extract_value for R*C==1 case (Unroll<1, 1, N, T>)
+    static constexpr auto W = simd::Width<int>;
+    using f32 = simd::Unroll<1, 1, W, int>;
+    f32 u{f32::range(42)};
+
+    // Verify extract_value retrieves correct values
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(eq(u.extract_value(i), static_cast<int>(42 + i)))
+        << "Failed at index " << i;
+    }
+
+    // Test with double type
+    static constexpr auto Wd = simd::Width<double>;
+    using f64 = simd::Unroll<1, 1, Wd, double>;
+    f64 ud{f64::range(3.14)};
+
+    for (std::ptrdiff_t i = 0; i < Wd; ++i) {
+      expect(eq(ud.extract_value(i), 3.14 + static_cast<double>(i)))
+        << "Failed at double index " << i;
+    }
+  };
+  "ExtractValueMultiVec"_test = [] -> void {
+    // Test extract_value for R*C>1 case (Unroll<R, C, N, T>)
+    static constexpr auto W = simd::Width<int>;
+
+    // Test column unroll: Unroll<1, 4, W, int>
+    using i32x4 = simd::Unroll<1, 4, W, int>;
+    i32x4 u_col{i32x4::range(0)};
+
+    // Verify extract_value with linear indexing
+    for (std::ptrdiff_t c = 0; c < 4; ++c) {
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        std::ptrdiff_t linear_idx = c * W + i;
+        expect(
+          eq(u_col.extract_value(linear_idx), static_cast<int>(linear_idx)))
+          << "Failed at column " << c << ", index " << i;
+      }
+    }
+
+    // Test 2D unroll: Unroll<2, 3, W, int>
+    using i32x2x3 = simd::Unroll<2, 3, W, int>;
+    i32x2x3 u_2d{i32x2x3::range(0)};
+
+    // Verify extract_value with 2D layout
+    for (std::ptrdiff_t idx = 0; idx < 6; ++idx) {
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        std::ptrdiff_t linear_idx = idx * W + i;
+        expect(eq(u_2d.extract_value(linear_idx), static_cast<int>(linear_idx)))
+          << "Failed at unroll index " << idx << ", simd index " << i;
+      }
+    }
+
+    // Test with float type: Unroll<1, 2, W, float>
+    static constexpr auto Wf = simd::Width<float>;
+    using f32x2 = simd::Unroll<1, 2, Wf, float>;
+    f32x2 u_float{f32x2::range(10.5F)};
+
+    for (std::ptrdiff_t i = 0; i < 2 * Wf; ++i) {
+      expect(eq(u_float.extract_value(i), 10.5f + static_cast<float>(i)))
+        << "Failed at index " << i;
+    }
+  };
   return 0;
 }
