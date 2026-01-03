@@ -289,24 +289,33 @@ template <typename T> auto sort32(V32<T> x) -> V32<T> {
   auto [xlo, xhi] = x.split();
 
   // Sort each half of 16 elements
-  auto [llh, hlh] = sort16(xlo, xhi).split();
-  auto [ll, lh] = llh.split();
-  auto [hl, hh] = hlh.split();
+  auto [l01, h01] = sort16(xlo, xhi).split();
+  auto [l0, l1] = l01.split();
+  auto [h0, h1] = h01.split();
   // V16<T> lo_sorted = sort16(xlo);
   // V16<T> hi_sorted = sort16(xhi);
 
   // Bitonic merge: reverse the second half and merge
-  V16<T> a = ll.cat(hl);
-  V16<T> b = lh.cat(hh).reverse();
+  V16<T> a = l0.cat(h0);
+  V16<T> b = l1.cat(h1).reverse();
 
   // After compare-exchange at distance 16, all elements in a <= all in b
   minmax(a, b);
 
   // Now sort each 16-element half independently
-  a = sort16(a);
-  b = sort16(b);
+  // a.split()
+  // b.split()
+  auto [a0, a1] = a.split();
+  auto [b0, b1] = b.split();
+  V32<T> ab = sort16(a0.cat(b0), a1.cat(b1));
+  // a = sort16(a);
+  // b = sort16(b);
+  auto [ab0, ab1] = ab.split();
+  auto [x0, y0] = ab0.split();
+  auto [x1, y1] = ab1.split();
+  return x0.cat(x1).cat(y0.cat(y1));
 
-  return a.cat(b);
+  // return a.cat(b);
 }
 } // namespace
 
