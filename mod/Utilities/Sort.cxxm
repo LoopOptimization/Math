@@ -6,4 +6,7 @@ export namespace utils {
 auto sort(math::SVector<double, 16> x) -> math::SVector<double, 16>;
 auto sort(math::SVector<float, 16> x) -> math::SVector<float, 16>;
 
+auto sort(math::SVector<double, 32> x) -> math::SVector<double, 32>;
+auto sort(math::SVector<float, 32> x) -> math::SVector<float, 32>;
+
 } // namespace utils
