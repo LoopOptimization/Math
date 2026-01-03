@@ -3802,6 +3802,27 @@ template <typename T, typename I> consteval auto getWidth() -> std::ptrdiff_t {
   else return simd::VecLen<std::ptrdiff_t(I{}), T>;
 }
 
+template <typename T, std::ptrdiff_t W>
+TRIVIAL constexpr auto reverse(Vec<W, T> v) -> Vec<W, T> {
+  if constexpr (W == 1) {
+    return v;
+  } else if constexpr (W == 2) {
+    return __builtin_shufflevector(v, v, 1, 0);
+  } else if constexpr (W == 4) {
+    return __builtin_shufflevector(v, v, 3, 2, 1, 0);
+  } else if constexpr (W == 8) {
+    return __builtin_shufflevector(v, v, 7, 6, 5, 4, 3, 2, 1, 0);
+  } else if constexpr (W == 16) {
+    return __builtin_shufflevector(v, v, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,
+                                   4, 3, 2, 1, 0);
+  } else {
+    static_assert(W == 32, "Only powers of 2 >= 1 and <= 32 are supported.");
+    return __builtin_shufflevector(v, v, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22,
+                                   21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
+                                   10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+  }
+}
+
 namespace reduce {
 template <std::ptrdiff_t W, typename T, typename Op, std::ptrdiff_t O = 1>
 // TRIVIAL
@@ -4198,6 +4219,14 @@ struct Unroll {
       if constexpr (L == 3) x = (x * data_[2]);
       return reduce::prod(x);
     }
+  }
+  [[nodiscard]] TRIVIAL constexpr auto reverse() const -> Unroll {
+    static constexpr std::ptrdiff_t L = R * C;
+    Unroll ret;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < L; ++i)
+      ret.data_[i] = ::simd::reverse(data_[L - 1 - i]);
+    return ret;
   }
 
 private:
@@ -4937,6 +4966,9 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   }
   TRIVIAL [[nodiscard]] constexpr auto prod() const -> T {
     return simd::reduce::prod(vec_);
+  }
+  [[nodiscard]] TRIVIAL constexpr auto reverse() const -> Unroll {
+    return {::simd::reverse(vec_)};
   }
 
 private:
