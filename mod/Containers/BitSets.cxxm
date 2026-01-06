@@ -304,6 +304,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   TRIVIAL static constexpr auto contains(math::PtrVector<U> data,
                                          std::ptrdiff_t x) -> U {
+    invariant(x >= 0);
     if (data.empty()) return 0;
     std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
     U r = U(x) & umask;
@@ -350,6 +351,68 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     bool contained = ((data_[d] & mask) != 0);
     if (contained) data_[d] &= (~mask);
     return contained;
+  }
+  /// Insert multiple indices from a SIMD vector
+  /// Uses `__builtin_reduce_or(1UL << x)` to efficiently combine bits
+  template <std::ptrdiff_t W>
+  // TRIVIAL
+  constexpr void insert(simd::Vec<W, std::ptrdiff_t> indices) {
+    using V = simd::Vec<W, U>;
+    V vindices{__builtin_convertvector(indices, V)};
+
+    std::ptrdiff_t max_idx = __builtin_reduce_max(indices); // ignore negative
+    if (max_idx < 0) return;
+    std::ptrdiff_t max_chunk = std::ptrdiff_t(max_idx >> ushift);
+    if (max_chunk >= std::ssize(data_)) resizeData(max_chunk + 1);
+
+    U min_idx = __builtin_reduce_min(vindices);
+    std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
+    vindices -= min_chunk * usize;
+
+    for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
+      data_[chunk] |=
+        __builtin_reduce_or(vindices > umask ? U(0) : U(1) << vindices);
+      vindices -= usize;
+    }
+  }
+  /// Insert multiple indices from a SIMD Unroll
+  /// Reduces multiple Vecs by OR-ing them together per chunk
+  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
+  TRIVIAL constexpr void insert(simd::Unroll<R, C, W, std::ptrdiff_t> indices) {
+    using V = simd::Vec<W, U>;
+    static constexpr std::ptrdiff_t N = R * C;
+
+    simd::Vec<W, std::ptrdiff_t> max_vec = indices[0];
+    V min_vec = __builtin_convertvector(max_vec, V);
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t i = 1; i < N; ++i) {
+      simd::Vec<W, std::ptrdiff_t> v{indices[i]};
+      min_vec =
+        __builtin_elementwise_min(min_vec, __builtin_convertvector(v, V));
+      max_vec = __builtin_elementwise_max(max_vec, v);
+    }
+    std::ptrdiff_t max_idx = __builtin_reduce_max(max_vec);
+    if (max_idx < 0) return;
+    U min_idx = __builtin_reduce_min(min_vec);
+
+    std::ptrdiff_t max_chunk = std::ptrdiff_t(max_idx >> ushift);
+    if (max_chunk >= std::ssize(data_)) resizeData(max_chunk + 1);
+
+    std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t i = 0; i < N; ++i) indices[i] -= min_chunk * usize;
+
+    for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
+      V combined_mask{};
+
+#pragma clang loop unroll(full)
+      for (std::ptrdiff_t i = 0; i < N; ++i) {
+        V vindices = __builtin_convertvector(indices[i], V);
+        combined_mask |= vindices > umask ? U(0) : U(1) << vindices;
+        indices[i] -= usize;
+      }
+      data_[chunk] |= __builtin_reduce_or(combined_mask);
+    }
   }
   TRIVIAL static constexpr void set(U &d, std::ptrdiff_t r, bool b) {
     U mask = U(1) << r;

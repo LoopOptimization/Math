@@ -7,6 +7,7 @@ import ArrayParse;
 import BitSet;
 import CorePrint;
 import ManagedArray;
+import SIMD;
 import std;
 
 #define STRINGIZE_DETAIL(x) #x
@@ -1274,6 +1275,425 @@ auto main() -> int {
     expect(bs1.contains(0));
     expect(!bs1.contains(1));
     expect(bs1.contains(2));
+  };
+
+  "BitSet SIMD Vec Insert SameChunk"_test = [] -> void {
+    // Test inserting Vec with all elements in the same chunk
+    BitSet<> bs;
+
+    // Insert indices 0, 1, 2, 3 - all in same 64-bit chunk
+    simd::Vec<4, std::ptrdiff_t> indices{0, 1, 2, 3};
+    bs.insert(indices);
+
+    expect(bs.contains(0));
+    expect(bs.contains(1));
+    expect(bs.contains(2));
+    expect(bs.contains(3));
+    expect(!bs.contains(4));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Vec Insert DifferentChunks"_test = [] -> void {
+    // Test inserting Vec with elements spanning multiple 64-bit chunks
+    BitSet<> bs;
+
+    // Insert indices that span multiple 64-bit chunks
+    simd::Vec<4, std::ptrdiff_t> indices{0, 64, 128, 192};
+    bs.insert(indices);
+
+    expect(bs.contains(0));
+    expect(bs.contains(64));
+    expect(bs.contains(128));
+    expect(bs.contains(192));
+    expect(!bs.contains(1));
+    expect(!bs.contains(65));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Vec Insert Mixed"_test = [] -> void {
+    // Mix of indices in same and different chunks
+    BitSet<> bs;
+
+    simd::Vec<8, std::ptrdiff_t> indices{5, 10, 15, 20, 70, 75, 130, 135};
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(20));
+    expect(bs.contains(70));
+    expect(bs.contains(75));
+    expect(bs.contains(130));
+    expect(bs.contains(135));
+    expect(!bs.contains(0));
+    expect(!bs.contains(71));
+    expect(eq(bs.size(), 8));
+  };
+
+  "BitSet SIMD Vec Insert WithDuplicates"_test = [] -> void {
+    // Vector with duplicate indices
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{5, 5, 10, 10};
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(!bs.contains(6));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Vec Insert ExistingBits"_test = [] -> void {
+    // Insert overlapping with existing bits
+    BitSet<> bs;
+
+    // Insert some bits first
+    bs.insert(0);
+    bs.insert(2);
+    expect(eq(bs.size(), 2));
+
+    // Insert a vector that overlaps
+    simd::Vec<4, std::ptrdiff_t> indices{0, 1, 2, 3};
+    bs.insert(indices);
+
+    expect(bs.contains(0));
+    expect(bs.contains(1));
+    expect(bs.contains(2));
+    expect(bs.contains(3));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Vec Insert NearBoundary"_test = [] -> void {
+    // Test indices near chunk boundaries (63, 64, 127, 128)
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{63, 64, 127, 128};
+    bs.insert(indices);
+
+    expect(bs.contains(63));
+    expect(bs.contains(64));
+    expect(bs.contains(127));
+    expect(bs.contains(128));
+    expect(!bs.contains(62));
+    expect(!bs.contains(65));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Unroll Insert SameChunk"_test = [] -> void {
+    // Test Unroll with all elements in same chunk
+    BitSet<> bs;
+
+    // Two vectors, all in same chunk
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{0, 1, 2, 3};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{4, 5, 6, 7};
+    bs.insert(indices);
+
+    for (std::ptrdiff_t i = 0; i < 8; ++i) expect(bs.contains(i));
+    expect(!bs.contains(8));
+    expect(eq(bs.size(), 8));
+  };
+
+  "BitSet SIMD Unroll Insert DifferentChunks"_test = [] -> void {
+    // Test Unroll spanning multiple chunks
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{0, 64, 128, 192};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{1, 65, 129, 193};
+    bs.insert(indices);
+
+    expect(bs.contains(0));
+    expect(bs.contains(1));
+    expect(bs.contains(64));
+    expect(bs.contains(65));
+    expect(bs.contains(128));
+    expect(bs.contains(129));
+    expect(bs.contains(192));
+    expect(bs.contains(193));
+    expect(!bs.contains(2));
+    expect(eq(bs.size(), 8));
+  };
+
+  "BitSet SIMD Unroll Insert Mixed"_test = [] -> void {
+    // Test Unroll with mixed chunk distribution
+    BitSet<> bs;
+
+    simd::Unroll<1, 3, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{10, 20, 30, 40};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{70, 80, 90, 100};
+    indices[2] = simd::Vec<4, std::ptrdiff_t>{130, 140, 150, 160};
+    bs.insert(indices);
+
+    expect(bs.contains(10));
+    expect(bs.contains(20));
+    expect(bs.contains(70));
+    expect(bs.contains(80));
+    expect(bs.contains(130));
+    expect(bs.contains(140));
+    expect(!bs.contains(11));
+    expect(eq(bs.size(), 12));
+  };
+
+  "BitSet SIMD Unroll Insert WithOverlap"_test = [] -> void {
+    // Test Unroll where vectors have overlapping indices
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{5, 10, 15, 20};
+    indices[1] =
+      simd::Vec<4, std::ptrdiff_t>{5, 10, 25, 30}; // 5 and 10 repeated
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(20));
+    expect(bs.contains(25));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 6));
+  };
+
+  "BitSet SIMD Vec Large Width"_test = [] -> void {
+    // Test with larger SIMD width
+    BitSet<> bs;
+
+    simd::Vec<8, std::ptrdiff_t> indices{1, 2, 3, 4, 65, 66, 67, 68};
+    bs.insert(indices);
+
+    expect(bs.contains(1));
+    expect(bs.contains(2));
+    expect(bs.contains(3));
+    expect(bs.contains(4));
+    expect(bs.contains(65));
+    expect(bs.contains(66));
+    expect(bs.contains(67));
+    expect(bs.contains(68));
+    expect(!bs.contains(5));
+    expect(eq(bs.size(), 8));
+  };
+
+  "BitSet SIMD FixedSize"_test = [] -> void {
+    // Test SIMD insert with fixed-size bitset
+    BitSet<std::array<std::uint64_t, 2>> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{10, 20, 30, 40};
+    bs.insert(indices);
+
+    expect(bs.contains(10));
+    expect(bs.contains(20));
+    expect(bs.contains(30));
+    expect(bs.contains(40));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Vec CombineWithScalar"_test = [] -> void {
+    // Test combining SIMD and scalar inserts
+    BitSet<> bs;
+
+    // Insert some scalar values
+    bs.insert(5);
+    bs.insert(15);
+
+    // Insert SIMD vector
+    simd::Vec<4, std::ptrdiff_t> indices{10, 20, 30, 40};
+    bs.insert(indices);
+
+    // Insert more scalar values
+    bs.insert(25);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(20));
+    expect(bs.contains(25));
+    expect(bs.contains(30));
+    expect(bs.contains(40));
+    expect(eq(bs.size(), 7));
+  };
+
+  "BitSet SIMD Vec Width2"_test = [] -> void {
+    // Test with width-2 vector
+    BitSet<> bs;
+
+    simd::Vec<2, std::ptrdiff_t> indices{100, 200};
+    bs.insert(indices);
+
+    expect(bs.contains(100));
+    expect(bs.contains(200));
+    expect(!bs.contains(101));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Unroll LargeIndices"_test = [] -> void {
+    // Test with large indices to ensure proper resizing
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{1000, 1001, 1002, 1003};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{2000, 2001, 2002, 2003};
+    bs.insert(indices);
+
+    expect(bs.contains(1000));
+    expect(bs.contains(1001));
+    expect(bs.contains(2000));
+    expect(bs.contains(2003));
+    expect(!bs.contains(1500));
+    expect(eq(bs.size(), 8));
+  };
+
+  "BitSet SIMD Vec NegativeIndices"_test = [] -> void {
+    // Test that negative indices are ignored
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-5, 10, -20, 30};
+    bs.insert(indices);
+
+    // Only positive indices should be inserted
+    expect(bs.contains(10));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Vec AllNegative"_test = [] -> void {
+    // Test with all negative indices
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-1, -2, -3, -4};
+    bs.insert(indices);
+
+    // No indices should be inserted
+    expect(bs.empty());
+    expect(eq(bs.size(), 0));
+  };
+
+  "BitSet SIMD Vec MixedNegativePositive"_test = [] -> void {
+    // Test with mixed negative and positive across chunks
+    BitSet<> bs;
+
+    simd::Vec<8, std::ptrdiff_t> indices{-10, 5, -100, 64, -1, 128, 0, -50};
+    bs.insert(indices);
+
+    // Only non-negative indices should be inserted
+    expect(bs.contains(0));
+    expect(bs.contains(5));
+    expect(bs.contains(64));
+    expect(bs.contains(128));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Vec SingleNegative"_test = [] -> void {
+    // Test with a single negative value
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{10, 20, 30, -1};
+    bs.insert(indices);
+
+    expect(bs.contains(10));
+    expect(bs.contains(20));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 3));
+  };
+
+  "BitSet SIMD Unroll NegativeIndices"_test = [] -> void {
+    // Test Unroll with negative indices
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-5, 10, -20, 30};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{40, -50, 60, -70};
+    bs.insert(indices);
+
+    // Only non-negative indices should be inserted
+    expect(bs.contains(10));
+    expect(bs.contains(30));
+    expect(bs.contains(40));
+    expect(bs.contains(60));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Unroll AllNegative"_test = [] -> void {
+    // Test Unroll with all negative indices
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-1, -2, -3, -4};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{-10, -20, -30, -40};
+    bs.insert(indices);
+
+    // No indices should be inserted
+    expect(bs.empty());
+    expect(eq(bs.size(), 0));
+  };
+
+  "BitSet SIMD Unroll MixedNegativePositive"_test = [] -> void {
+    // Test Unroll with mixed negative and positive across chunks
+    BitSet<> bs;
+
+    simd::Unroll<1, 3, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-1, 5, 10, 15};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{70, -80, 90, 100};
+    indices[2] = simd::Vec<4, std::ptrdiff_t>{130, 140, -150, 160};
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(70));
+    expect(bs.contains(90));
+    expect(bs.contains(100));
+    expect(bs.contains(130));
+    expect(bs.contains(140));
+    expect(bs.contains(160));
+    expect(eq(bs.size(), 9));
+  };
+
+  "BitSet SIMD Vec NegativeWithZero"_test = [] -> void {
+    // Test that zero is treated as valid (non-negative)
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-5, 0, -10, 5};
+    bs.insert(indices);
+
+    expect(bs.contains(0));
+    expect(bs.contains(5));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Vec NegativeBoundary"_test = [] -> void {
+    // Test negative indices near chunk boundaries
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-1, 63, 64, -65};
+    bs.insert(indices);
+
+    expect(bs.contains(63));
+    expect(bs.contains(64));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Unroll NegativeWithExisting"_test = [] -> void {
+    // Test inserting negative indices when positive bits already exist
+    BitSet<> bs;
+
+    // Insert some positive values first
+    bs.insert(5);
+    bs.insert(15);
+    expect(eq(bs.size(), 2));
+
+    // Insert vector with negative and positive values
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-10, 10, -20, 20};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{-5, 25, -30, 30};
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(20));
+    expect(bs.contains(25));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 6));
   };
 
   return 0;
