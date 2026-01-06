@@ -355,8 +355,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   /// Insert multiple indices from a SIMD vector
   /// Uses `__builtin_reduce_or(1UL << x)` to efficiently combine bits
   template <std::ptrdiff_t W>
-  // TRIVIAL
-  constexpr void insert(simd::Vec<W, std::ptrdiff_t> indices) {
+  TRIVIAL constexpr void insert(simd::Vec<W, std::ptrdiff_t> indices) {
     using V = simd::Vec<W, U>;
     V vindices{__builtin_convertvector(indices, V)};
 
