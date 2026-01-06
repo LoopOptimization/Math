@@ -1542,5 +1542,159 @@ auto main() -> int {
     expect(eq(bs.size(), 8));
   };
 
+  "BitSet SIMD Vec NegativeIndices"_test = [] -> void {
+    // Test that negative indices are ignored
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-5, 10, -20, 30};
+    bs.insert(indices);
+
+    // Only positive indices should be inserted
+    expect(bs.contains(10));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Vec AllNegative"_test = [] -> void {
+    // Test with all negative indices
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-1, -2, -3, -4};
+    bs.insert(indices);
+
+    // No indices should be inserted
+    expect(bs.empty());
+    expect(eq(bs.size(), 0));
+  };
+
+  "BitSet SIMD Vec MixedNegativePositive"_test = [] -> void {
+    // Test with mixed negative and positive across chunks
+    BitSet<> bs;
+
+    simd::Vec<8, std::ptrdiff_t> indices{-10, 5, -100, 64, -1, 128, 0, -50};
+    bs.insert(indices);
+
+    // Only non-negative indices should be inserted
+    expect(bs.contains(0));
+    expect(bs.contains(5));
+    expect(bs.contains(64));
+    expect(bs.contains(128));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Vec SingleNegative"_test = [] -> void {
+    // Test with a single negative value
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{10, 20, 30, -1};
+    bs.insert(indices);
+
+    expect(bs.contains(10));
+    expect(bs.contains(20));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 3));
+  };
+
+  "BitSet SIMD Unroll NegativeIndices"_test = [] -> void {
+    // Test Unroll with negative indices
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-5, 10, -20, 30};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{40, -50, 60, -70};
+    bs.insert(indices);
+
+    // Only non-negative indices should be inserted
+    expect(bs.contains(10));
+    expect(bs.contains(30));
+    expect(bs.contains(40));
+    expect(bs.contains(60));
+    expect(eq(bs.size(), 4));
+  };
+
+  "BitSet SIMD Unroll AllNegative"_test = [] -> void {
+    // Test Unroll with all negative indices
+    BitSet<> bs;
+
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-1, -2, -3, -4};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{-10, -20, -30, -40};
+    bs.insert(indices);
+
+    // No indices should be inserted
+    expect(bs.empty());
+    expect(eq(bs.size(), 0));
+  };
+
+  "BitSet SIMD Unroll MixedNegativePositive"_test = [] -> void {
+    // Test Unroll with mixed negative and positive across chunks
+    BitSet<> bs;
+
+    simd::Unroll<1, 3, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-1, 5, 10, 15};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{70, -80, 90, 100};
+    indices[2] = simd::Vec<4, std::ptrdiff_t>{130, 140, -150, 160};
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(70));
+    expect(bs.contains(90));
+    expect(bs.contains(100));
+    expect(bs.contains(130));
+    expect(bs.contains(140));
+    expect(bs.contains(160));
+    expect(eq(bs.size(), 9));
+  };
+
+  "BitSet SIMD Vec NegativeWithZero"_test = [] -> void {
+    // Test that zero is treated as valid (non-negative)
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-5, 0, -10, 5};
+    bs.insert(indices);
+
+    expect(bs.contains(0));
+    expect(bs.contains(5));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Vec NegativeBoundary"_test = [] -> void {
+    // Test negative indices near chunk boundaries
+    BitSet<> bs;
+
+    simd::Vec<4, std::ptrdiff_t> indices{-1, 63, 64, -65};
+    bs.insert(indices);
+
+    expect(bs.contains(63));
+    expect(bs.contains(64));
+    expect(eq(bs.size(), 2));
+  };
+
+  "BitSet SIMD Unroll NegativeWithExisting"_test = [] -> void {
+    // Test inserting negative indices when positive bits already exist
+    BitSet<> bs;
+
+    // Insert some positive values first
+    bs.insert(5);
+    bs.insert(15);
+    expect(eq(bs.size(), 2));
+
+    // Insert vector with negative and positive values
+    simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
+    indices[0] = simd::Vec<4, std::ptrdiff_t>{-10, 10, -20, 20};
+    indices[1] = simd::Vec<4, std::ptrdiff_t>{-5, 25, -30, 30};
+    bs.insert(indices);
+
+    expect(bs.contains(5));
+    expect(bs.contains(10));
+    expect(bs.contains(15));
+    expect(bs.contains(20));
+    expect(bs.contains(25));
+    expect(bs.contains(30));
+    expect(eq(bs.size(), 6));
+  };
+
   return 0;
 }
