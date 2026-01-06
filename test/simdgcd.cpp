@@ -189,5 +189,120 @@ int main() {
     expect(h.extract_value(3) == 15);
   };
 
+  "UnrollLCMTest Int32"_test = [] -> void {
+    constexpr std::ptrdiff_t W = 16;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 5000; ++i) {
+      auto [aarr, barr, z_unused, rg_unused] =
+        fillGCDUnroll<std::int32_t, W>(gen, -65535, 65535);
+      auto a = makeSVec<std::int32_t, W>(aarr);
+      auto b = makeSVec<std::int32_t, W>(barr);
+      auto lcm_result = ::math::lcm(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int32_t expected = std::lcm(aarr[j], barr[j]);
+        expect(fatal(eq(lcm_result.extract_value(j), expected)));
+      }
+    }
+  };
+
+  "UnrollLCMTest Int64"_test = [] -> void {
+    constexpr std::ptrdiff_t W = 16;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 5000; ++i) {
+      auto [aarr, barr, z_unused, rg_unused] =
+        fillGCDUnroll<std::int64_t, W>(gen, -65535, 65535);
+      auto a = makeSVec<std::int64_t, W>(aarr);
+      auto b = makeSVec<std::int64_t, W>(barr);
+      auto lcm_result = ::math::lcm(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t expected = std::lcm(aarr[j], barr[j]);
+        expect(fatal(eq(lcm_result.extract_value(j), expected)));
+      }
+    }
+  };
+
+  "UnrollLCMTest Float"_test = [] -> void {
+    static constexpr std::ptrdiff_t W = 16;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 5000; ++i) {
+      auto [aarr, barr, z_unused, rg_unused] =
+        fillGCDUnroll<std::int32_t, W>(gen, -4096, 4096);
+      // Convert to float for testing
+      std::array<float, W> aarrf, barrf;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        aarrf[j] = float(aarr[j]);
+        barrf[j] = float(barr[j]);
+      }
+      auto af = makeSVec<float, W>(aarrf);
+      auto bf = makeSVec<float, W>(barrf);
+      auto lcm_result = ::math::lcm(af, bf);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int32_t expected = std::lcm(aarr[j], barr[j]);
+        expect(fatal(eq(std::int32_t(lcm_result.extract_value(j)), expected)));
+      }
+    }
+  };
+
+  "UnrollLCMTest Double"_test = [] -> void {
+    static constexpr std::ptrdiff_t W = 16;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 5000; ++i) {
+      auto [aarr, barr, z_unused, rg_unused] =
+        fillGCDUnroll<std::int64_t, W>(gen, -65536, 65536);
+      // Convert to double for testing
+      std::array<double, W> aarrd, barrd;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        aarrd[j] = double(aarr[j]);
+        barrd[j] = double(barr[j]);
+      }
+      auto ad = makeSVec<double, W>(aarrd);
+      auto bd = makeSVec<double, W>(barrd);
+      auto lcm_result = ::math::lcm(ad, bd);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t expected = std::lcm(aarr[j], barr[j]);
+        expect(fatal(eq(std::int64_t(lcm_result.extract_value(j)), expected)));
+      }
+    }
+  };
+
+  "UnrollLCMTest EdgeCases"_test = [] -> void {
+    // Test with ones and same values
+    auto a =
+      makeSVec<std::int32_t, 4>(std::array<std::int32_t, 4>{1, 12, 15, 7});
+    auto b =
+      makeSVec<std::int32_t, 4>(std::array<std::int32_t, 4>{18, 1, 15, 21});
+    auto l = ::math::lcm(a, b);
+    expect(l.extract_value(0) == 18); // lcm(1, 18) = 18
+    expect(l.extract_value(1) == 12); // lcm(12, 1) = 12
+    expect(l.extract_value(2) == 15); // lcm(15, 15) = 15
+    expect(l.extract_value(3) == 21); // lcm(7, 21) = 21
+
+    // Test negative values
+    auto c =
+      makeSVec<std::int64_t, 4>(std::array<std::int64_t, 4>{-12, -18, 24, -30});
+    auto d =
+      makeSVec<std::int64_t, 4>(std::array<std::int64_t, 4>{18, -24, -36, 45});
+    auto m = ::math::lcm(c, d);
+    expect(m.extract_value(0) == 36); // lcm(-12, 18) = 36
+    expect(m.extract_value(1) == 72); // lcm(-18, -24) = 72
+    expect(m.extract_value(2) == 72); // lcm(24, -36) = 72
+    expect(m.extract_value(3) == 90); // lcm(-30, 45) = 90
+
+    // Test with small coprime numbers
+    auto e =
+      makeSVec<std::int32_t, 4>(std::array<std::int32_t, 4>{3, 5, 7, 11});
+    auto f =
+      makeSVec<std::int32_t, 4>(std::array<std::int32_t, 4>{5, 7, 11, 13});
+    auto n = ::math::lcm(e, f);
+    expect(n.extract_value(0) == 15);  // lcm(3, 5) = 15
+    expect(n.extract_value(1) == 35);  // lcm(5, 7) = 35
+    expect(n.extract_value(2) == 77);  // lcm(7, 11) = 77
+    expect(n.extract_value(3) == 143); // lcm(11, 13) = 143
+  };
+
   return 0;
 }

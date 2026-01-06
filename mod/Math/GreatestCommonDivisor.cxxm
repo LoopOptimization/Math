@@ -11,10 +11,30 @@ using utils::invariant;
 TRIVIAL constexpr auto constexpr_abs(std::signed_integral auto x) noexcept {
   return x < 0 ? -x : x;
 }
+TRIVIAL constexpr auto constexpr_abs(std::unsigned_integral auto x) noexcept {
+  return x;
+}
 template <std::ptrdiff_t W, std::integral T>
 TRIVIAL constexpr auto constexpr_abs(simd::Vec<W, T> x) noexcept {
   if constexpr (std::signed_integral<T>) return x < 0 ? -x : x;
   else return x;
+}
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto constexpr_abs(simd::Vec<W, T> x) noexcept {
+  return x < 0 ? -x : x;
+}
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T>
+requires((R * C) != 1)
+TRIVIAL constexpr auto constexpr_abs(simd::Unroll<R, C, N, T> x) noexcept {
+  simd::Unroll<R, C, N, T> result;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i)
+    result.data_[i] = constexpr_abs<N>(x.data_[i]);
+  return result;
+}
+template <std::ptrdiff_t N, typename T>
+TRIVIAL constexpr auto constexpr_abs(simd::Unroll<1, 1, N, T> x) noexcept {
+  return simd::Unroll<1, 1, N, T>{constexpr_abs<N>(x.vec_)};
 }
 
 template <std::integral T> TRIVIAL constexpr auto gcd(T x, T y) -> T {
@@ -188,39 +208,29 @@ TRIVIAL constexpr auto gcdreduce(simd::Unroll<1, 1, N, std::int32_t> v)
 }
 
 // GCD for Unroll types (float - assumes integer-valued inputs)
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
-TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, float> x,
-                           simd::Unroll<R, C, N, float> y)
-  -> simd::Unroll<R, C, N, float> {
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
+          std::floating_point F>
+TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, F> x,
+                           simd::Unroll<R, C, N, F> y) {
+  using I = std::conditional_t<sizeof(F) == 4, std::int32_t, std::int64_t>;
   // Convert to int32, compute GCD, convert back
-  simd::Unroll<R, C, N, std::int32_t> xi = x, yi = y;
-  simd::Unroll<R, C, N, std::int32_t> result = gcd(xi, yi);
-  return simd::Unroll<R, C, N, float>(result);
-}
-
-// GCD for Unroll types (double - assumes integer-valued inputs)
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
-TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, double> x,
-                           simd::Unroll<R, C, N, double> y)
-  -> simd::Unroll<R, C, N, std::int64_t> {
-  // Convert to int64, compute GCD, convert back
-  simd::Unroll<R, C, N, std::int64_t> xi = x, yi = y;
+  simd::Unroll<R, C, N, I> xi = x, yi = y;
   return gcd(xi, yi);
 }
 
-TRIVIAL constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {
-  std::int64_t ax = constexpr_abs(x);
-  std::int64_t ay = constexpr_abs(y);
+template <std::integral I> TRIVIAL constexpr auto lcm(I x, I y) -> I {
+  I ax = constexpr_abs(x), ay = constexpr_abs(y);
   if (ax == 1) return ay;
-  if (ay == 1) return ax;
-  if (ax == ay) return ax;
+  if (ay == 1 || ay == ax) return ax;
+  return ax * (ay / gcd(ax, ay));
+}
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T>
+TRIVIAL constexpr auto lcm(simd::Unroll<R, C, N, T> x,
+                           simd::Unroll<R, C, N, T> y) {
+  auto ax = constexpr_abs(x), ay = constexpr_abs(y);
   return ax * (ay / gcd(ax, ay));
 }
 
-// inline auto copySign(double x, double s) -> double {
-//   // TODO: c++23 makes std::copysign constexpr
-//   return std::copysign(x, s);
-// }
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 template <std::integral I> TRIVIAL constexpr auto copySign(I x, I s) -> I {
   if (s >= 0) return constexpr_abs(x);
