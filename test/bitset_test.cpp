@@ -1441,7 +1441,8 @@ auto main() -> int {
 
     simd::Unroll<1, 2, 4, std::ptrdiff_t> indices;
     indices[0] = simd::Vec<4, std::ptrdiff_t>{5, 10, 15, 20};
-    indices[1] = simd::Vec<4, std::ptrdiff_t>{5, 10, 25, 30}; // 5 and 10 repeated
+    indices[1] =
+      simd::Vec<4, std::ptrdiff_t>{5, 10, 25, 30}; // 5 and 10 repeated
     bs.insert(indices);
 
     expect(bs.contains(5));
