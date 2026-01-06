@@ -1,4 +1,5 @@
 module;
+#include "LoopMacros.hxx"
 #include "Macros.hxx"
 export module GCD;
 
@@ -16,21 +17,21 @@ TRIVIAL constexpr auto constexpr_abs(simd::Vec<W, T> x) noexcept {
   else return x;
 }
 
-TRIVIAL constexpr auto gcd(std::int64_t x, std::int64_t y) -> std::int64_t {
-  invariant(x != std::numeric_limits<std::int64_t>::min());
-  invariant(y != std::numeric_limits<std::int64_t>::min());
+template <std::integral T> TRIVIAL constexpr auto gcd(T x, T y) -> T {
+  invariant(x != std::numeric_limits<T>::min());
+  invariant(y != std::numeric_limits<T>::min());
   if (x == 0) return constexpr_abs(y);
   if (y == 0) return constexpr_abs(x);
-  std::int64_t a = constexpr_abs(x), b = constexpr_abs(y);
+  T a = constexpr_abs(x), b = constexpr_abs(y);
   if ((a == 1) | (b == 1)) return 1;
-  std::int64_t az = std::countr_zero(std::uint64_t(x)),
-               bz = std::countr_zero(std::uint64_t(y));
+  using UT = std::make_unsigned_t<T>;
+  T az = std::countr_zero(UT(x)), bz = std::countr_zero(UT(y));
   b >>= bz;
-  std::int64_t k = std::min(az, bz);
+  T k = std::min(az, bz);
   for (;;) {
     a >>= az;
-    std::int64_t d = a - b;
-    az = std::countr_zero(std::uint64_t(d));
+    T d = a - b;
+    az = std::countr_zero(UT(d));
     b = std::min(a, b);
     if (!d) break;
     a = constexpr_abs(d);
@@ -38,58 +39,173 @@ TRIVIAL constexpr auto gcd(std::int64_t x, std::int64_t y) -> std::int64_t {
   return b << k;
 }
 // TODO: add `Unroll` method, use in vectorized GCD?
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto gcd(simd::Vec<W, std::int64_t> x,
-                           simd::Vec<W, std::int64_t> y)
-  -> simd::Vec<W, std::int64_t> {
-  constexpr simd::Vec<W, std::int64_t> zero = {};
-  constexpr simd::Vec<W, std::int64_t> one = zero + 1;
-  constexpr simd::Vec<W, std::int64_t> invalid =
-    zero + std::numeric_limits<std::int64_t>::min();
+template <std::ptrdiff_t W, std::integral I>
+TRIVIAL constexpr auto gcd(simd::Vec<W, I> x, simd::Vec<W, I> y)
+  -> simd::Vec<W, I> {
+  static_assert(W * sizeof(I) >= 16);
+  static constexpr simd::Vec<W, I> zero = {};
+  static constexpr simd::Vec<W, I> one = zero + 1;
+  static constexpr simd::Vec<W, I> invalid =
+    zero + std::numeric_limits<I>::min();
 
-  invariant(!(simd::cmp::eq<W, std::int64_t>(x, invalid)).any());
-  invariant(!(simd::cmp::eq<W, std::int64_t>(y, invalid)).any());
-  simd::Vec<W, std::int64_t> b = constexpr_abs<W, std::int64_t>(y),
-                             a = constexpr_abs<W, std::int64_t>(x),
-                             bz = simd::crz<W, std::int64_t>(y),
-                             az = simd::crz<W, std::int64_t>(x);
+  invariant(!(simd::cmp::eq<W, I>(x, invalid)).any());
+  invariant(!(simd::cmp::eq<W, I>(y, invalid)).any());
+  simd::Vec<W, I> b = constexpr_abs<W, I>(y), a = constexpr_abs<W, I>(x),
+                  bz = simd::crz<W, I>(y), az = simd::crz<W, I>(x);
   auto on = ((a > 1) & (b > 1));
-  simd::Vec<W, std::int64_t> offb = (x == 0 ? b : (y == 0 ? a : one));
+  simd::Vec<W, I> offb = (x == 0 ? b : (y == 0 ? a : one));
   if (!(simd::cmp::ne<W>(on, {})).any()) return offb;
   b = on ? (b >> bz) : offb;
-  simd::Vec<W, std::int64_t> k = on ? (az > bz ? bz : az) : zero;
+  simd::Vec<W, I> k = on ? (az > bz ? bz : az) : zero;
   for (;;) {
     a >>= az;
-    simd::Vec<W, std::int64_t> d = a - b;
-    az = simd::crz<W, std::int64_t>(d);
+    simd::Vec<W, I> d = a - b;
+    az = simd::crz<W, I>(d);
     b = (on & (a <= b)) ? a : b;
     on = on ? (d != zero) : on;
     if (!(simd::cmp::ne<W>(on, {})).any()) break;
-    a = constexpr_abs<W, std::int64_t>(d);
+    a = constexpr_abs<W, I>(d);
   }
   return b << k;
 }
 template <>
-TRIVIAL constexpr auto gcd<1>(simd::Vec<1, std::int64_t> x,
-                              simd::Vec<1, std::int64_t> y)
+TRIVIAL constexpr auto gcd<1, std::int64_t>(simd::Vec<1, std::int64_t> x,
+                                            simd::Vec<1, std::int64_t> y)
   -> simd::Vec<1, std::int64_t> {
   return gcd(x[0], y[0]);
 }
+template <>
+TRIVIAL constexpr auto gcd<1, std::int32_t>(simd::Vec<1, std::int32_t> x,
+                                            simd::Vec<1, std::int32_t> y)
+  -> simd::Vec<1, std::int32_t> {
+  return gcd(x[0], y[0]);
+}
 
-template <std::ptrdiff_t W>
-TRIVIAL constexpr auto gcdreduce(simd::Vec<W, std::int64_t> v) -> std::int64_t {
+template <std::ptrdiff_t W, std::integral I>
+TRIVIAL constexpr auto gcdreduce(simd::Vec<W, I> v) -> I {
   if constexpr (W != 2) {
-    simd::Vec<W / 2, std::int64_t> a, b;
-    for (std::ptrdiff_t w = 0; w < W / 2; ++w) {
-      a[w] = v[w];
-      b[w] = v[w + (W / 2)];
+    auto [a, b] = ::simd::split(v);
+    if constexpr (W * sizeof(I) >= 32) {
+      return gcdreduce<W / 2>(gcd<W / 2>(a, b));
+    } else {
+      static_assert(W == 4 && sizeof(I) == 4);
+      static constexpr ::simd::Vec<2, I> zero{};
+      ::simd::Vec<4, I> ap = __builtin_shufflevector(a, zero, 0, 1, 2, 3),
+                        bp = __builtin_shufflevector(b, zero, 0, 1, 2, 3),
+                        g = gcd<4>(ap, bp);
+      return gcd(g[0], g[1]);
     }
-    return gcdreduce<W / 2>(gcd<W / 2>(a, b));
   } else return gcd(v[0], v[1]);
 }
 template <>
-constexpr auto gcdreduce<1>(simd::Vec<1, std::int64_t> v) -> std::int64_t {
+constexpr auto gcdreduce<1, std::int64_t>(simd::Vec<1, std::int64_t> v)
+  -> std::int64_t {
   return v[0];
+}
+template <>
+constexpr auto gcdreduce<1, std::int32_t>(simd::Vec<1, std::int32_t> v)
+  -> std::int32_t {
+  return v[0];
+}
+
+// GCD for Unroll types (int64_t)
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+requires((R * C) != 1)
+TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, std::int64_t> x,
+                           simd::Unroll<R, C, N, std::int64_t> y)
+  -> simd::Unroll<R, C, N, std::int64_t> {
+  simd::Unroll<R, C, N, std::int64_t> result;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i)
+    result.data_[i] = gcd<N>(x.data_[i], y.data_[i]);
+  return result;
+}
+
+// GCD for Unroll<1, 1, N, int64_t> specialization (single vector)
+template <std::ptrdiff_t N>
+TRIVIAL constexpr auto gcd(simd::Unroll<1, 1, N, std::int64_t> x,
+                           simd::Unroll<1, 1, N, std::int64_t> y)
+  -> simd::Unroll<1, 1, N, std::int64_t> {
+  return simd::Unroll<1, 1, N, std::int64_t>{gcd<N>(x.vec_, y.vec_)};
+}
+
+// GCD for Unroll types (int32_t)
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+requires((R * C) != 1)
+TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, std::int32_t> x,
+                           simd::Unroll<R, C, N, std::int32_t> y)
+  -> simd::Unroll<R, C, N, std::int32_t> {
+  simd::Unroll<R, C, N, std::int32_t> result;
+  for (std::ptrdiff_t i = 0; i < R * C; ++i)
+    result.data_[i] = gcd<N>(x.data_[i], y.data_[i]);
+  return result;
+}
+
+// GCD for Unroll<1, 1, N, int32_t> specialization (single vector)
+template <std::ptrdiff_t N>
+TRIVIAL constexpr auto gcd(simd::Unroll<1, 1, N, std::int32_t> x,
+                           simd::Unroll<1, 1, N, std::int32_t> y)
+  -> simd::Unroll<1, 1, N, std::int32_t> {
+  return simd::Unroll<1, 1, N, std::int32_t>{gcd<N>(x.vec_, y.vec_)};
+}
+
+// gcdreduce for Unroll types (int64_t)
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, std::integral I>
+requires((R * C) != 1)
+TRIVIAL constexpr auto gcdreduce(simd::Unroll<R, C, N, I> v) -> I {
+  // First reduce all Vecs to a single Vec using vector GCD
+  ::simd::Vec<N, I> result = v.data_[0];
+  for (std::ptrdiff_t i = 1; i < R * C; ++i)
+    result = gcd<N>(result, v.data_[i]);
+  // Then reduce the final Vec to a scalar
+  return gcdreduce<N>(result);
+}
+
+// gcdreduce for Unroll<1, 1, N, int64_t> specialization
+template <std::ptrdiff_t N>
+TRIVIAL constexpr auto gcdreduce(simd::Unroll<1, 1, N, std::int64_t> v)
+  -> std::int64_t {
+  return gcdreduce<N>(v.vec_);
+}
+
+// gcdreduce for Unroll types (int32_t)
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+requires((R * C) != 1)
+TRIVIAL constexpr auto gcdreduce(simd::Unroll<R, C, N, std::int32_t> v)
+  -> std::int32_t {
+  using VT = decltype(v.data_[0]);
+  VT result = v.data_[0];
+  for (std::ptrdiff_t i = 1; i < R * C; ++i)
+    result = gcd<N>(result, v.data_[i]);
+  return gcdreduce<N>(result);
+}
+
+// gcdreduce for Unroll<1, 1, N, int32_t> specialization
+template <std::ptrdiff_t N>
+TRIVIAL constexpr auto gcdreduce(simd::Unroll<1, 1, N, std::int32_t> v)
+  -> std::int32_t {
+  return gcdreduce<N>(v.vec_);
+}
+
+// GCD for Unroll types (float - assumes integer-valued inputs)
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, float> x,
+                           simd::Unroll<R, C, N, float> y)
+  -> simd::Unroll<R, C, N, float> {
+  // Convert to int32, compute GCD, convert back
+  simd::Unroll<R, C, N, std::int32_t> xi = x, yi = y;
+  simd::Unroll<R, C, N, std::int32_t> result = gcd(xi, yi);
+  return simd::Unroll<R, C, N, float>(result);
+}
+
+// GCD for Unroll types (double - assumes integer-valued inputs)
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
+TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, double> x,
+                           simd::Unroll<R, C, N, double> y)
+  -> simd::Unroll<R, C, N, std::int64_t> {
+  // Convert to int64, compute GCD, convert back
+  simd::Unroll<R, C, N, std::int64_t> xi = x, yi = y;
+  return gcd(xi, yi);
 }
 
 TRIVIAL constexpr auto lcm(std::int64_t x, std::int64_t y) -> std::int64_t {

@@ -3711,11 +3711,23 @@ TRIVIAL constexpr auto select(mask::Vector<W, Bytes> m, Vec<W, T> x,
   else return mask::Vector<W, sizeof(T)>(m).m ? x : y;
 }
 #endif
+#if __clang_major__ >= 22
+// count left zeros
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto clz(Vec<W, T> v) -> Vec<W, T> {
+  return __builtin_elementwise_clzg(v);
+}
+// count right zeros
+template <std::ptrdiff_t W, std::integral T>
+TRIVIAL constexpr auto crz(Vec<W, T> v) -> Vec<W, T> {
+  return __builtin_elementwise_ctzg(v);
+}
+#else
 #ifdef __AVX512CD__
 
 // count left zeros
 template <std::ptrdiff_t W, std::integral T>
-TRIVIAL inline constexpr auto clz(Vec<W, T> v) {
+TRIVIAL constexpr auto clz(Vec<W, T> v) {
   static_assert((sizeof(T) == 4) || (sizeof(T) == 8));
   if constexpr (W == 16) {
     static_assert(sizeof(T) == 4);
@@ -3737,15 +3749,20 @@ TRIVIAL inline constexpr auto clz(Vec<W, T> v) {
       __m128i vi = __builtin_bit_cast(__m128i, v);
       return __builtin_bit_cast(Vec<W, T>, _mm_lzcnt_epi32(vi));
     }
-  } else {
-    static_assert(sizeof(T) == 8);
+  } else if constexpr (sizeof(T) == 8) {
     __m128i vi = __builtin_bit_cast(__m128i, v);
     return __builtin_bit_cast(Vec<W, T>, _mm_lzcnt_epi64(vi));
+  } else {
+    static_assert(sizeof(T) == 4 && W == 2);
+    Vec<4, T> v4 = __builtin_shufflevector(v, Vec<2, T>{}, 0, 1, 2, 3);
+    __m128i vi = __builtin_bit_cast(__m128i, v4);
+    Vec<4, T> ret = __builtin_bit_cast(Vec<4, T>, _mm_lzcnt_epi32(vi));
+    return __builtin_shufflevector(ret, ret, 0, 1);
   }
 }
 // count right zeros
 template <std::ptrdiff_t W, std::integral T>
-TRIVIAL inline constexpr auto crz(Vec<W, T> v) {
+TRIVIAL constexpr auto crz(Vec<W, T> v) {
   return T(8 * sizeof(T)) - clz<W, T>((~v) & (v - T(1)));
 }
 
@@ -3766,6 +3783,7 @@ TRIVIAL constexpr auto crz(Vec<W, T> v) {
   return ret;
 }
 
+#endif
 #endif
 
 template <typename T>
