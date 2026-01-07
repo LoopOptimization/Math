@@ -16,6 +16,7 @@ using namespace ::math;
 using utils::operator""_mat;
 using namespace boost::ut;
 
+namespace {
 auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
   -> Simplex & {
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
@@ -30,8 +31,9 @@ auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
   invariant(find_first(C, check_invalid) < 0);
   return simp;
 }
+} // namespace
 
-auto main(int argc, const char **argv) -> int {
+auto main(int argc, char *argv[]) -> int {
   cfg<override> = {.filter = argc > 1 ? argv[1] : ""};
   alloc::OwningArena<> managed_alloc;
   "SimplexTest"_test = [&managed_alloc] -> void {
