@@ -11,7 +11,7 @@ using ::math::DenseMatrix, ::math::DenseDims, ::math::row, ::math::col;
 
 namespace {
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
-void testBasicAssertions(int rng_init) {
+void testBasicAssertions(unsigned int rng_init) {
   std::mt19937 gen(rng_init);
   std::uniform_int_distribution<> distrib(-2, 2);
 
@@ -46,15 +46,13 @@ void testBasicAssertions(int rng_init) {
 }
 } // namespace
 
-auto main(int argc, char **args) -> int {
-  int rng_init;
-  if (argc > 1) {
-    rng_init = std::atoi(args[1]);
-  } else {
+auto main(int argc, char *argv[]) -> int {
+  unsigned int rng_init;
+  if (argc == 1) {
     std::random_device rd;
     rng_init = rd();
-  }
-  "OrthogonalizeMatricesTest BasicAssertions"_test = [=] {
+  } else rng_init = std::atoi(argv[1]);
+  "OrthogonalizeMatricesTest BasicAssertions"_test = [=] -> void {
     testBasicAssertions(rng_init);
   };
   return 0;

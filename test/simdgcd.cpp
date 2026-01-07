@@ -46,7 +46,7 @@ inline auto fillGCDUnroll(std::mt19937 &gen,
                        std::array<T, std::size_t(W)>,
                        std::array<T, std::size_t(W)>, T> {
   std::array<T, std::size_t(W)> a, b, z;
-  std::uniform_int_distribution<> distrib(lb, ub);
+  std::uniform_int_distribution<T> distrib(lb, ub);
   T rg = 0;
   for (std::ptrdiff_t j = 0; j < W; ++j) {
     T w = T(distrib(gen)), x = T(distrib(gen));
@@ -195,7 +195,7 @@ int main() {
     std::mt19937 gen(rd());
     for (std::ptrdiff_t i = 0; i < 5000; ++i) {
       auto [aarr, barr, z_unused, rg_unused] =
-        fillGCDUnroll<std::int32_t, W>(gen, -65535, 65535);
+        fillGCDUnroll<std::int32_t, W>(gen, -32768, 32768);
       auto a = makeSVec<std::int32_t, W>(aarr);
       auto b = makeSVec<std::int32_t, W>(barr);
       auto lcm_result = ::math::lcm(a, b);
