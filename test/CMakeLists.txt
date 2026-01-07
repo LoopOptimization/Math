@@ -48,7 +48,6 @@ if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
   set(USE_JE_MALLOC
       OFF
       CACHE BOOL "No jemalloc with sanitizers")
-  set(BOOST_UT_ENABLE_SANITIZERS ON CACHE BOOL "Sanitize in ut.")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-strong>")
   endif()
