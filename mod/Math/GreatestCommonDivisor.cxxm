@@ -118,12 +118,12 @@ TRIVIAL constexpr auto gcdreduce(simd::Vec<W, I> v) -> I {
   } else return gcd(v[0], v[1]);
 }
 template <>
-constexpr auto gcdreduce<1, std::int64_t>(simd::Vec<1, std::int64_t> v)
+TRIVIAL constexpr auto gcdreduce<1, std::int64_t>(simd::Vec<1, std::int64_t> v)
   -> std::int64_t {
   return v[0];
 }
 template <>
-constexpr auto gcdreduce<1, std::int32_t>(simd::Vec<1, std::int32_t> v)
+TRIVIAL constexpr auto gcdreduce<1, std::int32_t>(simd::Vec<1, std::int32_t> v)
   -> std::int32_t {
   return v[0];
 }
@@ -231,7 +231,6 @@ TRIVIAL constexpr auto lcm(simd::Unroll<R, C, N, T> x,
   return ax * (ay / gcd(ax, ay));
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 template <std::integral I> TRIVIAL constexpr auto copySign(I x, I s) -> I {
   if (s >= 0) return constexpr_abs(x);
   return -constexpr_abs(x);
@@ -239,8 +238,7 @@ template <std::integral I> TRIVIAL constexpr auto copySign(I x, I s) -> I {
 
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
 template <std::integral T>
-TRIVIAL constexpr auto dgcdx(T a, T b)
-  -> std::array<T, 5> { // NOLINT(bugprone-easily-swappable-parameters)
+TRIVIAL constexpr auto dgcdx(T a, T b) -> std::array<T, 5> {
   T r_old = a, r = b;
   T s_old = 1, s = 0;
   T t_old = 0, t = 1;
@@ -256,8 +254,7 @@ TRIVIAL constexpr auto dgcdx(T a, T b)
   // For now, I'll favor forgoing the division.
   return {r_old, s_old, t_old, copySign(t, a), copySign(s, b)};
 }
-template <
-  std::integral T> // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+template <std::integral T>
 TRIVIAL constexpr auto gcdx(T a, T b) -> std::array<T, 3> {
   auto [g, x, y, t, s] = dgcdx(a, b);
   return {g, x, y};

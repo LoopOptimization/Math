@@ -13,6 +13,50 @@ import MatDim;
 import Range;
 import SIMD;
 import std;
+
+template <typename T, std::size_t N>
+consteval auto comptime_len_helper(const std::array<T, N> &)
+  -> std::integral_constant<std::ptrdiff_t, static_cast<std::ptrdiff_t>(N)> {
+  return {};
+}
+template <class T, math::Dimension S>
+consteval auto comptime_len_helper(math::Array<T, S>)
+  -> std::integral_constant<std::ptrdiff_t, S::comptime()> {
+  return {};
+}
+consteval auto comptime_len_helper(...) // lowest priority
+  -> std::integral_constant<std::ptrdiff_t, -1> {
+  return {};
+}
+
+template <typename T> consteval auto comptime_len() -> std::ptrdiff_t {
+  using L = decltype(comptime_len_helper(std::declval<T>()));
+  return L::value;
+}
+
+template <typename T> struct ComptimeLengthHelper {
+  static constexpr std::ptrdiff_t comptime_length = -1;
+};
+template <class T, math::Dimension S>
+struct ComptimeLengthHelper<math::Array<T, S>> {
+  static constexpr std::ptrdiff_t comptime_length = S::comptime();
+};
+template <typename T, std::size_t N>
+struct ComptimeLengthHelper<std::array<T, N>> {
+  static constexpr std::ptrdiff_t comptime_length = N;
+};
+
+TRIVIAL constexpr auto sz(const auto &x) -> std::ptrdiff_t {
+  using namespace std;
+  return ssize(x);
+}
+
+template <typename T>
+concept BitCollection = requires(T t) {
+  { sz(t) } -> std::same_as<std::ptrdiff_t>;
+  { *t.begin() } -> std::convertible_to<std::uint64_t>;
+};
+
 export namespace containers {
 
 using utils::invariant;
@@ -200,13 +244,6 @@ public:
 };
 static_assert(std::weakly_incrementable<BitSetIterator<std::uint64_t>>);
 
-template <typename T>
-concept BitCollection = requires(T t) {
-  { std::size(t) } -> std::convertible_to<std::size_t>;
-  { std::ssize(t) } -> std::convertible_to<std::ptrdiff_t>;
-  { *t.begin() } -> std::convertible_to<std::uint64_t>;
-};
-
 /// A set of `std::ptrdiff_t` elements.
 /// Initially constructed
 template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
@@ -214,6 +251,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   static constexpr U usize = 8 * sizeof(U);
   static constexpr U umask = usize - 1;
   static constexpr U ushift = std::countr_zero(usize);
+  static constexpr std::ptrdiff_t comptime_length = comptime_len<T>();
+  // ComptimeLengthHelper<T>::comptime_length;
   [[no_unique_address]] T data_{};
   // std::ptrdiff_t operator[](std::ptrdiff_t i) const {
   //     return data[i];
@@ -226,7 +265,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return ((N + (usize - 1)) >> ushift);
   }
   TRIVIAL constexpr void zero() {
-    std::memset(&*data_.begin(), 0, usize * std::ssize(data_));
+    std::memset(&*data_.begin(), 0, usize * sz(data_));
   }
   TRIVIAL constexpr explicit BitSet(std::ptrdiff_t N)
     requires(!std::is_trivially_destructible_v<T>)
@@ -234,18 +273,18 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL static constexpr auto fromMask(U u) -> BitSet { return BitSet{T{u}}; }
   TRIVIAL constexpr void resizeData(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) data_.resize(N);
-    else invariant(N <= std::ssize(data_));
+    else invariant(N <= sz(data_));
   }
   TRIVIAL constexpr void resize(std::ptrdiff_t N) {
     if constexpr (CanResize<T>)
       data_.resize(math::length(numElementsNeeded(N)));
-    else invariant(N <= std::ssize(data_) * usize);
+    else invariant(N <= sz(data_) * usize);
   }
   TRIVIAL constexpr void maybeResize(std::ptrdiff_t N) {
     if constexpr (CanResize<T>) {
       math::Length<> M = math::length(numElementsNeeded(N));
-      if (M > std::ssize(data_)) data_.resize(std::ptrdiff_t(M));
-    } else invariant(N <= std::ssize(data_) * std::ptrdiff_t(usize));
+      if (M > sz(data_)) data_.resize(std::ptrdiff_t(M));
+    } else invariant(N <= sz(data_) * std::ptrdiff_t(usize));
   }
   /// Behavior is undefined if N <= 0
   TRIVIAL constexpr void makeDense(std::ptrdiff_t N) {
@@ -263,7 +302,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return b;
   }
   TRIVIAL [[nodiscard]] constexpr auto maxValue() const -> std::ptrdiff_t {
-    for (std::ptrdiff_t N = std::ssize(data_); N;)
+    for (std::ptrdiff_t N = sz(data_); N;)
       if (U x = data_[--N]) return (usize * N + 63z) - std::countl_zero(x);
     return 0;
   }
@@ -298,7 +337,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     return ChunkedRange{b, e};
   }
   TRIVIAL [[nodiscard]] constexpr auto front() const -> std::ptrdiff_t {
-    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
+    for (std::ptrdiff_t i = 0; i < sz(data_); ++i)
       if (data_[i]) return (usize * i) + std::countr_zero(data_[i]);
     return std::numeric_limits<std::ptrdiff_t>::max();
   }
@@ -330,7 +369,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     std::ptrdiff_t d = x >> std::ptrdiff_t(ushift);
     U r = U(x) & umask;
     U mask = U(1) << r;
-    if (d >= std::ssize(data_)) resizeData(d + 1);
+    if (d >= sz(data_)) resizeData(d + 1);
     bool contained = ((data_[d] & mask) != 0);
     if (!contained) data_[d] |= (mask);
     return contained;
@@ -339,7 +378,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     std::ptrdiff_t d = x >> ushift;
     U r = U(x) & umask;
     U mask = U(1) << r;
-    if (d >= std::ssize(data_)) resizeData(d + 1);
+    if (d >= sz(data_)) resizeData(d + 1);
     data_[d] |= (mask);
   }
   // returns `true` the bitset contained `x`, i.e. if the
@@ -358,20 +397,29 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL constexpr void insert(simd::Vec<W, std::ptrdiff_t> indices) {
     using V = simd::Vec<W, U>;
     V vindices{__builtin_convertvector(indices, V)};
+    if constexpr (comptime_length == -1 || comptime_length > 8) {
 
-    std::ptrdiff_t max_idx = __builtin_reduce_max(indices); // ignore negative
-    if (max_idx < 0) return;
-    std::ptrdiff_t max_chunk = std::ptrdiff_t(max_idx >> ushift);
-    if (max_chunk >= std::ssize(data_)) resizeData(max_chunk + 1);
+      std::ptrdiff_t max_idx = __builtin_reduce_max(indices); // ignore negative
+      if (max_idx < 0) return;
+      std::ptrdiff_t max_chunk = std::ptrdiff_t(max_idx >> ushift);
+      if (max_chunk >= sz(data_)) resizeData(max_chunk + 1);
 
-    U min_idx = __builtin_reduce_min(vindices);
-    std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
-    vindices -= min_chunk * usize;
+      U min_idx = __builtin_reduce_min(vindices);
+      std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
+      vindices -= min_chunk * usize;
 
-    for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
-      data_[chunk] |=
-        __builtin_reduce_or(vindices > umask ? U(0) : U(1) << vindices);
-      vindices -= usize;
+      for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
+        data_[chunk] |=
+          __builtin_reduce_or(vindices > umask ? U(0) : U(1) << vindices);
+        vindices -= usize;
+      }
+    } else {
+#pragma clang loop unroll(full)
+      for (std::ptrdiff_t i = 0; i < comptime_length; ++i) {
+        data_[i] |=
+          __builtin_reduce_or(vindices > umask ? U(0) : U(1) << vindices);
+        vindices -= usize;
+      }
     }
   }
   /// Insert multiple indices from a SIMD Unroll
@@ -380,37 +428,51 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   TRIVIAL constexpr void insert(simd::Unroll<R, C, W, std::ptrdiff_t> indices) {
     using V = simd::Vec<W, U>;
     static constexpr std::ptrdiff_t N = R * C;
+    if constexpr (comptime_length == -1 || comptime_length > 8) {
 
-    simd::Vec<W, std::ptrdiff_t> max_vec = indices[0];
-    V min_vec = __builtin_convertvector(max_vec, V);
+      simd::Vec<W, std::ptrdiff_t> max_vec = indices[0];
+      V min_vec = __builtin_convertvector(max_vec, V);
 #pragma clang loop unroll(full)
-    for (std::ptrdiff_t i = 1; i < N; ++i) {
-      simd::Vec<W, std::ptrdiff_t> v{indices[i]};
-      min_vec =
-        __builtin_elementwise_min(min_vec, __builtin_convertvector(v, V));
-      max_vec = __builtin_elementwise_max(max_vec, v);
-    }
-    std::ptrdiff_t max_idx = __builtin_reduce_max(max_vec);
-    if (max_idx < 0) return;
-    U min_idx = __builtin_reduce_min(min_vec);
-
-    std::ptrdiff_t max_chunk = std::ptrdiff_t(max_idx >> ushift);
-    if (max_chunk >= std::ssize(data_)) resizeData(max_chunk + 1);
-
-    std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
-#pragma clang loop unroll(full)
-    for (std::ptrdiff_t i = 0; i < N; ++i) indices[i] -= min_chunk * usize;
-
-    for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
-      V combined_mask{};
-
-#pragma clang loop unroll(full)
-      for (std::ptrdiff_t i = 0; i < N; ++i) {
-        V vindices = __builtin_convertvector(indices[i], V);
-        combined_mask |= vindices > umask ? U(0) : U(1) << vindices;
-        indices[i] -= usize;
+      for (std::ptrdiff_t i = 1; i < N; ++i) {
+        simd::Vec<W, std::ptrdiff_t> v{indices[i]};
+        min_vec =
+          __builtin_elementwise_min(min_vec, __builtin_convertvector(v, V));
+        max_vec = __builtin_elementwise_max(max_vec, v);
       }
-      data_[chunk] |= __builtin_reduce_or(combined_mask);
+      std::ptrdiff_t max_idx = __builtin_reduce_max(max_vec);
+      if (max_idx < 0) return;
+      U min_idx = __builtin_reduce_min(min_vec);
+
+      std::ptrdiff_t max_chunk = std::ptrdiff_t(max_idx >> ushift);
+      if (max_chunk >= sz(data_)) resizeData(max_chunk + 1);
+
+      std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
+#pragma clang loop unroll(full)
+      for (std::ptrdiff_t i = 0; i < N; ++i) indices[i] -= min_chunk * usize;
+
+      for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
+        V combined_mask{};
+
+#pragma clang loop unroll(full)
+        for (std::ptrdiff_t i = 0; i < N; ++i) {
+          V vindices = __builtin_convertvector(indices[i], V);
+          combined_mask |= vindices > umask ? U(0) : U(1) << vindices;
+          indices[i] -= usize;
+        }
+        data_[chunk] |= __builtin_reduce_or(combined_mask);
+      }
+    } else {
+#pragma clang loop unroll(full)
+      for (std::ptrdiff_t i = 0; i < comptime_length; ++i) {
+        V combined_mask{};
+#pragma clang loop unroll(full)
+        for (std::ptrdiff_t n = 0; n < N; ++n) {
+          V vindices = __builtin_convertvector(indices[n], V);
+          combined_mask |= vindices > umask ? U(0) : U(1) << vindices;
+          indices[n] -= usize;
+        }
+        data_[i] |= __builtin_reduce_or(combined_mask);
+      }
     }
   }
   TRIVIAL static constexpr void set(U &d, std::ptrdiff_t r, bool b) {
@@ -464,7 +526,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
     // return false;
   }
   template <typename V> TRIVIAL constexpr void setUnion(const BitSet<V> &bs) {
-    std::ptrdiff_t O = std::ssize(bs.data_), N = std::ssize(data_);
+    std::ptrdiff_t O = sz(bs.data_), N = sz(data_);
     if (O > N) resizeData(O);
     for (std::ptrdiff_t i = 0; i < O; ++i) {
       U d = data_[i] | bs.data_[i];
@@ -473,25 +535,20 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   template <typename V>
   TRIVIAL constexpr auto operator&=(const BitSet<V> &bs) -> BitSet & {
-    if (std::ssize(bs.data_) < std::ssize(data_))
-      resizeData(std::ssize(bs.data_));
-    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
-      data_[i] &= bs.data_[i];
+    if (sz(bs.data_) < sz(data_)) resizeData(sz(bs.data_));
+    for (std::ptrdiff_t i = 0; i < sz(data_); ++i) data_[i] &= bs.data_[i];
     return *this;
   }
   /// a -= b is the same as a &= ~b
   template <typename V>
   TRIVIAL constexpr auto operator-=(const BitSet<V> &bs) -> BitSet & {
-    if (std::ssize(bs.data_) < std::ssize(data_))
-      resizeData(std::ssize(bs.data_));
-    for (std::ptrdiff_t i = 0; i < std::ssize(data_); ++i)
-      data_[i] &= (~bs.data_[i]);
+    if (sz(bs.data_) < sz(data_)) resizeData(sz(bs.data_));
+    for (std::ptrdiff_t i = 0; i < sz(data_); ++i) data_[i] &= (~bs.data_[i]);
     return *this;
   }
   template <typename V>
   TRIVIAL constexpr auto countSetDiff(const BitSet<V> &bs) -> std::ptrdiff_t {
-    std::ptrdiff_t c = 0, I = std::ssize(data_), J = std::ssize(bs.data_),
-                   L = std::min(I, J);
+    std::ptrdiff_t c = 0, I = sz(data_), J = sz(bs.data_), L = std::min(I, J);
     for (std::ptrdiff_t i = 0; i < L; ++i)
       c += std::popcount(data_[i] & ~bs.data_[i]);
     for (std::ptrdiff_t i = L; i < I; ++i) c += std::popcount(data_[i]);
@@ -506,10 +563,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   template <typename V>
   TRIVIAL constexpr auto operator|=(const BitSet<V> &bs) -> BitSet & {
-    if (std::ssize(bs.data_) > std::ssize(data_))
-      resizeData(std::ssize(bs.data_));
-    for (std::ptrdiff_t i = 0; i < std::ssize(bs.data_); ++i)
-      data_[i] |= bs.data_[i];
+    if (sz(bs.data_) > sz(data_)) resizeData(sz(bs.data_));
+    for (std::ptrdiff_t i = 0; i < sz(bs.data_); ++i) data_[i] |= bs.data_[i];
     return *this;
   }
   template <typename V>
@@ -598,9 +653,7 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   DEBUGUSED void println() const {
     printCore(), utils::println(), utils::flush();
   }
-  TRIVIAL constexpr void clear() {
-    std::fill_n(data_.begin(), std::ssize(data_), 0);
-  }
+  TRIVIAL constexpr void clear() { std::fill_n(data_.begin(), sz(data_), 0); }
   TRIVIAL [[nodiscard]] constexpr auto isEmpty() const -> bool {
     return std::ranges::all_of(data_, [](auto u) { return u == 0; });
     // for (auto u : data)
@@ -681,7 +734,7 @@ static_assert(std::is_trivially_destructible_v<BitSet64>);
 static_assert(std::is_trivially_destructible_v<FixedSizeBitSet<2>>);
 
 } // namespace containers
-export template <containers::BitCollection T>
+export template <BitCollection T>
 inline constexpr bool
   std::ranges::enable_borrowed_range<containers::BitSet<T>> =
     enable_borrowed_range<T>;
@@ -972,6 +1025,7 @@ struct BitSets {
             .num_chunks_per_ = num_chunks_per_};
   }
 
+  // undef initialize
   static constexpr auto undef(alloc::Arena<> *alloc, std::uint32_t num_sets,
                               std::uint32_t num_elts) -> BitSets {
     std::uint32_t num_chunks = (num_elts + 63) >> 6;
@@ -980,6 +1034,7 @@ struct BitSets {
             .num_sets_ = num_sets,
             .num_chunks_per_ = num_chunks};
   }
+  // 0 initialize
   static constexpr auto empty(alloc::Arena<> *alloc, std::uint32_t num_sets,
                               std::uint32_t num_elts) -> BitSets {
     std::uint32_t num_chunks = (num_elts + 63) >> 6;
@@ -1027,5 +1082,13 @@ struct BitSets {
   }
 };
 static_assert(std::bidirectional_iterator<BitSets::Iterator>);
+
+static_assert(BitSet<>::comptime_length == -1);
+static_assert(
+  BitSet<math::Array<std::uint64_t, math::Length<4>>>::comptime_length == 4);
+static_assert(
+  BitSet<math::MutArray<std::uint64_t, math::Length<4>>>::comptime_length == 4);
+static_assert(BitSet<std::array<std::uint16_t, 1>>::comptime_length == 1);
+static_assert(BitSet<std::array<std::uint64_t, 4>>::comptime_length == 4);
 
 } // namespace containers

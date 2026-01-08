@@ -1,20 +1,14 @@
 module;
 
 export module Permutation;
-import Array;
 import ArrayConcepts;
 import BaseUtils;
 import BitSet;
 import CorePrint;
-import Int8;
-import MatDim;
-import Range;
 import std;
 import TinyVector;
 
 export namespace utils {
-using math::_;
-using ::numbers::i8;
 
 /// Supports loop nests up to 15 deep
 /// Assumes 1-based indexing for loops; 0 refers to top-level
@@ -320,7 +314,8 @@ struct LoopPermutations {
     //   }
     //   constexpr auto resetLevel(std::ptrdiff_t lvl, std::ptrdiff_t offset)
     //     -> std::ptrdiff_t {
-    //     // when resetting the level, we don't actually need to reset the state
+    //     // when resetting the level, we don't actually need to reset the
+    //     state
     //     // we can use the last ending state as the initial state, iterating
     //     // through its permutations from there.
     //     std::ptrdiff_t sz = subperms_[lvl].size();

@@ -578,6 +578,11 @@ protected:
   const storage_type *ptr_;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   [[no_unique_address]] S sz_;
+
+private:
+  friend constexpr auto ssize(const Array &x) -> std::ptrdiff_t {
+    return x.size();
+  }
 };
 template <class T, class S>
 TRIVIAL constexpr auto view(Array<T, S> x) -> Array<T, S> {
