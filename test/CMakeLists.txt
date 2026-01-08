@@ -145,7 +145,8 @@ foreach(test_source ${test_sources})
                                                 -fsanitize=type)
     target_link_options(${test_name} PRIVATE -fsanitize=type)
   endif()
-  if(${test_name} MATCHES simdgcd)
+  if((${test_name} MATCHES simdgcd) OR (${test_name} MATCHES expmat_test))
+    # some tests compile and/or run markedly faster with some optimizations
     target_compile_options(${test_name} PRIVATE -Og)
   endif()
 
