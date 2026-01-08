@@ -393,8 +393,8 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   /// Insert multiple indices from a SIMD vector
   /// Uses `__builtin_reduce_or(1UL << x)` to efficiently combine bits
-  template <std::ptrdiff_t W>
-  TRIVIAL constexpr void insert(simd::Vec<W, std::ptrdiff_t> indices) {
+  template <std::ptrdiff_t W, std::integral I>
+  TRIVIAL constexpr void insert(simd::Vec<W, I> indices) {
     using V = simd::Vec<W, U>;
     V vindices{__builtin_convertvector(indices, V)};
     if constexpr (comptime_length == -1 || comptime_length > 8) {
@@ -424,20 +424,24 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
   }
   /// Insert multiple indices from a SIMD Unroll
   /// Reduces multiple Vecs by OR-ing them together per chunk
-  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
-  TRIVIAL constexpr void insert(simd::Unroll<R, C, W, std::ptrdiff_t> indices) {
+  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W,
+            std::integral I>
+  TRIVIAL constexpr void insert(simd::Unroll<R, C, W, I> indices) {
     using V = simd::Vec<W, U>;
     static constexpr std::ptrdiff_t N = R * C;
+    simd::Unroll<R, C, W, U> vindices;
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n)
+      vindices[n] = __builtin_convertvector(indices[n], V);
+
     if constexpr (comptime_length == -1 || comptime_length > 8) {
 
       simd::Vec<W, std::ptrdiff_t> max_vec = indices[0];
-      V min_vec = __builtin_convertvector(max_vec, V);
+      V min_vec = vindices[0];
 #pragma clang loop unroll(full)
       for (std::ptrdiff_t i = 1; i < N; ++i) {
-        simd::Vec<W, std::ptrdiff_t> v{indices[i]};
-        min_vec =
-          __builtin_elementwise_min(min_vec, __builtin_convertvector(v, V));
-        max_vec = __builtin_elementwise_max(max_vec, v);
+        min_vec = __builtin_elementwise_min(min_vec, vindices[i]);
+        max_vec = __builtin_elementwise_max(max_vec, indices[i]);
       }
       std::ptrdiff_t max_idx = __builtin_reduce_max(max_vec);
       if (max_idx < 0) return;
@@ -448,16 +452,16 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
 
       std::ptrdiff_t min_chunk = std::ptrdiff_t(min_idx >> ushift);
 #pragma clang loop unroll(full)
-      for (std::ptrdiff_t i = 0; i < N; ++i) indices[i] -= min_chunk * usize;
+      for (std::ptrdiff_t i = 0; i < N; ++i) vindices[i] -= min_chunk * usize;
 
       for (std::ptrdiff_t chunk = min_chunk; chunk <= max_chunk; ++chunk) {
         V combined_mask{};
 
 #pragma clang loop unroll(full)
         for (std::ptrdiff_t i = 0; i < N; ++i) {
-          V vindices = __builtin_convertvector(indices[i], V);
-          combined_mask |= vindices > umask ? U(0) : U(1) << vindices;
-          indices[i] -= usize;
+          V vindex = vindices[i];
+          combined_mask |= vindex > umask ? U(0) : U(1) << vindex;
+          vindices[i] -= usize;
         }
         data_[chunk] |= __builtin_reduce_or(combined_mask);
       }
@@ -467,9 +471,9 @@ template <BitCollection T = math::Vector<std::uint64_t, 1>> struct BitSet {
         V combined_mask{};
 #pragma clang loop unroll(full)
         for (std::ptrdiff_t n = 0; n < N; ++n) {
-          V vindices = __builtin_convertvector(indices[n], V);
-          combined_mask |= vindices > umask ? U(0) : U(1) << vindices;
-          indices[n] -= usize;
+          V vindex = vindices[n];
+          combined_mask |= vindex > umask ? U(0) : U(1) << vindex;
+          vindices[n] = vindex - usize;
         }
         data_[i] |= __builtin_reduce_or(combined_mask);
       }

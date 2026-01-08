@@ -1360,7 +1360,7 @@ private:
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename T>
 concept SIMDSupported =
-  (std::integral<T> || std::floating_point<T>) && (sizeof(T) >= 4);
+  (std::integral<T> || std::floating_point<T>) && (sizeof(T) >= 2);
 #else
 template <typename T>
 concept SIMDSupported = false;
