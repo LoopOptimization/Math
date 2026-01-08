@@ -323,5 +323,194 @@ auto main() -> int {
         << "Failed at index " << i;
     }
   };
+  "BitshiftLeftScalar"_test = [] -> void {
+    // Test left shift with scalar shift amount
+    static constexpr auto W = simd::Width<int>;
+    using i32 = simd::Unroll<1, 1, W, int>;
+
+    // Test: values << 2
+    i32 a{i32::range(1)}; // [1, 2, 3, 4, ...]
+    auto result = a << 2;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      int expected = static_cast<int>(1 + i) << 2;
+      expect(eq(result.extract_value(i), expected))
+        << "Failed left shift at index " << i;
+    }
+
+    // Test: scalar << Unroll
+    i32 shift_amounts{i32::range(0)}; // [0, 1, 2, 3, ...]
+    auto result2 = 16 << shift_amounts;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      int expected = 16 << static_cast<int>(i);
+      expect(eq(result2.extract_value(i), expected))
+        << "Failed scalar << Unroll at index " << i;
+    }
+  };
+  "BitshiftRightScalar"_test = [] -> void {
+    // Test right shift with scalar shift amount
+    static constexpr auto W = simd::Width<int>;
+    using i32 = simd::Unroll<1, 1, W, int>;
+
+    // Test: values >> 2
+    i32 a{i32::range(16)}; // [16, 17, 18, 19, ...]
+    auto result = a >> 2;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      int expected = static_cast<int>(16 + i) >> 2;
+      expect(eq(result.extract_value(i), expected))
+        << "Failed right shift at index " << i;
+    }
+
+    // Test: scalar >> Unroll
+    i32 shift_amounts{i32::range(0)}; // [0, 1, 2, 3, ...]
+    auto result2 = 256 >> shift_amounts;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      int expected = 256 >> static_cast<int>(i);
+      expect(eq(result2.extract_value(i), expected))
+        << "Failed scalar >> Unroll at index " << i;
+    }
+  };
+  "BitshiftVectorByVector"_test = [] -> void {
+    // Test shift where shift amounts are vectorized
+    static constexpr auto W = simd::Width<unsigned int>;
+    using u32 = simd::Unroll<1, 1, W, unsigned int>;
+
+    // Test: each element shifted by different amount
+    u32 values{u32::range(8U)}; // [8, 9, 10, 11, ...]
+    u32 shifts{u32::range(0U)}; // [0, 1, 2, 3, ...]
+
+    auto left_result = values << shifts;
+    auto right_result = values >> shifts;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      unsigned int val = static_cast<unsigned int>(8 + i);
+      unsigned int shift = static_cast<unsigned int>(i);
+      unsigned int expected_left = val << shift;
+      unsigned int expected_right = val >> shift;
+
+      expect(eq(left_result.extract_value(i), expected_left))
+        << "Failed vector << vector at index " << i;
+      expect(eq(right_result.extract_value(i), expected_right))
+        << "Failed vector >> vector at index " << i;
+    }
+  };
+  "BitshiftUnrollTypes"_test = [] -> void {
+    // Test with different Unroll dimensions
+    static constexpr auto W = simd::Width<int>;
+
+    // Test with Unroll<1, 4, W, int>
+    using i32x4 = simd::Unroll<1, 4, W, int>;
+    i32x4 a{i32x4::range(1)};
+    auto result = a << 3;
+
+    for (std::ptrdiff_t c = 0; c < 4; ++c) {
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        std::ptrdiff_t linear_idx = c * W + i;
+        int expected = static_cast<int>(1 + linear_idx) << 3;
+        expect(eq(result.extract_value(linear_idx), expected))
+          << "Failed at column " << c << ", index " << i;
+      }
+    }
+
+    // Test with Unroll<2, 2, W, int>
+    using i32x2x2 = simd::Unroll<2, 2, W, int>;
+    i32x2x2 b{i32x2x2::range(64)};
+    auto result2 = b >> 2;
+
+    for (std::ptrdiff_t idx = 0; idx < 4; ++idx) {
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        std::ptrdiff_t linear_idx = idx * W + i;
+        int expected = static_cast<int>(64 + linear_idx) >> 2;
+        expect(eq(result2.extract_value(linear_idx), expected))
+          << "Failed at unroll index " << idx << ", simd index " << i;
+      }
+    }
+  };
+  "BitshiftSignedUnsigned"_test = [] -> void {
+    // Test with both signed and unsigned types
+    static constexpr auto W = simd::Width<int>;
+
+    // Signed int left shift
+    using i32 = simd::Unroll<1, 1, W, int>;
+    i32 signed_vals{i32::range(1)};
+    auto signed_result = signed_vals << 4;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      int expected = static_cast<int>(1 + i) << 4;
+      expect(eq(signed_result.extract_value(i), expected));
+    }
+
+    // Unsigned int right shift
+    using u32 = simd::Unroll<1, 1, W, unsigned int>;
+    u32 unsigned_vals{u32::range(1024U)};
+    auto unsigned_result = unsigned_vals >> 4;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      unsigned int expected = static_cast<unsigned int>(1024U + i) >> 4;
+      expect(eq(unsigned_result.extract_value(i), expected));
+    }
+  };
+  "BitshiftEdgeCases"_test = [] -> void {
+    // Test edge cases
+    static constexpr auto W = simd::Width<unsigned int>;
+    using u32 = simd::Unroll<1, 1, W, unsigned int>;
+
+    // Shift by 0
+    u32 a{u32::range(10U)};
+    auto result_zero = a << 0;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(
+        eq(result_zero.extract_value(i), static_cast<unsigned int>(10U + i)))
+        << "Shift by 0 failed at index " << i;
+    }
+
+    // Large shift (should wrap or saturate depending on type width)
+    u32 b{u32::vbroadcast(0xFFFFFFFFU)};
+    auto result_large = b >> 31;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(eq(result_large.extract_value(i), 1U))
+        << "Large right shift failed at index " << i;
+    }
+
+    // Left shift building powers of 2
+    u32 c{u32::range(0U)}; // [0, 1, 2, 3, ...]
+    auto powers = 1U << c;
+
+    for (std::ptrdiff_t i = 0; i < W && i < 31; ++i) {
+      unsigned int expected = 1U << static_cast<unsigned int>(i);
+      expect(eq(powers.extract_value(i), expected))
+        << "Power of 2 failed at index " << i;
+    }
+  };
+  "BitshiftInt64"_test = [] -> void {
+    // Test with 64-bit integers
+    static constexpr auto W = simd::Width<std::int64_t>;
+    using i64 = simd::Unroll<1, 1, W, std::int64_t>;
+
+    // Test large values that need 64 bits
+    i64 large_vals{i64::range(1LL << 32)};
+    auto result = large_vals << 4;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      std::int64_t expected = ((1LL << 32) + i) << 4;
+      expect(eq(result.extract_value(i), expected))
+        << "64-bit left shift failed at index " << i;
+    }
+
+    // Right shift preserving high bits
+    i64 high_vals{i64::range(1LL << 48)};
+    auto result2 = high_vals >> 16;
+
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      std::int64_t expected = ((1LL << 48) + i) >> 16;
+      expect(eq(result2.extract_value(i), expected))
+        << "64-bit right shift failed at index " << i;
+    }
+  };
   return 0;
 }
