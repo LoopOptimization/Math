@@ -1360,7 +1360,7 @@ private:
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename T>
 concept SIMDSupported =
-  (std::integral<T> || std::floating_point<T>) && (sizeof(T) >= 4);
+  (std::integral<T> || std::floating_point<T>) && (sizeof(T) >= 2);
 #else
 template <typename T>
 concept SIMDSupported = false;
@@ -4515,6 +4515,17 @@ private:
     return applyop<false>(a, b, std::bit_xor<>{});
   }
 
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator>>(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<false>(a, b, [](auto x, auto y) { return x >> y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator<<(Unroll a, Unroll<R1, C1, W1, T1> b) {
+    return applyop<false>(a, b, [](auto x, auto y) { return x << y; });
+  }
+
   TRIVIAL friend constexpr auto operator==(Unroll a, T b) {
 
     return applyop<true>(a, Unroll::vbroadcast(b),
@@ -4637,6 +4648,18 @@ private:
     for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] ^ b;
     return c;
   }
+  TRIVIAL friend constexpr auto operator>>(Unroll a, VT b) -> Unroll {
+    Unroll<R, C, N, T> c;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] >> b;
+    return c;
+  }
+  TRIVIAL friend constexpr auto operator<<(Unroll a, VT b) -> Unroll {
+    Unroll<R, C, N, T> c;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] << b;
+    return c;
+  }
   TRIVIAL friend constexpr auto operator+(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(N != 1) {
@@ -4671,6 +4694,16 @@ private:
                                           std::convertible_to<T> auto b)
     -> Unroll requires(N != 1) {
     return a ^ ::simd::vbroadcast<N, T>(b);
+  }
+  TRIVIAL friend constexpr auto operator>>(Unroll a,
+                                           std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return a >> ::simd::vbroadcast<N, T>(b);
+  }
+  TRIVIAL friend constexpr auto operator<<(Unroll a,
+                                           std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return a << ::simd::vbroadcast<N, T>(b);
   }
 
   TRIVIAL friend constexpr auto operator+(VT a, Unroll b) -> Unroll {
@@ -4715,6 +4748,18 @@ private:
     for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a ^ b.data_[i];
     return c;
   }
+  TRIVIAL friend constexpr auto operator>>(VT a, Unroll b) -> Unroll {
+    Unroll<R, C, N, T> c;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a >> b.data_[i];
+    return c;
+  }
+  TRIVIAL friend constexpr auto operator<<(VT a, Unroll b) -> Unroll {
+    Unroll<R, C, N, T> c;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a << b.data_[i];
+    return c;
+  }
   TRIVIAL friend constexpr auto operator+(T b, Unroll a) -> Unroll
     requires(N != 1) {
     return ::simd::vbroadcast<N, T>(b) + a;
@@ -4742,6 +4787,14 @@ private:
   TRIVIAL friend constexpr auto operator^(T b, Unroll a) -> Unroll
     requires(N != 1) {
     return ::simd::vbroadcast<N, T>(b) ^ a;
+  }
+  TRIVIAL friend constexpr auto operator>>(T b, Unroll a) -> Unroll
+    requires(N != 1) {
+    return ::simd::vbroadcast<N, T>(b) >> a;
+  }
+  TRIVIAL friend constexpr auto operator<<(T b, Unroll a) -> Unroll
+    requires(N != 1) {
+    return ::simd::vbroadcast<N, T>(b) << a;
   }
 
   template <bool IsMask, std::ptrdiff_t R1, std::ptrdiff_t C1,
@@ -5176,6 +5229,18 @@ private:
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
+  TRIVIAL friend constexpr auto operator>>(Unroll a,
+                                           const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<false>(a, b, [](auto x, auto y) { return x >> y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto operator<<(Unroll a,
+                                           const Unroll<R1, C1, W1, T1> &b) {
+    return applyop<false>(a, b, [](auto x, auto y) { return x << y; });
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator>(Unroll a, Unroll<R1, C1, W1, T1> b) {
     return applyop<true>(a, b, [](auto x, auto y) { return cmp::gt(x, y); });
   }
@@ -5371,6 +5436,12 @@ private:
   TRIVIAL friend constexpr auto operator^(Unroll a, VT b) -> Unroll {
     return {a.vec_ ^ b};
   }
+  TRIVIAL friend constexpr auto operator>>(Unroll a, VT b) -> Unroll {
+    return {a.vec_ >> b};
+  }
+  TRIVIAL friend constexpr auto operator<<(Unroll a, VT b) -> Unroll {
+    return {a.vec_ << b};
+  }
   TRIVIAL friend constexpr auto operator+(Unroll a,
                                           std::convertible_to<T> auto b)
     -> Unroll requires(N != 1) {
@@ -5406,6 +5477,16 @@ private:
     -> Unroll requires(N != 1) {
     return a ^ ::simd::vbroadcast<N, T>(b);
   }
+  TRIVIAL friend constexpr auto operator>>(Unroll a,
+                                           std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return a >> ::simd::vbroadcast<N, T>(b);
+  }
+  TRIVIAL friend constexpr auto operator<<(Unroll a,
+                                           std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return a << ::simd::vbroadcast<N, T>(b);
+  }
 
   TRIVIAL friend constexpr auto operator+(VT a, Unroll b) -> Unroll {
     return {a + b.vec_};
@@ -5427,6 +5508,12 @@ private:
   }
   TRIVIAL friend constexpr auto operator^(VT a, Unroll b) -> Unroll {
     return {a ^ b.vec_};
+  }
+  TRIVIAL friend constexpr auto operator>>(VT a, Unroll b) -> Unroll {
+    return {a >> b.vec_};
+  }
+  TRIVIAL friend constexpr auto operator<<(VT a, Unroll b) -> Unroll {
+    return {a << b.vec_};
   }
   TRIVIAL friend constexpr auto operator+(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(N != 1) {
@@ -5455,6 +5542,16 @@ private:
   TRIVIAL friend constexpr auto operator^(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(N != 1) {
     return ::simd::vbroadcast<N, T>(b) ^ a;
+  }
+  TRIVIAL friend constexpr auto operator>>(ConvertibleToAndScalar<T> auto b,
+                                           Unroll a) -> Unroll requires(N != 1)
+  {
+    return ::simd::vbroadcast<N, T>(b) >> a;
+  }
+  TRIVIAL friend constexpr auto operator<<(ConvertibleToAndScalar<T> auto b,
+                                           Unroll a) -> Unroll requires(N != 1)
+  {
+    return ::simd::vbroadcast<N, T>(b) << a;
   }
 
   TRIVIAL friend constexpr auto operator<(Unroll a,
