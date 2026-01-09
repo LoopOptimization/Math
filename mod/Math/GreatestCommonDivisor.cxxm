@@ -128,13 +128,12 @@ TRIVIAL constexpr auto gcdreduce<1, std::int32_t>(simd::Vec<1, std::int32_t> v)
   return v[0];
 }
 
-// GCD for Unroll types (int64_t)
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
-requires((R * C) != 1)
-TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, std::int64_t> x,
-                           simd::Unroll<R, C, N, std::int64_t> y)
-  -> simd::Unroll<R, C, N, std::int64_t> {
-  simd::Unroll<R, C, N, std::int64_t> result;
+// GCD for Unroll types
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, std::integral I>
+requires((R * C) != 1) TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, I> x,
+                                                  simd::Unroll<R, C, N, I> y)
+  -> simd::Unroll<R, C, N, I> {
+  simd::Unroll<R, C, N, I> result;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t i = 0; i < R * C; ++i)
     result.data_[i] = gcd<N>(x.data_[i], y.data_[i]);
@@ -142,34 +141,14 @@ TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, std::int64_t> x,
 }
 
 // GCD for Unroll<1, 1, N, int64_t> specialization (single vector)
-template <std::ptrdiff_t N>
-TRIVIAL constexpr auto gcd(simd::Unroll<1, 1, N, std::int64_t> x,
-                           simd::Unroll<1, 1, N, std::int64_t> y)
-  -> simd::Unroll<1, 1, N, std::int64_t> {
-  return simd::Unroll<1, 1, N, std::int64_t>{gcd<N>(x.vec_, y.vec_)};
+template <std::ptrdiff_t N, std::integral I>
+TRIVIAL constexpr auto gcd(simd::Unroll<1, 1, N, I> x,
+                           simd::Unroll<1, 1, N, I> y)
+  -> simd::Unroll<1, 1, N, I> {
+  return simd::Unroll<1, 1, N, I>{gcd<N>(x.vec_, y.vec_)};
 }
 
-// GCD for Unroll types (int32_t)
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N>
-requires((R * C) != 1)
-TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, std::int32_t> x,
-                           simd::Unroll<R, C, N, std::int32_t> y)
-  -> simd::Unroll<R, C, N, std::int32_t> {
-  simd::Unroll<R, C, N, std::int32_t> result;
-  for (std::ptrdiff_t i = 0; i < R * C; ++i)
-    result.data_[i] = gcd<N>(x.data_[i], y.data_[i]);
-  return result;
-}
-
-// GCD for Unroll<1, 1, N, int32_t> specialization (single vector)
-template <std::ptrdiff_t N>
-TRIVIAL constexpr auto gcd(simd::Unroll<1, 1, N, std::int32_t> x,
-                           simd::Unroll<1, 1, N, std::int32_t> y)
-  -> simd::Unroll<1, 1, N, std::int32_t> {
-  return simd::Unroll<1, 1, N, std::int32_t>{gcd<N>(x.vec_, y.vec_)};
-}
-
-// gcdreduce for Unroll types (int64_t)
+// gcdreduce for Unroll types
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, std::integral I>
 requires((R * C) != 1)
 TRIVIAL constexpr auto gcdreduce(simd::Unroll<R, C, N, I> v) -> I {
@@ -224,7 +203,7 @@ template <std::integral I> TRIVIAL constexpr auto lcm(I x, I y) -> I {
   if (ay == 1 || ay == ax) return ax;
   return ax * (ay / gcd(ax, ay));
 }
-template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T>
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, std::integral T>
 TRIVIAL constexpr auto lcm(simd::Unroll<R, C, N, T> x,
                            simd::Unroll<R, C, N, T> y) {
   auto ax = constexpr_abs(x), ay = constexpr_abs(y);
@@ -235,11 +214,24 @@ template <std::integral I> TRIVIAL constexpr auto copySign(I x, I s) -> I {
   if (s >= 0) return constexpr_abs(x);
   return -constexpr_abs(x);
 }
+template <std::ptrdiff_t W, std::integral I>
+TRIVIAL constexpr auto copySign(simd::Vec<W, I> x, simd::Vec<W, I> s)
+  -> simd::Vec<W, I> {
+  x = __builtin_elementwise_abs(x);
+  return s >= 0 ? x : -x;
+}
+template <std::ptrdiff_t W, std::floating_point I>
+TRIVIAL constexpr auto copySign(simd::Vec<W, I> x, simd::Vec<W, I> s)
+  -> simd::Vec<W, I> {
+  return __builtin_elementwise_copysign(x, s);
+}
 
 // https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm
 template <std::integral T>
 TRIVIAL constexpr auto dgcdx(T a, T b) -> std::array<T, 5> {
-  T r_old = a, r = b;
+  if (a == b) return {a, 0, 1, 1, 1};
+  bool swap = a < b; // swapping can shave off an iteration
+  T r_old = swap ? b : a, r = swap ? a : b;
   T s_old = 1, s = 0;
   T t_old = 0, t = 1;
   while (r) {
@@ -252,8 +244,38 @@ TRIVIAL constexpr auto dgcdx(T a, T b) -> std::array<T, 5> {
   // the `t` updates in the loop:
   // T t = (b == 0) ? 0 : ((old_r - old_s * a) / b);
   // For now, I'll favor forgoing the division.
-  return {r_old, s_old, t_old, copySign(t, a), copySign(s, b)};
+  return {r_old, swap ? t_old : s_old, swap ? s_old : t_old,
+          copySign(swap ? s : t, a), copySign(swap ? t : s, b)};
 }
+template <std::ptrdiff_t W, typename T>
+TRIVIAL constexpr auto dgcdx(simd::Vec<W, T> a, simd::Vec<W, T> b)
+  -> std::array<simd::Vec<W, T>, 5> {
+  auto swap = a < b;
+  simd::Vec<W, T> r_old = swap ? b : a, r = swap ? a : b;
+  static constexpr simd::Vec<W, T> one = simd::vbroadcast<W, T>(1);
+  static constexpr simd::Vec<W, T> zero = simd::vbroadcast<W, T>(0);
+  simd::Vec<W, T> s_old = one, s = zero;
+  simd::Vec<W, T> t_old = zero, t = one;
+  auto m = r != zero;
+  while (m.any()) {
+    simd::Vec<W, T> quotient = r_old / r;
+    if constexpr (std::floating_point<T>) quotient = trunc(quotient);
+    simd::Vec<W, T> r_next = r_old - (quotient * r),
+                    s_next = s_old - (quotient * s),
+                    t_next = t_old - (quotient * t);
+    r_old = r, s_old = s, t_old = t;
+    r = m.select(r_next, r), s = m.select(s_next, s), t = m.select(t_next, t);
+    m = simd::cmp::ne(r, zero);
+  }
+  // Solving for `t` at the end has 1 extra division, but lets us remove
+  // the `t` updates in the loop:
+  // T t = (b == 0) ? 0 : ((old_r - old_s * a) / b);
+  // For now, I'll favor forgoing the division.
+  return {r_old, swap ? t_old : s_old, swap ? s_old : t_old,
+          copySign(swap ? s : t, a), copySign(swap ? t : s, b)};
+}
+/// [g, x, y] = gcdx(a, b)
+/// a*x + b*y == g
 template <std::integral T>
 TRIVIAL constexpr auto gcdx(T a, T b) -> std::array<T, 3> {
   auto [g, x, y, t, s] = dgcdx(a, b);
@@ -265,6 +287,44 @@ TRIVIAL constexpr auto divgcd(std::int64_t a, std::int64_t b)
   -> std::array<std::int64_t, 2> {
   auto [g, x, y, t, s] = dgcdx(a, b);
   return {t, s};
+}
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto lcm(simd::Vec<W, T> a, simd::Vec<W, T> b)
+  -> simd::Vec<W, T> {
+  a = __builtin_elementwise_abs(a);
+  b = __builtin_elementwise_abs(b);
+  simd::Vec<W, T> r_old = __builtin_elementwise_max(a, b),
+                  r = __builtin_elementwise_min(a, b), maxval = r_old;
+  static constexpr simd::Vec<W, T> one = simd::vbroadcast<W, T>(1);
+  static constexpr simd::Vec<W, T> zero = simd::vbroadcast<W, T>(0);
+  simd::Vec<W, T> s_old = one, s = zero;
+  auto m = simd::cmp::ne(r, zero);
+  while (m.any()) {
+    simd::Vec<W, T> quotient = simd::trunc(r_old / r),
+                    r_next = r_old - (quotient * r),
+                    s_next = s_old - (quotient * s);
+    r_old = r, s_old = s;
+    r = m.select(r_next, r), s = m.select(s_next, s);
+    m = simd::cmp::ne(r, zero);
+  }
+  // if b was negative
+  // s is based on min
+  return __builtin_elementwise_abs(maxval * s);
+}
+
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
+          std::floating_point T>
+TRIVIAL constexpr auto lcm(simd::Unroll<R, C, N, T> x,
+                           simd::Unroll<R, C, N, T> y)
+  -> simd::Unroll<R, C, N, T> {
+  if constexpr (R * C != 1) {
+    simd::Unroll<R, C, N, T> ret;
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      ret.data_[i] = lcm(x.data_[i], y.data_[i]);
+    return ret;
+
+  } else return {lcm(x.vec_, y.vec_)};
 }
 
 } // namespace math
