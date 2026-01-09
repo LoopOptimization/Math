@@ -3786,6 +3786,11 @@ TRIVIAL constexpr auto crz(Vec<W, T> v) {
 #endif
 #endif
 
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto trunc(Vec<W, T> v) {
+  return __builtin_elementwise_floor(v);
+}
+
 template <typename T>
 inline constexpr std::ptrdiff_t Width =
   SIMDSupported<T> ? VECTORWIDTH / sizeof(T) : 1;
