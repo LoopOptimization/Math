@@ -711,6 +711,8 @@ static_assert(sizeof(ManagedArray<std::int64_t, DenseDims<>, 64,
 static_assert(sizeof(ManagedArray<std::int64_t, SquareDims<>, 64,
                                   alloc::Mallocator<std::int64_t>>) == 536);
 
+static_assert(
+  !std::is_standard_layout_v<MutArray<std::int64_t, Length<-1, std::int32_t>>>);
 #ifdef __APPLE__
 template <class T,
           std::ptrdiff_t N =
