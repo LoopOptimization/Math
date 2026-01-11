@@ -11,7 +11,7 @@ import Tuple;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 int main() {
-  "SOATest BasicAssertions"_test = [] {
+  "SOATest BasicAssertions"_test = [] -> void {
     containers::Tuple x{3, 2.0, 5.0F};
     // static_assert(math::CumSizeOf_v<0, decltype(x)> == 0);
     // static_assert(math::CumSizeOf_v<1, decltype(x)> == 4);
@@ -25,7 +25,8 @@ int main() {
     static_assert(std::is_trivially_destructible_v<T>);
     ::math::ManagedSOA soa(std::type_identity<decltype(x)>{},
                            ::math::length(5z));
-    expect(soa.capacity_.capacity_ == 8);
+    expect(soa.capacity() == 8);
+    static_assert(!std::is_standard_layout_v<decltype(soa)::Base>);
     soa[0] = x;
     soa[1] = {5, 2.25, 5.5F};
     soa.template get<0>(2) = 7;
@@ -90,18 +91,19 @@ int main() {
     expect(soa.size() == 65);
   };
 
-  "SOAPairTest BasicAssertions"_test = [] {
+  "SOAPairTest BasicAssertions"_test = [] -> void {
     containers::Pair x{3, 2.0};
+    using Tup = decltype(x);
     // static_assert(math::CumSizeOf_v<0, decltype(x)> == 0);
     // static_assert(math::CumSizeOf_v<1, decltype(x)> == 4);
     // static_assert(math::CumSizeOf_v<2, decltype(x)> == 12);
     // math::ManagedSOA soa{std::type_identity<decltype(x)>{}, 5};
-    ::math::ManagedSOA<decltype(x)> soa;
+    ::math::ManagedSOA<Tup> soa;
     // math::ManagedSOA soa(std::type_identity<decltype(x)>{});
-    expect(soa.capacity_.capacity_ == 0);
+    expect(soa.capacity() == 0);
     soa.push_back(x);
     soa[0] = x;
-    expect(soa.capacity_.capacity_ == 8);
+    expect(soa.capacity() == 8);
     soa.resize(5);
     soa[1] = {5, 2.25};
     soa.template get<0>(2) = 7;
@@ -109,8 +111,9 @@ int main() {
     soa.template get<0>()[3] = 9;
     soa.template get<1>()[3] = 2.75;
     soa[4] = {11, 3.0};
+    auto soa_copy = soa;
     for (std::ptrdiff_t j = 0; j < 5; ++j) {
-      decltype(x) y = soa[j];
+      Tup y = soa[j];
       auto [i, d] = y;
       static_assert(std::same_as<decltype(i), int>);
       static_assert(std::same_as<decltype(d), double>);
@@ -118,6 +121,8 @@ int main() {
       expect(d == (2.0 + 0.25 * j));
       expect(i == soa.get<0>(j));
       expect(d == soa.get<1>(j));
+      expect(i == soa_copy.get<0>(j));
+      expect(d == soa_copy.get<1>(j));
     }
     soa.resize(7);
     soa[5] = {13, 3.25};
@@ -151,7 +156,7 @@ int main() {
     expect(soa.size() == 65);
   };
 
-  "VecOfSOATest BasicAssertions"_test = [] {
+  "VecOfSOATest BasicAssertions"_test = [] -> void {
     ::math::Vector<::math::ManagedSOA<containers::Tuple<int, double, float>>>
       vsoa;
     vsoa.emplace_back();

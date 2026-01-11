@@ -576,11 +576,13 @@ protected:
   TRIVIAL constexpr Array(S s) : sz_(s) {}
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   const storage_type *ptr_;
+
+public:
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   [[no_unique_address]] S sz_;
 
 private:
-  friend constexpr auto ssize(const Array &x) -> std::ptrdiff_t {
+  TRIVIAL friend constexpr auto ssize(const Array &x) -> std::ptrdiff_t {
     return x.size();
   }
 };
