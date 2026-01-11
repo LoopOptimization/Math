@@ -326,13 +326,11 @@ struct ManagedSOA : public SOA<T, S, C, TT, II> {
   }
   TRIVIAL constexpr ManagedSOA(std::type_identity<T>) : ManagedSOA() {}
   ManagedSOA(std::type_identity<T>, S nsz) : ManagedSOA(nsz) {}
-  ManagedSOA(const ManagedSOA &other) {
-    this->sz_ = other.sz_;
-    this->capacity_ = C{this->sz_};
+  ManagedSOA(const ManagedSOA &other) : Base{nullptr, other.sz_, C{other.sz_}} {
     if (std::ptrdiff_t L = std::ptrdiff_t(this->sz_)) {
       this->data_ = alloc(this->capacity_(L));
       for (std::ptrdiff_t i = 0z; i < L; ++i) (*this)[i] = other[i];
-    } else this->data_ = nullptr;
+    }
   }
 
   static auto alloc(std::ptrdiff_t stride) -> char * {
