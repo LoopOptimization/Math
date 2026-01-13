@@ -207,6 +207,10 @@ public:
   [[nodiscard]] TRIVIAL constexpr auto size() const -> std::ptrdiff_t {
     return std::ptrdiff_t(sz_);
   }
+  TRIVIAL constexpr void resize(S nsz) {
+    invariant(std::ptrdiff_t(nsz) <= capacity());
+    this->sz_ = nsz;
+  }
   [[nodiscard]] TRIVIAL constexpr auto capacity() const -> std::ptrdiff_t {
     return std::ptrdiff_t(capacity_(sz_));
   }
