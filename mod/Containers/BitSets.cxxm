@@ -973,11 +973,12 @@ struct BitSets {
             .num_chunks_per_ = std::uint32_t(x.data_.size())};
   }
   struct Iterator {
-    using value_type = BitSet<math::MutPtrVector<std::uint64_t>>;
+    using V = math::MutPtrVector<std::uint64_t>;
+    using value_type = BitSet<V>;
     std::uint64_t *data_;
     std::uint32_t num_chunks_per_;
     constexpr auto operator*() const -> value_type {
-      return value_type{{data_, math::length(num_chunks_per_)}};
+      return value_type{V{data_, math::length(num_chunks_per_)}};
     }
     constexpr auto operator+(std::ptrdiff_t i) -> Iterator {
       return {.data_ = data_ + (num_chunks_per_ * i),

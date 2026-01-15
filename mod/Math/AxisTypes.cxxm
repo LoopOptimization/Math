@@ -521,6 +521,7 @@ private:
 };
 static_assert(sizeof(Row<>) == sizeof(std::ptrdiff_t));
 static_assert(sizeof(Row<-1, std::int32_t>) == sizeof(std::int32_t));
+static_assert(std::convertible_to<Row<6>, Row<>>);
 template <std::ptrdiff_t M, std::signed_integral I>
 template <std::signed_integral J>
 TRIVIAL inline constexpr Row<M, I>::operator Row<-1, J>() const {
