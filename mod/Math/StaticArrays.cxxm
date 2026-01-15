@@ -304,6 +304,12 @@ struct MATH_GSL_OWNER StaticArray
     requires(std::convertible_to<S, SHAPE>) {
     return {const_cast<T *>(data()), SHAPE(dim())};
   }
+  template <typename SHAPE>
+  TRIVIAL constexpr
+  operator MutArray<T, SHAPE, Compress &&utils::Compressible<T>>()
+    requires(std::convertible_to<S, SHAPE>) {
+    return {data(), SHAPE(dim())};
+  }
   // template<containers::ConvertibleFrom<S> SHAPE>
   // constexpr auto operator==(Array<T,SHAPE> rhs) const noexcept -> bool {
   //   return std::equal(begin(), end(), rhs.begin());
@@ -526,7 +532,12 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     for (std::ptrdiff_t i = 0; i < M * L; ++i) memory_[i] = u.data_[i];
   }
   TRIVIAL constexpr auto data() -> T * {
+    // return static_cast<T *>(static_cast<void *>(memory_));
     return reinterpret_cast<T *>(memory_);
+  }
+  TRIVIAL [[nodiscard]] constexpr auto diag() const noexcept {
+    constexpr std::ptrdiff_t minRC = std::min(M, N);
+    return Array<T, StridedRange<minRC, L + 1>>{data(), {}};
   }
   TRIVIAL [[nodiscard]] constexpr auto data() const -> const T * {
     return reinterpret_cast<const T *>(memory_);
@@ -638,10 +649,12 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       memory_[L * r + c] = x;
     } else {
       V v = memory_[L * r + c / W];
-      using IT = std::conditional_t<sizeof(T) == 8, std::int64_t, std::int32_t>;
-      v = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c % W)
-            ? simd::vbroadcast<W, T>(x)
-            : v;
+      v[c % W] = x;
+      // using IT = std::conditional_t<sizeof(T) == 8, std::int64_t,
+      // std::int32_t>; v = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c %
+      // W)
+      //       ? simd::vbroadcast<W, T>(x)
+      //       : v;
       // v[c % W] = x;
       memory_[L * r + c / W] = v;
     }
@@ -675,9 +688,13 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
       *this = simd::Vec<W, T>{} + T(x);
       return *this;
     }
-    TRIVIAL constexpr operator simd::Unroll<R, C, W, T>() {
+    TRIVIAL constexpr operator simd::Unroll<R, C, W, T>() const {
       return (*const_cast<const StaticArray *>(
         parent_))[simd::index::Unroll<R>{i_}, simd::index::Unroll<C, W>{j_}];
+    }
+    TRIVIAL constexpr operator simd::Vec<W, T>() const
+      requires(R == 1 && C == 1) {
+      return simd::Unroll<1Z, 1Z, W, T>(*this).vec_;
     }
     TRIVIAL constexpr auto operator+=(const auto &x) -> Ref & {
       return (*this) = simd::Unroll<R, C, W, T>(*this) + x;
@@ -1035,8 +1052,16 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
       *this = simd::vbroadcast<W, T>(x);
       return *this;
     }
-    TRIVIAL constexpr operator simd::Unroll<1, 1, W, T>() {
+    TRIVIAL constexpr operator simd::Unroll<1, 1, W, T>() const {
       return {parent_->data_};
+    }
+    TRIVIAL constexpr operator simd::Vec<W, T>() const {
+      return parent_->data_;
+    }
+    template <std::ptrdiff_t B>
+    TRIVIAL constexpr operator simd::Vec<B, T>() const requires(W == 1 && B > 1)
+    {
+      return simd::vbroadcast<B, T>(parent_->data_[0]);
     }
     TRIVIAL constexpr auto operator+=(const auto &x) -> Ref & {
       return (*this) = simd::Unroll<1, 1, W, T>(*this) + x;
@@ -1114,10 +1139,12 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     if constexpr (W == 1) {
       data_ = x;
     } else {
-      using IT = std::conditional_t<sizeof(T) == 8, std::int64_t, std::int32_t>;
-      data_ = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c % W)
-                ? simd::vbroadcast<W, T>(x)
-                : data_;
+      // using IT = std::conditional_t<sizeof(T) == 8, std::int64_t,
+      // std::int32_t>;
+      data_[c] = x;
+      // data_ = simd::range<W, IT>() == simd::vbroadcast<W, IT>(c % W)
+      //           ? simd::vbroadcast<W, T>(x)
+      //           : data_;
     }
   }
   template <typename SHAPE>
@@ -1160,6 +1187,18 @@ static_assert(RowVector<StaticArray<std::int64_t, 1, 4, false>>);
 static_assert(RowVector<StaticArray<std::int64_t, 1, 4, true>>);
 static_assert(RowVector<StaticArray<std::int64_t, 1, 3, false>>);
 static_assert(RowVector<StaticArray<std::int64_t, 1, 3, true>>);
+
+static_assert(AbstractMatrix<StaticArray<std::int64_t, 2, 3>>);
+static_assert(
+  std::same_as<utils::eltype_t<StaticArray<std::int64_t, 2, 3>>, std::int64_t>);
+
+static_assert(
+  CartesianIndexable<
+    Conditional<ElementwiseBinaryOp<math::StaticArray<long, 2, 3, false>,
+                                    math::StaticArray<long, 2, 3, false>,
+                                    std::greater<void>>,
+                math::StaticArray<long, 2, 3, false>,
+                math::StaticArray<long, 2, 3, false>, std::plus<void>>>);
 
 template <class T, std::ptrdiff_t M, std::ptrdiff_t N>
 TRIVIAL constexpr auto view(const StaticArray<T, M, N> &x) {

@@ -67,8 +67,8 @@ using is_concrete_t =
   std::conditional_t<HasConcreteSize<T> || HasConcreteSize<U>, std::true_type,
                      std::false_type>;
 
-template <utils::TriviallyCopyable A, TrivialCompatible<A> B,
-          BinaryFuncOfElts<A, B> Op>
+export template <utils::TriviallyCopyable A, TrivialCompatible<A> B,
+                 BinaryFuncOfElts<A, B> Op>
 struct ElementwiseBinaryOp;
 
 template <AbstractTensor A, AbstractTensor B> struct MatMatMul;
@@ -236,6 +236,8 @@ public:
   TRIVIAL constexpr auto min(Compatible<A> auto b) const {
     return elementwise(v(), view(b), Min{});
   }
+  auto sum() const { return ::math::sum(v()); }
+  auto norm2() const { return ::math::norm2(v()); }
   TRIVIAL constexpr auto operator-() const {
     return elementwise(v(), std::negate<>{});
   }
@@ -638,8 +640,8 @@ template <TrivialTensor C, utils::TriviallyCopyable A,
           utils::TriviallyCopyable B>
 Select(C c, A a, B b) -> Select<C, A, B>;
 
-template <TrivialTensor C, utils::TriviallyCopyable A,
-          utils::TriviallyCopyable B, BinaryFuncOfElts<A, B> Op>
+export template <TrivialTensor C, utils::TriviallyCopyable A,
+                 utils::TriviallyCopyable B, BinaryFuncOfElts<A, B> Op>
 struct Conditional
   : public AbstractSelect<C, A, B>,
     public math::Expr<typename AbstractSelect<C, A, B>::value_type,
@@ -734,26 +736,23 @@ struct Conditional
              CartesianIndexableOrConvertible<A, value_type> &&
              CartesianIndexableOrConvertible<B, value_type> {
     if constexpr (std::convertible_to<decltype(this->c[i, j]), bool>) {
-      if constexpr (LinearlyIndexable<A, value_type>)
-        if constexpr (LinearlyIndexable<B, value_type>)
+      if constexpr (CartesianIndexable<A, value_type>)
+        if constexpr (CartesianIndexable<B, value_type>)
           return this->c[i, j] ? op_(this->a[i, j], this->b[i, j])
                                : this->a[i, j];
         else return this->c[i, j] ? op_(this->a[i, j], this->b) : this->a[i, j];
-      else if constexpr (LinearlyIndexable<B, value_type>)
+      else if constexpr (CartesianIndexable<B, value_type>)
         return this->c[i, j] ? op_(this->a, this->b[i, j]) : this->a;
       else return this->c[i, j] ? op_(this->a, this->b) : this->a;
-    } else {
-      if constexpr (LinearlyIndexable<A, value_type>)
-        if constexpr (LinearlyIndexable<B, value_type>)
-          return this->c[i, j].select(op_(this->a[i, j], this->b[i, j]),
-                                      this->a[i, j]);
-        else
-          return this->c[i, j].select(op_(this->a[i, j], this->b),
-                                      this->a[i, j]);
-      else if constexpr (LinearlyIndexable<B, value_type>)
-        return this->c[i, j].select(op_(this->a, this->b[i, j]), this->a);
-      else return this->c[i, j].select(op_(this->a, this->b), this->a);
-    }
+    } else if constexpr (CartesianIndexable<A, value_type>)
+      if constexpr (CartesianIndexable<B, value_type>)
+        return this->c[i, j].select(op_(this->a[i, j], this->b[i, j]),
+                                    this->a[i, j]);
+      else
+        return this->c[i, j].select(op_(this->a[i, j], this->b), this->a[i, j]);
+    else if constexpr (CartesianIndexable<B, value_type>)
+      return this->c[i, j].select(op_(this->a, this->b[i, j]), this->a);
+    else return this->c[i, j].select(op_(this->a, this->b), this->a);
   }
   TRIVIAL [[nodiscard]] constexpr auto view() const -> Conditional {
     return *this;

@@ -9,10 +9,8 @@ import ExprTemplateUtils;
 import SIMD;
 import std;
 
-export namespace math {
-TRIVIAL constexpr auto abs2(auto x) { return x * x; }
-
-template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
+template <bool square, math::AbstractTensor B>
+TRIVIAL constexpr auto accum(const B &A_arg) {
   auto A = flatten_if_possible(untransposed_view(A_arg));
   using T = utils::eltype_t<decltype(A)>;
 
@@ -21,7 +19,7 @@ template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
     constexpr std::ptrdiff_t W = simd::Width<T>;
     simd::Vec<W, T> vsum{};
 
-    if constexpr (!LinearlyIndexable<decltype(A), T>) {
+    if constexpr (!math::LinearlyIndexable<decltype(A), T>) {
       // Matrix case with SIMD
       for (std::ptrdiff_t i = 0; i < M; ++i) {
         for (std::ptrdiff_t j = 0; j < N; j += W) {
@@ -29,7 +27,8 @@ template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
           auto u = simd::index::unrollmask<1, W>(N, j);
           if (!u) break;
           auto vals = A[i, u];
-          vsum += vals * vals;
+          if constexpr (square) vsum += vals * vals;
+          else vsum += vals;
         }
       }
     } else {
@@ -40,7 +39,8 @@ template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
         auto u = simd::index::unrollmask<1, W>(L, j);
         if (!u) break;
         auto vals = A[u];
-        vsum += vals * vals;
+        if constexpr (square) vsum += vals * vals;
+        else vsum += vals;
       }
     }
 
@@ -48,30 +48,41 @@ template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
   } else {
     // Fallback to scalar implementation
     T s = 0;
-    if constexpr (!LinearlyIndexable<decltype(A), T>) {
+    if constexpr (!math::LinearlyIndexable<decltype(A), T>) {
       for (std::ptrdiff_t i = 0; i < A.numRow(); ++i) {
         for (std::ptrdiff_t j = 0; j < A.numCol(); ++j) {
           POLYMATHFAST
-          s += abs2(A[i, j]);
+          if constexpr (square) s += abs2(A[i, j]);
+          else s += A[i, j];
         }
       }
     } else
       for (std::ptrdiff_t j = 0, L = std::ptrdiff_t(A.size()); j < L; ++j) {
         POLYMATHFAST
-        s += abs2(A[j]);
+        if constexpr (square) s += abs2(A[j]);
+        else s += A[j];
       }
     return s;
   }
 }
+export namespace math {
+TRIVIAL constexpr auto abs2(auto x) { return x * x; }
 
-TRIVIAL constexpr auto norm2(const auto &a) {
-  decltype((a[0] * a[0]) + (a[1] * a[1])) s{};
-  for (auto x : a) {
-    POLYMATHFAST
-    s += abs2(x, x);
-  }
-  return s;
+template <AbstractTensor B> TRIVIAL constexpr auto sum(const B &A_arg) {
+  return accum<false>(A_arg);
 }
+template <AbstractTensor B> TRIVIAL constexpr auto norm2(const B &A_arg) {
+  return accum<true>(A_arg);
+}
+
+// TRIVIAL constexpr auto norm2(const auto &a) {
+//   decltype((a[0] * a[0]) + (a[1] * a[1])) s{};
+//   for (auto x : a) {
+//     POLYMATHFAST
+//     s += abs2(x, x);
+//   }
+//   return s;
+// }
 template <typename A, typename B>
 TRIVIAL constexpr auto dot(const A &a_arg, const B &b_arg)
   -> decltype(utils::eltype_t<A>{} * utils::eltype_t<B>{}) {
