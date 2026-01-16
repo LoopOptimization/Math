@@ -587,6 +587,16 @@ TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
                                     __builtin_bit_cast(__m512i, y), 0)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpeq_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpeq_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -601,6 +611,16 @@ TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
                                     __builtin_bit_cast(__m256i, y), 0)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpeq_epi16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpeq_epu16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -615,6 +635,16 @@ TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
                                  __builtin_bit_cast(__m128i, y), 0)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpeq_epi16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpeq_epu16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -636,6 +666,16 @@ TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
                                     __builtin_bit_cast(__m512i, y), 4)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpneq_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpneq_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -650,6 +690,23 @@ TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
                                     __builtin_bit_cast(__m256i, y), 4)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpneq_epi16_mask(__builtin_bit_cast(__m128i, x),
+                                      __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpneq_epu16_mask(__builtin_bit_cast(__m128i, x),
+                                      __builtin_bit_cast(__m128i, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpneq_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpneq_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -664,6 +721,23 @@ TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
                                  __builtin_bit_cast(__m128i, y), 4)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpneq_epi16_mask(__builtin_bit_cast(__m64, x),
+                                      __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpneq_epu16_mask(__builtin_bit_cast(__m64, x),
+                                      __builtin_bit_cast(__m64, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpneq_epi8_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpneq_epu8_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -685,6 +759,16 @@ TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
                                     __builtin_bit_cast(__m512i, y), 1)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmplt_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmplt_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -699,6 +783,23 @@ TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
                                     __builtin_bit_cast(__m256i, y), 1)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmplt_epi16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmplt_epu16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmplt_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmplt_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -713,6 +814,23 @@ TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
                                  __builtin_bit_cast(__m128i, y), 1)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmplt_epi16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmplt_epu16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmplt_epi8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmplt_epu8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -734,6 +852,16 @@ TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
                                     __builtin_bit_cast(__m512i, y), 6)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpgt_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpgt_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -748,6 +876,23 @@ TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
                                     __builtin_bit_cast(__m256i, y), 6)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpgt_epi16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpgt_epu16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpgt_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpgt_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -762,6 +907,23 @@ TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
                                  __builtin_bit_cast(__m128i, y), 6)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpgt_epi16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpgt_epu16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpgt_epi8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpgt_epu8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -783,6 +945,16 @@ TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
                                     __builtin_bit_cast(__m512i, y), 2)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmple_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmple_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -797,6 +969,23 @@ TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
                                     __builtin_bit_cast(__m256i, y), 2)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmple_epi16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmple_epu16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmple_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmple_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -811,6 +1000,23 @@ TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
                                  __builtin_bit_cast(__m128i, y), 2)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmple_epi16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmple_epu16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmple_epi8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmple_epu8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 2) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -832,6 +1038,16 @@ TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm512_cmp_epi32_mask(__builtin_bit_cast(__m512i, x),
                                     __builtin_bit_cast(__m512i, y), 5)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpge_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpge_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 8) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -846,6 +1062,23 @@ TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm256_cmp_epi32_mask(__builtin_bit_cast(__m256i, x),
                                     __builtin_bit_cast(__m256i, y), 5)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpge_epi16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpge_epu16_mask(__builtin_bit_cast(__m128i, x),
+                                     __builtin_bit_cast(__m128i, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpge_epi8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+      else
+        return {_mm_cmpge_epu8_mask(__builtin_bit_cast(__m128i, x),
+                                    __builtin_bit_cast(__m128i, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 4) {
     if constexpr (std::same_as<T, double>) // UQ (unordered quiet?)
@@ -860,6 +1093,23 @@ TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y)
     else if constexpr (sizeof(T) == 4)
       return {_mm_cmp_epi32_mask(__builtin_bit_cast(__m128i, x),
                                  __builtin_bit_cast(__m128i, y), 5)};
+#ifdef __AVX512BW__
+    else if constexpr (sizeof(T) == 2) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpge_epi16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpge_epu16_mask(__builtin_bit_cast(__m64, x),
+                                     __builtin_bit_cast(__m64, y))};
+    } else if constexpr (sizeof(T) == 1) {
+      if constexpr (std::signed_integral<T>)
+        return {_mm_cmpge_epi8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+      else
+        return {_mm_cmpge_epu8_mask(__builtin_bit_cast(__m64, x),
+                                    __builtin_bit_cast(__m64, y))};
+    }
+#endif
     else static_assert(false);
   } else if constexpr (W == 2) {
 
