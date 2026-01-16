@@ -79,8 +79,9 @@ concept ColVectorCore =
   };
 template <typename T>
 concept RowVector = RowVectorCore<T> && requires(T t) {
-  { t.view() } -> RowVectorCore;
+  { view(t) } -> RowVectorCore;
 };
+
 template <typename T>
 concept ColVector = ColVectorCore<T> && requires(T t) {
   { t.view() } -> ColVectorCore;
