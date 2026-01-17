@@ -371,6 +371,11 @@ private:
   TRIVIAL friend constexpr auto operator&(Vector a, Vector b) -> Vector {
     return {a.m & b.m};
   }
+  template <std::size_t OtherBytes>
+  TRIVIAL friend constexpr auto operator&(Vector a, Vector<W, OtherBytes> b)
+    -> Vector requires(Bytes < OtherBytes) {
+    return {a.m & __builtin_convertvector(b.m, V)};
+  }
   TRIVIAL friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
     return b;
   }
@@ -4734,11 +4739,18 @@ struct Unroll {
     -> VT {
     return data_[(r * C) + c];
   }
-  TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const -> T {
+  [[nodiscard]] TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const
+    -> T {
     static constexpr std::ptrdiff_t shift =
       std::countr_zero(static_cast<unsigned>(N));
     static constexpr std::ptrdiff_t mask = ((1 << shift) - 1);
     return data_[idx >> shift][idx & mask];
+  }
+  TRIVIAL constexpr void insert_value(std::ptrdiff_t idx, T x) {
+    static constexpr std::ptrdiff_t shift =
+      std::countr_zero(static_cast<unsigned>(N));
+    static constexpr std::ptrdiff_t mask = ((1 << shift) - 1);
+    data_[idx >> shift][idx & mask] = x;
   }
   template <typename U>
   TRIVIAL constexpr operator Unroll<R, C, N, U>() const
@@ -5694,8 +5706,12 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     -> VT {
     return vec_;
   }
-  TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const -> T {
+  [[nodiscard]] TRIVIAL constexpr auto extract_value(std::ptrdiff_t idx) const
+    -> T {
     return vec_[idx];
+  }
+  TRIVIAL constexpr void insert_value(std::ptrdiff_t idx, T x) {
+    vec_[idx] = x;
   }
   TRIVIAL constexpr operator VT() const { return vec_; }
   template <typename U>

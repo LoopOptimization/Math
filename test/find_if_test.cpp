@@ -12,7 +12,7 @@ using namespace boost::ut;
 int main() {
   "find_if vector tests"_test = [] {
     // Test with StaticArray (vector)
-    StaticArray<std::int64_t, 1, 8> vec{1, 2, 3, 4, 5, 6, 7, 8};
+    StaticArray<std::int32_t, 1, 7> vec{1, 2, 3, 4, 5, 6, 7};
 
     // Find first element > 3
     auto idx = find_first(vec, [](auto x) { return x > 3; });
@@ -34,6 +34,10 @@ int main() {
     idx = find_first(vec, [](auto x) { return x == 1; });
     expect(idx == 0_i); // Should find 1 at index 0
 
+    idx = find_first(vec, [](auto x) { return x == 0; });
+    expect(idx == -1_i); // Should find 1 at index 0
+
+    expect(vec.findFirstEqIdx(0) == -1_i);
     expect(vec.findFirstEqIdx(1) == 0_i);
     expect(vec.findFirstEqIdx(2) == 1_i);
     expect(vec.findFirstEqIdx(3) == 2_i);
@@ -41,8 +45,7 @@ int main() {
     expect(vec.findFirstEqIdx(5) == 4_i);
     expect(vec.findFirstEqIdx(6) == 5_i);
     expect(vec.findFirstEqIdx(7) == 6_i);
-    expect(vec.findFirstEqIdx(8) == 7_i);
-    expect(vec.findFirstEqIdx(9) == -1_i);
+    expect(vec.findFirstEqIdx(8) == -1_i);
   };
 
   "find_if matrix tests"_test = [] {
