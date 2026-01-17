@@ -442,7 +442,9 @@ TRIVIAL constexpr auto create(std::ptrdiff_t i)
   static constexpr std::ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   std::ptrdiff_t rem = i & (W - 1);
-  return {__builtin_convertvector(range<W, I>() < static_cast<I>(rem), Vec<W, I>), rem};
+  return {
+    __builtin_convertvector(range<W, I>() < static_cast<I>(rem), Vec<W, I>),
+    rem};
 }
 template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
@@ -450,7 +452,9 @@ TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
   static constexpr std::ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   std::ptrdiff_t rem = len - i;
-  return {__builtin_convertvector(range<W, I>() < static_cast<I>(rem), Vec<W, I>), rem};
+  return {
+    __builtin_convertvector(range<W, I>() < static_cast<I>(rem), Vec<W, I>),
+    rem};
 }
 template <std::ptrdiff_t W, typename I = std::int64_t>
 using Mask = Vector<W, sizeof(I)>;
@@ -4336,28 +4340,15 @@ TRIVIAL inline void store(T *p, mask::None<W>, Vec<W, T> x) {
   for (std::ptrdiff_t w = 0; w < W; ++w) p[w] = x[w];
 }
 
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline auto load(const T *p, mask::Vector<W, 4> i) -> Vec<W, T> {
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto load(const T *p, mask::Vector<W, Bytes> i) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[w] : T{};
   return ret;
 }
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline auto load(const T *p, mask::Vector<W, 8> i) -> Vec<W, T> {
-  Vec<W, T> ret;
-  POLYMATHFULLUNROLL
-  for (std::ptrdiff_t w = 0; w < W; ++w) ret[w] = (i.m[w] != 0) ? p[w] : T{};
-  return ret;
-}
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline void store(T *p, mask::Vector<W, 4> i, Vec<W, T> x) {
-  POLYMATHFULLUNROLL
-  for (std::ptrdiff_t w = 0; w < W; ++w)
-    if (i.m[w] != 0) p[w] = x[w];
-}
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline void store(T *p, mask::Vector<W, 8> i, Vec<W, T> x) {
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline void store(T *p, mask::Vector<W, Bytes> i, Vec<W, T> x) {
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (i.m[w] != 0) p[w] = x[w];
@@ -4399,18 +4390,9 @@ TRIVIAL inline void scatter(T *p, mask::None<W>, Vec<W, T> x, Vec<W, I> indv) {
   for (std::ptrdiff_t w = 0; w < W; ++w) p[indv[w]] = x[w];
 }
 
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline auto load(const T *p, mask::Vector<W, 4> i, std::int32_t stride)
-  -> Vec<W, T> {
-  Vec<W, T> ret;
-  POLYMATHFULLUNROLL
-  for (std::ptrdiff_t w = 0; w < W; ++w)
-    ret[w] = (i.m[w] != 0) ? p[w * stride] : T{};
-  return ret;
-}
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline auto load(const T *p, mask::Vector<W, 8> i, std::int32_t stride)
-  -> Vec<W, T> {
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto load(const T *p, mask::Vector<W, Bytes> i,
+                         std::int32_t stride) -> Vec<W, T> {
   Vec<W, T> ret;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
@@ -4435,15 +4417,8 @@ TRIVIAL inline auto gather(const T *p, mask::Vector<W, sizeof(T)> i,
     ret[w] = (i.m[w] != 0) ? p[indv[w]] : T{};
   return ret;
 }
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline void store(T *p, mask::Vector<W, 4> i, Vec<W, T> x,
-                          std::int32_t stride) {
-  POLYMATHFULLUNROLL
-  for (std::ptrdiff_t w = 0; w < W; ++w)
-    if (i.m[w] != 0) p[w * stride] = x[w];
-}
-template <typename T, std::ptrdiff_t W>
-TRIVIAL inline void store(T *p, mask::Vector<W, 8> i, Vec<W, T> x,
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline void store(T *p, mask::Vector<W, Bytes> i, Vec<W, T> x,
                           std::int32_t stride) {
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
