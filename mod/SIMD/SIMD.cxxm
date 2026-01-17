@@ -442,7 +442,7 @@ TRIVIAL constexpr auto create(std::ptrdiff_t i)
   static constexpr std::ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   std::ptrdiff_t rem = i & (W - 1);
-  return {range<W, I>() < static_cast<I>(rem), rem};
+  return {__builtin_convertvector(range<W, I>() < static_cast<I>(rem), Vec<W, I>), rem};
 }
 template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
@@ -450,7 +450,7 @@ TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
   static constexpr std::ptrdiff_t R = VECTORWIDTH / W;
   using I = utils::signed_integer_t<R >= 8 ? 8 : R>;
   std::ptrdiff_t rem = len - i;
-  return {range<W, I>() < static_cast<I>(rem), rem};
+  return {__builtin_convertvector(range<W, I>() < static_cast<I>(rem), Vec<W, I>), rem};
 }
 template <std::ptrdiff_t W, typename I = std::int64_t>
 using Mask = Vector<W, sizeof(I)>;
@@ -1508,35 +1508,41 @@ TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y)
 
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto eq(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
-  requires(W == 16 || W == 8 || W == 4 || W == 2) {
-  return {x == y};
+  requires(W == 32 || W == 16 || W == 8 || W == 4 || W == 2) {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  return {__builtin_convertvector(x == y, Vec<W, I>)};
 }
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto ne(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
-  requires(W == 16 || W == 8 || W == 4 || W == 2) {
-  return {x != y};
+  requires(W == 32 || W == 16 || W == 8 || W == 4 || W == 2) {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  return {__builtin_convertvector(x != y, Vec<W, I>)};
 }
 
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto lt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
-  requires(W == 16 || W == 8 || W == 4 || W == 2) {
-  return {x < y};
+  requires(W == 32 || W == 16 || W == 8 || W == 4 || W == 2) {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  return {__builtin_convertvector(x < y, Vec<W, I>)};
 }
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto gt(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
-  requires(W == 16 || W == 8 || W == 4 || W == 2) {
-  return {x > y};
+  requires(W == 32 || W == 16 || W == 8 || W == 4 || W == 2) {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  return {__builtin_convertvector(x > y, Vec<W, I>)};
 }
 
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto le(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
-  requires(W == 16 || W == 8 || W == 4 || W == 2) {
-  return {x <= y};
+  requires(W == 32 || W == 16 || W == 8 || W == 4 || W == 2) {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  return {__builtin_convertvector(x <= y, Vec<W, I>)};
 }
 template <std::ptrdiff_t W, typename T>
 TRIVIAL inline auto ge(Vec<W, T> x, Vec<W, T> y) -> mask::Vector<W, sizeof(T)>
-  requires(W == 16 || W == 8 || W == 4 || W == 2) {
-  return {x >= y};
+  requires(W == 32 || W == 16 || W == 8 || W == 4 || W == 2) {
+  using I = utils::signed_integer_t<sizeof(T)>;
+  return {__builtin_convertvector(x >= y, Vec<W, I>)};
 }
 #endif // ifdef __AVX512VL__; else
 
@@ -4244,7 +4250,7 @@ TRIVIAL inline auto expandload(const T *p, mask::Bit<2> m) -> Vec<2, T> {
   } else static_assert("type not supported");
 }
 
-#else // __AVX512F__
+#else // if __AVX512F__; else;
 // Generic compress store/load for non-AVX512 or different widths
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
@@ -4264,7 +4270,35 @@ TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
   return ret;
 }
 
-#endif // __AVX512F__
+// Generic fallback implementations for x86_64 without AVX512F
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline auto load(const T *p, mask::None<W>) -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w) ret[w] = p[w];
+  return ret;
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto load(const T *p, mask::ExplicitLengthVector<W, Bytes> m)
+  -> Vec<W, T> {
+  Vec<W, T> ret{};
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (w < m.onEnd()) ret[w] = p[w];
+  return ret;
+}
+
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline auto load(const T *p, mask::None<W>, std::int32_t stride)
+  -> Vec<W, T> {
+  Vec<W, T> ret;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w) ret[w] = p[w * stride];
+  return ret;
+}
+
+#endif // if __AVX512F__; else; end
 
 #else // not __x86_64__
 
