@@ -420,8 +420,10 @@ struct MATH_GSL_OWNER StaticArray<T, M, N, false>
     V v = simd::vbroadcast<W>(x);
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < M * L; ++i) {
-      auto mask = simd::cmp::eq(memory_[i], v);
-      if (mask.any()) return mask.onBegin() + (i * W);
+      std::ptrdiff_t Wi = W * i;
+      auto m = simd::mask::create<W>(Wi, N);
+      auto mask = simd::cmp::eq(memory_[i], v) & m;
+      if (mask.any()) return mask.onBegin() + Wi;
     }
     return -1;
   }

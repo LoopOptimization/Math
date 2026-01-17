@@ -371,6 +371,11 @@ private:
   TRIVIAL friend constexpr auto operator&(Vector a, Vector b) -> Vector {
     return {a.m & b.m};
   }
+  template <std::size_t OtherBytes>
+  TRIVIAL friend constexpr auto operator&(Vector a, Vector<W, OtherBytes> b)
+    -> Vector requires(Bytes < OtherBytes) {
+    return {a.m & __builtin_convertvector(b.m, V)};
+  }
   TRIVIAL friend constexpr auto operator&(mask::None<W>, Vector b) -> Vector {
     return b;
   }
