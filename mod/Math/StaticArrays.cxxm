@@ -970,7 +970,8 @@ struct MATH_GSL_OWNER StaticArray<T, 1, N, false>
     return simd::reduce::prod(data_);
   }
   TRIVIAL constexpr auto findFirstEqIdx(T x) -> std::ptrdiff_t {
-    auto mask = simd::cmp::eq(data_, simd::vbroadcast<W>(x));
+    static constexpr auto m = simd::mask::create<W>(0, N);
+    auto mask = simd::cmp::eq(data_, simd::vbroadcast<W>(x)) & m;
     return mask.any() ? mask.onBegin() : -1;
   }
   TRIVIAL constexpr auto operator[](Range<std::ptrdiff_t, std::ptrdiff_t> r)
