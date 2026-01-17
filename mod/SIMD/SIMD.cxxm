@@ -557,8 +557,9 @@ template <std::ptrdiff_t W>
 TRIVIAL constexpr auto create(std::ptrdiff_t i) -> Vector<W, VECTORWIDTH / W> {
   // -> ExplicitLengthVector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
+  using V = Vector<W, VECTORWIDTH / W>::V;
   std::ptrdiff_t rem = i & (W - 1);
-  return {range<W, I>() < static_cast<I>(rem)};
+  return {__builtin_convertvector(range<W, I>() < static_cast<I>(rem), V)};
   // return {range<W, I>() < static_cast<I>(rem), rem};
 }
 template <std::ptrdiff_t W>
@@ -566,8 +567,9 @@ TRIVIAL constexpr auto create(std::ptrdiff_t i, std::ptrdiff_t len)
   -> Vector<W, VECTORWIDTH / W> {
   // -> ExplicitLengthVector<W, VECTORWIDTH / W> {
   using I = utils::signed_integer_t<VECTORWIDTH / W>;
+  using V = Vector<W, VECTORWIDTH / W>::V;
   std::ptrdiff_t rem = len - i;
-  return {range<W, I>() < static_cast<I>(rem)};
+  return {__builtin_convertvector(range<W, I>() < static_cast<I>(rem), V)};
   // return {range<W, I>() < static_cast<I>(rem), rem};
 }
 #endif // ifdef __x86_64__; else
