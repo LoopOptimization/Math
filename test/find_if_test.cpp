@@ -126,7 +126,8 @@ int main() {
 
   "find_if uint8_t small vector tests"_test = [] {
     // Test with uint8_t small vector
-    SVector<std::uint8_t, 16> vec{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    SVector<std::uint8_t, 16> vec{1, 2,  3,  4,  5,  6,  7,  8,
+                                  9, 10, 11, 12, 13, 14, 15, 16};
 
     // Find first element > 10
     auto idx = find_first(vec, [](auto x) { return x > 10; });
@@ -184,10 +185,12 @@ int main() {
     idx = find_first(vec, [](auto x) { return x < 100; });
     expect(idx == -1_i); // Should return -1
 
+    idx = find_first(vec.data(), 64, [](auto x) { return x < 100; });
+    expect(idx == -1_i); // Should return -1
+
     // Test with all matching
     SVector<std::uint8_t, 64> all_same;
-    for (std::ptrdiff_t i = 0; i < 64; ++i)
-      all_same[i] = 42;
+    for (std::ptrdiff_t i = 0; i < 64; ++i) all_same[i] = 42;
 
     idx = find_first(all_same, [](auto x) { return x == 42; });
     expect(idx == 0_i); // Should find at first position
