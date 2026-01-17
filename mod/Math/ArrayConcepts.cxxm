@@ -7,15 +7,13 @@ import AxisTypes;
 import BaseUtils;
 import std;
 
-template <typename T>
-concept ShouldView = requires(const T &x) {
-  { x.view() } -> utils::TriviallyCopyable;
-};
-
 export namespace math {
 
 template <typename T> TRIVIAL constexpr auto view(const T &x) {
-  if constexpr (ShouldView<T>) return x.view();
+  if constexpr (requires(const T &y) {
+                  { y.view() } -> utils::TriviallyCopyable;
+                })
+    return x.view();
   else return x;
 }
 
@@ -81,6 +79,7 @@ template <typename T>
 concept RowVector = RowVectorCore<T> && requires(T t) {
   { t.view() } -> RowVectorCore;
 };
+
 template <typename T>
 concept ColVector = ColVectorCore<T> && requires(T t) {
   { t.view() } -> ColVectorCore;

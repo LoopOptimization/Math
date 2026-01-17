@@ -123,4 +123,95 @@ int main() {
     idx = find_first(vec, [](auto x) { return x == 0; });
     expect(idx == 4_i); // Should find 0 at index 4
   };
+
+  "find_if uint8_t small vector tests"_test = [] {
+    // Test with uint8_t small vector
+    SVector<std::uint8_t, 16> vec{1, 2,  3,  4,  5,  6,  7,  8,
+                                  9, 10, 11, 12, 13, 14, 15, 16};
+
+    // Find first element > 10
+    auto idx = find_first(vec, [](auto x) { return x > 10; });
+    expect(idx == 10_i); // Should find 11 at index 10
+
+    // Find first element == 5
+    idx = find_first(vec, [](auto x) { return x == 5; });
+    expect(idx == 4_i); // Should find 5 at index 4
+
+    // Find first element > 20 (doesn't exist)
+    idx = find_first(vec, [](auto x) { return x > 20; });
+    expect(idx == -1_i); // Should return -1
+
+    // Test findFirstEqIdx
+    expect(vec.findFirstEqIdx(1) == 0_i);
+    expect(vec.findFirstEqIdx(8) == 7_i);
+    expect(vec.findFirstEqIdx(16) == 15_i);
+    expect(vec.findFirstEqIdx(20) == -1_i);
+  };
+
+  "find_if uint8_t medium vector tests"_test = [] {
+    // Test with 32-element uint8_t vector (AVX256 path)
+    SVector<std::uint8_t, 32> vec;
+    for (std::ptrdiff_t i = 0; i < 32; ++i)
+      vec[i] = static_cast<std::uint8_t>(i * 3); // [0, 3, 6, 9, ..., 93]
+
+    // Find first element >= 50
+    auto idx = find_first(vec, [](auto x) { return x >= 50; });
+    expect(idx == 17_i); // Should find 51 at index 17
+
+    // Find first element == 0
+    idx = find_first(vec, [](auto x) { return x == 0; });
+    expect(idx == 0_i); // Should find 0 at index 0
+
+    // Find first element > 100 (doesn't exist)
+    idx = find_first(vec, [](auto x) { return x > 100; });
+    expect(idx == -1_i); // Should return -1
+  };
+
+  "find_if uint8_t large vector tests"_test = [] {
+    // Test with 64-element uint8_t vector (AVX512 path)
+    SVector<std::uint8_t, 64> vec;
+    for (std::ptrdiff_t i = 0; i < 64; ++i)
+      vec[i] = static_cast<std::uint8_t>(i + 100); // [100, 101, ..., 163]
+
+    // Find first element > 150
+    auto idx = find_first(vec, [](auto x) { return x > 150; });
+    expect(idx == 51_i); // Should find 151 at index 51
+
+    // Find first element == 120
+    idx = find_first(vec, [](auto x) { return x == 120; });
+    expect(idx == 20_i); // Should find 120 at index 20
+
+    // Find first element < 100 (doesn't exist)
+    idx = find_first(vec, [](auto x) { return x < 100; });
+    expect(idx == -1_i); // Should return -1
+
+    idx = find_first(vec.data(), 64, [](auto x) { return x < 100; });
+    expect(idx == -1_i); // Should return -1
+
+    // Test with all matching
+    SVector<std::uint8_t, 64> all_same;
+    for (std::ptrdiff_t i = 0; i < 64; ++i) all_same[i] = 42;
+
+    idx = find_first(all_same, [](auto x) { return x == 42; });
+    expect(idx == 0_i); // Should find at first position
+  };
+
+  "find_if uint8_t very large vector tests"_test = [] {
+    // Test with very large vector to ensure multi-chunk processing
+    SVector<std::uint8_t, 200> vec;
+    for (std::ptrdiff_t i = 0; i < 200; ++i)
+      vec[i] = static_cast<std::uint8_t>(i % 256);
+
+    // Find element at end
+    auto idx = find_first(vec, [](auto x) { return x == 199; });
+    expect(idx == 199_i);
+
+    // Find element in middle
+    idx = find_first(vec, [](auto x) { return x == 100; });
+    expect(idx == 100_i);
+
+    // Find non-existent (would be > 255)
+    idx = find_first(vec, [](auto x) { return x == 255; });
+    expect(idx == -1_i);
+  };
 }

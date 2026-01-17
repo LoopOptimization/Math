@@ -432,6 +432,12 @@ private:
     return {};
   }
 };
+
+template <typename T, std::size_t L>
+TRIVIAL constexpr auto numRows(std::span<T, L>) -> Row<1Z> {
+  return {};
+}
+
 template <std::signed_integral I> struct RowEnum {
   enum class row : I {};
 };

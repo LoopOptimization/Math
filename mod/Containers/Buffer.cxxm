@@ -73,6 +73,11 @@ public:
   // Constructors
   TRIVIAL constexpr Buffer() = default;
 
+  TRIVIAL constexpr auto mview() -> std::span<T> { return {data_, size_}; }
+  TRIVIAL constexpr auto view() const -> std::span<const T> {
+    return {data_, size_};
+  }
+
   explicit Buffer(std::uint32_t count) : size_(count) {
     if (count > 0) {
       auto [ptr, cap] = Alloc::allocate_at_least(count);

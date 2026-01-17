@@ -139,6 +139,19 @@ NODEBUG constexpr auto allGEZero(const AbstractTensor auto &A) -> bool {
   return !anyLTZero(A);
 }
 
+template <typename T>
+NODEBUG [[gnu::flatten]] constexpr auto
+find_first(const T *ptr, std::ptrdiff_t L, const auto &f) -> std::ptrdiff_t {
+  constexpr std::ptrdiff_t W = simd::Width<T>;
+  for (std::ptrdiff_t i = 0;; i += W) {
+    auto u{simd::index::unrollmask<1, W>(L, i)};
+    if (!u) break;
+    simd::Unroll<1, 1, W, T> x{simd::load(ptr + u.index_, u.mask_)};
+    if (auto mask = f(x); mask.any()) return i + mask.onBegin();
+  }
+  return -1;
+}
+
 /// Returns the idx of the first element for which `f` is true.
 /// Returns `-1` if no such elements are found.
 NODEBUG [[gnu::flatten]] constexpr auto
