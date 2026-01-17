@@ -5711,7 +5711,7 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     return vec_[idx];
   }
   TRIVIAL constexpr void insert_value(std::ptrdiff_t idx, T x) {
-    return vec_[idx] = x;
+    vec_[idx] = x;
   }
   TRIVIAL constexpr operator VT() const { return vec_; }
   template <typename U>
