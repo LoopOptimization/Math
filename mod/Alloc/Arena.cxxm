@@ -204,6 +204,95 @@ public:
       return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
     }
   }
+  /// reallocate_at_least<T>(Ptr, oldCapacity, newCapacity)
+  /// Reallocates memory for at least newCapacity objects of type T
+  /// Returns pair of {pointer, actual_count} where actual_count >= newCapacity
+  /// due to alignment requirements.
+  template <bool ForOverwrite = false, typename T>
+  [[gnu::flatten, nodiscard]] constexpr auto
+  reallocate_at_least(T *Ptr, std::size_t oldCapacity, std::size_t newCapacity)
+    -> containers::Pair<T *, std::ptrdiff_t> {
+    static_assert(std::is_trivially_destructible_v<T>,
+                  "Arena only supports trivially destructible types.");
+    // Calculate bytes needed for new capacity
+    std::size_t bytes_requested = newCapacity * sizeof(T);
+    // Align up to Arena's Alignment
+    std::size_t aligned_bytes = __builtin_align_up(bytes_requested, Alignment);
+    // Reallocate the memory
+    T *ptr = static_cast<T *>(reallocateImpl<ForOverwrite>(
+      Ptr, oldCapacity * sizeof(T), aligned_bytes, oldCapacity * sizeof(T)));
+    // Calculate actual count that fits in aligned allocation
+    std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+    return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
+  }
+  /// reallocate_at_least<T>(Ptr, oldCapacity, newCapacity, oldSize)
+  /// Reallocates memory for at least newCapacity objects of type T
+  /// Returns pair of {pointer, actual_count} where actual_count >= newCapacity
+  /// Allows specifying oldSize separately from oldCapacity for partial copies
+  template <bool ForOverwrite = false, typename T>
+  [[gnu::flatten, nodiscard]] constexpr auto
+  reallocate_at_least(T *Ptr, std::size_t oldCapacity, std::size_t newCapacity,
+                      std::size_t oldSize)
+    -> containers::Pair<T *, std::ptrdiff_t> {
+    static_assert(std::is_trivially_destructible_v<T>,
+                  "Arena only supports trivially destructible types.");
+    // Calculate bytes needed for new capacity
+    std::size_t bytes_requested = newCapacity * sizeof(T);
+    // Align up to Arena's Alignment
+    std::size_t aligned_bytes = __builtin_align_up(bytes_requested, Alignment);
+    // Reallocate the memory
+    T *ptr = static_cast<T *>(reallocateImpl<ForOverwrite>(
+      Ptr, oldCapacity * sizeof(T), aligned_bytes, oldSize * sizeof(T)));
+    // Calculate actual count that fits in aligned allocation
+    std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+    return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
+  }
+  /// reallocate_at_least<T, Align>(Ptr, oldCapacity, newCapacity)
+  /// Reallocates memory for at least newCapacity objects of type T with custom
+  /// alignment Returns pair of {pointer, actual_count} where actual_count >=
+  /// newCapacity
+  template <bool ForOverwrite = false, typename T, std::size_t Align>
+  [[gnu::flatten, nodiscard]] constexpr auto
+  reallocate_at_least(T *Ptr, std::size_t oldCapacity, std::size_t newCapacity)
+    -> containers::Pair<T *, std::ptrdiff_t> {
+    static_assert(std::is_trivially_destructible_v<T>,
+                  "Arena only supports trivially destructible types.");
+    static_assert(std::popcount(Align) == 1, "Alignment must be a power of 2");
+
+    std::size_t bytes_requested = newCapacity * sizeof(T);
+    std::size_t aligned_bytes = __builtin_align_up(bytes_requested,
+                                                    Align > Alignment ? Align
+                                                                      : Alignment);
+
+    T *ptr = static_cast<T *>(reallocateImpl<ForOverwrite>(
+      Ptr, oldCapacity * sizeof(T), aligned_bytes, oldCapacity * sizeof(T)));
+    std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+    return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
+  }
+  /// reallocate_at_least<T, Align>(Ptr, oldCapacity, newCapacity, oldSize)
+  /// Reallocates memory for at least newCapacity objects of type T with custom
+  /// alignment Returns pair of {pointer, actual_count} where actual_count >=
+  /// newCapacity Allows specifying oldSize separately from oldCapacity for
+  /// partial copies
+  template <bool ForOverwrite = false, typename T, std::size_t Align>
+  [[gnu::flatten, nodiscard]] constexpr auto
+  reallocate_at_least(T *Ptr, std::size_t oldCapacity, std::size_t newCapacity,
+                      std::size_t oldSize)
+    -> containers::Pair<T *, std::ptrdiff_t> {
+    static_assert(std::is_trivially_destructible_v<T>,
+                  "Arena only supports trivially destructible types.");
+    static_assert(std::popcount(Align) == 1, "Alignment must be a power of 2");
+
+    std::size_t bytes_requested = newCapacity * sizeof(T);
+    std::size_t aligned_bytes = __builtin_align_up(bytes_requested,
+                                                    Align > Alignment ? Align
+                                                                      : Alignment);
+
+    T *ptr = static_cast<T *>(reallocateImpl<ForOverwrite>(
+      Ptr, oldCapacity * sizeof(T), aligned_bytes, oldSize * sizeof(T)));
+    std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+    return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
+  }
   /// create<T>(args...)
   /// constructs object of type `T` with args `args`
   template <typename T, class... Args>
