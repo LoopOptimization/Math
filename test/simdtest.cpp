@@ -512,5 +512,95 @@ auto main() -> int {
         << "64-bit right shift failed at index " << i;
     }
   };
+  "BFloat16LoadAndCast"_test = [] -> void {
+    // Test loading __bf16 and casting to float
+    static constexpr auto W = simd::Width<__bf16>;
+
+    // Create test data: simple float values that convert cleanly to bf16
+    alignas(64) float source_floats[W];
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      source_floats[i] = static_cast<float>(i + 1);
+
+    // Convert to bf16
+    alignas(64) __bf16 bf16_data[W];
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      bf16_data[i] = static_cast<__bf16>(source_floats[i]);
+
+    // Load bf16 vector using simd::load
+    auto v = simd::load(bf16_data, simd::mask::None<W>{});
+
+    // Cast to float
+    auto float_v = __builtin_convertvector(v, simd::Vec<W, float>);
+
+    // Verify values are approximately correct (bf16 has reduced precision)
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float result = float_v[i];
+      float expected = source_floats[i];
+      expect(approx(result, expected, 1e-2f))
+        << "BF16 load/cast failed at index " << i;
+    }
+  };
+  "BFloat16Arithmetic"_test = [] -> void {
+    // Test arithmetic operations on bf16 cast to float
+    static constexpr auto W = simd::Width<__bf16>;
+
+    alignas(64) __bf16 a_data[W], b_data[W];
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      a_data[i] = static_cast<__bf16>(static_cast<float>(i + 1));
+      b_data[i] = static_cast<__bf16>(2.0f);
+    }
+
+    // Load bf16 vectors using simd::load and cast to float
+    auto a_bf16 = simd::load(a_data, simd::mask::None<W>{});
+    auto b_bf16 = simd::load(b_data, simd::mask::None<W>{});
+
+    auto a_float = __builtin_convertvector(a_bf16, simd::Vec<W, float>);
+    auto b_float = __builtin_convertvector(b_bf16, simd::Vec<W, float>);
+
+    // Test addition
+    auto sum = a_float + b_float;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float expected = static_cast<float>(i + 1) + 2.0f;
+      expect(approx(sum[i], expected, 1e-2f))
+        << "BF16 addition failed at index " << i;
+    }
+
+    // Test multiplication
+    auto prod = a_float * b_float;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float expected = static_cast<float>(i + 1) * 2.0f;
+      expect(approx(prod[i], expected, 1e-2f))
+        << "BF16 multiplication failed at index " << i;
+    }
+  };
+  "BFloat16Unroll"_test = [] -> void {
+    // Test bf16 with Unroll types
+    static constexpr auto W = simd::Width<__bf16>;
+
+    alignas(64) __bf16 data[2 * W];
+    for (std::ptrdiff_t i = 0; i < 2 * W; ++i)
+      data[i] = static_cast<__bf16>(static_cast<float>(i + 1));
+
+    // Load into Unroll<1, 2, W, __bf16>
+    using bf16_unroll = simd::Unroll<1, 2, W, __bf16>;
+    bf16_unroll u;
+    u[0] = simd::load(data, simd::mask::None<W>{});
+    u[1] = simd::load(data + W, simd::mask::None<W>{});
+
+    // Cast to float Unroll
+    using float_unroll = simd::Unroll<1, 2, W, float>;
+    float_unroll u_float;
+    u_float[0] = __builtin_convertvector(u[0], simd::Vec<W, float>);
+    u_float[1] = __builtin_convertvector(u[1], simd::Vec<W, float>);
+
+    // Verify
+    for (std::ptrdiff_t c = 0; c < 2; ++c) {
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        float expected = static_cast<float>(c * W + i + 1);
+        expect(approx(u_float[c][i], expected, 1e-2f))
+          << "BF16 Unroll failed at column " << c << ", index " << i;
+      }
+    }
+  };
   return 0;
 }

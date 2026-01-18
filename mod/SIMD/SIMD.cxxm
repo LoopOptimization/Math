@@ -1924,7 +1924,8 @@ private:
 #ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename T>
 concept SIMDSupported =
-  (std::integral<T> || std::floating_point<T>) && (!std::same_as<T, bool>);
+  ((std::integral<T> || std::floating_point<T>) && (!std::same_as<T, bool>)) ||
+  std::same_as<T, __bf16>;
 #else
 template <typename T>
 concept SIMDSupported = false;
@@ -2021,6 +2022,13 @@ TRIVIAL inline auto load(const std::int16_t *p, mask::None<16>)
   -> Vec<16, std::int16_t> {
   return __builtin_bit_cast(Vec<16, std::int16_t>, _mm256_loadu_epi16(p));
 }
+TRIVIAL inline auto load(const std::uint16_t *p, mask::None<16>)
+  -> Vec<16, std::uint16_t> {
+  return __builtin_bit_cast(Vec<16, std::uint16_t>, _mm256_loadu_epi16(p));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::None<16>) -> Vec<16, __bf16> {
+  return __builtin_bit_cast(Vec<16, __bf16>, _mm256_loadu_epi16(p));
+}
 #endif
 TRIVIAL inline auto load(const std::int64_t *p, mask::Bit<8> i)
   -> Vec<8, std::int64_t> {
@@ -2061,10 +2069,23 @@ TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<8> i)
   return __builtin_bit_cast(Vec<8, std::uint16_t>,
                             _mm_maskz_loadu_epi16(std::uint8_t(i.mask_), p));
 }
+TRIVIAL inline auto load(const __bf16 *p, mask::Bit<8> i) -> Vec<8, __bf16> {
+  return __builtin_bit_cast(Vec<8, __bf16>,
+                            _mm_maskz_loadu_epi16(std::uint8_t(i.mask_), p));
+}
 TRIVIAL inline auto load(const std::int16_t *p, mask::Bit<16> i)
   -> Vec<16, std::int16_t> {
   return __builtin_bit_cast(
     Vec<16, std::int16_t>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<16> i)
+  -> Vec<16, std::uint16_t> {
+  return __builtin_bit_cast(
+    Vec<16, std::uint16_t>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::Bit<16> i) -> Vec<16, __bf16> {
+  return __builtin_bit_cast(Vec<16, __bf16>,
+                            _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
 }
 #endif
 TRIVIAL inline auto load(const float *p, mask::Bit<16> i) -> Vec<16, float> {
@@ -2825,6 +2846,36 @@ TRIVIAL inline auto load(const bool *p, mask::None<64>) -> Vec<64, bool> {
   return __builtin_convertvector(tmp, Vec<64, bool>);
 }
 
+TRIVIAL inline auto load(const std::int16_t *p, mask::None<32>)
+  -> Vec<32, std::int16_t> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<32, std::int16_t>, _mm512_loadu_si512(vp));
+}
+TRIVIAL inline auto load(const std::uint16_t *p, mask::None<32>)
+  -> Vec<32, std::uint16_t> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<32, std::uint16_t>, _mm512_loadu_si512(vp));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::None<32>) -> Vec<32, __bf16> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<32, __bf16>, _mm512_loadu_si512(vp));
+}
+
+TRIVIAL inline auto load(const std::int16_t *p, mask::Bit<32> i)
+  -> Vec<32, std::int16_t> {
+  return __builtin_bit_cast(
+    Vec<32, std::int16_t>, _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<32> i)
+  -> Vec<32, std::uint16_t> {
+  return __builtin_bit_cast(
+    Vec<32, std::uint16_t>, _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::Bit<32> i) -> Vec<32, __bf16> {
+  return __builtin_bit_cast(Vec<32, __bf16>,
+                            _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+}
+
 TRIVIAL inline auto load(const std::int8_t *p, mask::Bit<64> i)
   -> Vec<64, std::int8_t> {
   return __builtin_bit_cast(Vec<64, std::int8_t>,
@@ -2902,6 +2953,11 @@ TRIVIAL inline auto load(const std::uint16_t *p, mask::None<8>)
   return __builtin_bit_cast(Vec<8, std::uint16_t>, _mm_loadu_epi16(vp));
 }
 
+TRIVIAL inline auto load(const __bf16 *p, mask::None<8>) -> Vec<8, __bf16> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<8, __bf16>, _mm_loadu_epi16(vp));
+}
+
 TRIVIAL inline auto load(const double *p, mask::None<8>) -> Vec<8, double> {
   const void *vp = p;
   return __builtin_bit_cast(Vec<8, double>, _mm512_loadu_pd(vp));
@@ -2941,6 +2997,11 @@ TRIVIAL inline auto load(const std::uint16_t *p, mask::None<8>)
   -> Vec<8, std::uint16_t> {
   const __m128i *pi = reinterpret_cast<const __m128i *>(p);
   return __builtin_bit_cast(Vec<8, std::uint16_t>, _mm_loadu_si128(pi));
+}
+
+TRIVIAL inline auto load(const __bf16 *p, mask::None<8>) -> Vec<8, __bf16> {
+  const __m128i *pi = reinterpret_cast<const __m128i *>(p);
+  return __builtin_bit_cast(Vec<8, __bf16>, _mm_loadu_si128(pi));
 }
 #endif
 TRIVIAL inline void store(float *p, mask::None<8>, Vec<8, float> x) {
