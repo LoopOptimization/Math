@@ -602,5 +602,147 @@ auto main() -> int {
       }
     }
   };
+  "BitCastSameSize"_test = [] -> void {
+    // Test bitCast between same-size types: float <-> int32_t
+    static constexpr auto W = simd::Width<float>;
+    using f32_unroll = simd::Unroll<1, 1, W, float>;
+
+    // Create a float vector with specific bit pattern
+    f32_unroll f;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float val = static_cast<float>(i + 1);
+      f.insert_value(i, val);
+    }
+
+    // BitCast to int32_t
+    auto i = f.bitCast<std::int32_t>();
+
+    // Verify bit patterns match by casting back
+    auto f2 = i.bitCast<float>();
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      expect(eq(f.extract_value(j), f2.extract_value(j)))
+        << "Bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastUpcast"_test = [] -> void {
+    // Test upcast: float -> int64_t (half the elements)
+    static constexpr auto Wf = simd::Width<float>;
+    using f32_unroll = simd::Unroll<1, 1, Wf, float>;
+
+    f32_unroll f;
+    for (std::ptrdiff_t i = 0; i < Wf; ++i)
+      f.insert_value(i, static_cast<float>(i + 100));
+
+    auto i64 = f.bitCast<std::int64_t>();
+
+    // Cast back and verify
+    auto f2 = i64.bitCast<float>();
+    for (std::ptrdiff_t j = 0; j < Wf; ++j) {
+      expect(eq(f.extract_value(j), f2.extract_value(j)))
+        << "Upcast bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastDowncast"_test = [] -> void {
+    // Test downcast: int64_t -> float (double the elements)
+    static constexpr auto Wi = simd::Width<std::int64_t>;
+    using i64_unroll = simd::Unroll<1, 1, Wi, std::int64_t>;
+
+    i64_unroll i;
+    for (std::ptrdiff_t j = 0; j < Wi; ++j)
+      i.insert_value(j, static_cast<std::int64_t>(j * 1000000));
+
+    auto f = i.bitCast<float>();
+
+    // Cast back and verify
+    auto i2 = f.bitCast<std::int64_t>();
+    for (std::ptrdiff_t k = 0; k < Wi; ++k) {
+      expect(eq(i.extract_value(k), i2.extract_value(k)))
+        << "Downcast bit pattern mismatch at index " << k;
+    }
+  };
+  "BitCastSmallTypes"_test = [] -> void {
+    // Test with small types: __bf16 <-> uint16_t
+    static constexpr auto W = simd::Width<__bf16>;
+    using bf16_unroll = simd::Unroll<1, 1, W, __bf16>;
+
+    bf16_unroll bf;
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      bf.insert_value(i, static_cast<__bf16>(static_cast<float>(i + 10)));
+
+    auto u16 = bf.bitCast<std::uint16_t>();
+    auto bf2 = u16.bitCast<__bf16>();
+
+    // Verify bit preservation
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      auto orig = bf.extract_value(j);
+      auto restored = bf2.extract_value(j);
+      // Compare as uint16 to verify exact bit pattern
+      auto orig_bits = __builtin_bit_cast(std::uint16_t, orig);
+      auto restored_bits = __builtin_bit_cast(std::uint16_t, restored);
+      expect(eq(orig_bits, restored_bits))
+        << "Small type bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastByteSized"_test = [] -> void {
+    // Test with byte-sized types: int8_t <-> uint8_t
+    static constexpr auto W = simd::Width<std::int8_t>;
+    using i8_unroll = simd::Unroll<1, 1, W, std::int8_t>;
+
+    i8_unroll i8;
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      i8.insert_value(i, static_cast<std::int8_t>(i - 50));
+
+    auto u8 = i8.bitCast<std::uint8_t>();
+    auto i8_2 = u8.bitCast<std::int8_t>();
+
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      expect(eq(i8.extract_value(j), i8_2.extract_value(j)))
+        << "Byte-sized bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastMultiVector"_test = [] -> void {
+    // Test with multi-vector Unroll: Unroll<2, 3, W, float>
+    static constexpr auto W = simd::Width<float>;
+    using f32_multi = simd::Unroll<2, 3, W, float>;
+
+    f32_multi f;
+    // Fill all 6 vectors (2 rows × 3 columns)
+    for (std::ptrdiff_t idx = 0; idx < 6; ++idx)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        f.insert_value(idx * W + i, static_cast<float>(idx * 100 + i));
+
+    auto i = f.bitCast<std::int32_t>();
+    auto f2 = i.bitCast<float>();
+
+    // Verify all elements preserved
+    for (std::ptrdiff_t idx = 0; idx < 6; ++idx) {
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::ptrdiff_t linear_idx = idx * W + j;
+        expect(eq(f.extract_value(linear_idx), f2.extract_value(linear_idx)))
+          << "Multi-vector mismatch at linear index " << linear_idx;
+      }
+    }
+  };
+  "BitCastBitPreservation"_test = [] -> void {
+    // Verify exact bit pattern preservation with known values
+    static constexpr auto W = simd::Width<std::uint32_t>;
+    using u32_unroll = simd::Unroll<1, 1, W, std::uint32_t>;
+
+    u32_unroll u32;
+    // Use specific bit patterns
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      std::uint32_t pattern = 0xDEADBEEF + static_cast<std::uint32_t>(i);
+      u32.insert_value(i, pattern);
+    }
+
+    auto f32 = u32.bitCast<float>();
+    auto u32_2 = f32.bitCast<std::uint32_t>();
+
+    // Verify exact bit pattern match
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      expect(eq(u32.extract_value(j), u32_2.extract_value(j)))
+        << "Exact bit pattern not preserved at index " << j;
+    }
+  };
   return 0;
 }

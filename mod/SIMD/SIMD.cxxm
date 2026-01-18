@@ -2081,11 +2081,12 @@ TRIVIAL inline auto load(const std::int16_t *p, mask::Bit<16> i)
 TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<16> i)
   -> Vec<16, std::uint16_t> {
   return __builtin_bit_cast(
-    Vec<16, std::uint16_t>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+    Vec<16, std::uint16_t>,
+    _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
 }
 TRIVIAL inline auto load(const __bf16 *p, mask::Bit<16> i) -> Vec<16, __bf16> {
-  return __builtin_bit_cast(Vec<16, __bf16>,
-                            _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+  return __builtin_bit_cast(
+    Vec<16, __bf16>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
 }
 #endif
 TRIVIAL inline auto load(const float *p, mask::Bit<16> i) -> Vec<16, float> {
@@ -2869,11 +2870,12 @@ TRIVIAL inline auto load(const std::int16_t *p, mask::Bit<32> i)
 TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<32> i)
   -> Vec<32, std::uint16_t> {
   return __builtin_bit_cast(
-    Vec<32, std::uint16_t>, _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+    Vec<32, std::uint16_t>,
+    _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
 }
 TRIVIAL inline auto load(const __bf16 *p, mask::Bit<32> i) -> Vec<32, __bf16> {
-  return __builtin_bit_cast(Vec<32, __bf16>,
-                            _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+  return __builtin_bit_cast(
+    Vec<32, __bf16>, _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
 }
 
 TRIVIAL inline auto load(const std::int8_t *p, mask::Bit<64> i)
@@ -4823,6 +4825,24 @@ struct Unroll {
       else x.data_[i] = __builtin_convertvector(data_[i], Vec<N, U>);
     return x;
   }
+  template <typename CastTo> TRIVIAL constexpr auto bitCast() const noexcept {
+    static_assert(!std::same_as<T, bool>, "Cannot bitCast from bool type");
+    static_assert(!std::same_as<CastTo, bool>, "Cannot bitCast to bool type");
+    static constexpr std::ptrdiff_t NewN = (N * sizeof(T)) / sizeof(CastTo);
+    static_assert((N * sizeof(T)) % sizeof(CastTo) == 0,
+                  "Byte size must be evenly divisible");
+    static_assert(std::popcount(std::size_t(NewN)) == 1,
+                  "NewN must be a power of 2");
+
+    using ResultVT = El<NewN, CastTo>;
+    Unroll<R, C, NewN, CastTo> result;
+
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result.data_[i] = __builtin_bit_cast(ResultVT, data_[i]);
+
+    return result;
+  }
   TRIVIAL constexpr auto operator-() {
     Unroll a;
     POLYMATHFULLUNROLL
@@ -5780,6 +5800,18 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     requires(!std::same_as<T, U>) {
     if constexpr (N == 1) return {U(vec_)};
     else return {__builtin_convertvector(vec_, Vec<N, U>)};
+  }
+  template <typename CastTo> TRIVIAL constexpr auto bitCast() const noexcept {
+    static_assert(!std::same_as<T, bool>, "Cannot bitCast from bool type");
+    static_assert(!std::same_as<CastTo, bool>, "Cannot bitCast to bool type");
+    static constexpr std::ptrdiff_t NewN = (N * sizeof(T)) / sizeof(CastTo);
+    static_assert((N * sizeof(T)) % sizeof(CastTo) == 0,
+                  "Byte size must be evenly divisible");
+    static_assert(std::popcount(std::size_t(NewN)) == 1,
+                  "NewN must be a power of 2");
+
+    using ResultVT = El<NewN, CastTo>;
+    return Unroll<1, 1, NewN, CastTo>{__builtin_bit_cast(ResultVT, vec_)};
   }
   TRIVIAL constexpr auto operator-() { return Unroll{-vec_}; }
   TRIVIAL constexpr auto operator~() { return Unroll{~vec_}; }
