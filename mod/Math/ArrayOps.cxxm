@@ -157,7 +157,6 @@ TRIVIAL constexpr auto promote_shape(const A &a, const B &b) {
   }
 }
 
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename LHS, typename RHS, typename I, typename R, typename Op>
 TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
   // TODO: if `R` is a row index, maybe don't fully unroll static `L`
@@ -239,7 +238,6 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
 #endif
   }
 }
-#endif
 
 template <typename Op, typename LHS, typename RHS>
 TRIVIAL void vcopyTo(LHS A, RHS B, Op op) {
@@ -257,17 +255,10 @@ TRIVIAL void vcopyTo(LHS A, RHS B, Op op) {
       auto d{reinterpret<E>(A)};
       if constexpr (assign) d << reinterpret<E>(B);
       else d << op(d, reinterpret<E>(B));
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
     } else if constexpr (simd::SIMDSupported<T>) {
 #else
-    } else if constexpr (AbstractVector<LHS>) {
-#endif
-#elifndef POLYMATHNOEXPLICITSIMDARRAY
     if constexpr (simd::SIMDSupported<T>) {
-#else
-    if constexpr (AbstractVector<LHS>) {
 #endif
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
       if constexpr (IsOne<decltype(M)>)
         vcopyToSIMD(A, view(B), N, detail::NoRowIndex{}, op);
       else if constexpr (IsOne<decltype(N)>)
@@ -294,7 +285,6 @@ TRIVIAL void vcopyTo(LHS A, RHS B, Op op) {
         }
       }
     } else if constexpr (AbstractVector<LHS>) {
-#endif
       std::ptrdiff_t L = IsOne<decltype(N)> ? M : N;
       constexpr bool isstatic =
         IsOne<decltype(N)> ? StaticInt<decltype(M)> : StaticInt<decltype(N)>;
@@ -409,7 +399,6 @@ concept IsArrayOp =
 } // namespace detail
 
 namespace tupletensorops {
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
 // FIXME:
 // Need to do all loads before all stores!!!
 // This is because we want to support fusing loops where we may be overwriting
@@ -477,7 +466,6 @@ TRIVIAL inline void vcopyToSIMD(Tuple<A, As...> &dref,
     }
   }
 }
-#endif
 
 // template <typename A, typename B>
 // TRIVIAL constexpr auto promote_shape(const Tuple<A> &a,
@@ -507,7 +495,6 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
                                utils::eltype_t<B>, utils::eltype_t<Bs>...>;
   // static_assert(sizeof(T) <= 8);
   auto [M, N] = promote_shape(dst, src);
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
   if constexpr (simd::SIMDSupported<std::remove_cvref_t<T>>) {
     if constexpr (math::IsOne<decltype(M)>)
       vcopyToSIMD(dst, src, N, math::detail::NoRowIndex{});
@@ -538,9 +525,6 @@ TRIVIAL constexpr void vcopyTo(Tuple<A, As...> &dst,
       }
     }
   } else if constexpr (math::AbstractVector<A>) {
-#else
-  if constexpr (math::AbstractVector<A>) {
-#endif
     std::ptrdiff_t L = math::IsOne<decltype(N)> ? M : N;
     if constexpr (!std::is_copy_assignable_v<T>) {
       POLYMATHIVDEP

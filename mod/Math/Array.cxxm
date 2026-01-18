@@ -1010,7 +1010,6 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
   std::ptrdiff_t src_size = std::ptrdiff_t(src.size());
   std::ptrdiff_t dst_idx = 0;
 
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
   // Use SIMD when possible
   if constexpr (simd::SIMDSupported<T>) {
     constexpr std::ptrdiff_t W = simd::Width<T>;
@@ -1094,7 +1093,6 @@ compressStore(CompressView<T, S, MaskType, Compress> &dst, const Expr &src)
     }
     return;
   }
-#endif
 
   // Fallback to scalar processing
   for (std::ptrdiff_t src_pos = 0; src_pos < src_size && dst_idx < dst.size();

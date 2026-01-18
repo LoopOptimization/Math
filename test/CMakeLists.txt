@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 # ---- Options ----
 
 option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
-option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 option(USE_TYPE_SANITIZER "Use type sanitizer" OFF)
 option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 
@@ -148,10 +147,6 @@ foreach(test_source ${test_sources})
   if((${test_name} MATCHES simdgcd) OR (${test_name} MATCHES expmat_test))
     # some tests compile and/or run markedly faster with some optimizations
     target_compile_options(${test_name} PRIVATE -Og)
-  endif()
-
-  if(POLYMATHNOEXPLICITSIMDARRAY)
-    target_compile_definitions(${test_name} PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
   endif()
 
   target_compile_options(${test_name} PUBLIC -Wall -Wpedantic -Wextra -Wshadow

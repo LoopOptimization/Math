@@ -846,7 +846,6 @@ TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op)
     if (bitset.data_.size() < num_words) bitset.data_.resize(num_words);
   }
 
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
   // Use SIMD when expression supports vectorized evaluation
   using T_eval = decltype(expr[std::ptrdiff_t{}]);
   if constexpr (simd::SIMDSupported<T_eval>) {
@@ -899,7 +898,6 @@ TRIVIAL constexpr void vopToBitSet(BitSet<T> &bitset, const Expr &expr, Op op)
     }
     return;
   }
-#endif
 
   // Fallback to scalar processing
   for (std::ptrdiff_t word_idx = 0; word_idx < num_words; ++word_idx) {

@@ -744,5 +744,161 @@ auto main() -> int {
         << "Exact bit pattern not preserved at index " << j;
     }
   };
+
+  "MaskUnrollIntmask_1x1"_test = [] -> void {
+    // Test 1x1 mask::Unroll intmask
+    static constexpr auto W = simd::Width<double>;
+#ifdef __AVX512VL__
+    using mask_type = simd::mask::Unroll<1, 1, W>;
+    using underlying_mask = simd::mask::Bit<W>;
+#else
+    using mask_type = simd::mask::Unroll<1, 1, W, sizeof(double)>;
+    using underlying_mask = simd::mask::Vector<W, sizeof(double)>;
+#endif
+
+    if constexpr (W > 1) {
+      // Create a mask with specific pattern
+#ifdef __AVX512VL__
+      underlying_mask m{0b1010}; // alternating bits (if W >= 4)
+#else
+      // For Vector masks, use a vector of signed integers
+      simd::Vec<W, std::int64_t> mvec{};
+      mvec[1] = -1; // set bit 1
+      mvec[3] = -1; // set bit 3 (if W >= 4)
+      underlying_mask m{mvec};
+#endif
+      mask_type um{m};
+
+      auto imask = um.intmask();
+      if constexpr (W >= 4) {
+        expect(eq(imask & 0b1111, std::int64_t(0b1010)))
+          << "1x1 intmask should match underlying mask";
+      } else {
+        expect(eq(imask & ((1 << W) - 1), std::int64_t(0b1010) & ((1 << W) - 1)))
+          << "1x1 intmask should match underlying mask";
+      }
+    }
+  };
+
+  "MaskUnrollIntmask_General"_test = [] -> void {
+    // Test general mask::Unroll intmask for small configurations
+    // Use float width (typically 4 on SSE/AVX2, 16 on AVX512)
+    static constexpr auto W = simd::Width<float>;
+#ifdef __AVX512VL__
+    using mask_1x2 = simd::mask::Unroll<1, 2, W>; // 1 row, 2 cols
+    using mask_2x1 = simd::mask::Unroll<2, 1, W>; // 2 rows, 1 col
+    using elem_mask = simd::mask::Bit<W>;
+#else
+    using mask_1x2 = simd::mask::Unroll<1, 2, W, sizeof(float)>;
+    using mask_2x1 = simd::mask::Unroll<2, 1, W, sizeof(float)>;
+    using elem_mask = simd::mask::Vector<W, sizeof(float)>;
+#endif
+
+    // Only test if the total size fits in 64 bits
+    if constexpr (2 * W <= 64) {
+      // Test 1x2 configuration
+      {
+        mask_1x2 m;
+#ifdef __AVX512VL__
+        // Set alternating pattern in each element
+        m[0] = elem_mask{(1ULL << (W/2)) - 1}; // lower half bits set
+        m[1] = elem_mask{((1ULL << W) - 1) ^ ((1ULL << (W/2)) - 1)}; // upper half bits set
+#else
+        simd::Vec<W, float> v0{}, v1{};
+        for (std::ptrdiff_t i = 0; i < W/2; ++i) v0[i] = __builtin_bit_cast(float, -1);
+        for (std::ptrdiff_t i = W/2; i < W; ++i) v1[i] = __builtin_bit_cast(float, -1);
+        m[0] = elem_mask{__builtin_bit_cast(simd::Vec<W, std::int32_t>, v0)};
+        m[1] = elem_mask{__builtin_bit_cast(simd::Vec<W, std::int32_t>, v1)};
+#endif
+
+        auto imask = m.intmask();
+        std::int64_t expected = ((1LL << (W/2)) - 1) | (((1LL << (W/2)) - 1) << (W + W/2));
+        expect(eq(imask, expected))
+          << "1x2 intmask should pack both elements";
+      }
+
+      // Test 2x1 configuration
+      {
+        mask_2x1 m;
+#ifdef __AVX512VL__
+        m[0] = elem_mask{(1ULL << W) - 1}; // all bits set
+        m[1] = elem_mask{0};                // no bits set
+#else
+        simd::Vec<W, std::int32_t> v0{}, v1{};
+        for (std::ptrdiff_t i = 0; i < W; ++i) v0[i] = -1;
+        m[0] = elem_mask{v0};
+        m[1] = elem_mask{v1};
+#endif
+
+        auto imask = m.intmask();
+        std::int64_t expected = (1LL << W) - 1;
+        expect(eq(imask, expected))
+          << "2x1 intmask should pack both elements";
+      }
+    }
+  };
+
+  "MaskUnrollIntmask_EdgeCases"_test = [] -> void {
+    // Test edge cases for intmask using native SIMD width
+    static constexpr auto W = simd::Width<double>;
+#ifdef __AVX512VL__
+    using mask_1x1 = simd::mask::Unroll<1, 1, W>;
+    using mask_1x2 = simd::mask::Unroll<1, 2, W>;
+    using elem_mask = simd::mask::Bit<W>;
+#else
+    using mask_1x1 = simd::mask::Unroll<1, 1, W, sizeof(double)>;
+    using mask_1x2 = simd::mask::Unroll<1, 2, W, sizeof(double)>;
+    using elem_mask = simd::mask::Vector<W, sizeof(double)>;
+#endif
+
+    // Test all zeros
+    {
+#ifdef __AVX512VL__
+      mask_1x1 m{elem_mask{0}};
+#else
+      simd::Vec<W, std::int64_t> v{};
+      mask_1x1 m{elem_mask{v}};
+#endif
+      expect(eq(m.intmask(), std::int64_t(0))) << "All zeros should give 0";
+    }
+
+    // Test all ones
+    {
+#ifdef __AVX512VL__
+      mask_1x1 m{elem_mask{(1ULL << W) - 1}};
+#else
+      simd::Vec<W, std::int64_t> v{};
+      for (std::ptrdiff_t i = 0; i < W; ++i) v[i] = -1;
+      mask_1x1 m{elem_mask{v}};
+#endif
+      expect(eq(m.intmask(), std::int64_t((1LL << W) - 1)))
+        << "All ones should match expected pattern";
+    }
+
+    // Test 1x2 with alternating pattern (only if total fits in 64 bits)
+    if constexpr (2 * W <= 64) {
+      mask_1x2 m;
+#ifdef __AVX512VL__
+      m[0] = elem_mask{0b10 % (1ULL << W)}; // bit pattern based on W
+      m[1] = elem_mask{0b01 % (1ULL << W)};
+#else
+      simd::Vec<W, std::int64_t> v0{}, v1{};
+      if constexpr (W >= 2) {
+        v0[1] = -1; // set bit 1
+        v1[0] = -1; // set bit 0
+      }
+      m[0] = elem_mask{v0};
+      m[1] = elem_mask{v1};
+#endif
+
+      auto imask = m.intmask();
+      if constexpr (W >= 2) {
+        std::int64_t expected = (1LL << 1) | (1LL << W);
+        expect(eq(imask, expected))
+          << "1x2 intmask pattern mismatch";
+      }
+    }
+  };
+
   return 0;
 }

@@ -25,7 +25,7 @@ build-gcc/no-san/:
 	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/no-san/ -DCMAKE_BUILD_TYPE=Debug
 
 build-gcc/san/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined' -DPOLYMATHNOEXPLICITSIMDARRAY=ON
+	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 
 build-clang/no-san/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san/ -DCMAKE_BUILD_TYPE=Debug
@@ -52,7 +52,7 @@ build-clang/avx512/:
 	CXXFLAGS="-march=x86-64-v4 -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx512/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
 build-clang/no-simd/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug -DPOLYMATHNOEXPLICITSIMDARRAY=ON
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug
 
 build-clang/bench/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release

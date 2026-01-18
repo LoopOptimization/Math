@@ -167,7 +167,6 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
     return {val_ - other.val_, partials_ - other.partials_};
   }
   TRIVIAL constexpr auto operator*(const Dual &other) const -> Dual {
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
     if constexpr (std::same_as<T, double> && (N > 1)) {
       Dual ret(val_ * other.val_);
       using V = typename data_type::V;
@@ -184,7 +183,6 @@ template <class T, std::ptrdiff_t N> struct Dual<T, N, false> {
       }
       return ret;
     } else
-#endif
       return {val_ * other.val_,
               (val_ * other.partials_) + (other.val_ * partials_)};
   }
