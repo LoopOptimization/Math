@@ -774,7 +774,8 @@ auto main() -> int {
         expect(eq(imask & 0b1111, std::int64_t(0b1010)))
           << "1x1 intmask should match underlying mask";
       } else {
-        expect(eq(imask & ((1 << W) - 1), std::int64_t(0b1010) & ((1 << W) - 1)))
+        expect(
+          eq(imask & ((1 << W) - 1), std::int64_t(0b1010) & ((1 << W) - 1)))
           << "1x1 intmask should match underlying mask";
       }
     }
@@ -801,20 +802,23 @@ auto main() -> int {
         mask_1x2 m;
 #ifdef __AVX512VL__
         // Set alternating pattern in each element
-        m[0] = elem_mask{(1ULL << (W/2)) - 1}; // lower half bits set
-        m[1] = elem_mask{((1ULL << W) - 1) ^ ((1ULL << (W/2)) - 1)}; // upper half bits set
+        m[0] = elem_mask{(1ULL << (W / 2)) - 1}; // lower half bits set
+        m[1] = elem_mask{((1ULL << W) - 1) ^
+                         ((1ULL << (W / 2)) - 1)}; // upper half bits set
 #else
         simd::Vec<W, float> v0{}, v1{};
-        for (std::ptrdiff_t i = 0; i < W/2; ++i) v0[i] = __builtin_bit_cast(float, -1);
-        for (std::ptrdiff_t i = W/2; i < W; ++i) v1[i] = __builtin_bit_cast(float, -1);
+        for (std::ptrdiff_t i = 0; i < W / 2; ++i)
+          v0[i] = __builtin_bit_cast(float, -1);
+        for (std::ptrdiff_t i = W / 2; i < W; ++i)
+          v1[i] = __builtin_bit_cast(float, -1);
         m[0] = elem_mask{__builtin_bit_cast(simd::Vec<W, std::int32_t>, v0)};
         m[1] = elem_mask{__builtin_bit_cast(simd::Vec<W, std::int32_t>, v1)};
 #endif
 
         auto imask = m.intmask();
-        std::int64_t expected = ((1LL << (W/2)) - 1) | (((1LL << (W/2)) - 1) << (W + W/2));
-        expect(eq(imask, expected))
-          << "1x2 intmask should pack both elements";
+        std::int64_t expected =
+          ((1LL << (W / 2)) - 1) | (((1LL << (W / 2)) - 1) << (W + W / 2));
+        expect(eq(imask, expected)) << "1x2 intmask should pack both elements";
       }
 
       // Test 2x1 configuration
@@ -822,7 +826,7 @@ auto main() -> int {
         mask_2x1 m;
 #ifdef __AVX512VL__
         m[0] = elem_mask{(1ULL << W) - 1}; // all bits set
-        m[1] = elem_mask{0};                // no bits set
+        m[1] = elem_mask{0};               // no bits set
 #else
         simd::Vec<W, std::int32_t> v0{}, v1{};
         for (std::ptrdiff_t i = 0; i < W; ++i) v0[i] = -1;
@@ -832,8 +836,7 @@ auto main() -> int {
 
         auto imask = m.intmask();
         std::int64_t expected = (1LL << W) - 1;
-        expect(eq(imask, expected))
-          << "2x1 intmask should pack both elements";
+        expect(eq(imask, expected)) << "2x1 intmask should pack both elements";
       }
     }
   };
@@ -894,8 +897,7 @@ auto main() -> int {
       auto imask = m.intmask();
       if constexpr (W >= 2) {
         std::int64_t expected = (1LL << 1) | (1LL << W);
-        expect(eq(imask, expected))
-          << "1x2 intmask pattern mismatch";
+        expect(eq(imask, expected)) << "1x2 intmask pattern mismatch";
       }
     }
   };

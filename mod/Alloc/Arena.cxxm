@@ -26,6 +26,7 @@ export module Arena;
 import Allocator;
 import BaseUtils;
 import std;
+import Tuple;
 import Valid;
 
 #if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
@@ -146,6 +147,62 @@ public:
     static_assert(std::is_trivially_destructible_v<T>,
                   "Arena only supports trivially destructible types.");
     return static_cast<T *>(allocate(N * sizeof(T)));
+  }
+  /// allocate_at_least<T>(N)
+  /// Allocates memory for at least N objects of type T
+  /// Returns pair of {pointer, actual_count} where actual_count >= N
+  /// due to alignment requirements.
+  /// Example: With AVX512F (64-byte align), allocate_at_least<int>(1)
+  ///          returns {ptr, 16} since 64 bytes / 4 bytes per int = 16 ints
+  template <typename T>
+  [[gnu::flatten]] constexpr auto allocate_at_least(std::ptrdiff_t N = 1)
+    -> containers::Pair<T *, std::ptrdiff_t> {
+    static_assert(std::is_trivially_destructible_v<T>,
+                  "Arena only supports trivially destructible types.");
+    // Calculate bytes needed
+    std::size_t bytes_requested = N * sizeof(T);
+    // Align up to Arena's Alignment
+    std::size_t aligned_bytes = __builtin_align_up(bytes_requested, Alignment);
+    // Allocate the memory
+    T *ptr = static_cast<T *>(allocate(aligned_bytes));
+    // Calculate actual count that fits in aligned allocation
+    std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+    return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
+  }
+  /// allocate_at_least<T, Align>(N)
+  /// Allocates memory for at least N objects of type T with custom alignment
+  /// Returns pair of {pointer, actual_count} where actual_count >= N
+  template <typename T, std::size_t Align>
+  [[gnu::flatten]] constexpr auto allocate_at_least(std::ptrdiff_t N = 1)
+    -> containers::Pair<T *, std::ptrdiff_t> {
+    static_assert(std::is_trivially_destructible_v<T>,
+                  "Arena only supports trivially destructible types.");
+    static_assert(std::popcount(Align) == 1, "Alignment must be a power of 2");
+
+    std::size_t bytes_requested = N * sizeof(T);
+
+    if constexpr (Align > Alignment) {
+      // Need extra space for custom alignment
+      std::size_t space = bytes_requested + Align - Alignment;
+      void *p = allocate(space);
+      void *aligned_p = std::assume_aligned<Align>(
+        std::align(Align, bytes_requested, p, space));
+
+      // Calculate actual usable space after alignment
+      // space variable is updated by std::align to remaining space
+      std::size_t aligned_bytes = __builtin_align_down(space, sizeof(T));
+      std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+
+      return containers::Pair<T *, std::ptrdiff_t>(static_cast<T *>(aligned_p),
+                                                   actual_count);
+    } else {
+      // Use default alignment path
+      std::size_t aligned_bytes =
+        __builtin_align_up(bytes_requested, Alignment);
+      T *ptr = static_cast<T *>(allocate<Align>(aligned_bytes));
+      std::ptrdiff_t actual_count = aligned_bytes / sizeof(T);
+      return containers::Pair<T *, std::ptrdiff_t>(ptr, actual_count);
+    }
   }
   /// create<T>(args...)
   /// constructs object of type `T` with args `args`
