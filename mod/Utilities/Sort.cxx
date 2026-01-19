@@ -71,9 +71,9 @@ template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
 
 // Apply stored mask to perform minmax swap
 template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
-[[gnu::always_inline]] constexpr void
-apply_mask(simd::Unroll<1, N, W, T> &x, simd::Unroll<1, N, W, T> &y,
-           std::uint64_t bits) {
+[[gnu::always_inline]] constexpr void apply_mask(simd::Unroll<1, N, W, T> &x,
+                                                 simd::Unroll<1, N, W, T> &y,
+                                                 std::uint64_t bits) {
   auto m = mask_from_int<N, W, T>(bits);
   simd::Unroll<1, N, W, T> z = m.select(y, x);
   x = m.select(x, y);
@@ -616,13 +616,17 @@ template auto sortperm_make<double, 32>(math::SVector<double, 32>)
 template auto sortperm_make<float, 32>(math::SVector<float, 32>)
   -> std::pair<SortPerm<float, 32>, math::SVector<float, 32>>;
 
-template auto sortperm_apply<double, 16>(const SortPerm<double, 16> &, math::SVector<double, 16>)
+template auto sortperm_apply<double, 16>(const SortPerm<double, 16> &,
+                                         math::SVector<double, 16>)
   -> math::SVector<double, 16>;
-template auto sortperm_apply<float, 16>(const SortPerm<float, 16> &, math::SVector<float, 16>)
+template auto sortperm_apply<float, 16>(const SortPerm<float, 16> &,
+                                        math::SVector<float, 16>)
   -> math::SVector<float, 16>;
-template auto sortperm_apply<double, 32>(const SortPerm<double, 32> &, math::SVector<double, 32>)
+template auto sortperm_apply<double, 32>(const SortPerm<double, 32> &,
+                                         math::SVector<double, 32>)
   -> math::SVector<double, 32>;
-template auto sortperm_apply<float, 32>(const SortPerm<float, 32> &, math::SVector<float, 32>)
+template auto sortperm_apply<float, 32>(const SortPerm<float, 32> &,
+                                        math::SVector<float, 32>)
   -> math::SVector<float, 32>;
 
 } // namespace detail

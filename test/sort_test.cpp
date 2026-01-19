@@ -88,9 +88,11 @@ auto main() -> int {
 
       std::array<std::pair<double, double>, 16> pairs;
       for (int j = 0; j < 16; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs, [](auto &a, auto &b) { return a.first < b.first; });
+      std::ranges::sort(pairs,
+                        [](auto &a, auto &b) { return a.first < b.first; });
 
-      for (int j = 0; j < 16; ++j) expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 16; ++j)
+        expect(permuted_values[j] == pairs[j].second);
     }
   };
 
@@ -121,9 +123,11 @@ auto main() -> int {
 
       std::array<std::pair<float, float>, 16> pairs;
       for (int j = 0; j < 16; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs, [](auto &a, auto &b) { return a.first < b.first; });
+      std::ranges::sort(pairs,
+                        [](auto &a, auto &b) { return a.first < b.first; });
 
-      for (int j = 0; j < 16; ++j) expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 16; ++j)
+        expect(permuted_values[j] == pairs[j].second);
     }
   };
 
@@ -154,9 +158,11 @@ auto main() -> int {
 
       std::array<std::pair<double, double>, 32> pairs;
       for (int j = 0; j < 32; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs, [](auto &a, auto &b) { return a.first < b.first; });
+      std::ranges::sort(pairs,
+                        [](auto &a, auto &b) { return a.first < b.first; });
 
-      for (int j = 0; j < 32; ++j) expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 32; ++j)
+        expect(permuted_values[j] == pairs[j].second);
     }
   };
 
@@ -187,9 +193,11 @@ auto main() -> int {
 
       std::array<std::pair<float, float>, 32> pairs;
       for (int j = 0; j < 32; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs, [](auto &a, auto &b) { return a.first < b.first; });
+      std::ranges::sort(pairs,
+                        [](auto &a, auto &b) { return a.first < b.first; });
 
-      for (int j = 0; j < 32; ++j) expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 32; ++j)
+        expect(permuted_values[j] == pairs[j].second);
     }
   };
 
