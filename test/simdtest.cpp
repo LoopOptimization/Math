@@ -874,7 +874,7 @@ auto main() -> int {
 
     // Test 1x2 with alternating pattern (only if total fits in 64 bits)
     if constexpr (2 * W <= 64) {
-      mask_1x2 m;
+      mask_1x2 m{};
 #ifdef __AVX512VL__
       m[0] = elem_mask{0b10};
       m[1] = elem_mask{0b01};
