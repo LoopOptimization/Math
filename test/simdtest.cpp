@@ -154,6 +154,15 @@ void testMaskSelectWithCast() {
   }
 #endif
 }
+
+template <std::ptrdiff_t L, typename S, typename D> void castTest() {
+  simd::SVec<S, L> a{simd::SVec<S, L>::range(0)};
+  a *= a + a;
+  simd::SVec<D, L> b = a;
+  for (std::ptrdiff_t i = 0; i < L; ++i)
+    expect(eq(static_cast<D>(a.extract_value(i)), b.extract_value(i)));
+}
+
 } // namespace
 
 auto main() -> int {
@@ -232,16 +241,24 @@ auto main() -> int {
 
     expect(__builtin_reduce_and(u.catToSIMD() == v));
   };
+  "CastSize"_test = [] -> void {
+    static constexpr auto W64 = simd::Width<std::uint64_t>;
+    castTest<W64, std::uint32_t, std::uint64_t>();
+    castTest<2 * W64, std::uint32_t, std::uint64_t>();
+    castTest<4 * W64, std::uint32_t, std::uint64_t>();
+    castTest<W64, std::uint64_t, std::uint32_t>();
+    castTest<2 * W64, std::uint64_t, std::uint32_t>();
+    castTest<4 * W64, std::uint64_t, std::uint32_t>();
+  };
+
   "SelectWiderType"_test = [] -> void {
     // Test select between wider types using mask from narrower types
     // Create float vectors for comparison
     static constexpr auto Wf = simd::Width<float>;
-    using f32 = simd::SVec<float>;
+    using f32 = simd::SVec<float, Wf>;
     f32 x{f32::range(0.F)}, y{f32::vbroadcast(Wf / 2)};
 
-    // Create wider type vectors (uint64_t has same width as float in terms of
-    // SIMD count)
-    using u64 = simd::SVec<float>;
+    using u64 = simd::SVec<std::uint64_t, Wf>;
     u64 a{u64::range(100)}, b{u64::range(200)};
 
     // Select based on float comparison: where x > y, take a, else take b
@@ -836,6 +853,352 @@ auto main() -> int {
         expect(eq(imask, expected)) << "2x1 intmask should pack both elements";
       }
     }
+  };
+
+  "CompressStoreBasicFloat"_test = [] -> void {
+    // Test compressstore with float type
+    static constexpr auto W = simd::Width<float>;
+    alignas(64) float output[W];
+    alignas(64) float expected[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = -1.0F;
+
+    // Create input vector: [0.0, 1.0, 2.0, 3.0, ...]
+    simd::Vec<W, float> input = simd::range<W, float>();
+
+    // Create mask with alternating pattern: keep elements at odd indices
+    // Pattern: 0b1010... (keep indices 1, 3, 5, ...)
+    std::uint64_t mask_val = 0;
+    std::ptrdiff_t expected_count = 0;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      if (i % 2 == 1) {
+        mask_val |= (1ULL << i);
+        expected[expected_count++] = static_cast<float>(i);
+      }
+    }
+
+    simd::compressstore(output, mask_val, input);
+
+    // Verify compressed output
+    for (std::ptrdiff_t i = 0; i < expected_count; ++i) {
+      expect(eq(output[i], expected[i]))
+        << "CompressStore float failed at index " << i << ": expected "
+        << expected[i] << ", got " << output[i];
+    }
+  };
+
+  "CompressStoreBasicDouble"_test = [] -> void {
+    // Test compressstore with double type
+    static constexpr auto W = simd::Width<double>;
+    alignas(64) double output[W];
+    alignas(64) double expected[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = -1.0;
+
+    // Create input vector: [0.0, 1.0, 2.0, ...]
+    simd::Vec<W, double> input = simd::range<W, double>();
+
+    // Create mask keeping first and last elements
+    std::uint64_t mask_val = 1ULL | (1ULL << (W - 1));
+    std::ptrdiff_t expected_count = 0;
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      if (mask_val & (1ULL << i))
+        expected[expected_count++] = static_cast<double>(i);
+
+    simd::compressstore(output, mask_val, input);
+
+    // Verify compressed output
+    for (std::ptrdiff_t i = 0; i < expected_count; ++i) {
+      expect(eq(output[i], expected[i]))
+        << "CompressStore double failed at index " << i << ": expected "
+        << expected[i] << ", got " << output[i];
+    }
+  };
+
+  "CompressStoreBasicInt32"_test = [] -> void {
+    // Test compressstore with int32_t type
+    static constexpr auto W = simd::Width<std::int32_t>;
+    alignas(64) std::int32_t output[W];
+    alignas(64) std::int32_t expected[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = -1;
+
+    // Create input vector: [100, 101, 102, ...]
+    simd::Vec<W, std::int32_t> input = simd::range<W, std::int32_t>() + 100;
+
+    // Create mask keeping every third element
+    std::uint64_t mask_val = 0;
+    std::ptrdiff_t expected_count = 0;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      if (i % 3 == 0) {
+        mask_val |= (1ULL << i);
+        expected[expected_count++] = static_cast<std::int32_t>(100 + i);
+      }
+    }
+
+    simd::compressstore(output, mask_val, input);
+
+    // Verify compressed output
+    for (std::ptrdiff_t i = 0; i < expected_count; ++i) {
+      expect(eq(output[i], expected[i]))
+        << "CompressStore int32 failed at index " << i << ": expected "
+        << expected[i] << ", got " << output[i];
+    }
+  };
+
+  "CompressStoreBasicInt64"_test = [] -> void {
+    // Test compressstore with int64_t type
+    static constexpr auto W = simd::Width<std::int64_t>;
+    alignas(64) std::int64_t output[W];
+    alignas(64) std::int64_t expected[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = -1;
+
+    // Create input vector: [1000, 1001, 1002, ...]
+    simd::Vec<W, std::int64_t> input = simd::range<W, std::int64_t>() + 1000;
+
+    // Create mask keeping all except the second element
+    std::uint64_t mask_val = ((1ULL << W) - 1) & ~(1ULL << 1);
+    std::ptrdiff_t expected_count = 0;
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      if (mask_val & (1ULL << i)) expected[expected_count++] = 1000 + i;
+
+    simd::compressstore(output, mask_val, input);
+
+    // Verify compressed output
+    for (std::ptrdiff_t i = 0; i < expected_count; ++i) {
+      expect(eq(output[i], expected[i]))
+        << "CompressStore int64 failed at index " << i << ": expected "
+        << expected[i] << ", got " << output[i];
+    }
+  };
+
+  "CompressStoreAllMasked"_test = [] -> void {
+    // Test compressstore when all elements are masked (kept)
+    static constexpr auto W = simd::Width<float>;
+    alignas(64) float output[W];
+
+    simd::Vec<W, float> input = simd::range<W, float>();
+    std::uint64_t mask_val = (1ULL << W) - 1; // All bits set
+    simd::compressstore(output, mask_val, input);
+
+    // All elements should be present in order
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(eq(output[i], static_cast<float>(i)))
+        << "CompressStore all-masked failed at index " << i;
+    }
+  };
+
+  "CompressStoreNoneMasked"_test = [] -> void {
+    // Test compressstore when no elements are masked
+    static constexpr auto W = simd::Width<float>;
+    alignas(64) float output[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = 999.0F;
+
+    simd::Vec<W, float> input = simd::range<W, float>();
+    simd::compressstore(output, 0ULL, input); // No bits set
+
+    // All elements should remain sentinel values (nothing written)
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(eq(output[i], 999.0F))
+        << "CompressStore none-masked modified index " << i;
+    }
+  };
+
+  "CompressStoreSingleElement"_test = [] -> void {
+    // Test compressstore with only one element masked
+    static constexpr auto W = simd::Width<double>;
+    alignas(64) double output[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = -1.0;
+
+    simd::Vec<W, double> input = simd::range<W, double>() + 42.0;
+
+    // Keep only the middle element
+    std::ptrdiff_t mid = W / 2;
+    simd::compressstore(output, 1ULL << mid, input);
+
+    // Only first output position should have the middle element
+    expect(eq(output[0], 42.0 + static_cast<double>(mid)))
+      << "CompressStore single element failed";
+  };
+
+#ifndef __AVX512VL__
+  "CompressStoreMaskVector"_test = [] -> void {
+    // Test compressstore with mask::Vector type (non-AVX512VL path only)
+    static constexpr auto W = simd::Width<float>;
+    alignas(64) float output[W];
+    alignas(64) float expected[W];
+
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < W; ++i) output[i] = -1.0F;
+
+    // Create input vector: [10.0, 11.0, 12.0, ...]
+    simd::Vec<W, float> input = simd::range<W, float>() + 10.0F;
+
+    // Create mask::Vector keeping elements at even indices
+    simd::Vec<W, std::int32_t> mask_vec{};
+    std::ptrdiff_t expected_count = 0;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      if (i % 2 == 0) {
+        mask_vec[i] = -1; // All bits set means true
+        expected[expected_count++] = static_cast<float>(10 + i);
+      }
+    }
+
+    simd::mask::Vector<W, sizeof(float)> mask{mask_vec};
+    simd::compressstore(output, mask, input);
+
+    // Verify compressed output
+    for (std::ptrdiff_t i = 0; i < expected_count; ++i) {
+      expect(eq(output[i], expected[i]))
+        << "CompressStore mask::Vector failed at index " << i << ": expected "
+        << expected[i] << ", got " << output[i];
+    }
+  };
+#endif
+
+  "CompressStoreUnrollWithComparison"_test = [] -> void {
+    // Test compressstore with Unroll and mask from comparison
+    // Example: compressstore(ptr, x > 0, x); // store all positive x
+    static constexpr auto W = simd::Width<float>;
+    static constexpr std::ptrdiff_t C = 2;
+    using UnrollType = simd::Unroll<1, C, W, float>;
+
+    alignas(64) float output[C * W];
+    // Initialize output to sentinel values
+    for (std::ptrdiff_t i = 0; i < C * W; ++i) output[i] = -999.0F;
+
+    // Create input with mixed positive and negative values
+    UnrollType x;
+    for (std::ptrdiff_t c = 0; c < C; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        // Alternating positive/negative pattern shifted by column
+        float val = static_cast<float>((c * W + i) - W);
+        x[c][i] = val;
+      }
+
+    // Create mask from comparison: x > 0
+    auto mask = x > 0.0F;
+
+    // Compress store - keeps only positive values
+    std::ptrdiff_t written = simd::compressstore(output, mask, x);
+
+    // Count expected positives and verify
+    std::ptrdiff_t expected_count = 0;
+    for (std::ptrdiff_t c = 0; c < C; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        if (x[c][i] > 0.0F) ++expected_count;
+
+    expect(eq(written, expected_count))
+      << "CompressStore Unroll wrote wrong count: expected " << expected_count
+      << ", got " << written;
+
+    // Verify all written values are positive
+    for (std::ptrdiff_t i = 0; i < written; ++i) {
+      expect(output[i] > 0.0F)
+        << "CompressStore Unroll wrote non-positive at index " << i << ": "
+        << output[i];
+    }
+  };
+
+  "CompressStoreUnrollAllPositive"_test = [] -> void {
+    // Test compressstore when all elements pass the mask
+    static constexpr auto W = simd::Width<double>;
+    using UnrollType = simd::Unroll<1, 2, W, double>;
+
+    alignas(64) double output[2 * W];
+
+    // Create input with all positive values
+    UnrollType x;
+    for (std::ptrdiff_t c = 0; c < 2; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        x[c][i] = static_cast<double>(c * W + i + 1);
+
+    auto mask = x > 0.0;
+    std::ptrdiff_t written = simd::compressstore(output, mask, x);
+
+    expect(eq(written, std::ptrdiff_t(2 * W)))
+      << "All positive should write all elements";
+
+    // Verify values are in order
+    for (std::ptrdiff_t i = 0; i < 2 * W; ++i) {
+      expect(eq(output[i], static_cast<double>(i + 1)))
+        << "Value mismatch at index " << i;
+    }
+  };
+
+  "CompressStoreUnrollNonePass"_test = [] -> void {
+    // Test compressstore when no elements pass the mask
+    static constexpr auto W = simd::Width<float>;
+    using UnrollType = simd::Unroll<1, 2, W, float>;
+
+    alignas(64) float output[2 * W];
+    for (std::ptrdiff_t i = 0; i < 2 * W; ++i) output[i] = 999.0F;
+
+    // Create input with all negative values
+    UnrollType x;
+    for (std::ptrdiff_t c = 0; c < 2; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        x[c][i] = -static_cast<float>(c * W + i + 1);
+
+    auto mask = x > 0.0F;
+    std::ptrdiff_t written = simd::compressstore(output, mask, x);
+
+    expect(eq(written, std::ptrdiff_t(0))) << "No positive should write 0";
+
+    // Verify sentinel values unchanged
+    for (std::ptrdiff_t i = 0; i < 2 * W; ++i)
+      expect(eq(output[i], 999.0F)) << "Sentinel modified at index " << i;
+  };
+
+  "CompressStoreUnrollWithArrayMask"_test = [] -> void {
+    // Test compressstore with explicit array of uint64_t masks
+    static constexpr auto W = simd::Width<std::int32_t>;
+    static constexpr std::ptrdiff_t C = 3;
+    using UnrollType = simd::Unroll<1, C, W, std::int32_t>;
+
+    alignas(64) std::int32_t output[C * W];
+    for (std::ptrdiff_t i = 0; i < C * W; ++i) output[i] = -1;
+
+    // Create input: [0, 1, 2, ...] for each column
+    UnrollType x;
+    for (std::ptrdiff_t c = 0; c < C; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        x[c][i] = static_cast<std::int32_t>(c * W + i);
+
+    // Create masks: keep only odd indices in each vector
+    std::array<std::uint64_t, C> masks{};
+    for (std::ptrdiff_t c = 0; c < C; ++c) {
+      masks[c] = 0;
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        if (i % 2 == 1) masks[c] |= (1ULL << i);
+    }
+
+    std::ptrdiff_t written = simd::compressstore(output, masks, x);
+
+    // Each vector keeps W/2 elements (odd indices)
+    std::ptrdiff_t expected = C * (W / 2);
+    expect(eq(written, expected)) << "Array mask wrote wrong count: expected "
+                                  << expected << ", got " << written;
+
+    // Verify values are odd indices
+    std::ptrdiff_t idx = 0;
+    for (std::ptrdiff_t c = 0; c < C; ++c)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        if (i % 2 == 1) {
+          std::int32_t expected_val = static_cast<std::int32_t>(c * W + i);
+          expect(eq(output[idx], expected_val))
+            << "Mismatch at output index " << idx;
+          ++idx;
+        }
   };
 
   "MaskUnrollIntmask_EdgeCases"_test = [] -> void {

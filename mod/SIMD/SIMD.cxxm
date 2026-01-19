@@ -4328,14 +4328,30 @@ TRIVIAL inline auto expandload(const T *p, mask::Bit<2> m) -> Vec<2, T> {
   } else static_assert("type not supported");
 }
 
+// Generic compressstore/expandload taking std::uint64_t mask for AVX512
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
+  compressstore(p, mask::Bit<W>{mask}, x);
+}
+
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
+  return expandload(p, mask::Bit<W>{mask});
+}
+
 #else // if __AVX512F__; else;
-// Generic compress store/load for non-AVX512 or different widths
+// Generic compress store/load for non-AVX512 x86_64
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
   std::ptrdiff_t idx = 0;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) p[idx++] = x[w];
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline void compressstore(T *p, mask::Vector<W, Bytes> m, Vec<W, T> x) {
+  compressstore(p, std::uint64_t(m.intmask()), x);
 }
 
 template <typename T, std::ptrdiff_t W>
@@ -4346,6 +4362,12 @@ TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) ret[w] = p[idx++];
   return ret;
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto expandload(const T *p, mask::Vector<W, Bytes> m)
+  -> Vec<W, T> {
+  return expandload<T, W>(p, std::uint64_t(m.intmask()));
 }
 
 // Generic fallback implementations for x86_64 without AVX512F
@@ -4380,13 +4402,21 @@ TRIVIAL inline auto load(const T *p, mask::None<W>, std::int32_t stride)
 
 #else // not __x86_64__
 
-// Generic compress store/load for non-AVX512 or different widths
+// Generic compress store/load for non-x86_64
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
   std::ptrdiff_t idx = 0;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) p[idx++] = x[w];
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline void compressstore(T *p, mask::Vector<W, Bytes> m, Vec<W, T> x) {
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (m.m[w]) p[idx++] = x[w];
 }
 
 template <typename T, std::ptrdiff_t W>
@@ -4396,6 +4426,17 @@ TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) ret[w] = p[idx++];
+  return ret;
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto expandload(const T *p, mask::Vector<W, Bytes> m)
+  -> Vec<W, T> {
+  Vec<W, T> ret{};
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (m.m[w]) ret[w] = p[idx++];
   return ret;
 }
 
@@ -4791,6 +4832,9 @@ struct Unroll {
   TRIVIAL constexpr Unroll(VT a, VT b) requires(R *C == 2) : data_{a, b} {};
   TRIVIAL constexpr Unroll(VT a, VT b, VT c, VT d) requires(R *C == 4)
     : data_{a, b, c, d} {};
+  TRIVIAL constexpr Unroll(VT a, VT b, VT c, VT d, VT e, VT f, VT g, VT h)
+    requires(R *C == 8)
+    : data_{a, b, c, d, e, f, g, h} {};
 
   TRIVIAL constexpr auto operator[](std::ptrdiff_t i) -> VT & {
     return data_[i];
@@ -4819,15 +4863,85 @@ struct Unroll {
     static constexpr std::ptrdiff_t mask = ((1 << shift) - 1);
     data_[idx >> shift][idx & mask] = x;
   }
-  template <typename U>
-  TRIVIAL constexpr operator Unroll<R, C, N, U>() const
-    requires(!std::same_as<T, U>) {
-    Unroll<R, C, N, U> x;
-    POLYMATHFULLUNROLL
-    for (std::ptrdiff_t i = 0; i < R * C; ++i)
-      if constexpr (N == 1) x.data_[i] = U(data_[i]);
-      else x.data_[i] = __builtin_convertvector(data_[i], Vec<N, U>);
-    return x;
+  template <std::ptrdiff_t Cnew, std::ptrdiff_t Nnew, typename U>
+  TRIVIAL constexpr operator Unroll<R, Cnew, Nnew, U>() const
+    requires((!std::same_as<T, U> || Cnew != C) && (Cnew * Nnew == C * N)) {
+    if constexpr (R * Cnew != 1) {
+      Unroll<R, Cnew, Nnew, U> x;
+      if constexpr (Cnew == C) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i)
+          if constexpr (N == 1) x.data_[i] = U(data_[i]);
+          else x.data_[i] = __builtin_convertvector(data_[i], Vec<N, U>);
+      } else if constexpr (Cnew < C) {
+        // Cnew * Nnew != C * N
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * Cnew; ++i) {
+          if constexpr (2 * Cnew == C) { // Nnew = 2*N
+            if constexpr (N == 1)
+              x.data_[i] = {U(data_[2 * i]), U(data_[2 * i + 1])};
+            else
+              x.data_[i] = ::simd::cat(
+                __builtin_convertvector(data_[2 * i], Vec<N, U>),
+                __builtin_convertvector(data_[2 * i + 1], Vec<N, U>));
+          } else {
+            static_assert(4 * Cnew == C); // Nnew = 4*N
+            if constexpr (N == 1)
+              x.data_[i] = {U(data_[4 * i]), U(data_[4 * i + 1]),
+                            U(data_[4 * i + 2]), U(data_[4 * i + 3])};
+            else
+              x.data_[i] = ::simd::cat(
+                ::simd::cat(
+                  __builtin_convertvector(data_[4 * i], Vec<N, U>),
+                  __builtin_convertvector(data_[4 * i + 1], Vec<N, U>)),
+                ::simd::cat(
+                  __builtin_convertvector(data_[4 * i + 2], Vec<N, U>),
+                  __builtin_convertvector(data_[4 * i + 3], Vec<N, U>)));
+          }
+        }
+      } else { // Cnew > C
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+          auto [a, b] =
+            ::simd::split(__builtin_convertvector(data_[i], Vec<N, U>));
+          if constexpr (2 * C == Cnew) { // N / 2 == Nnew
+            x.data_[2 * i] = a;
+            x.data_[2 * i + 1] = b;
+          } else {
+            static_assert(4 * C == Cnew); // N / 4  == Nnew
+            auto [aa, ab] = ::simd::split(a);
+            auto [ba, bb] = ::simd::split(b);
+            x.data_[4 * i] = aa;
+            x.data_[4 * i + 1] = ab;
+            x.data_[4 * i + 2] = ba;
+            x.data_[4 * i + 3] = bb;
+          }
+        }
+      }
+      return x;
+    } else if constexpr (C == 2) { // R*Cnew == 1 => R == 1
+      Vec<N, U> a = __builtin_convertvector(data_[0], Vec<N, U>),
+                b = __builtin_convertvector(data_[1], Vec<N, U>);
+      return {::simd::cat(a, b)};
+    } else if constexpr (C == 4) {
+      Vec<N, U> a = __builtin_convertvector(data_[0], Vec<N, U>),
+                b = __builtin_convertvector(data_[1], Vec<N, U>),
+                c = __builtin_convertvector(data_[2], Vec<N, U>),
+                d = __builtin_convertvector(data_[3], Vec<N, U>);
+      return {::simd::cat(::simd::cat(a, b), ::simd::cat(c, d))};
+    } else {
+      static_assert(C == 8);
+      Vec<N, U> a = __builtin_convertvector(data_[0], Vec<N, U>),
+                b = __builtin_convertvector(data_[1], Vec<N, U>),
+                c = __builtin_convertvector(data_[2], Vec<N, U>),
+                d = __builtin_convertvector(data_[3], Vec<N, U>),
+                e = __builtin_convertvector(data_[4], Vec<N, U>),
+                f = __builtin_convertvector(data_[5], Vec<N, U>),
+                g = __builtin_convertvector(data_[6], Vec<N, U>),
+                h = __builtin_convertvector(data_[7], Vec<N, U>);
+      return {::simd::cat(::simd::cat(::simd::cat(a, b), ::simd::cat(c, d)),
+                          ::simd::cat(::simd::cat(e, f), ::simd::cat(g, h)))};
+    }
   }
   template <typename CastTo> TRIVIAL constexpr auto bitCast() const noexcept {
     static_assert(!std::same_as<T, bool>, "Cannot bitCast from bool type");
@@ -5799,11 +5913,31 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     vec_[idx] = x;
   }
   TRIVIAL constexpr operator VT() const { return vec_; }
-  template <typename U>
-  TRIVIAL constexpr operator Unroll<1, 1, N, U>() const
-    requires(!std::same_as<T, U>) {
-    if constexpr (N == 1) return {U(vec_)};
-    else return {__builtin_convertvector(vec_, Vec<N, U>)};
+  template <std::ptrdiff_t Cnew, std::ptrdiff_t Nnew, typename U>
+  TRIVIAL constexpr operator Unroll<1, Cnew, Nnew, U>() const
+    requires((!std::same_as<T, U> || Cnew != 1) && (Cnew * Nnew == N)) {
+    if constexpr (Cnew == 1) {
+      if constexpr (N == 1) return {U(vec_)};
+      else return {__builtin_convertvector(vec_, Vec<N, U>)};
+    } else {
+      auto [a, b] = ::simd::split(__builtin_convertvector(vec_, Vec<N, U>));
+      if constexpr (Cnew == 2) {
+        return {a, b};
+      } else {
+        auto [aa, ab] = ::simd::split(a);
+        auto [ba, bb] = ::simd::split(b);
+        if constexpr (Cnew == 4) {
+          return {aa, ab, ba, bb};
+        } else {
+          static_assert(Cnew == 8);
+          auto [aaa, aab] = ::simd::split(aa);
+          auto [aba, abb] = ::simd::split(ab);
+          auto [baa, bab] = ::simd::split(ba);
+          auto [bba, bbb] = ::simd::split(bb);
+          return {aaa, aab, aba, abb, baa, bab, bba, bbb};
+        }
+      }
+    }
   }
   template <typename CastTo> TRIVIAL constexpr auto bitCast() const noexcept {
     static_assert(!std::same_as<T, bool>, "Cannot bitCast from bool type");
@@ -7700,6 +7834,49 @@ TRIVIAL constexpr auto exp2unchecked(Vec<W, T> x) -> Vec<W, double> {
   if constexpr (std::same_as<T, std::int64_t>) y = x;
   else y = __builtin_convertvector(x, Vec<W, std::int64_t>);
   return __builtin_bit_cast(Vec<W, double>, (y + 1023) << 52);
+}
+
+// compressstore for Unroll types with mask::Unroll
+// Returns the number of elements written
+// Example: compressstore(ptr, x > 0, x); // store all positive x
+#ifdef __AVX512F__
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename T>
+TRIVIAL inline auto compressstore(T *p, mask::Unroll<R, C, W> masks,
+                                  Unroll<R, C, W, T> x) -> std::ptrdiff_t {
+  std::ptrdiff_t written = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    compressstore(p + written, masks[i], x[i]);
+    written += masks[i].popcount();
+  }
+  return written;
+}
+#else
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename T,
+          std::size_t Bytes>
+TRIVIAL inline auto compressstore(T *p, mask::Unroll<R, C, W, Bytes> masks,
+                                  Unroll<R, C, W, T> x) -> std::ptrdiff_t {
+  std::ptrdiff_t written = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    compressstore(p + written, masks[i], x[i]);
+    written += masks[i].popcount();
+  }
+  return written;
+}
+#endif
+
+// compressstore with array of uint64_t masks
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename T>
+TRIVIAL inline auto compressstore(T *p, std::array<std::uint64_t, R * C> masks,
+                                  Unroll<R, C, W, T> x) -> std::ptrdiff_t {
+  std::ptrdiff_t written = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    compressstore(p + written, masks[i], x[i]);
+    written += std::popcount(masks[i] & ((1ULL << W) - 1));
+  }
+  return written;
 }
 
 } // namespace simd
