@@ -1,5 +1,6 @@
 module Sort;
 
+import BaseUtils;
 import SIMD;
 import std;
 
@@ -15,6 +16,68 @@ template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
   simd::Unroll<1, N, W, T> z = x;
   x = min(x, y);
   y = max(z, y);
+}
+
+// minmax_perm: performs minmax and returns the comparison mask as uint64_t
+template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
+[[gnu::always_inline]] constexpr auto minmax_perm(simd::Unroll<1, N, W, T> &x,
+                                                  simd::Unroll<1, N, W, T> &y)
+  -> std::uint64_t {
+  auto m = x < y;
+  simd::Unroll<1, N, W, T> z = m.select(y, x); // max: y where x<y, else x
+  x = m.select(x, y);                          // min: x where x<y, else y
+  y = z;
+  return m.intmask();
+}
+
+// Helper to reconstruct mask from integer
+template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
+[[gnu::always_inline]] constexpr auto mask_from_int(std::uint64_t bits) {
+#ifdef __AVX512VL__
+  using MaskU = simd::mask::Unroll<1, N, W>;
+#else
+  using MaskU = simd::mask::Unroll<1, N, W, sizeof(T)>;
+#endif
+  MaskU ret;
+  if constexpr (N == 1) {
+    // When N == 1, mask::Unroll<1, 1, W> uses mask_ member
+#ifdef __AVX512VL__
+    ret.mask_ = simd::mask::Bit<W>{bits};
+#else
+    // For mask::Vector, expand bits to vector mask
+    using I = utils::signed_integer_t<sizeof(T)>;
+    simd::Vec<W, I> v{};
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      v[i] = ((bits >> i) & 1) ? I(-1) : I(0);
+    ret.mask_ = {v};
+#endif
+  } else {
+    // When N > 1, mask::Unroll uses data_ array
+    for (std::ptrdiff_t i = 0; i < N; ++i) {
+      auto mask_bits = (bits >> (i * W)) & ((1ULL << W) - 1);
+#ifdef __AVX512VL__
+      ret.data_[i] = simd::mask::Bit<W>{mask_bits};
+#else
+      using I = utils::signed_integer_t<sizeof(T)>;
+      simd::Vec<W, I> v{};
+      for (std::ptrdiff_t j = 0; j < W; ++j)
+        v[j] = ((mask_bits >> j) & 1) ? I(-1) : I(0);
+      ret.data_[i] = {v};
+#endif
+    }
+  }
+  return ret;
+}
+
+// Apply stored mask to perform minmax swap
+template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
+[[gnu::always_inline]] constexpr void apply_mask(simd::Unroll<1, N, W, T> &x,
+                                                 simd::Unroll<1, N, W, T> &y,
+                                                 std::uint64_t bits) {
+  auto m = mask_from_int<N, W, T>(bits);
+  simd::Unroll<1, N, W, T> z = m.select(y, x);
+  x = m.select(x, y);
+  y = z;
 }
 
 template <std::ptrdiff_t W, typename T>
@@ -317,6 +380,183 @@ template <typename T> auto sort32(V32<T> x) -> V32<T> {
 
   // return a.cat(b);
 }
+
+// sort16_perm: Like sort16 but captures comparison masks
+template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
+auto sort16_perm(simd::Unroll<1, N, W, T> a, simd::Unroll<1, N, W, T> b,
+                 std::uint64_t *masks) {
+  using V = simd::Unroll<1, N, W, T>;
+
+  masks[0] = minmax_perm(a, b);
+
+  b = reverse2(b);
+  masks[1] = minmax_perm(a, b);
+
+  V c = a;
+  a = vshuf<0, 2, 0, 2>(a, b);
+  b = vshuf<1, 3, 1, 3>(c, b);
+  masks[2] = minmax_perm(a, b);
+
+  b = reverse4(b);
+  masks[3] = minmax_perm(a, b);
+
+  c = a;
+  a = vshuf<0, 1, 0, 1>(a, b);
+  b = vshuf<2, 3, 2, 3>(c, b);
+  masks[4] = minmax_perm(a, b);
+
+  c = a;
+  a = vshuf<0, 2, 1, 3>(a, b);
+  b = vshuf<1, 3, 0, 2>(c, b);
+  masks[5] = minmax_perm(a, b);
+
+  b = reverse8(b);
+  masks[6] = minmax_perm(a, b);
+
+  c = a;
+  a = vshuf<0, 2, 1, 3>(a, b);
+  b = vshuf<1, 3, 0, 2>(c, b);
+  masks[7] = minmax_perm(a, b);
+
+  c = a;
+  a = vshuf<0, 2, 1, 3>(a, b);
+  b = vshuf<1, 3, 0, 2>(c, b);
+  masks[8] = minmax_perm(a, b);
+
+  a = interleave_halves(a);
+  b = interleave_halves(b);
+
+  c = a;
+  a = vshuf<0, 2, 0, 2>(a, b);
+  b = vshuf<1, 3, 1, 3>(c, b);
+  masks[9] = minmax_perm(a, b);
+
+  V b2 = reverse2(b);
+  V b1 = reverse2(a);
+
+  a = interleave(a, b2);
+  b = interleave(b1, b);
+
+  return a.cat(b);
+}
+
+// apply16: Apply stored masks to replay permutation
+template <std::ptrdiff_t N, std::ptrdiff_t W, typename T>
+auto apply16(simd::Unroll<1, N, W, T> a, simd::Unroll<1, N, W, T> b,
+             const std::uint64_t *masks) {
+  using V = simd::Unroll<1, N, W, T>;
+
+  apply_mask(a, b, masks[0]);
+
+  b = reverse2(b);
+  apply_mask(a, b, masks[1]);
+
+  V c = a;
+  a = vshuf<0, 2, 0, 2>(a, b);
+  b = vshuf<1, 3, 1, 3>(c, b);
+  apply_mask(a, b, masks[2]);
+
+  b = reverse4(b);
+  apply_mask(a, b, masks[3]);
+
+  c = a;
+  a = vshuf<0, 1, 0, 1>(a, b);
+  b = vshuf<2, 3, 2, 3>(c, b);
+  apply_mask(a, b, masks[4]);
+
+  c = a;
+  a = vshuf<0, 2, 1, 3>(a, b);
+  b = vshuf<1, 3, 0, 2>(c, b);
+  apply_mask(a, b, masks[5]);
+
+  b = reverse8(b);
+  apply_mask(a, b, masks[6]);
+
+  c = a;
+  a = vshuf<0, 2, 1, 3>(a, b);
+  b = vshuf<1, 3, 0, 2>(c, b);
+  apply_mask(a, b, masks[7]);
+
+  c = a;
+  a = vshuf<0, 2, 1, 3>(a, b);
+  b = vshuf<1, 3, 0, 2>(c, b);
+  apply_mask(a, b, masks[8]);
+
+  a = interleave_halves(a);
+  b = interleave_halves(b);
+
+  c = a;
+  a = vshuf<0, 2, 0, 2>(a, b);
+  b = vshuf<1, 3, 1, 3>(c, b);
+  apply_mask(a, b, masks[9]);
+
+  V b2 = reverse2(b);
+  V b1 = reverse2(a);
+
+  a = interleave(a, b2);
+  b = interleave(b1, b);
+
+  return a.cat(b);
+}
+
+// sort32_perm: Like sort32 but captures comparison masks
+template <typename T>
+auto sort32_perm(V32<T> x, std::uint64_t *masks) -> V32<T> {
+  auto [xlo, xhi] = x.split();
+
+  // Sort each half of 16 elements (masks 0-9 for first half, 10-19 for second)
+  auto sorted = sort16_perm(xlo, xhi, masks);
+  auto [l01, h01] = sorted.split();
+  auto [l0, l1] = l01.split();
+  auto [h0, h1] = h01.split();
+
+  // Bitonic merge: reverse the second half and merge
+  V16<T> a = l0.cat(h0);
+  V16<T> b = l1.cat(h1).reverse();
+
+  // After compare-exchange at distance 16, all elements in a <= all in b
+  masks[10] = minmax_perm(a, b);
+
+  // Now sort each 16-element half independently
+  auto [a0, a1] = a.split();
+  auto [b0, b1] = b.split();
+  V32<T> ab = sort16_perm(a0.cat(b0), a1.cat(b1), masks + 11);
+
+  auto [ab0, ab1] = ab.split();
+  auto [x0, y0] = ab0.split();
+  auto [x1, y1] = ab1.split();
+  return x0.cat(x1).cat(y0.cat(y1));
+}
+
+// apply32: Apply stored masks to replay permutation
+template <typename T>
+auto apply32(V32<T> x, const std::uint64_t *masks) -> V32<T> {
+  auto [xlo, xhi] = x.split();
+
+  // Apply first half sort (masks 0-9)
+  auto sorted = apply16(xlo, xhi, masks);
+  auto [l01, h01] = sorted.split();
+  auto [l0, l1] = l01.split();
+  auto [h0, h1] = h01.split();
+
+  // Bitonic merge: reverse the second half and merge
+  V16<T> a = l0.cat(h0);
+  V16<T> b = l1.cat(h1).reverse();
+
+  // Apply bitonic merge comparison (mask 10)
+  apply_mask(a, b, masks[10]);
+
+  // Apply second sort16 (masks 11-20)
+  auto [a0, a1] = a.split();
+  auto [b0, b1] = b.split();
+  V32<T> ab = apply16(a0.cat(b0), a1.cat(b1), masks + 11);
+
+  auto [ab0, ab1] = ab.split();
+  auto [x0, y0] = ab0.split();
+  auto [x1, y1] = ab1.split();
+  return x0.cat(x1).cat(y0.cat(y1));
+}
+
 } // namespace
 
 namespace utils {
@@ -336,5 +576,59 @@ auto sort(math::SVector<double, 32> x) -> math::SVector<double, 32> {
 auto sort(math::SVector<float, 32> x) -> math::SVector<float, 32> {
   return {sort32(x.simd())};
 }
+
+namespace detail {
+
+template <typename T, std::ptrdiff_t N>
+auto sortperm_make(math::SVector<T, N> x)
+  -> std::pair<SortPerm<T, N>, math::SVector<T, N>> {
+  SortPerm<T, N> perm{};
+  math::SVector<T, N> sorted;
+
+  if constexpr (N == 16) {
+    auto [xlo, xhi] = x.simd().split();
+    sorted = {sort16_perm(xlo, xhi, perm.masks_)};
+  } else {
+    sorted = {sort32_perm(x.simd(), perm.masks_)};
+  }
+
+  return {perm, sorted};
+}
+
+template <typename T, std::ptrdiff_t N>
+auto sortperm_apply(const SortPerm<T, N> &perm, math::SVector<T, N> x)
+  -> math::SVector<T, N> {
+  if constexpr (N == 16) {
+    auto [xlo, xhi] = x.simd().split();
+    return {apply16(xlo, xhi, perm.masks_)};
+  } else {
+    return {apply32(x.simd(), perm.masks_)};
+  }
+}
+
+// Explicit instantiations
+template auto sortperm_make<double, 16>(math::SVector<double, 16>)
+  -> std::pair<SortPerm<double, 16>, math::SVector<double, 16>>;
+template auto sortperm_make<float, 16>(math::SVector<float, 16>)
+  -> std::pair<SortPerm<float, 16>, math::SVector<float, 16>>;
+template auto sortperm_make<double, 32>(math::SVector<double, 32>)
+  -> std::pair<SortPerm<double, 32>, math::SVector<double, 32>>;
+template auto sortperm_make<float, 32>(math::SVector<float, 32>)
+  -> std::pair<SortPerm<float, 32>, math::SVector<float, 32>>;
+
+template auto sortperm_apply<double, 16>(const SortPerm<double, 16> &,
+                                         math::SVector<double, 16>)
+  -> math::SVector<double, 16>;
+template auto sortperm_apply<float, 16>(const SortPerm<float, 16> &,
+                                        math::SVector<float, 16>)
+  -> math::SVector<float, 16>;
+template auto sortperm_apply<double, 32>(const SortPerm<double, 32> &,
+                                         math::SVector<double, 32>)
+  -> math::SVector<double, 32>;
+template auto sortperm_apply<float, 32>(const SortPerm<float, 32> &,
+                                        math::SVector<float, 32>)
+  -> math::SVector<float, 32>;
+
+} // namespace detail
 
 } // namespace utils

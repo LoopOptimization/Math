@@ -2,11 +2,11 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release clang-avx2 clang-avx512
+all: clang-no-san clang-san clang-no-san-libcpp clang-san-libcpp clang-base-arch clang-release clang-avx2 clang-avx512
 else ifeq ($(HAVE_AVX2),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release clang-avx2
+all: clang-no-san clang-san clang-no-san-libcpp clang-san-libcpp clang-base-arch clang-release clang-avx2
 else
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release
+all: clang-no-san clang-san clang-no-san-libcpp clang-san-libcpp clang-base-arch clang-release
 endif
 
 # `command -v` returns nothing if not found (and we redirect stderr)
@@ -18,17 +18,17 @@ else
 endif
 
 
+build-clang/no-san-libcpp/:
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san-libcpp/ -DCMAKE_BUILD_TYPE=Debug
+
+build-clang/san-libcpp/:
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san-libcpp/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+
 build-clang/no-san/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san/ -DCMAKE_BUILD_TYPE=Debug
+	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san/ -DCMAKE_BUILD_TYPE=Debug
 
 build-clang/san/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
-
-build-clang/no-san-libstdcxx/:
-	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san-libstdcxx/ -DCMAKE_BUILD_TYPE=Debug
-
-build-clang/san-libstdcxx/:
-	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san-libstdcxx/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 	
 build-clang/avx2/:
 	CXXFLAGS="-march=x86-64-v3" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
@@ -51,6 +51,14 @@ build-clang/type/:
 build-clang/release/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/release/ -DCMAKE_BUILD_TYPE=RELEASE
 
+clang-no-san-libcpp: build-clang/no-san-libcpp/
+	cmake --build build-clang/no-san-libcpp/
+	cmake --build build-clang/no-san-libcpp/ --target test
+
+clang-san-libcpp: build-clang/san-libcpp/
+	cmake --build build-clang/san-libcpp/
+	cmake --build build-clang/san-libcpp/ --target test
+
 clang-no-san: build-clang/no-san/
 	cmake --build build-clang/no-san/
 	cmake --build build-clang/no-san/ --target test
@@ -58,14 +66,6 @@ clang-no-san: build-clang/no-san/
 clang-san: build-clang/san/
 	cmake --build build-clang/san/
 	cmake --build build-clang/san/ --target test
-
-clang-no-san-libstdcxx: build-clang/no-san-libstdcxx/
-	cmake --build build-clang/no-san-libstdcxx/
-	cmake --build build-clang/no-san-libstdcxx/ --target test
-
-clang-san-libstdcxx: build-clang/san-libstdcxx/
-	cmake --build build-clang/san-libstdcxx/
-	cmake --build build-clang/san-libstdcxx/ --target test
 
 clang-avx2: build-clang/avx2/
 	cmake --build build-clang/avx2/

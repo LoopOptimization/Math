@@ -1,5 +1,6 @@
 export module Sort;
 import StaticArray;
+import std;
 
 export namespace utils {
 
@@ -8,5 +9,37 @@ auto sort(math::SVector<float, 16> x) -> math::SVector<float, 16>;
 
 auto sort(math::SVector<double, 32> x) -> math::SVector<double, 32>;
 auto sort(math::SVector<float, 32> x) -> math::SVector<float, 32>;
+
+template <typename T, std::ptrdiff_t N>
+  requires((N == 16 || N == 32) && (std::same_as<T, float> || std::same_as<T, double>))
+struct SortPerm;
+
+// Internal implementation functions (not exported, defined in .cxx)
+namespace detail {
+template <typename T, std::ptrdiff_t N>
+auto sortperm_make(math::SVector<T, N> x)
+  -> std::pair<SortPerm<T, N>, math::SVector<T, N>>;
+
+template <typename T, std::ptrdiff_t N>
+auto sortperm_apply(const SortPerm<T, N> &perm, math::SVector<T, N> x)
+  -> math::SVector<T, N>;
+} // namespace detail
+
+template <typename T, std::ptrdiff_t N>
+  requires((N == 16 || N == 32) && (std::same_as<T, float> || std::same_as<T, double>))
+struct SortPerm {
+  static constexpr std::ptrdiff_t NumMasks = (N == 16) ? 10 : 21;
+  std::uint64_t masks_[NumMasks];
+
+  [[nodiscard]] static auto make(math::SVector<T, N> x)
+    -> std::pair<SortPerm, math::SVector<T, N>> {
+    return detail::sortperm_make<T, N>(x);
+  }
+
+  [[nodiscard]] auto operator()(math::SVector<T, N> x) const
+    -> math::SVector<T, N> {
+    return detail::sortperm_apply<T, N>(*this, x);
+  }
+};
 
 } // namespace utils
