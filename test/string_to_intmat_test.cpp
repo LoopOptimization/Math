@@ -36,13 +36,8 @@ void testBasicAssertions() {
   expect((A[2, 1]) == 0);
   expect((A[2, 2]) == -3);
   expect((A[2, 3]) == 0);
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
   static_assert(std::same_as<::math::StaticDims<std::int64_t, 2, 3, false>,
                              ::math::StridedDims<2, 3, 4>>);
-#else
-  static_assert(std::same_as<::math::StaticDims<std::int64_t, 2, 3, false>,
-                             ::math::DenseDims<2, 3>>);
-#endif
   expect(autoConvert("[1 2 3; 4 5 6]"_mat) == 21);
 }
 void testBasicAssertions2() {

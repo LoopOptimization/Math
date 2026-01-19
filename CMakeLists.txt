@@ -5,7 +5,6 @@ option(ENABLE_LLD "Use LLD? Off by default." OFF)
 option(USE_MI_MALLOC "Use MI_MALLOC if available." ON)
 option(USE_JE_MALLOC "Use jemallc if available and not using mi_malloc." ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
-option(POLYMATHNOEXPLICITSIMDARRAY "No explicit SIMD for Array operations" OFF)
 # option(FOR_TESTING "Build for testing" OFF)
 
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-rtti>")
@@ -77,11 +76,6 @@ target_include_directories(
   ${PROJECT_NAME}
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
          $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>)
-# --- Maybe Use SIMD Array Ops ---
-if(POLYMATHNOEXPLICITSIMDARRAY)
-  target_compile_definitions(${PROJECT_NAME}
-                             PRIVATE POLYMATHNOEXPLICITSIMDARRAY)
-endif()
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")

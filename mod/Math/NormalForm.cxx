@@ -528,7 +528,6 @@ void hermite(MutPtrMatrix<std::int64_t> A, MutSquarePtrMatrix<std::int64_t> U) {
 }
 
 // SIMD optimized functions
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
 /// use A[j,k] to zero A[i,k]
 auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k,
                    std::int64_t f) -> std::int64_t {
@@ -628,56 +627,6 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
     }
   }
 }
-#else
-/// use A[j,k] to zero A[i,k]
-auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k,
-                   std::int64_t f) -> std::int64_t {
-  std::int64_t Aik = A[i, k];
-  if (!Aik) return f;
-  std::int64_t Ajk = A[j, k];
-  invariant(Ajk != 0);
-  std::int64_t g = gcd(Aik, Ajk);
-  Aik /= g;
-  Ajk /= g;
-  std::int64_t ret = f * Ajk, vg = ret;
-  std::ptrdiff_t L = std::ptrdiff_t(A.numCol()), l = 0;
-  for (; (vg != 1) && (l < L); ++l) {
-    std::int64_t Ail = A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
-    vg = gcd(Ail, vg);
-  }
-  if (l < L) {
-    for (; l < L; ++l) A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
-  } else if (vg != 1) {
-    for (std::ptrdiff_t ll = 0; ll < L; ++ll)
-      if (std::int64_t Ail = A[i, ll]) A[i, ll] = Ail / vg;
-    std::int64_t r = ret / vg;
-    invariant(r * vg, ret);
-    ret = r;
-  }
-  return ret;
-}
-void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
-  std::int64_t Aik = A[i, k];
-  if (!Aik) return;
-  std::int64_t Ajk = A[j, k];
-  invariant(Ajk != 0);
-  std::int64_t g = gcd(Aik, Ajk), vg = 0;
-  Aik /= g;
-  Ajk /= g;
-  std::ptrdiff_t L = std::ptrdiff_t(A.numCol()), l = 0;
-  for (; (vg != 1) && (l < L); ++l) {
-    std::int64_t Ail = A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
-    vg = gcd(Ail, vg);
-  }
-  if (l < L) {
-    for (; l < L; ++l) A[i, l] = Ajk * A[i, l] - Aik * A[j, l];
-  } else if (vg != 1) {
-    for (std::ptrdiff_t ll = 0; ll < L; ++ll)
-      if (std::int64_t Ail = A[i, ll]) A[i, ll] = Ail / vg;
-  }
-  return;
-}
-#endif
 void bareiss(MutPtrMatrix<std::int64_t> A,
              MutPtrVector<std::ptrdiff_t> pivots) {
   const auto [M, N] = shape(A);

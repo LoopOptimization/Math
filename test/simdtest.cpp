@@ -512,5 +512,382 @@ auto main() -> int {
         << "64-bit right shift failed at index " << i;
     }
   };
+  "BFloat16LoadAndCast"_test = [] -> void {
+    // Test loading __bf16 and casting to float
+    static constexpr auto W = simd::Width<__bf16>;
+
+    // Create test data: simple float values that convert cleanly to bf16
+    alignas(64) float source_floats[W];
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      source_floats[i] = static_cast<float>(i + 1);
+
+    // Convert to bf16
+    alignas(64) __bf16 bf16_data[W];
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      bf16_data[i] = static_cast<__bf16>(source_floats[i]);
+
+    // Load bf16 vector using simd::load
+    auto v = simd::load(bf16_data, simd::mask::None<W>{});
+
+    // Cast to float
+    auto float_v = __builtin_convertvector(v, simd::Vec<W, float>);
+
+    // Verify values are approximately correct (bf16 has reduced precision)
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float result = float_v[i];
+      float expected = source_floats[i];
+      expect(approx(result, expected, 1e-2f))
+        << "BF16 load/cast failed at index " << i;
+    }
+  };
+  "BFloat16Arithmetic"_test = [] -> void {
+    // Test arithmetic operations on bf16 cast to float
+    static constexpr auto W = simd::Width<__bf16>;
+
+    alignas(64) __bf16 a_data[W], b_data[W];
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      a_data[i] = static_cast<__bf16>(static_cast<float>(i + 1));
+      b_data[i] = static_cast<__bf16>(2.0f);
+    }
+
+    // Load bf16 vectors using simd::load and cast to float
+    auto a_bf16 = simd::load(a_data, simd::mask::None<W>{});
+    auto b_bf16 = simd::load(b_data, simd::mask::None<W>{});
+
+    auto a_float = __builtin_convertvector(a_bf16, simd::Vec<W, float>);
+    auto b_float = __builtin_convertvector(b_bf16, simd::Vec<W, float>);
+
+    // Test addition
+    auto sum = a_float + b_float;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float expected = static_cast<float>(i + 1) + 2.0f;
+      expect(approx(sum[i], expected, 1e-2f))
+        << "BF16 addition failed at index " << i;
+    }
+
+    // Test multiplication
+    auto prod = a_float * b_float;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float expected = static_cast<float>(i + 1) * 2.0f;
+      expect(approx(prod[i], expected, 1e-2f))
+        << "BF16 multiplication failed at index " << i;
+    }
+  };
+  "BFloat16Unroll"_test = [] -> void {
+    // Test bf16 with Unroll types
+    static constexpr auto W = simd::Width<__bf16>;
+
+    alignas(64) __bf16 data[2 * W];
+    for (std::ptrdiff_t i = 0; i < 2 * W; ++i)
+      data[i] = static_cast<__bf16>(static_cast<float>(i + 1));
+
+    // Load into Unroll<1, 2, W, __bf16>
+    using bf16_unroll = simd::Unroll<1, 2, W, __bf16>;
+    bf16_unroll u;
+    u[0] = simd::load(data, simd::mask::None<W>{});
+    u[1] = simd::load(data + W, simd::mask::None<W>{});
+
+    // Cast to float Unroll
+    using float_unroll = simd::Unroll<1, 2, W, float>;
+    float_unroll u_float;
+    u_float[0] = __builtin_convertvector(u[0], simd::Vec<W, float>);
+    u_float[1] = __builtin_convertvector(u[1], simd::Vec<W, float>);
+
+    // Verify
+    for (std::ptrdiff_t c = 0; c < 2; ++c) {
+      for (std::ptrdiff_t i = 0; i < W; ++i) {
+        float expected = static_cast<float>(c * W + i + 1);
+        expect(approx(u_float[c][i], expected, 1e-2f))
+          << "BF16 Unroll failed at column " << c << ", index " << i;
+      }
+    }
+  };
+  "BitCastSameSize"_test = [] -> void {
+    // Test bitCast between same-size types: float <-> int32_t
+    static constexpr auto W = simd::Width<float>;
+    using f32_unroll = simd::Unroll<1, 1, W, float>;
+
+    // Create a float vector with specific bit pattern
+    f32_unroll f;
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      float val = static_cast<float>(i + 1);
+      f.insert_value(i, val);
+    }
+
+    // BitCast to int32_t
+    auto i = f.bitCast<std::int32_t>();
+
+    // Verify bit patterns match by casting back
+    auto f2 = i.bitCast<float>();
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      expect(eq(f.extract_value(j), f2.extract_value(j)))
+        << "Bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastUpcast"_test = [] -> void {
+    // Test upcast: float -> int64_t (half the elements)
+    static constexpr auto Wf = simd::Width<float>;
+    using f32_unroll = simd::Unroll<1, 1, Wf, float>;
+
+    f32_unroll f;
+    for (std::ptrdiff_t i = 0; i < Wf; ++i)
+      f.insert_value(i, static_cast<float>(i + 100));
+
+    auto i64 = f.bitCast<std::int64_t>();
+
+    // Cast back and verify
+    auto f2 = i64.bitCast<float>();
+    for (std::ptrdiff_t j = 0; j < Wf; ++j) {
+      expect(eq(f.extract_value(j), f2.extract_value(j)))
+        << "Upcast bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastDowncast"_test = [] -> void {
+    // Test downcast: int64_t -> float (double the elements)
+    static constexpr auto Wi = simd::Width<std::int64_t>;
+    using i64_unroll = simd::Unroll<1, 1, Wi, std::int64_t>;
+
+    i64_unroll i;
+    for (std::ptrdiff_t j = 0; j < Wi; ++j)
+      i.insert_value(j, static_cast<std::int64_t>(j * 1000000));
+
+    auto f = i.bitCast<float>();
+
+    // Cast back and verify
+    auto i2 = f.bitCast<std::int64_t>();
+    for (std::ptrdiff_t k = 0; k < Wi; ++k) {
+      expect(eq(i.extract_value(k), i2.extract_value(k)))
+        << "Downcast bit pattern mismatch at index " << k;
+    }
+  };
+  "BitCastSmallTypes"_test = [] -> void {
+    // Test with small types: __bf16 <-> uint16_t
+    static constexpr auto W = simd::Width<__bf16>;
+    using bf16_unroll = simd::Unroll<1, 1, W, __bf16>;
+
+    bf16_unroll bf;
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      bf.insert_value(i, static_cast<__bf16>(static_cast<float>(i + 10)));
+
+    auto u16 = bf.bitCast<std::uint16_t>();
+    auto bf2 = u16.bitCast<__bf16>();
+
+    // Verify bit preservation
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      auto orig = bf.extract_value(j);
+      auto restored = bf2.extract_value(j);
+      // Compare as uint16 to verify exact bit pattern
+      auto orig_bits = __builtin_bit_cast(std::uint16_t, orig);
+      auto restored_bits = __builtin_bit_cast(std::uint16_t, restored);
+      expect(eq(orig_bits, restored_bits))
+        << "Small type bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastByteSized"_test = [] -> void {
+    // Test with byte-sized types: int8_t <-> uint8_t
+    static constexpr auto W = simd::Width<std::int8_t>;
+    using i8_unroll = simd::Unroll<1, 1, W, std::int8_t>;
+
+    i8_unroll i8;
+    for (std::ptrdiff_t i = 0; i < W; ++i)
+      i8.insert_value(i, static_cast<std::int8_t>(i - 50));
+
+    auto u8 = i8.bitCast<std::uint8_t>();
+    auto i8_2 = u8.bitCast<std::int8_t>();
+
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      expect(eq(i8.extract_value(j), i8_2.extract_value(j)))
+        << "Byte-sized bit pattern mismatch at index " << j;
+    }
+  };
+  "BitCastMultiVector"_test = [] -> void {
+    // Test with multi-vector Unroll: Unroll<2, 3, W, float>
+    static constexpr auto W = simd::Width<float>;
+    using f32_multi = simd::Unroll<2, 3, W, float>;
+
+    f32_multi f;
+    // Fill all 6 vectors (2 rows × 3 columns)
+    for (std::ptrdiff_t idx = 0; idx < 6; ++idx)
+      for (std::ptrdiff_t i = 0; i < W; ++i)
+        f.insert_value(idx * W + i, static_cast<float>(idx * 100 + i));
+
+    auto i = f.bitCast<std::int32_t>();
+    auto f2 = i.bitCast<float>();
+
+    // Verify all elements preserved
+    for (std::ptrdiff_t idx = 0; idx < 6; ++idx) {
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::ptrdiff_t linear_idx = idx * W + j;
+        expect(eq(f.extract_value(linear_idx), f2.extract_value(linear_idx)))
+          << "Multi-vector mismatch at linear index " << linear_idx;
+      }
+    }
+  };
+  "BitCastBitPreservation"_test = [] -> void {
+    // Verify exact bit pattern preservation with known values
+    static constexpr auto W = simd::Width<std::uint32_t>;
+    using u32_unroll = simd::Unroll<1, 1, W, std::uint32_t>;
+
+    u32_unroll u32;
+    // Use specific bit patterns
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      std::uint32_t pattern = 0xDEADBEEF + static_cast<std::uint32_t>(i);
+      u32.insert_value(i, pattern);
+    }
+
+    auto f32 = u32.bitCast<float>();
+    auto u32_2 = f32.bitCast<std::uint32_t>();
+
+    // Verify exact bit pattern match
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      expect(eq(u32.extract_value(j), u32_2.extract_value(j)))
+        << "Exact bit pattern not preserved at index " << j;
+    }
+  };
+
+  "MaskUnrollIntmask_1x1"_test = [] -> void {
+    // Test 1x1 mask::Unroll intmask
+    static constexpr auto W = simd::Width<float>;
+#ifdef __AVX512VL__
+    using mask_type = simd::mask::Unroll<1, 1, W>;
+    using underlying_mask = simd::mask::Bit<W>;
+#else
+    using mask_type = simd::mask::Unroll<1, 1, W, sizeof(float)>;
+    using underlying_mask = simd::mask::Vector<W, sizeof(float)>;
+#endif
+
+    // Create a mask with specific pattern
+#ifdef __AVX512VL__
+    underlying_mask m{0b1010}; // alternating bits (if W >= 4)
+#else
+    // For Vector masks, use a vector of signed integers
+    simd::Vec<W, std::int32_t> mvec{};
+    mvec[1] = -1; // set bit 1
+    mvec[3] = -1; // set bit 3 (if W >= 4)
+    underlying_mask m{mvec};
+#endif
+    mask_type um{m};
+
+    auto imask = um.intmask();
+    if constexpr (W >= 4) {
+      expect(eq(imask & 0b1111, std::int64_t(0b1010)))
+        << "1x1 intmask should match underlying mask";
+    } else {
+      expect(eq(imask & ((1 << W) - 1), std::int64_t(0b1010) & ((1 << W) - 1)))
+        << "1x1 intmask should match underlying mask";
+    }
+  };
+
+  "MaskUnrollIntmask_General"_test = [] -> void {
+    // Test general mask::Unroll intmask for small configurations
+    // Use float width (typically 4 on SSE/AVX2, 16 on AVX512)
+    static constexpr auto W = simd::Width<float>;
+#ifdef __AVX512VL__
+    using mask_1x2 = simd::mask::Unroll<1, 2, W>; // 1 row, 2 cols
+    using mask_2x1 = simd::mask::Unroll<2, 1, W>; // 2 rows, 1 col
+    using elem_mask = simd::mask::Bit<W>;
+#else
+    using mask_1x2 = simd::mask::Unroll<1, 2, W, sizeof(float)>;
+    using mask_2x1 = simd::mask::Unroll<2, 1, W, sizeof(float)>;
+    using elem_mask = simd::mask::Vector<W, sizeof(float)>;
+#endif
+
+    // Only test if the total size fits in 64 bits
+    if constexpr (2 * W <= 64) {
+      // Test 1x2 configuration
+      {
+        mask_1x2 m;
+#ifdef __AVX512VL__
+        // Set alternating pattern in each element
+        m[0] = elem_mask{(1ULL << (W / 2)) - 1}; // lower half bits set
+        m[1] = elem_mask{((1ULL << W) - 1) ^
+                         ((1ULL << (W / 2)) - 1)}; // upper half bits set
+#else
+        simd::Vec<W, float> v0{}, v1{};
+        for (std::ptrdiff_t i = 0; i < W / 2; ++i)
+          v0[i] = __builtin_bit_cast(float, -1);
+        for (std::ptrdiff_t i = W / 2; i < W; ++i)
+          v1[i] = __builtin_bit_cast(float, -1);
+        m[0] = elem_mask{__builtin_bit_cast(simd::Vec<W, std::int32_t>, v0)};
+        m[1] = elem_mask{__builtin_bit_cast(simd::Vec<W, std::int32_t>, v1)};
+#endif
+
+        auto imask = m.intmask();
+        std::int64_t expected =
+          ((1LL << (W / 2)) - 1) | (((1LL << (W / 2)) - 1) << (W + W / 2));
+        expect(eq(imask, expected)) << "1x2 intmask should pack both elements";
+      }
+
+      // Test 2x1 configuration
+      {
+        mask_2x1 m;
+#ifdef __AVX512VL__
+        m[0] = elem_mask{(1ULL << W) - 1}; // all bits set
+        m[1] = elem_mask{0};               // no bits set
+#else
+        simd::Vec<W, std::int32_t> v0{}, v1{};
+        for (std::ptrdiff_t i = 0; i < W; ++i) v0[i] = -1;
+        m[0] = elem_mask{v0};
+        m[1] = elem_mask{v1};
+#endif
+
+        auto imask = m.intmask();
+        std::int64_t expected = (1LL << W) - 1;
+        expect(eq(imask, expected)) << "2x1 intmask should pack both elements";
+      }
+    }
+  };
+
+  "MaskUnrollIntmask_EdgeCases"_test = [] -> void {
+    // Test edge cases for intmask using native SIMD width
+    static constexpr auto W = simd::Width<double>;
+#ifdef __AVX512VL__
+    using mask_1x1 = simd::mask::Unroll<1, 1, W>;
+    using mask_1x2 = simd::mask::Unroll<1, 2, W>;
+    using elem_mask = simd::mask::Bit<W>;
+#else
+    using mask_1x1 = simd::mask::Unroll<1, 1, W, sizeof(double)>;
+    using mask_1x2 = simd::mask::Unroll<1, 2, W, sizeof(double)>;
+    using elem_mask = simd::mask::Vector<W, sizeof(double)>;
+#endif
+
+    // Test all zeros
+    {
+#ifdef __AVX512VL__
+      mask_1x1 m{elem_mask{0}};
+#else
+      mask_1x1 m{elem_mask{{}}};
+#endif
+      expect(eq(m.intmask(), std::int64_t(0))) << "All zeros should give 0";
+    }
+
+    // Test all ones
+    {
+#ifdef __AVX512VL__
+      mask_1x1 m{elem_mask{(1ULL << W) - 1}};
+#else
+      mask_1x1 m{~elem_mask{{}}};
+#endif
+      expect(eq(m.intmask(), std::int64_t((1LL << W) - 1)))
+        << "All ones should match expected pattern";
+    }
+
+    // Test 1x2 with alternating pattern (only if total fits in 64 bits)
+    if constexpr (2 * W <= 64) {
+      mask_1x2 m{};
+#ifdef __AVX512VL__
+      m[0] = elem_mask{0b10};
+      m[1] = elem_mask{0b01};
+#else
+      m[0].m[1] = -1;
+      m[1].m[0] = -1;
+#endif
+
+      auto imask = m.intmask();
+      std::int64_t expected = (1LL << 1) | (1LL << W);
+      expect(eq(imask, expected)) << "1x2 intmask pattern mismatch";
+    }
+  };
+
   return 0;
 }

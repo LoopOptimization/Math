@@ -193,7 +193,7 @@ template <std::ptrdiff_t W> struct Bit {
     else mask_ = 0;
     return {s};
   }
-  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::int64_t {
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint64_t {
     return mask_;
   }
 
@@ -510,7 +510,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
     std::uint32_t mask{};
     POLYMATHFULLUNROLL
-    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= static_cast<bool>(m[w]) << w;
+    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= (m[w] & 1) << w;
     return mask;
   }
   TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
@@ -1638,6 +1638,15 @@ struct Unroll {
     return false;
   }
 
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint64_t
+    requires(R * C * W <= 64) {
+    std::int64_t result = 0;
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result |= static_cast<std::int64_t>(data_[i].intmask()) << (i * W);
+    return result;
+  }
+
   [[nodiscard]] TRIVIAL constexpr auto onBegin() const -> std::ptrdiff_t {
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < R * C; ++i)
@@ -1826,7 +1835,7 @@ using MaskType = std::conditional_t<N == 1, bool, mask::Vector<N, Bytes>>;
   TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {
     return mask_.popcount();
   }
-  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::int64_t
+  TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint64_t
     requires(N > 1) {
     return mask_.intmask();
   }
@@ -1921,14 +1930,10 @@ private:
 // Supported means by this library currently; more types may be added in the
 // future as needed.
 
-#ifndef POLYMATHNOEXPLICITSIMDARRAY
 template <typename T>
 concept SIMDSupported =
-  (std::integral<T> || std::floating_point<T>) && (!std::same_as<T, bool>);
-#else
-template <typename T>
-concept SIMDSupported = false;
-#endif
+  ((std::integral<T> || std::floating_point<T>) && (!std::same_as<T, bool>)) ||
+  std::same_as<T, __bf16>;
 
 template <std::ptrdiff_t W, typename T>
 TRIVIAL constexpr auto vbroadcast(Vec<W, T> v) -> El<W, T> {
@@ -2021,6 +2026,13 @@ TRIVIAL inline auto load(const std::int16_t *p, mask::None<16>)
   -> Vec<16, std::int16_t> {
   return __builtin_bit_cast(Vec<16, std::int16_t>, _mm256_loadu_epi16(p));
 }
+TRIVIAL inline auto load(const std::uint16_t *p, mask::None<16>)
+  -> Vec<16, std::uint16_t> {
+  return __builtin_bit_cast(Vec<16, std::uint16_t>, _mm256_loadu_epi16(p));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::None<16>) -> Vec<16, __bf16> {
+  return __builtin_bit_cast(Vec<16, __bf16>, _mm256_loadu_epi16(p));
+}
 #endif
 TRIVIAL inline auto load(const std::int64_t *p, mask::Bit<8> i)
   -> Vec<8, std::int64_t> {
@@ -2061,10 +2073,24 @@ TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<8> i)
   return __builtin_bit_cast(Vec<8, std::uint16_t>,
                             _mm_maskz_loadu_epi16(std::uint8_t(i.mask_), p));
 }
+TRIVIAL inline auto load(const __bf16 *p, mask::Bit<8> i) -> Vec<8, __bf16> {
+  return __builtin_bit_cast(Vec<8, __bf16>,
+                            _mm_maskz_loadu_epi16(std::uint8_t(i.mask_), p));
+}
 TRIVIAL inline auto load(const std::int16_t *p, mask::Bit<16> i)
   -> Vec<16, std::int16_t> {
   return __builtin_bit_cast(
     Vec<16, std::int16_t>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<16> i)
+  -> Vec<16, std::uint16_t> {
+  return __builtin_bit_cast(
+    Vec<16, std::uint16_t>,
+    _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::Bit<16> i) -> Vec<16, __bf16> {
+  return __builtin_bit_cast(
+    Vec<16, __bf16>, _mm256_maskz_loadu_epi16(std::uint16_t(i.mask_), p));
 }
 #endif
 TRIVIAL inline auto load(const float *p, mask::Bit<16> i) -> Vec<16, float> {
@@ -2825,6 +2851,37 @@ TRIVIAL inline auto load(const bool *p, mask::None<64>) -> Vec<64, bool> {
   return __builtin_convertvector(tmp, Vec<64, bool>);
 }
 
+TRIVIAL inline auto load(const std::int16_t *p, mask::None<32>)
+  -> Vec<32, std::int16_t> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<32, std::int16_t>, _mm512_loadu_si512(vp));
+}
+TRIVIAL inline auto load(const std::uint16_t *p, mask::None<32>)
+  -> Vec<32, std::uint16_t> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<32, std::uint16_t>, _mm512_loadu_si512(vp));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::None<32>) -> Vec<32, __bf16> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<32, __bf16>, _mm512_loadu_si512(vp));
+}
+
+TRIVIAL inline auto load(const std::int16_t *p, mask::Bit<32> i)
+  -> Vec<32, std::int16_t> {
+  return __builtin_bit_cast(
+    Vec<32, std::int16_t>, _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const std::uint16_t *p, mask::Bit<32> i)
+  -> Vec<32, std::uint16_t> {
+  return __builtin_bit_cast(
+    Vec<32, std::uint16_t>,
+    _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+}
+TRIVIAL inline auto load(const __bf16 *p, mask::Bit<32> i) -> Vec<32, __bf16> {
+  return __builtin_bit_cast(
+    Vec<32, __bf16>, _mm512_maskz_loadu_epi16(std::uint32_t(i.mask_), p));
+}
+
 TRIVIAL inline auto load(const std::int8_t *p, mask::Bit<64> i)
   -> Vec<64, std::int8_t> {
   return __builtin_bit_cast(Vec<64, std::int8_t>,
@@ -2902,6 +2959,11 @@ TRIVIAL inline auto load(const std::uint16_t *p, mask::None<8>)
   return __builtin_bit_cast(Vec<8, std::uint16_t>, _mm_loadu_epi16(vp));
 }
 
+TRIVIAL inline auto load(const __bf16 *p, mask::None<8>) -> Vec<8, __bf16> {
+  const void *vp = p;
+  return __builtin_bit_cast(Vec<8, __bf16>, _mm_loadu_epi16(vp));
+}
+
 TRIVIAL inline auto load(const double *p, mask::None<8>) -> Vec<8, double> {
   const void *vp = p;
   return __builtin_bit_cast(Vec<8, double>, _mm512_loadu_pd(vp));
@@ -2941,6 +3003,11 @@ TRIVIAL inline auto load(const std::uint16_t *p, mask::None<8>)
   -> Vec<8, std::uint16_t> {
   const __m128i *pi = reinterpret_cast<const __m128i *>(p);
   return __builtin_bit_cast(Vec<8, std::uint16_t>, _mm_loadu_si128(pi));
+}
+
+TRIVIAL inline auto load(const __bf16 *p, mask::None<8>) -> Vec<8, __bf16> {
+  const __m128i *pi = reinterpret_cast<const __m128i *>(p);
+  return __builtin_bit_cast(Vec<8, __bf16>, _mm_loadu_si128(pi));
 }
 #endif
 TRIVIAL inline void store(float *p, mask::None<8>, Vec<8, float> x) {
@@ -4762,6 +4829,24 @@ struct Unroll {
       else x.data_[i] = __builtin_convertvector(data_[i], Vec<N, U>);
     return x;
   }
+  template <typename CastTo> TRIVIAL constexpr auto bitCast() const noexcept {
+    static_assert(!std::same_as<T, bool>, "Cannot bitCast from bool type");
+    static_assert(!std::same_as<CastTo, bool>, "Cannot bitCast to bool type");
+    static constexpr std::ptrdiff_t NewN = (N * sizeof(T)) / sizeof(CastTo);
+    static_assert((N * sizeof(T)) % sizeof(CastTo) == 0,
+                  "Byte size must be evenly divisible");
+    static_assert(std::popcount(std::size_t(NewN)) == 1,
+                  "NewN must be a power of 2");
+
+    using ResultVT = El<NewN, CastTo>;
+    Unroll<R, C, NewN, CastTo> result;
+
+    POLYMATHFULLUNROLL
+    for (std::ptrdiff_t i = 0; i < R * C; ++i)
+      result.data_[i] = __builtin_bit_cast(ResultVT, data_[i]);
+
+    return result;
+  }
   TRIVIAL constexpr auto operator-() {
     Unroll a;
     POLYMATHFULLUNROLL
@@ -5719,6 +5804,18 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
     requires(!std::same_as<T, U>) {
     if constexpr (N == 1) return {U(vec_)};
     else return {__builtin_convertvector(vec_, Vec<N, U>)};
+  }
+  template <typename CastTo> TRIVIAL constexpr auto bitCast() const noexcept {
+    static_assert(!std::same_as<T, bool>, "Cannot bitCast from bool type");
+    static_assert(!std::same_as<CastTo, bool>, "Cannot bitCast to bool type");
+    static constexpr std::ptrdiff_t NewN = (N * sizeof(T)) / sizeof(CastTo);
+    static_assert((N * sizeof(T)) % sizeof(CastTo) == 0,
+                  "Byte size must be evenly divisible");
+    static_assert(std::popcount(std::size_t(NewN)) == 1,
+                  "NewN must be a power of 2");
+
+    using ResultVT = El<NewN, CastTo>;
+    return Unroll<1, 1, NewN, CastTo>{__builtin_bit_cast(ResultVT, vec_)};
   }
   TRIVIAL constexpr auto operator-() { return Unroll{-vec_}; }
   TRIVIAL constexpr auto operator~() { return Unroll{~vec_}; }
@@ -6726,6 +6823,40 @@ TRIVIAL constexpr auto transpose(Unroll<R8, C, 8, T> u)
   return z;
 }
 
+template <std::ptrdiff_t L, typename T>
+TRIVIAL constexpr auto wideload(const T *ptr) -> SVec<T, L> {
+  static constexpr std::ptrdiff_t W = simd::Width<T>;
+  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
+    return {load(ptr, mask::None<L>{})};
+  } else {
+    static_assert(W < L, "small non-power-of-two not currently supported");
+    static constexpr std::ptrdiff_t N = L / W;
+    SVec<T, L> ret;
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n)
+      ret.data_[n] = load(ptr + W * n, mask::None<W>{});
+    return ret;
+  }
+}
+template <std::ptrdiff_t L, typename T>
+TRIVIAL constexpr auto wideload(const T *ptr, std::ptrdiff_t len)
+  -> SVec<T, L> {
+  static constexpr std::ptrdiff_t W = simd::VecLen<L, T>;
+  auto m{mask::create<W>(len)};
+  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
+    return {load(ptr, m)};
+  } else {
+    static_assert(W < L, "small non-power-of-two not currently supported");
+    static constexpr std::ptrdiff_t N = L / W;
+    SVec<T, L> ret;
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n)
+      ret.data_[n] = load(ptr + W * n, mask::None<W>{});
+    static constexpr std::ptrdiff_t last = N - 1;
+    ret.data_[last] = load(ptr + W * last, m);
+    return ret;
+  }
+}
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
           std::ptrdiff_t X, std::size_t NM = 1, typename MT = mask::None<N>>
 TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
