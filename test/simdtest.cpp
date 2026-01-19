@@ -747,37 +747,34 @@ auto main() -> int {
 
   "MaskUnrollIntmask_1x1"_test = [] -> void {
     // Test 1x1 mask::Unroll intmask
-    static constexpr auto W = simd::Width<double>;
+    static constexpr auto W = simd::Width<float>;
 #ifdef __AVX512VL__
     using mask_type = simd::mask::Unroll<1, 1, W>;
     using underlying_mask = simd::mask::Bit<W>;
 #else
-    using mask_type = simd::mask::Unroll<1, 1, W, sizeof(double)>;
-    using underlying_mask = simd::mask::Vector<W, sizeof(double)>;
+    using mask_type = simd::mask::Unroll<1, 1, W, sizeof(float)>;
+    using underlying_mask = simd::mask::Vector<W, sizeof(float)>;
 #endif
 
-    if constexpr (W > 1) {
-      // Create a mask with specific pattern
+    // Create a mask with specific pattern
 #ifdef __AVX512VL__
-      underlying_mask m{0b1010}; // alternating bits (if W >= 4)
+    underlying_mask m{0b1010}; // alternating bits (if W >= 4)
 #else
-      // For Vector masks, use a vector of signed integers
-      simd::Vec<W, std::int64_t> mvec{};
-      mvec[1] = -1; // set bit 1
-      mvec[3] = -1; // set bit 3 (if W >= 4)
-      underlying_mask m{mvec};
+    // For Vector masks, use a vector of signed integers
+    simd::Vec<W, std::int32_t> mvec{};
+    mvec[1] = -1; // set bit 1
+    mvec[3] = -1; // set bit 3 (if W >= 4)
+    underlying_mask m{mvec};
 #endif
-      mask_type um{m};
+    mask_type um{m};
 
-      auto imask = um.intmask();
-      if constexpr (W >= 4) {
-        expect(eq(imask & 0b1111, std::int64_t(0b1010)))
-          << "1x1 intmask should match underlying mask";
-      } else {
-        expect(
-          eq(imask & ((1 << W) - 1), std::int64_t(0b1010) & ((1 << W) - 1)))
-          << "1x1 intmask should match underlying mask";
-      }
+    auto imask = um.intmask();
+    if constexpr (W >= 4) {
+      expect(eq(imask & 0b1111, std::int64_t(0b1010)))
+        << "1x1 intmask should match underlying mask";
+    } else {
+      expect(eq(imask & ((1 << W) - 1), std::int64_t(0b1010) & ((1 << W) - 1)))
+        << "1x1 intmask should match underlying mask";
     }
   };
 
