@@ -866,9 +866,7 @@ auto main() -> int {
 #ifdef __AVX512VL__
       mask_1x1 m{elem_mask{(1ULL << W) - 1}};
 #else
-      simd::Vec<W, std::int64_t> v{};
-      for (std::ptrdiff_t i = 0; i < W; ++i) v[i] = -1;
-      mask_1x1 m{elem_mask{v}};
+      mask_1x1 m{~elem_mask{{}}};
 #endif
       expect(eq(m.intmask(), std::int64_t((1LL << W) - 1)))
         << "All ones should match expected pattern";
@@ -878,16 +876,13 @@ auto main() -> int {
     if constexpr (2 * W <= 64) {
       mask_1x2 m;
 #ifdef __AVX512VL__
-      m[0] = elem_mask{0b10 % (1ULL << W)}; // bit pattern based on W
-      m[1] = elem_mask{0b01 % (1ULL << W)};
+      m[0] = elem_mask{0b10};
+      m[1] = elem_mask{0b01};
 #else
-      simd::Vec<W, std::int64_t> v0{}, v1{};
       if constexpr (W >= 2) {
-        v0[1] = -1; // set bit 1
-        v1[0] = -1; // set bit 0
+        m[0].m[1] = -1;
+        m[1].m[0] = -1;
       }
-      m[0] = elem_mask{v0};
-      m[1] = elem_mask{v1};
 #endif
 
       auto imask = m.intmask();
