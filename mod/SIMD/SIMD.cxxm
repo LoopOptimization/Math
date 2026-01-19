@@ -510,7 +510,7 @@ template <std::ptrdiff_t W, std::size_t Bytes> struct Vector {
   TRIVIAL [[nodiscard]] constexpr auto intmask() const -> std::uint32_t {
     std::uint32_t mask{};
     POLYMATHFULLUNROLL
-    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= static_cast<bool>(m[w]) << w;
+    for (std::ptrdiff_t w = 0; w < W; ++w) mask |= (m[w] & 1) << w;
     return mask;
   }
   TRIVIAL [[nodiscard]] constexpr auto popcount() const -> int {

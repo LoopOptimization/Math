@@ -879,17 +879,13 @@ auto main() -> int {
       m[0] = elem_mask{0b10};
       m[1] = elem_mask{0b01};
 #else
-      if constexpr (W >= 2) {
-        m[0].m[1] = -1;
-        m[1].m[0] = -1;
-      }
+      m[0].m[1] = -1;
+      m[1].m[0] = -1;
 #endif
 
       auto imask = m.intmask();
-      if constexpr (W >= 2) {
-        std::int64_t expected = (1LL << 1) | (1LL << W);
-        expect(eq(imask, expected)) << "1x2 intmask pattern mismatch";
-      }
+      std::int64_t expected = (1LL << 1) | (1LL << W);
+      expect(eq(imask, expected)) << "1x2 intmask pattern mismatch";
     }
   };
 
