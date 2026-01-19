@@ -154,6 +154,15 @@ void testMaskSelectWithCast() {
   }
 #endif
 }
+
+template <std::ptrdiff_t L, typename S, typename D> void castTest() {
+  simd::SVec<S, L> a{simd::SVec<S, L>::range(0)};
+  a *= a + a;
+  simd::SVec<D, L> b = a;
+  for (std::ptrdiff_t i = 0; i < L; ++i)
+    expect(eq(static_cast<D>(a.extract_value(i)), b.extract_value(i)));
+}
+
 } // namespace
 
 auto main() -> int {
@@ -232,16 +241,24 @@ auto main() -> int {
 
     expect(__builtin_reduce_and(u.catToSIMD() == v));
   };
+  "CastSize"_test = [] -> void {
+    static constexpr auto W64 = simd::Width<std::uint64_t>;
+    castTest<W64, std::uint32_t, std::uint64_t>();
+    castTest<2 * W64, std::uint32_t, std::uint64_t>();
+    castTest<4 * W64, std::uint32_t, std::uint64_t>();
+    castTest<W64, std::uint64_t, std::uint32_t>();
+    castTest<2 * W64, std::uint64_t, std::uint32_t>();
+    castTest<4 * W64, std::uint64_t, std::uint32_t>();
+  };
+
   "SelectWiderType"_test = [] -> void {
     // Test select between wider types using mask from narrower types
     // Create float vectors for comparison
     static constexpr auto Wf = simd::Width<float>;
-    using f32 = simd::SVec<float>;
+    using f32 = simd::SVec<float, Wf>;
     f32 x{f32::range(0.F)}, y{f32::vbroadcast(Wf / 2)};
 
-    // Create wider type vectors (uint64_t has same width as float in terms of
-    // SIMD count)
-    using u64 = simd::SVec<float>;
+    using u64 = simd::SVec<std::uint64_t, Wf>;
     u64 a{u64::range(100)}, b{u64::range(200)};
 
     // Select based on float comparison: where x > y, take a, else take b
@@ -1138,9 +1155,8 @@ auto main() -> int {
     expect(eq(written, std::ptrdiff_t(0))) << "No positive should write 0";
 
     // Verify sentinel values unchanged
-    for (std::ptrdiff_t i = 0; i < 2 * W; ++i) {
+    for (std::ptrdiff_t i = 0; i < 2 * W; ++i)
       expect(eq(output[i], 999.0F)) << "Sentinel modified at index " << i;
-    }
   };
 
   "CompressStoreUnrollWithArrayMask"_test = [] -> void {
@@ -1170,9 +1186,8 @@ auto main() -> int {
 
     // Each vector keeps W/2 elements (odd indices)
     std::ptrdiff_t expected = C * (W / 2);
-    expect(eq(written, expected))
-      << "Array mask wrote wrong count: expected " << expected << ", got "
-      << written;
+    expect(eq(written, expected)) << "Array mask wrote wrong count: expected "
+                                  << expected << ", got " << written;
 
     // Verify values are odd indices
     std::ptrdiff_t idx = 0;
