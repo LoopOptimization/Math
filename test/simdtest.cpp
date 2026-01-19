@@ -856,8 +856,7 @@ auto main() -> int {
 #ifdef __AVX512VL__
       mask_1x1 m{elem_mask{0}};
 #else
-      simd::Vec<W, std::int64_t> v{};
-      mask_1x1 m{elem_mask{v}};
+      mask_1x1 m{elem_mask{{}}};
 #endif
       expect(eq(m.intmask(), std::int64_t(0))) << "All zeros should give 0";
     }
