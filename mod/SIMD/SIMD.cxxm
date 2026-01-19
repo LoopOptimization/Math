@@ -4328,14 +4328,30 @@ TRIVIAL inline auto expandload(const T *p, mask::Bit<2> m) -> Vec<2, T> {
   } else static_assert("type not supported");
 }
 
+// Generic compressstore/expandload taking std::uint64_t mask for AVX512
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
+  compressstore(p, mask::Bit<W>{mask}, x);
+}
+
+template <typename T, std::ptrdiff_t W>
+TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
+  return expandload(p, mask::Bit<W>{mask});
+}
+
 #else // if __AVX512F__; else;
-// Generic compress store/load for non-AVX512 or different widths
+// Generic compress store/load for non-AVX512 x86_64
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
   std::ptrdiff_t idx = 0;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) p[idx++] = x[w];
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline void compressstore(T *p, mask::Vector<W, Bytes> m, Vec<W, T> x) {
+  compressstore(p, std::uint64_t(m.intmask()), x);
 }
 
 template <typename T, std::ptrdiff_t W>
@@ -4346,6 +4362,12 @@ TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) ret[w] = p[idx++];
   return ret;
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto expandload(const T *p, mask::Vector<W, Bytes> m)
+  -> Vec<W, T> {
+  return expandload<T, W>(p, std::uint64_t(m.intmask()));
 }
 
 // Generic fallback implementations for x86_64 without AVX512F
@@ -4380,13 +4402,21 @@ TRIVIAL inline auto load(const T *p, mask::None<W>, std::int32_t stride)
 
 #else // not __x86_64__
 
-// Generic compress store/load for non-AVX512 or different widths
+// Generic compress store/load for non-x86_64
 template <typename T, std::ptrdiff_t W>
 TRIVIAL inline void compressstore(T *p, std::uint64_t mask, Vec<W, T> x) {
   std::ptrdiff_t idx = 0;
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) p[idx++] = x[w];
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline void compressstore(T *p, mask::Vector<W, Bytes> m, Vec<W, T> x) {
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (m.m[w]) p[idx++] = x[w];
 }
 
 template <typename T, std::ptrdiff_t W>
@@ -4396,6 +4426,17 @@ TRIVIAL inline auto expandload(const T *p, std::uint64_t mask) -> Vec<W, T> {
   POLYMATHFULLUNROLL
   for (std::ptrdiff_t w = 0; w < W; ++w)
     if (mask & (1ULL << w)) ret[w] = p[idx++];
+  return ret;
+}
+
+template <typename T, std::ptrdiff_t W, std::size_t Bytes>
+TRIVIAL inline auto expandload(const T *p, mask::Vector<W, Bytes> m)
+  -> Vec<W, T> {
+  Vec<W, T> ret{};
+  std::ptrdiff_t idx = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t w = 0; w < W; ++w)
+    if (m.m[w]) ret[w] = p[idx++];
   return ret;
 }
 
@@ -7700,6 +7741,49 @@ TRIVIAL constexpr auto exp2unchecked(Vec<W, T> x) -> Vec<W, double> {
   if constexpr (std::same_as<T, std::int64_t>) y = x;
   else y = __builtin_convertvector(x, Vec<W, std::int64_t>);
   return __builtin_bit_cast(Vec<W, double>, (y + 1023) << 52);
+}
+
+// compressstore for Unroll types with mask::Unroll
+// Returns the number of elements written
+// Example: compressstore(ptr, x > 0, x); // store all positive x
+#ifdef __AVX512F__
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename T>
+TRIVIAL inline auto compressstore(T *p, mask::Unroll<R, C, W> masks,
+                                  Unroll<R, C, W, T> x) -> std::ptrdiff_t {
+  std::ptrdiff_t written = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    compressstore(p + written, masks[i], x[i]);
+    written += masks[i].popcount();
+  }
+  return written;
+}
+#else
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename T,
+          std::size_t Bytes>
+TRIVIAL inline auto compressstore(T *p, mask::Unroll<R, C, W, Bytes> masks,
+                                  Unroll<R, C, W, T> x) -> std::ptrdiff_t {
+  std::ptrdiff_t written = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    compressstore(p + written, masks[i], x[i]);
+    written += masks[i].popcount();
+  }
+  return written;
+}
+#endif
+
+// compressstore with array of uint64_t masks
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W, typename T>
+TRIVIAL inline auto compressstore(T *p, std::array<std::uint64_t, R * C> masks,
+                                  Unroll<R, C, W, T> x) -> std::ptrdiff_t {
+  std::ptrdiff_t written = 0;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    compressstore(p + written, masks[i], x[i]);
+    written += std::popcount(masks[i] & ((1ULL << W) - 1));
+  }
+  return written;
 }
 
 } // namespace simd

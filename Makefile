@@ -3,14 +3,11 @@ HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
 all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release clang-avx2 clang-avx512
-# all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-base-arch clang-release gcc-release gcc-avx2 clang-avx512
 else ifeq ($(HAVE_AVX2),0)
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-base-arch clang-release gcc-release gcc-avx2
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release clang-avx2
 else
-all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx gcc-no-san gcc-san clang-base-arch clang-release gcc-release
+all: clang-no-san clang-san clang-no-san-libstdcxx clang-san-libstdcxx clang-base-arch clang-release
 endif
-#TODO: re-enable GCC once multidimensional indexing in `requires` is fixed:
-# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111493
 
 # `command -v` returns nothing if not found (and we redirect stderr)
 NINJA := $(shell command -v ninja 2> /dev/null)
@@ -20,12 +17,6 @@ else
     NINJAGEN := ""
 endif
 
-
-build-gcc/no-san/:
-	CXXFLAGS="-Og" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/no-san/ -DCMAKE_BUILD_TYPE=Debug
-
-build-gcc/san/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/san/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 
 build-clang/no-san/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san/ -DCMAKE_BUILD_TYPE=Debug
@@ -39,9 +30,6 @@ build-clang/no-san-libstdcxx/:
 build-clang/san-libstdcxx/:
 	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san-libstdcxx/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 	
-build-gcc/avx2/:
-	CXXFLAGS="-Og -march=x86-64-v3" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
-
 build-clang/avx2/:
 	CXXFLAGS="-march=x86-64-v3" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx2/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
@@ -57,25 +45,11 @@ build-clang/no-simd/:
 build-clang/bench/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
 
-build-gcc/bench/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S benchmark -B build-gcc/bench/ -DCMAKE_BUILD_TYPE=Release
-
 build-clang/type/:
 	CXXFLAGS="-Og -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/type/ -DCMAKE_BUILD_TYPE=Debug -DUSE_TYPE_SANITIZER=ON
 
 build-clang/release/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/release/ -DCMAKE_BUILD_TYPE=RELEASE
-
-build-gcc/release/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/release/ -DCMAKE_BUILD_TYPE=RELEASE
-
-gcc-no-san: build-gcc/no-san/
-	cmake --build build-gcc/no-san/
-	cmake --build build-gcc/no-san/ --target test
-
-gcc-san: build-gcc/san/
-	cmake --build build-gcc/san/
-	cmake --build build-gcc/san/ --target test
 
 clang-no-san: build-clang/no-san/
 	cmake --build build-clang/no-san/
@@ -92,10 +66,6 @@ clang-no-san-libstdcxx: build-clang/no-san-libstdcxx/
 clang-san-libstdcxx: build-clang/san-libstdcxx/
 	cmake --build build-clang/san-libstdcxx/
 	cmake --build build-clang/san-libstdcxx/ --target test
-
-gcc-avx2: build-gcc/avx2/
-	cmake --build build-gcc/avx2/
-	cmake --build build-gcc/avx2/ --target test
 
 clang-avx2: build-clang/avx2/
 	cmake --build build-clang/avx2/
@@ -116,9 +86,6 @@ clang-no-simd: build-clang/no-simd/
 clang-bench: build-clang/bench/
 	cmake --build build-clang/bench
 
-gcc-bench: build-gcc/bench/
-	cmake --build build-gcc/bench
-
 clang-type: build-clang/type/
 	cmake --build build-clang/type
 	TYSAN_OPTIONS=print_stacktrace=1 cmake --build build-clang/type --target test
@@ -127,17 +94,10 @@ clang-release: build-clang/release/
 	cmake --build build-clang/release
 	cmake --build build-clang/release --target test
 
-gcc-release: build-gcc/release/
-	cmake --build build-gcc/release
-	cmake --build build-gcc/release --target test
-
 
 # Coverage builds
 build-clang/coverage/:
 	CXXFLAGS="-stdlib=libc++ -fprofile-instr-generate -fcoverage-mapping" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/coverage/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_TEST_COVERAGE=ON
-
-build-gcc/coverage/:
-	CXXFLAGS="" CXX=g++ cmake $(NINJAGEN) -S test -B build-gcc/coverage/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_TEST_COVERAGE=ON
 
 coverage-local: build-clang/coverage/
 	cmake --build build-clang/coverage/
@@ -189,4 +149,4 @@ coverage-check: coverage-local
 	fi
 
 clean:
-	rm -rf build-clang build-gcc
+	rm -rf build-clang
