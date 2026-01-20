@@ -1593,6 +1593,14 @@ static_assert(
 static_assert(RowVector<math::Array<double, math::Length<-1, long>, false>>);
 static_assert(
   ColVector<math::MutArray<double, math::StridedRange<-1, -1>, false>>);
+
+static_assert(
+  std::same_as<decltype(MutArray<std::int64_t, DenseDims<-1, 16>>()[0, _]),
+               MutArray<std::int64_t, Length<16>>>);
+static_assert(std::same_as<
+              decltype(MutArray<std::int64_t, StridedDims<-1, 16, -1>>()[0, _]),
+              MutArray<std::int64_t, Length<16>>>);
+
 // static_assert(!std::common_with<math::MutArray<double, math::StridedRange<-1,
 // -1>, false>, double>);
 

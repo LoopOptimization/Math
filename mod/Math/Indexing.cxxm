@@ -141,7 +141,8 @@ TRIVIAL [[nodiscard]] constexpr auto calcOffset(Length<> len, OffsetEnd i)
   invariant(i.offset_ <= len);
   return std::ptrdiff_t(len) - i.offset_;
 }
-TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<> len, std::ptrdiff_t i)
+TRIVIAL [[nodiscard]] constexpr auto calcRangeOffset(Length<> len,
+                                                     std::ptrdiff_t i)
   -> std::ptrdiff_t {
   invariant(i <= len);
   return i;
@@ -369,7 +370,7 @@ TRIVIAL constexpr auto calcNewDim(MatrixDimension auto d, B b, C) {
 }
 
 template <ScalarIndex R, AbstractSlice C>
-TRIVIAL constexpr auto calcNewDim(StridedDims<> d, R, C c) {
+TRIVIAL constexpr auto calcNewDim(MatrixDimension auto d, R, C c) {
   return calcNewDim(aslength(col(d)), c);
 }
 
@@ -457,8 +458,10 @@ TRIVIAL constexpr auto calcNewDim(StridedDims<> d,
   return simd::index::UnrollDims<1, C, W, M>{c.mask_, stride(d)};
 }
 
-template <std::ptrdiff_t U, std::ptrdiff_t W, typename M, std::ptrdiff_t L, std::signed_integral I>
-TRIVIAL constexpr auto calcNewDim(Length<L, I>, simd::index::Unroll<U, W, M> i) {
+template <std::ptrdiff_t U, std::ptrdiff_t W, typename M, std::ptrdiff_t L,
+          std::signed_integral I>
+TRIVIAL constexpr auto calcNewDim(Length<L, I>,
+                                  simd::index::Unroll<U, W, M> i) {
   return simd::index::UnrollDims<1, U, W, M, false, 1>{i.mask_, RowStride<1>{}};
 }
 
