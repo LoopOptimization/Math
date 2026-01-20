@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 add_compile_options(
   "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fomit-frame-pointer;-fno-rtti;-fno-plt;-fno-asynchronous-unwind-tables>"
 )
+add_compile_options(-save-temps)
 
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # This specific value changes as experimental support evolves. See
@@ -13,7 +14,7 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 else()
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 endif()
 project(MathBenchmarks LANGUAGES CXX)
 
@@ -94,19 +95,15 @@ if(ENABLE_NATIVE_COMPILATION)
       target_compile_options(${PROJECT_NAME} PRIVATE -qopt-zmm-usage=high)
     endif()
   else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -march=native
-    )# -fno-unroll-loops)
-    if(ENABLE_WIDE_VECTORS)
-      check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
-      if(VEC512)
+    target_compile_options(${PROJECT_NAME} PRIVATE -march=native)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         target_compile_options(${PROJECT_NAME}
                                PRIVATE -mprefer-vector-width=512)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-          if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            target_compile_options(${PROJECT_NAME}
-                                   PRIVATE -mtune-ctrl=avx512_move_by_pieces)
-          endif()
-        endif()
+      elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        target_compile_options(
+          ${PROJECT_NAME} PRIVATE -mprefer-vector-width=512
+                                  -mtune-ctrl=avx512_move_by_pieces)
       endif()
     endif()
   endif()
