@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 4.0.2 FATAL_ERROR)
 add_compile_options(
   "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fomit-frame-pointer;-fno-rtti;-fno-plt;-fno-asynchronous-unwind-tables>"
 )
+add_compile_options(-save-temps)
 
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
     # This specific value changes as experimental support evolves. See
@@ -13,7 +14,7 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 else()
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 endif()
 project(MathBenchmarks LANGUAGES CXX)
 
@@ -25,6 +26,24 @@ option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 # option(ENABLE_OPENMP "Use OpenMP for a multithreading benchmark" OFF)
 
+if(ENABLE_NATIVE_COMPILATION)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    add_compile_options(-xhost)
+    if(ENABLE_WIDE_VECTORS)
+      add_compile_options(-qopt-zmm-usage=high)
+    endif()
+  else()
+    add_compile_options(-march=native)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-mprefer-vector-width=512)
+      elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        add_compile_options(-mprefer-vector-width=512
+                            -mtune-ctrl=avx512_move_by_pieces)
+      endif()
+    endif()
+  endif()
+endif()
 # --- Import tools ----
 
 # include(../cmake/tools.cmake)
@@ -87,30 +106,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -fverbose-asm)
 endif()
 
-if(ENABLE_NATIVE_COMPILATION)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_compile_options(${PROJECT_NAME} PRIVATE -xhost)
-    if(ENABLE_WIDE_VECTORS)
-      target_compile_options(${PROJECT_NAME} PRIVATE -qopt-zmm-usage=high)
-    endif()
-  else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -march=native
-    )# -fno-unroll-loops)
-    if(ENABLE_WIDE_VECTORS)
-      check_cxx_compiler_flag("-mprefer-vector-width=512" VEC512)
-      if(VEC512)
-        target_compile_options(${PROJECT_NAME}
-                               PRIVATE -mprefer-vector-width=512)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-          if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            target_compile_options(${PROJECT_NAME}
-                                   PRIVATE -mtune-ctrl=avx512_move_by_pieces)
-          endif()
-        endif()
-      endif()
-    endif()
-  endif()
-endif()
 set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES CXX_STANDARD 23

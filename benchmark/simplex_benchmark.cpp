@@ -4,7 +4,6 @@ import ArrayParse;
 import ManagedArray;
 import Simplex;
 import std;
-import Valid;
 
 using utils::operator""_mat, math::_;
 
@@ -880,21 +879,21 @@ void BM_Simplex0(Bench &bench) {
   alloc::OwningArena<> alloc;
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
   std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
-  utils::Valid<math::Simplex> simpBackup{
+  math::Simplex &simpBackup{
     math::Simplex::create(&alloc, math::row(numCon), math::col(numVar))};
-  simpBackup->getTableau() << tableau;
+  simpBackup.getTableau() << tableau;
   // Simplex simpBackup{tableau};
-  utils::Valid<math::Simplex> simp{
-    math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
-                          math::col(simpBackup->getNumVars()))};
+  math::Simplex &simp{
+    math::Simplex::create(&alloc, math::row(simpBackup.getNumCons()),
+                          math::col(simpBackup.getNumVars()))};
   // Vector<Rational> sol(37);
   bench.run("BM_Simplex0", [&] {
-    *simp << *simpBackup;
-    bool fail = simp->initiateFeasible();
+    simp << simpBackup;
+    bool fail = simp.initiateFeasible();
 #ifndef NDEBUG
     if (fail) __builtin_trap();
 #endif
-    if (!fail) simp->rLexMinLast(37);
+    if (!fail) simp.rLexMinLast(37);
   });
   alloc.reset();
 }
@@ -1122,18 +1121,18 @@ void BM_Simplex1(Bench &bench) {
   alloc::OwningArena<> alloc;
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
   std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
-  utils::Valid<math::Simplex> simpBackup{
+  math::Simplex &simpBackup{
     math::Simplex::create(&alloc, math::row(numCon), math::col(numVar), 0)};
-  simpBackup->getTableau() << tableau;
-  utils::Valid<math::Simplex> simp{
-    math::Simplex::create(&alloc, math::row(simpBackup->getNumCons()),
-                          math::col(simpBackup->getNumVars()), 0)};
+  simpBackup.getTableau() << tableau;
+  math::Simplex &simp{
+    math::Simplex::create(&alloc, math::row(simpBackup.getNumCons()),
+                          math::col(simpBackup.getNumVars()), 0)};
   bench.run("BM_Simplex1", [&] {
-    *simp << *simpBackup;
-    bool fail = simp->initiateFeasible();
+    simp << simpBackup;
+    bool fail = simp.initiateFeasible();
 #ifndef NDEBUG
     if (fail) __builtin_trap();
 #endif
-    if (!fail) simp->rLexMinLast(15);
+    if (!fail) simp.rLexMinLast(15);
   });
 }
