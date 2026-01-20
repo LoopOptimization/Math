@@ -74,9 +74,17 @@ struct StridedDims {
   static constexpr std::ptrdiff_t nrow = R;
   static constexpr std::ptrdiff_t ncol = C;
   static constexpr std::ptrdiff_t nstride = X;
-  [[no_unique_address]] Row<R> m_;
-  [[no_unique_address]] Col<C> n_;
-  [[no_unique_address]] RowStride<X> stride_m_;
+
+  static constexpr bool compress = ((R == -1) + (C == -1) + (X == -1)) == 2;
+  [[no_unique_address]] Row<
+    R, std::conditional_t<compress && (R == -1), std::int32_t, std::ptrdiff_t>>
+    m_;
+  [[no_unique_address]] Col<
+    C, std::conditional_t<compress && (C == -1), std::int32_t, std::ptrdiff_t>>
+    n_;
+  [[no_unique_address]] RowStride<
+    X, std::conditional_t<compress && (X == -1), std::int32_t, std::ptrdiff_t>>
+    stride_m_;
   TRIVIAL explicit constexpr StridedDims() = default;
   TRIVIAL constexpr StridedDims(Row<R> m, Col<C> n)
     : m_{m}, n_{n}, stride_m_{stride(std::ptrdiff_t(n))} {}
@@ -188,6 +196,8 @@ private:
   }
 }; // namespace math
 static_assert(sizeof(StridedDims<-1, 8, 8>) == sizeof(std::ptrdiff_t));
+static_assert(sizeof(StridedDims<-1, -1, 8>) == sizeof(std::ptrdiff_t));
+static_assert(sizeof(StridedDims<-1, 8, -1>) == sizeof(std::ptrdiff_t));
 
 template <std::ptrdiff_t R, std::ptrdiff_t C> struct DenseDims {
   static constexpr std::ptrdiff_t nrow = R;

@@ -1593,6 +1593,7 @@ static_assert(
 static_assert(RowVector<math::Array<double, math::Length<-1, long>, false>>);
 static_assert(
   ColVector<math::MutArray<double, math::StridedRange<-1, -1>, false>>);
+
 // static_assert(!std::common_with<math::MutArray<double, math::StridedRange<-1,
 // -1>, false>, double>);
 

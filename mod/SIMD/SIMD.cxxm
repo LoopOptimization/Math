@@ -7372,7 +7372,7 @@ TRIVIAL constexpr auto ref(T *p, index::UnrollDims<R, C, W, M, Transposed, X> i)
 }
 
 namespace index {
-// Unroll rows by a factor of `R` and cols by `C`, vectorizing with width `W`
+// Unroll by a factor of `U` vectorizing with width `W`
 template <std::ptrdiff_t U, std::ptrdiff_t W = 1, typename M = mask::None<W>>
 struct Unroll {
   std::ptrdiff_t index_;
