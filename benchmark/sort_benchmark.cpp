@@ -67,8 +67,8 @@ void BM_sort_pairs_impl(Bench &bench, const std::string &type_name) {
     for (std::ptrdiff_t i = 0; i < N; ++i)
       pairs[std::size_t(i)] = {keys[i], values[i]};
 
-    std::ranges::sort(pairs,
-                      [](const auto &a, const auto &b) { return a.first < b.first; });
+    std::ranges::sort(
+      pairs, [](const auto &a, const auto &b) { return a.first < b.first; });
     doNotOptimizeAway(pairs);
   });
 }

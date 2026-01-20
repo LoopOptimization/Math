@@ -26,6 +26,24 @@ option(ENABLE_NATIVE_COMPILATION "Compile with -march=native" ON)
 option(ENABLE_WIDE_VECTORS "Compile with 512bit vectors if available" ON)
 # option(ENABLE_OPENMP "Use OpenMP for a multithreading benchmark" OFF)
 
+if(ENABLE_NATIVE_COMPILATION)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
+    add_compile_options(-xhost)
+    if(ENABLE_WIDE_VECTORS)
+      add_compile_options(-qopt-zmm-usage=high)
+    endif()
+  else()
+    add_compile_options(-march=native)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-mprefer-vector-width=512)
+      elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        add_compile_options(-mprefer-vector-width=512
+                            -mtune-ctrl=avx512_move_by_pieces)
+      endif()
+    endif()
+  endif()
+endif()
 # --- Import tools ----
 
 # include(../cmake/tools.cmake)
@@ -88,26 +106,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             -fverbose-asm)
 endif()
 
-if(ENABLE_NATIVE_COMPILATION)
-  if(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
-    target_compile_options(${PROJECT_NAME} PRIVATE -xhost)
-    if(ENABLE_WIDE_VECTORS)
-      target_compile_options(${PROJECT_NAME} PRIVATE -qopt-zmm-usage=high)
-    endif()
-  else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -march=native)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        target_compile_options(${PROJECT_NAME}
-                               PRIVATE -mprefer-vector-width=512)
-      elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        target_compile_options(
-          ${PROJECT_NAME} PRIVATE -mprefer-vector-width=512
-                                  -mtune-ctrl=avx512_move_by_pieces)
-      endif()
-    endif()
-  endif()
-endif()
 set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES CXX_STANDARD 23
