@@ -2709,6 +2709,74 @@ TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, std::uint32_t> x,
     _mm512_mask_mov_epi32(yi, std::uint16_t(m.mask_), xi));
 }
 
+TRIVIAL constexpr auto select(mask::Bit<32> m, Vec<32, std::uint16_t> x,
+                              Vec<32, std::uint16_t> y)
+  -> Vec<32, std::uint16_t> {
+  __m512i xi = __builtin_bit_cast(__m512i, x),
+          yi = __builtin_bit_cast(__m512i, y);
+  return __builtin_bit_cast(
+    Vec<32, std::uint16_t>,
+    _mm512_mask_mov_epi16(yi, std::uint32_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<32> m, Vec<32, std::int16_t> x,
+                              Vec<32, std::int16_t> y)
+  -> Vec<32, std::int16_t> {
+  __m512i xi = __builtin_bit_cast(__m512i, x),
+          yi = __builtin_bit_cast(__m512i, y);
+  return __builtin_bit_cast(
+    Vec<32, std::int16_t>,
+    _mm512_mask_mov_epi16(yi, std::int32_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, std::uint16_t> x,
+                              Vec<16, std::uint16_t> y)
+  -> Vec<16, std::uint16_t> {
+  __m256i xi = __builtin_bit_cast(__m256i, x),
+          yi = __builtin_bit_cast(__m256i, y);
+  return __builtin_bit_cast(
+    Vec<16, std::uint16_t>,
+    _mm256_mask_mov_epi16(yi, std::uint16_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<16> m, Vec<16, std::int16_t> x,
+                              Vec<16, std::int16_t> y)
+  -> Vec<16, std::int16_t> {
+  __m256i xi = __builtin_bit_cast(__m256i, x),
+          yi = __builtin_bit_cast(__m256i, y);
+  return __builtin_bit_cast(
+    Vec<16, std::int16_t>,
+    _mm256_mask_mov_epi16(yi, std::int16_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, std::uint16_t> x,
+                              Vec<8, std::uint16_t> y)
+  -> Vec<8, std::uint16_t> {
+  __m128i xi = __builtin_bit_cast(__m128i, x),
+          yi = __builtin_bit_cast(__m128i, y);
+  return __builtin_bit_cast(Vec<8, std::uint16_t>,
+                            _mm_mask_mov_epi16(yi, std::uint8_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<8> m, Vec<8, std::int16_t> x,
+                              Vec<8, std::int16_t> y) -> Vec<8, std::int16_t> {
+  __m128i xi = __builtin_bit_cast(__m128i, x),
+          yi = __builtin_bit_cast(__m128i, y);
+  return __builtin_bit_cast(Vec<8, std::int16_t>,
+                            _mm_mask_mov_epi16(yi, std::int8_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<64> m, Vec<64, std::uint8_t> x,
+                              Vec<64, std::uint8_t> y)
+  -> Vec<64, std::uint8_t> {
+  __m512i xi = __builtin_bit_cast(__m512i, x),
+          yi = __builtin_bit_cast(__m512i, y);
+  return __builtin_bit_cast(
+    Vec<64, std::uint8_t>,
+    _mm512_mask_mov_epi8(yi, std::uint32_t(m.mask_), xi));
+}
+TRIVIAL constexpr auto select(mask::Bit<64> m, Vec<64, std::int8_t> x,
+                              Vec<64, std::int8_t> y) -> Vec<64, std::int8_t> {
+  __m512i xi = __builtin_bit_cast(__m512i, x),
+          yi = __builtin_bit_cast(__m512i, y);
+  return __builtin_bit_cast(
+    Vec<64, std::int8_t>, _mm512_mask_mov_epi8(yi, std::int32_t(m.mask_), xi));
+}
+
 template <std::ptrdiff_t W>
 template <typename T>
 [[nodiscard]] TRIVIAL constexpr auto mask::Bit<W>::select(Vec<W, T> a,
@@ -2913,18 +2981,31 @@ TRIVIAL inline void store(bool *p, mask::None<64>, Vec<64, bool> x) {
 
 TRIVIAL inline void store(std::int8_t *p, mask::Bit<64> i,
                           Vec<64, std::int8_t> x) {
-  _mm512_mask_storeu_epi8(p, std::uint64_t(i.mask_),
-                          __builtin_bit_cast(__m512i, x));
+  _mm512_mask_storeu_epi8(p, i.mask_, __builtin_bit_cast(__m512i, x));
 }
 TRIVIAL inline void store(std::uint8_t *p, mask::Bit<64> i,
                           Vec<64, std::uint8_t> x) {
-  _mm512_mask_storeu_epi8(p, std::uint64_t(i.mask_),
-                          __builtin_bit_cast(__m512i, x));
+  _mm512_mask_storeu_epi8(p, i.mask_, __builtin_bit_cast(__m512i, x));
 }
 TRIVIAL inline void store(bool *p, mask::Bit<64> i, Vec<64, bool> x) {
   auto tmp = __builtin_convertvector(x, Vec<64, std::uint8_t>);
-  _mm512_mask_storeu_epi8(p, std::uint64_t(i.mask_),
-                          __builtin_bit_cast(__m512i, tmp));
+  _mm512_mask_storeu_epi8(p, i.mask_, __builtin_bit_cast(__m512i, tmp));
+}
+TRIVIAL inline void store(std::int16_t *p, mask::None<32>,
+                          Vec<32, std::int16_t> x) {
+  _mm512_storeu_epi16(p, __builtin_bit_cast(__m512i, x));
+}
+TRIVIAL inline void store(std::uint16_t *p, mask::None<32>,
+                          Vec<32, std::uint16_t> x) {
+  _mm512_storeu_epi16(p, __builtin_bit_cast(__m512i, x));
+}
+TRIVIAL inline void store(std::int16_t *p, mask::Bit<32> i,
+                          Vec<32, std::int16_t> x) {
+  _mm512_mask_storeu_epi16(p, i.mask_, __builtin_bit_cast(__m512i, x));
+}
+TRIVIAL inline void store(std::uint16_t *p, mask::Bit<32> i,
+                          Vec<32, std::uint16_t> x) {
+  _mm512_mask_storeu_epi16(p, i.mask_, __builtin_bit_cast(__m512i, x));
 }
 #endif // AVX512BW && AVX512VL
 
@@ -6007,7 +6088,7 @@ template <std::ptrdiff_t N, typename T> struct Unroll<1, 1, N, T> {
   }
   TRIVIAL [[nodiscard]] constexpr auto split() const
     -> std::array<Unroll<1Z, 1Z, N / 2Z, T>, 2>
-    requires(N == 2 || N == 4 || N == 8 || N == 16) {
+    requires(N == 2 || N == 4 || N == 8 || N == 16 || N == 32 || N == 64) {
     using U = Unroll<1Z, 1Z, N / 2Z, T>;
     auto s = ::simd::split(vec_);
     return std::array<U, 2>{U{s[0]}, U{s[1]}};

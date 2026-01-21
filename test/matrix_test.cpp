@@ -516,6 +516,10 @@ int main() {
       }
       expect((array_runtime[2, 1]) == 21);
       expect((array_static[2, 1]) == 21);
+      MutArray<std::int64_t, StridedDims<-1, 3, -1>> A{array_static};
+      expect(array_static[0, _] != array_static[1, _]);
+      A[1, _].copyFrom(array_static[0, _]);
+      expect(array_static[0, _] == array_static[1, _]);
     }
 
     // Test DenseDims conversions

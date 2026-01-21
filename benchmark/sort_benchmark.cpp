@@ -62,7 +62,7 @@ void BM_sortperm_impl(Bench &bench, const std::string &type_name) {
 
   bench.run("SortPerm<" + type_name + "," + std::to_string(N) + ">", [&] {
     for (std::size_t i = 0; i < X; ++i) {
-      auto [perm, sorted_keys] = utils::SortPerm<T, N>::make(keys[i]);
+      auto [perm, sorted_keys] = utils::SortPerm<N>::make(keys[i]);
       auto sorted_values = perm(values[i]);
       doNotOptimizeAway(sorted_keys);
       doNotOptimizeAway(sorted_values);
