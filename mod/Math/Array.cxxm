@@ -780,6 +780,21 @@ struct MutArray : Array<T, S, Compress>,
       std::memset(data(), 0, this->size() * sizeof(storage_type));
     else std::fill_n(this->data(), this->size(), T{});
   }
+  constexpr void copyFrom(const AbstractVector auto &src)
+    requires(std::is_trivially_default_constructible_v<T> &&
+             std::is_trivially_destructible_v<T> && VectorDimension<S>) {
+    std::ptrdiff_t L;
+    using Odim = decltype(src.dim());
+    if constexpr (StaticLength<S> && StaticLength<Odim>) {
+      static constexpr std::ptrdiff_t SL = S::staticint();
+      L = SL;
+      static_assert(SL == Odim::staticint());
+    } else {
+      L = this->size();
+      utils::invariant(L == src.size());
+    }
+    std::memcpy(data(), src.data(), sizeof(T) * L);
+  }
   [[nodiscard]] constexpr auto diag() noexcept {
     Length l = length(
       std::min(std::ptrdiff_t(Row(this->sz_)), std::ptrdiff_t(Col(this->sz_))));

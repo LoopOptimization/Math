@@ -79,17 +79,21 @@ auto main() -> int {
 
   "sortperm_fp64_16"_test = [] -> void {
     using SV16 = SVector<double, 16>;
+    using SV16u = SVector<std::uint16_t, 16>;
     std::mt19937_64 rng{std::random_device{}()};
     std::uniform_real_distribution<double> dist{0.123, 1024.8};
+    std::uniform_int_distribution<std::uint16_t> idist{0, 65535};
 
     for (int i = 0; i < 100; ++i) {
       SV16 keys{}, values{};
+      SV16u ivalues{};
       for (int j = 0; j < 16; ++j) {
         keys[j] = dist(rng);
         values[j] = dist(rng);
+        ivalues[j] = idist(rng);
       }
 
-      auto [perm, sorted_keys] = utils::SortPerm<double, 16>::make(keys);
+      auto [perm, sorted_keys] = utils::SortPerm<16>::make(keys);
 
       // Verify sorted_keys is correct
       SV16 expected_keys = keys;
@@ -101,30 +105,38 @@ auto main() -> int {
 
       // Verify applying perm to values matches key-value sort
       SV16 permuted_values = perm(values);
+      SV16u permuted_ivalues = perm(ivalues);
 
-      std::array<std::pair<double, double>, 16> pairs;
-      for (int j = 0; j < 16; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs,
-                        [](auto &a, auto &b) { return a.first < b.first; });
+      std::array<std::tuple<double, double, std::uint16_t>, 16> tuples;
+      for (int j = 0; j < 16; ++j) tuples[j] = {keys[j], values[j], ivalues[j]};
+      std::ranges::sort(tuples, [](auto &a, auto &b) {
+        return std::get<0>(a) < std::get<0>(b);
+      });
 
-      for (int j = 0; j < 16; ++j)
-        expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 16; ++j) {
+        expect(permuted_values[j] == std::get<1>(tuples[j]));
+        expect(permuted_ivalues[j] == std::get<2>(tuples[j]));
+      }
     }
   };
 
   "sortperm_fp32_16"_test = [] -> void {
     using SV16 = SVector<float, 16>;
+    using SV16u = SVector<std::uint16_t, 16>;
     std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist{0.123f, 1024.8f};
+    std::uniform_int_distribution<std::uint16_t> idist{0, 65535};
 
     for (int i = 0; i < 100; ++i) {
       SV16 keys{}, values{};
+      SV16u ivalues{};
       for (int j = 0; j < 16; ++j) {
         keys[j] = dist(rng);
         values[j] = dist(rng);
+        ivalues[j] = idist(rng);
       }
 
-      auto [perm, sorted_keys] = utils::SortPerm<float, 16>::make(keys);
+      auto [perm, sorted_keys] = utils::SortPerm<16>::make(keys);
 
       // Verify sorted_keys is correct
       SV16 expected_keys = keys;
@@ -136,31 +148,40 @@ auto main() -> int {
 
       // Verify applying perm to values matches key-value sort
       SV16 permuted_values = perm(values);
+      SV16u permuted_ivalues = perm(ivalues);
 
-      std::array<std::pair<float, float>, 16> pairs;
-      for (int j = 0; j < 16; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs,
-                        [](auto &a, auto &b) { return a.first < b.first; });
+      std::array<std::tuple<float, float, std::uint16_t>, 16> tuples;
+      for (int j = 0; j < 16; ++j) tuples[j] = {keys[j], values[j], ivalues[j]};
+      std::ranges::sort(tuples, [](auto &a, auto &b) {
+        return std::get<0>(a) < std::get<0>(b);
+      });
 
-      for (int j = 0; j < 16; ++j)
-        expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 16; ++j) {
+        expect(permuted_values[j] == std::get<1>(tuples[j]));
+        expect(permuted_ivalues[j] == std::get<2>(tuples[j]));
+      }
     }
   };
 
   "sortperm_fp64_32"_test = [] -> void {
     using SV32 = SVector<double, 32>;
     using SV16 = SVector<double, 16>;
+    using SV32u = SVector<std::uint16_t, 32>;
+    using SV16u = SVector<std::uint16_t, 16>;
     std::mt19937_64 rng{std::random_device{}()};
     std::uniform_real_distribution<double> dist{0.123, 1024.8};
+    std::uniform_int_distribution<std::uint16_t> idist{0, 65535};
 
     for (int i = 0; i < 100; ++i) {
       SV32 keys{}, values{};
+      SV32u ivalues{};
       for (int j = 0; j < 32; ++j) {
         keys[j] = dist(rng);
         values[j] = dist(rng);
+        ivalues[j] = idist(rng);
       }
 
-      auto [perm, sorted_keys] = utils::SortPerm<double, 32>::make(keys);
+      auto [perm, sorted_keys] = utils::SortPerm<32>::make(keys);
 
       // Verify sorted_keys is correct
       SV32 expected_keys = keys;
@@ -172,21 +193,24 @@ auto main() -> int {
 
       // Verify applying perm to values matches key-value sort
       SV32 permuted_values = perm(values);
+      SV32u permuted_ivalues = perm(ivalues);
 
-      std::array<std::pair<double, double>, 32> pairs;
-      for (int j = 0; j < 32; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs,
-                        [](auto &a, auto &b) { return a.first < b.first; });
+      std::array<std::tuple<double, double, std::uint16_t>, 32> tuples;
+      for (int j = 0; j < 32; ++j) tuples[j] = {keys[j], values[j], ivalues[j]};
+      std::ranges::sort(tuples, [](auto &a, auto &b) {
+        return std::get<0>(a) < std::get<0>(b);
+      });
 
-      for (int j = 0; j < 32; ++j)
-        expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 32; ++j) {
+        expect(permuted_values[j] == std::get<1>(tuples[j]));
+        expect(permuted_ivalues[j] == std::get<2>(tuples[j]));
+      }
 
       // Test TopHalfPerm
-      auto [thperm, top_keys] = utils::TopHalfPerm<double>::make(keys);
+      auto [thperm, top_keys] = utils::TopHalfPerm::make(keys);
 
       // Use SortPerm to sort the top keys and get the permutation
-      auto [top_perm, sorted_top_keys] =
-        utils::SortPerm<double, 16>::make(top_keys);
+      auto [top_perm, sorted_top_keys] = utils::SortPerm<16>::make(top_keys);
 
       // Verify sorted top_keys equal first 16 of fully sorted keys
       SV16 expected_top_keys{};
@@ -198,25 +222,33 @@ auto main() -> int {
 
       // Verify applying thperm to values then sorting matches key-value sort
       SV16 sorted_top_values = top_perm(thperm(values));
-      for (int j = 0; j < 16; ++j)
-        expect(sorted_top_values[j] == pairs[j].second);
+      SV16u sorted_top_ivalues = top_perm(thperm(ivalues));
+      for (int j = 0; j < 16; ++j) {
+        expect(sorted_top_values[j] == std::get<1>(tuples[j]));
+        expect(sorted_top_ivalues[j] == std::get<2>(tuples[j]));
+      }
     }
   };
 
   "sortperm_fp32_32"_test = [] -> void {
     using SV32 = SVector<float, 32>;
     using SV16 = SVector<float, 16>;
+    using SV32u = SVector<std::uint16_t, 32>;
+    using SV16u = SVector<std::uint16_t, 16>;
     std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist{0.123f, 1024.8f};
+    std::uniform_int_distribution<std::uint16_t> idist{0, 65535};
 
     for (int i = 0; i < 100; ++i) {
       SV32 keys{}, values{};
+      SV32u ivalues{};
       for (int j = 0; j < 32; ++j) {
         keys[j] = dist(rng);
         values[j] = dist(rng);
+        ivalues[j] = idist(rng);
       }
 
-      auto [perm, sorted_keys] = utils::SortPerm<float, 32>::make(keys);
+      auto [perm, sorted_keys] = utils::SortPerm<32>::make(keys);
 
       // Verify sorted_keys is correct
       SV32 expected_keys = keys;
@@ -228,21 +260,24 @@ auto main() -> int {
 
       // Verify applying perm to values matches key-value sort
       SV32 permuted_values = perm(values);
+      SV32u permuted_ivalues = perm(ivalues);
 
-      std::array<std::pair<float, float>, 32> pairs;
-      for (int j = 0; j < 32; ++j) pairs[j] = {keys[j], values[j]};
-      std::ranges::sort(pairs,
-                        [](auto &a, auto &b) { return a.first < b.first; });
+      std::array<std::tuple<float, float, std::uint16_t>, 32> tuples;
+      for (int j = 0; j < 32; ++j) tuples[j] = {keys[j], values[j], ivalues[j]};
+      std::ranges::sort(tuples, [](auto &a, auto &b) {
+        return std::get<0>(a) < std::get<0>(b);
+      });
 
-      for (int j = 0; j < 32; ++j)
-        expect(permuted_values[j] == pairs[j].second);
+      for (int j = 0; j < 32; ++j) {
+        expect(permuted_values[j] == std::get<1>(tuples[j]));
+        expect(permuted_ivalues[j] == std::get<2>(tuples[j]));
+      }
 
       // Test TopHalfPerm
-      auto [thperm, top_keys] = utils::TopHalfPerm<float>::make(keys);
+      auto [thperm, top_keys] = utils::TopHalfPerm::make(keys);
 
       // Use SortPerm to sort the top keys and get the permutation
-      auto [top_perm, sorted_top_keys] =
-        utils::SortPerm<float, 16>::make(top_keys);
+      auto [top_perm, sorted_top_keys] = utils::SortPerm<16>::make(top_keys);
 
       // Verify sorted top_keys equal first 16 of fully sorted keys
       SV16 expected_top_keys{};
@@ -254,8 +289,11 @@ auto main() -> int {
 
       // Verify applying thperm to values then sorting matches key-value sort
       SV16 sorted_top_values = top_perm(thperm(values));
-      for (int j = 0; j < 16; ++j)
-        expect(sorted_top_values[j] == pairs[j].second);
+      SV16u sorted_top_ivalues = top_perm(thperm(ivalues));
+      for (int j = 0; j < 16; ++j) {
+        expect(sorted_top_values[j] == std::get<1>(tuples[j]));
+        expect(sorted_top_ivalues[j] == std::get<2>(tuples[j]));
+      }
     }
   };
 
