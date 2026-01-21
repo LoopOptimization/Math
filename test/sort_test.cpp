@@ -36,6 +36,7 @@ auto main() -> int {
   };
   "sort_fp64_32"_test = [] -> void {
     using SV32 = SVector<double, 32>;
+    using SV16 = SVector<double, 16>;
     std::mt19937_64 rng{std::random_device{}()};
     std::uniform_real_distribution<double> dist{0.123, 1024.8};
 
@@ -45,10 +46,18 @@ auto main() -> int {
       SV32 sorted = x;
       std::ranges::sort(sorted);
       expect(utils::sort(x) == sorted);
+
+      // Test topHalf: sorted topHalf should equal first 16 of fully sorted
+      SV16 top = utils::topHalf(x);
+      SV16 sorted_top = utils::sort(top);
+      SV16 expected_top{};
+      for (int j = 0; j < 16; ++j) expected_top[j] = sorted[j];
+      expect(sorted_top == expected_top);
     }
   };
   "sort_fp32_32"_test = [] -> void {
     using SV32 = SVector<float, 32>;
+    using SV16 = SVector<float, 16>;
     std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist{0.123, 1024.8};
 
@@ -58,6 +67,13 @@ auto main() -> int {
       SV32 sorted = x;
       std::ranges::sort(sorted);
       expect(utils::sort(x) == sorted);
+
+      // Test topHalf: sorted topHalf should equal first 16 of fully sorted
+      SV16 top = utils::topHalf(x);
+      SV16 sorted_top = utils::sort(top);
+      SV16 expected_top{};
+      for (int j = 0; j < 16; ++j) expected_top[j] = sorted[j];
+      expect(sorted_top == expected_top);
     }
   };
 
@@ -133,6 +149,7 @@ auto main() -> int {
 
   "sortperm_fp64_32"_test = [] -> void {
     using SV32 = SVector<double, 32>;
+    using SV16 = SVector<double, 16>;
     std::mt19937_64 rng{std::random_device{}()};
     std::uniform_real_distribution<double> dist{0.123, 1024.8};
 
@@ -163,11 +180,32 @@ auto main() -> int {
 
       for (int j = 0; j < 32; ++j)
         expect(permuted_values[j] == pairs[j].second);
+
+      // Test TopHalfPerm
+      auto [thperm, top_keys] = utils::TopHalfPerm<double>::make(keys);
+
+      // Use SortPerm to sort the top keys and get the permutation
+      auto [top_perm, sorted_top_keys] =
+        utils::SortPerm<double, 16>::make(top_keys);
+
+      // Verify sorted top_keys equal first 16 of fully sorted keys
+      SV16 expected_top_keys{};
+      std::memcpy(&expected_top_keys, &expected_keys, sizeof(SV16));
+      expect(sorted_top_keys == expected_top_keys);
+
+      // Verify applying thperm to keys gives top_keys
+      expect(thperm(keys) == top_keys);
+
+      // Verify applying thperm to values then sorting matches key-value sort
+      SV16 sorted_top_values = top_perm(thperm(values));
+      for (int j = 0; j < 16; ++j)
+        expect(sorted_top_values[j] == pairs[j].second);
     }
   };
 
   "sortperm_fp32_32"_test = [] -> void {
     using SV32 = SVector<float, 32>;
+    using SV16 = SVector<float, 16>;
     std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist{0.123f, 1024.8f};
 
@@ -198,6 +236,26 @@ auto main() -> int {
 
       for (int j = 0; j < 32; ++j)
         expect(permuted_values[j] == pairs[j].second);
+
+      // Test TopHalfPerm
+      auto [thperm, top_keys] = utils::TopHalfPerm<float>::make(keys);
+
+      // Use SortPerm to sort the top keys and get the permutation
+      auto [top_perm, sorted_top_keys] =
+        utils::SortPerm<float, 16>::make(top_keys);
+
+      // Verify sorted top_keys equal first 16 of fully sorted keys
+      SV16 expected_top_keys{};
+      std::memcpy(&expected_top_keys, &expected_keys, sizeof(SV16));
+      expect(sorted_top_keys == expected_top_keys);
+
+      // Verify applying thperm to keys gives top_keys
+      expect(thperm(keys) == top_keys);
+
+      // Verify applying thperm to values then sorting matches key-value sort
+      SV16 sorted_top_values = top_perm(thperm(values));
+      for (int j = 0; j < 16; ++j)
+        expect(sorted_top_values[j] == pairs[j].second);
     }
   };
 

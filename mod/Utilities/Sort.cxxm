@@ -1,6 +1,7 @@
 export module Sort;
 import StaticArray;
 import std;
+import Tuple;
 
 export namespace utils {
 
@@ -10,19 +11,34 @@ auto sort(math::SVector<float, 16> x) -> math::SVector<float, 16>;
 auto sort(math::SVector<double, 32> x) -> math::SVector<double, 32>;
 auto sort(math::SVector<float, 32> x) -> math::SVector<float, 32>;
 
+auto topHalf(math::SVector<double, 32> x) -> math::SVector<double, 16>;
+auto topHalf(math::SVector<float, 32> x) -> math::SVector<float, 16>;
+
 template <typename T, std::ptrdiff_t N>
   requires((N == 16 || N == 32) && (std::same_as<T, float> || std::same_as<T, double>))
 struct SortPerm;
+
+template <typename T>
+  requires(std::same_as<T, float> || std::same_as<T, double>)
+struct TopHalfPerm;
 
 // Internal implementation functions (not exported, defined in .cxx)
 namespace detail {
 template <typename T, std::ptrdiff_t N>
 auto sortperm_make(math::SVector<T, N> x)
-  -> std::pair<SortPerm<T, N>, math::SVector<T, N>>;
+  -> containers::Pair<SortPerm<T, N>, math::SVector<T, N>>;
 
 template <typename T, std::ptrdiff_t N>
 auto sortperm_apply(const SortPerm<T, N> &perm, math::SVector<T, N> x)
   -> math::SVector<T, N>;
+
+template <typename T>
+auto tophalfperm_make(math::SVector<T, 32> x)
+  -> containers::Pair<TopHalfPerm<T>, math::SVector<T, 16>>;
+
+template <typename T>
+auto tophalfperm_apply(const TopHalfPerm<T> &perm, math::SVector<T, 32> x)
+  -> math::SVector<T, 16>;
 } // namespace detail
 
 template <typename T, std::ptrdiff_t N>
@@ -32,13 +48,30 @@ struct SortPerm {
   std::uint64_t masks_[NumMasks];
 
   [[nodiscard]] static auto make(math::SVector<T, N> x)
-    -> std::pair<SortPerm, math::SVector<T, N>> {
+    -> containers::Pair<SortPerm, math::SVector<T, N>> {
     return detail::sortperm_make<T, N>(x);
   }
 
   [[nodiscard]] auto operator()(math::SVector<T, N> x) const
     -> math::SVector<T, N> {
     return detail::sortperm_apply<T, N>(*this, x);
+  }
+};
+
+template <typename T>
+  requires(std::same_as<T, float> || std::same_as<T, double>)
+struct TopHalfPerm {
+  static constexpr std::ptrdiff_t NumMasks = 11;
+  std::uint64_t masks_[NumMasks];
+
+  [[nodiscard]] static auto make(math::SVector<T, 32> x)
+    -> containers::Pair<TopHalfPerm, math::SVector<T, 16>> {
+    return detail::tophalfperm_make<T>(x);
+  }
+
+  [[nodiscard]] auto operator()(math::SVector<T, 32> x) const
+    -> math::SVector<T, 16> {
+    return detail::tophalfperm_apply<T>(*this, x);
   }
 };
 

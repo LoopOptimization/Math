@@ -348,15 +348,14 @@ auto sort16(simd::Unroll<1, N, W, T> a, simd::Unroll<1, N, W, T> b) {
   return a.cat(b);
 }
 
-template <typename T> auto sort32(V32<T> x) -> V32<T> {
+// topHalf32: Extract the smallest 16 elements from 32
+template <typename T> auto topHalf32(V32<T> x) -> V32<T> {
   auto [xlo, xhi] = x.split();
 
   // Sort each half of 16 elements
   auto [l01, h01] = sort16(xlo, xhi).split();
   auto [l0, l1] = l01.split();
   auto [h0, h1] = h01.split();
-  // V16<T> lo_sorted = sort16(xlo);
-  // V16<T> hi_sorted = sort16(xhi);
 
   // Bitonic merge: reverse the second half and merge
   V16<T> a = l0.cat(h0);
@@ -364,6 +363,12 @@ template <typename T> auto sort32(V32<T> x) -> V32<T> {
 
   // After compare-exchange at distance 16, all elements in a <= all in b
   minmax(a, b);
+
+  return a.cat(b);
+}
+
+template <typename T> auto sort32(V32<T> x) -> V32<T> {
+  auto [a, b] = topHalf32(x).split();
 
   // Now sort each 16-element half independently
   // a.split()
@@ -499,12 +504,12 @@ auto apply16(simd::Unroll<1, N, W, T> a, simd::Unroll<1, N, W, T> b,
   return a.cat(b);
 }
 
-// sort32_perm: Like sort32 but captures comparison masks
+// topHalf32_perm: Like topHalf32 but captures comparison masks
 template <typename T>
-auto sort32_perm(V32<T> x, std::uint64_t *masks) -> V32<T> {
+auto topHalf32_perm(V32<T> x, std::uint64_t *masks) -> V32<T> {
   auto [xlo, xhi] = x.split();
 
-  // Sort each half of 16 elements (masks 0-9 for first half, 10-19 for second)
+  // Sort each half of 16 elements (masks 0-9)
   auto sorted = sort16_perm(xlo, xhi, masks);
   auto [l01, h01] = sorted.split();
   auto [l0, l1] = l01.split();
@@ -517,6 +522,13 @@ auto sort32_perm(V32<T> x, std::uint64_t *masks) -> V32<T> {
   // After compare-exchange at distance 16, all elements in a <= all in b
   masks[10] = minmax_perm(a, b);
 
+  return a.cat(b);
+}
+// sort32_perm: Like sort32 but captures comparison masks
+template <typename T>
+auto sort32_perm(V32<T> x, std::uint64_t *masks) -> V32<T> {
+  auto [a, b] = topHalf32_perm(x, masks).split();
+
   // Now sort each 16-element half independently
   auto [a0, a1] = a.split();
   auto [b0, b1] = b.split();
@@ -528,9 +540,9 @@ auto sort32_perm(V32<T> x, std::uint64_t *masks) -> V32<T> {
   return x0.cat(x1).cat(y0.cat(y1));
 }
 
-// apply32: Apply stored masks to replay permutation
+// applyTopHalf32: Apply stored masks to replay permutation for top half
 template <typename T>
-auto apply32(V32<T> x, const std::uint64_t *masks) -> V32<T> {
+auto applyTopHalf32(V32<T> x, const std::uint64_t *masks) -> V32<T> {
   auto [xlo, xhi] = x.split();
 
   // Apply first half sort (masks 0-9)
@@ -545,6 +557,14 @@ auto apply32(V32<T> x, const std::uint64_t *masks) -> V32<T> {
 
   // Apply bitonic merge comparison (mask 10)
   apply_mask(a, b, masks[10]);
+
+  return a.cat(b);
+}
+
+// apply32: Apply stored masks to replay permutation
+template <typename T>
+auto apply32(V32<T> x, const std::uint64_t *masks) -> V32<T> {
+  auto [a, b] = applyTopHalf32(x, masks).split();
 
   // Apply second sort16 (masks 11-20)
   auto [a0, a1] = a.split();
@@ -577,11 +597,18 @@ auto sort(math::SVector<float, 32> x) -> math::SVector<float, 32> {
   return {sort32(x.simd())};
 }
 
+auto topHalf(math::SVector<double, 32> x) -> math::SVector<double, 16> {
+  return {topHalf32(x.simd()).split()[0]};
+}
+auto topHalf(math::SVector<float, 32> x) -> math::SVector<float, 16> {
+  return {topHalf32(x.simd()).split()[0]};
+}
+
 namespace detail {
 
 template <typename T, std::ptrdiff_t N>
 auto sortperm_make(math::SVector<T, N> x)
-  -> std::pair<SortPerm<T, N>, math::SVector<T, N>> {
+  -> containers::Pair<SortPerm<T, N>, math::SVector<T, N>> {
   SortPerm<T, N> perm{};
   math::SVector<T, N> sorted;
 
@@ -606,15 +633,29 @@ auto sortperm_apply(const SortPerm<T, N> &perm, math::SVector<T, N> x)
   }
 }
 
+template <typename T>
+auto tophalfperm_make(math::SVector<T, 32> x)
+  -> containers::Pair<TopHalfPerm<T>, math::SVector<T, 16>> {
+  TopHalfPerm<T> perm{};
+  math::SVector<T, 16> result{topHalf32_perm(x.simd(), perm.masks_).split()[0]};
+  return {perm, result};
+}
+
+template <typename T>
+auto tophalfperm_apply(const TopHalfPerm<T> &perm, math::SVector<T, 32> x)
+  -> math::SVector<T, 16> {
+  return {applyTopHalf32(x.simd(), perm.masks_).split()[0]};
+}
+
 // Explicit instantiations
 template auto sortperm_make<double, 16>(math::SVector<double, 16>)
-  -> std::pair<SortPerm<double, 16>, math::SVector<double, 16>>;
+  -> containers::Pair<SortPerm<double, 16>, math::SVector<double, 16>>;
 template auto sortperm_make<float, 16>(math::SVector<float, 16>)
-  -> std::pair<SortPerm<float, 16>, math::SVector<float, 16>>;
+  -> containers::Pair<SortPerm<float, 16>, math::SVector<float, 16>>;
 template auto sortperm_make<double, 32>(math::SVector<double, 32>)
-  -> std::pair<SortPerm<double, 32>, math::SVector<double, 32>>;
+  -> containers::Pair<SortPerm<double, 32>, math::SVector<double, 32>>;
 template auto sortperm_make<float, 32>(math::SVector<float, 32>)
-  -> std::pair<SortPerm<float, 32>, math::SVector<float, 32>>;
+  -> containers::Pair<SortPerm<float, 32>, math::SVector<float, 32>>;
 
 template auto sortperm_apply<double, 16>(const SortPerm<double, 16> &,
                                          math::SVector<double, 16>)
@@ -628,6 +669,18 @@ template auto sortperm_apply<double, 32>(const SortPerm<double, 32> &,
 template auto sortperm_apply<float, 32>(const SortPerm<float, 32> &,
                                         math::SVector<float, 32>)
   -> math::SVector<float, 32>;
+
+template auto tophalfperm_make<double>(math::SVector<double, 32>)
+  -> containers::Pair<TopHalfPerm<double>, math::SVector<double, 16>>;
+template auto tophalfperm_make<float>(math::SVector<float, 32>)
+  -> containers::Pair<TopHalfPerm<float>, math::SVector<float, 16>>;
+
+template auto tophalfperm_apply<double>(const TopHalfPerm<double> &,
+                                        math::SVector<double, 32>)
+  -> math::SVector<double, 16>;
+template auto tophalfperm_apply<float>(const TopHalfPerm<float> &,
+                                       math::SVector<float, 32>)
+  -> math::SVector<float, 16>;
 
 } // namespace detail
 
