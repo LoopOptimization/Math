@@ -148,14 +148,14 @@ int main() {
   // }
 
   // Sort benchmarks
-  bench.title("Sort Benchmarks");
+  bench.title("Sort Benchmarks").warmup(1024).epochIterations(2048);
   BM_sort_float16(bench);
   BM_sort_double16(bench);
   BM_sort_float32(bench);
   BM_sort_double32(bench);
 
   // SortPerm benchmarks
-  bench.title("SortPerm Benchmarks");
+  bench.title("SortPerm Benchmarks").warmup(1024).epochIterations(2048);
   BM_sortperm_float16(bench);
   BM_sortperm_double16(bench);
   BM_sortperm_float32(bench);
