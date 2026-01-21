@@ -19,25 +19,33 @@ auto fill_random(std::mt19937_64 &rng) -> math::SVector<T, N> {
 template <typename T, std::ptrdiff_t N>
 void BM_sort_simd_impl(Bench &bench, const std::string &type_name) {
   std::mt19937_64 rng{42};
-  math::SVector<T, N> x = fill_random<T, N>(rng);
+  static constexpr std::size_t X = 32768 / sizeof(math::SVector<T, N>);
+  std::array<math::SVector<T, N>, X> xs;
+  for (std::size_t i = 0; i < X; ++i) xs[i] = fill_random<T, N>(rng);
 
   bench.run("utils::sort<" + type_name + "," + std::to_string(N) + ">", [&] {
-    auto sorted = utils::sort(x);
-    doNotOptimizeAway(sorted);
+    for (std::size_t i = 0; i < X; ++i) {
+      auto sorted = utils::sort(xs[i]);
+      doNotOptimizeAway(sorted);
+    }
   });
 }
 
 template <typename T, std::ptrdiff_t N>
 void BM_sort_ranges_impl(Bench &bench, const std::string &type_name) {
   std::mt19937_64 rng{42};
-  math::SVector<T, N> x = fill_random<T, N>(rng);
+  static constexpr std::size_t X = 32768 / sizeof(math::SVector<T, N>);
+  std::array<math::SVector<T, N>, X> xs;
+  for (std::size_t i = 0; i < X; ++i) xs[i] = fill_random<T, N>(rng);
 
   bench.run("std::ranges::sort<" + type_name + "," + std::to_string(N) + ">",
             [&] {
-              std::array<T, N> arr;
-              for (std::ptrdiff_t i = 0; i < N; ++i) arr[std::size_t(i)] = x[i];
-              std::ranges::sort(arr);
-              doNotOptimizeAway(arr);
+              for (std::size_t i = 0; i < X; ++i) {
+                std::array<T, N> arr;
+                std::memcpy(&arr, &xs[i], sizeof(arr));
+                std::ranges::sort(arr);
+                doNotOptimizeAway(arr);
+              }
             });
 }
 
@@ -45,31 +53,43 @@ void BM_sort_ranges_impl(Bench &bench, const std::string &type_name) {
 template <typename T, std::ptrdiff_t N>
 void BM_sortperm_impl(Bench &bench, const std::string &type_name) {
   std::mt19937_64 rng{42};
-  math::SVector<T, N> keys = fill_random<T, N>(rng);
-  math::SVector<T, N> values = fill_random<T, N>(rng);
+  static constexpr std::size_t X = 32768 / (2 * sizeof(math::SVector<T, N>));
+  std::array<math::SVector<T, N>, X> keys, values;
+  for (std::size_t i = 0; i < X; ++i) {
+    keys[i] = fill_random<T, N>(rng);
+    values[i] = fill_random<T, N>(rng);
+  }
 
   bench.run("SortPerm<" + type_name + "," + std::to_string(N) + ">", [&] {
-    auto [perm, sorted_keys] = utils::SortPerm<T, N>::make(keys);
-    auto sorted_values = perm(values);
-    doNotOptimizeAway(sorted_keys);
-    doNotOptimizeAway(sorted_values);
+    for (std::size_t i = 0; i < X; ++i) {
+      auto [perm, sorted_keys] = utils::SortPerm<T, N>::make(keys[i]);
+      auto sorted_values = perm(values[i]);
+      doNotOptimizeAway(sorted_keys);
+      doNotOptimizeAway(sorted_values);
+    }
   });
 }
 
 template <typename T, std::ptrdiff_t N>
 void BM_sort_pairs_impl(Bench &bench, const std::string &type_name) {
   std::mt19937_64 rng{42};
-  math::SVector<T, N> keys = fill_random<T, N>(rng);
-  math::SVector<T, N> values = fill_random<T, N>(rng);
+  static constexpr std::size_t X = 32768 / (2 * sizeof(math::SVector<T, N>));
+  std::array<math::SVector<T, N>, X> keys, values;
+  for (std::size_t i = 0; i < X; ++i) {
+    keys[i] = fill_random<T, N>(rng);
+    values[i] = fill_random<T, N>(rng);
+  }
 
   bench.run("sort_pairs<" + type_name + "," + std::to_string(N) + ">", [&] {
-    std::array<std::pair<T, T>, std::size_t(N)> pairs;
-    for (std::ptrdiff_t i = 0; i < N; ++i)
-      pairs[std::size_t(i)] = {keys[i], values[i]};
+    for (std::size_t j = 0; j < X; ++j) {
+      std::array<std::pair<T, T>, std::size_t(N)> pairs;
+      for (std::ptrdiff_t i = 0; i < N; ++i)
+        pairs[std::size_t(i)] = {keys[j][i], values[j][i]};
 
-    std::ranges::sort(
-      pairs, [](const auto &a, const auto &b) { return a.first < b.first; });
-    doNotOptimizeAway(pairs);
+      std::ranges::sort(
+        pairs, [](const auto &a, const auto &b) { return a.first < b.first; });
+      doNotOptimizeAway(pairs);
+    }
   });
 }
 
