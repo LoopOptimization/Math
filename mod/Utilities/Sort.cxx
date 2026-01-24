@@ -667,6 +667,10 @@ template auto
 sortperm_apply<std::uint16_t, 16>(const SortPerm<16> &,
                                   math::SVector<std::uint16_t, 16>)
   -> math::SVector<std::uint16_t, 16>;
+template auto
+sortperm_apply<std::uint64_t, 16>(const SortPerm<16> &,
+                                  math::SVector<std::uint64_t, 16>)
+  -> math::SVector<std::uint64_t, 16>;
 template auto sortperm_apply<double, 32>(const SortPerm<32> &,
                                          math::SVector<double, 32>)
   -> math::SVector<double, 32>;
@@ -677,6 +681,10 @@ template auto
 sortperm_apply<std::uint16_t, 32>(const SortPerm<32> &,
                                   math::SVector<std::uint16_t, 32>)
   -> math::SVector<std::uint16_t, 32>;
+template auto
+sortperm_apply<std::uint64_t, 32>(const SortPerm<32> &,
+                                  math::SVector<std::uint64_t, 32>)
+  -> math::SVector<std::uint64_t, 32>;
 
 template auto tophalfperm_make<double>(math::SVector<double, 32>)
   -> containers::Pair<TopHalfPerm, math::SVector<double, 16>>;
@@ -692,6 +700,9 @@ template auto tophalfperm_apply<float>(const TopHalfPerm &,
 template auto tophalfperm_apply<std::uint16_t>(const TopHalfPerm &,
                                                math::SVector<std::uint16_t, 32>)
   -> math::SVector<std::uint16_t, 16>;
+template auto tophalfperm_apply<std::uint64_t>(const TopHalfPerm &,
+                                               math::SVector<std::uint64_t, 32>)
+  -> math::SVector<std::uint64_t, 16>;
 
 } // namespace detail
 
