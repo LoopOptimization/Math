@@ -5,25 +5,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ### Primary Build Targets
-- `make clang-san`: Build and test with Clang using AddressSanitizer and UndefinedBehaviorSanitizer using libc++
-- `make clang-no-san`: Build and test with Clang without sanitizers using libc++
-- `make clang-san-libstdcxx`: Build and test with Clang using AddressSanitizer and UndefinedBehaviorSanitizer using libstdc++
-- `make clang-no-san-libstdcxx`: Build and test with Clang without sanitizers using libstdc++
-- `make gcc-san`: Build and test with GCC using AddressSanitizer and UndefinedBehaviorSanitizer
-- `make gcc-no-san`: Build and test with GCC without sanitizers
+- `make clang-san`: Build and test with Clang using AddressSanitizer and UBSan using libstdc++
+- `make clang-no-san`: Build and test with Clang without sanitizers using libstdc++
+- `make clang-san-libcpp`: Build and test with Clang using AddressSanitizer and UBSan using libc++
+- `make clang-no-san-libcpp`: Build and test with Clang without sanitizers using libc++
 
 ### Architecture-Specific Builds
-- `make clang-avx512`: Build targeting AVX512 instructions
-- `make clang-base-arch`: Build for baseline x86-64 architecture
-- `make gcc-avx2`: Build targeting AVX2 instructions
+- `make clang-avx2`: Build targeting AVX2 instructions (x86-64-v3)
+- `make clang-avx512`: Build targeting AVX512 instructions (x86-64-v4) with libc++
+- `make clang-base-arch`: Build for baseline x86-64 architecture with libc++
 
 ### Other Builds
 - `make clang-release`: Release build with Clang
-- `make gcc-release`: Release build with GCC
-- `make clang-nosimd`: Build without explicit SIMD operations
 - `make clang-type`: Build with TypeSanitizer (Clang only)
 - `make clang-bench`: Build benchmarks with Clang
-- `make gcc-bench`: Build benchmarks with GCC
 
 ### Testing and Linting
 - Tests run automatically with build targets
@@ -44,46 +39,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Code Architecture
 
-### Dual Build System
-The library supports both traditional header-only compilation and modern C++23 modules:
-- Module files (`.cxxm`) in `mod/` serve as module interfaces
-- Module implementation files (`.cxx`) in `mod/` provide implementations
-- Headers in `include/` provide the main API entry points
-- CMake automatically detects and builds C++23 modules when using compatible compilers
+### Build System
+The library uses C++23 modules:
+- Module interface files (`.cxxm`) in `mod/` define module interfaces
+- Module implementation files (`.cxx`) in `mod/` provide implementations for complex modules
+- Headers in `include/` provide utility macros and allocator overrides
+- Requires CMake 3.31+ for C++23 module support
 
 ### Core Components
 
 **Math Module (`mod/Math/`)**
-- `Array.cxx`: Core array types, expression templates, and operations
-- `ArrayConcepts.cxx`: C++20 concepts for type safety and constraints  
-- `StaticArrays.cxx`: Compile-time sized arrays for stack allocation
-- `ManagedArray.cxx`: Runtime-sized arrays with dynamic memory management
-- `LinearAlgebra.cxx`: Matrix operations, LU decomposition, etc.
-- `Simplex.cxx`: Rational simplex solver for linear programming
+- `Array.cxxm`: Core array types, expression templates, and operations
+- `ArrayConcepts.cxxm`: C++20 concepts for type safety and constraints
+- `StaticArrays.cxxm`: Compile-time sized arrays for stack allocation
+- `ManagedArray.cxxm`: Runtime-sized arrays with dynamic memory management
+- `LinearAlgebra.cxxm`: Matrix operations, LU decomposition, etc.
+- `Simplex.cxxm`: Rational simplex solver for linear programming
+- `NormalForm.cxxm`: Matrix normal form algorithms
+- `Constraints.cxxm`: Constraint handling for polyhedral analysis
+- `Reductions.cxxm`, `Comparisons.cxxm`: Array reduction and comparison operations
 
 **SIMD Module (`mod/SIMD/`)**
-- `Vec.cxx`: SIMD vector types using GCC vector extensions
-- `Intrin.cxx`: Cross-platform intrinsic wrappers
+- `SIMD.cxxm`: SIMD vector types using Clang's `ext_vector_type`
 - Platform-specific optimizations for x86-64 (SSE, AVX, AVX512)
 - Automatic SIMD width detection and vectorization
 
 **Container Module (`mod/Containers/`)**
-- `TinyVector.cxx`: Small vector optimizations
-- `Storage.cxx`: Memory layout and allocation strategies
-- `Tuple.cxx`: Multi-dimensional indexing utilities
-- `BitSets.cxx`: Efficient bit manipulation containers
-- `UnrolledList.cxx`: Unrolled linked list implementation
-- `Flat.cxx`: Flattened container structures
+- `TinyVector.cxxm`: Small vector optimizations
+- `Storage.cxxm`: Memory layout and allocation strategies
+- `Tuple.cxxm`: Multi-dimensional indexing utilities
+- `BitSets.cxxm`: Efficient bit manipulation containers
+- `UnrolledList.cxxm`: Unrolled linked list implementation
+- `Permutation.cxxm`: Permutation utilities
+- `Buffer.cxxm`: Buffer container
+
+**Numbers Module (`mod/Numbers/`)**
+- `Int8.cxxm`: Integer type utilities
 
 **Allocation Module (`mod/Alloc/`)**
-- `Arena.cxx`: Arena-based memory allocator
-- `Mallocator.cxx`: Custom memory allocation strategies
+- `Arena.cxxm`: Arena-based memory allocator
+- `Mallocator.cxxm`: Custom memory allocation strategies
 
 **Utilities Module (`mod/Utilities/`)**
-- `ArrayPrint.cxx`: Array printing and formatting utilities
-- `MatrixStringParse.cxx`: Parsing matrices from string representations
-- `Optional.cxx`: Optional type implementations
-- `Valid.cxx`: Validation utilities
+- `ArrayPrint.cxxm`: Array printing and formatting utilities
+- `MatrixStringParse.cxxm`: Parsing matrices from string representations
+- `Optional.cxxm`: Optional type implementations
+- `Valid.cxxm`: Validation utilities
+- `Sort.cxxm`: Sorting utilities
 
 ### Key Design Patterns
 
@@ -126,23 +128,23 @@ The library supports both traditional header-only compilation and modern C++23 m
 - Trivial type optimizations
 
 ## Compiler Requirements
-- **Clang 17+** or **GCC 13.2+** required for C++23 features
+- **Clang 21+** required (GCC not supported due to use of `ext_vector_type`)
+- **CMake 3.31+** required for C++23 module support
 - Uses cutting-edge features: deducing this, C++23 modules
 - Multiple sanitizer configurations for robust testing
 - Native compilation support with `-march=native`
 
 ## Testing Strategy
 - Comprehensive ut (micro test) framework in `test/` directory
-- Cross-compiler testing (Clang/GCC) with multiple configurations
 - Architecture-specific testing (baseline, AVX2, AVX512)
 - Sanitizer builds catch memory/undefined behavior issues
 - Performance benchmarks in `benchmark/` directory
 - Individual test executables for each test file
 
 ## Development Notes
-- Library is header-only by default but can build as C++23 modules
+- Library uses C++23 modules
 - Expression templates require careful attention to lifetime management
-- SIMD operations are automatically vectorized where possible
+- SIMD operations use Clang's `ext_vector_type` for portable vectorization
 - Focus on integer operations distinguishes this from typical math libraries
 - Used by LoopModels for polyhedral compilation analysis
 
@@ -150,6 +152,5 @@ The library supports both traditional header-only compilation and modern C++23 m
 - The build system automatically detects CPU features (AVX2, AVX512) and adjusts targets accordingly
 - All builds use `-fno-exceptions` and `-fno-rtti` for performance
 - Memory allocators can be configured (mimalloc, jemalloc) via CMake options
-- Cross-compiler testing with both Clang and GCC is essential due to C++23 features
 - Sanitizer builds help catch subtle bugs in template-heavy code
 - Use ut framework for testing with individual test executables per test file
