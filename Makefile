@@ -39,9 +39,6 @@ build-clang/base-arch/:
 build-clang/avx512/:
 	CXXFLAGS="-march=x86-64-v4 -stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/avx512/ -DCMAKE_BUILD_TYPE=Debug -DENABLE_NATIVE_COMPILATION=OFF
 
-build-clang/no-simd/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-simd/ -DCMAKE_BUILD_TYPE=Debug
-
 build-clang/bench/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S benchmark -B build-clang/bench/ -DCMAKE_BUILD_TYPE=Release
 
@@ -78,10 +75,6 @@ clang-base-arch: build-clang/base-arch/
 clang-avx512: build-clang/avx512/
 	cmake --build build-clang/avx512/
 	cmake --build build-clang/avx512/ --target test
-
-clang-no-simd: build-clang/no-simd/
-	cmake --build build-clang/no-simd/
-	cmake --build build-clang/no-simd/ --target test
 
 clang-bench: build-clang/bench/
 	cmake --build build-clang/bench
