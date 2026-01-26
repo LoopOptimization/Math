@@ -205,21 +205,8 @@ TRIVIAL inline void vcopyToSIMD(LHS A, RHS B, I L, R row, Op op) {
         auto u{ufull.template sub<W>()};
         detail::assign(A, B, row, u, op);
         if (!ufull) break;
-        // if (L <= ufull.index_) return;
-        // if (!ufull) ufull = simd::index::unrollmask<1, 64>(L,
-        // ufull.index_);
       }
     }
-    // for (std::ptrdiff_t i = 0;;) {
-    //   auto ufull{simd::index::unrollmask<1, 64>(L, i)};
-    //   POLYMATHIVDEP
-    //   for (std::ptrdiff_t j = 0; (j < (64 / W)); ++j) {
-    //     if (!ufull) return;
-    //     auto u{ufull.template sub<W>()};
-    //     detail::assign(A, B, row, u, op);
-    //   }
-    //   i = ufull.index_;
-    // }
 #else
     std::ptrdiff_t i = 0;
     for (; i <= L - W; i += W) {
