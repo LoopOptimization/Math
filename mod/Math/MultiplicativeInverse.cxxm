@@ -95,6 +95,28 @@ template <std::floating_point T> class MultiplicativeInverse<T> {
     // hacky attempt to accommodate rounding error
     return std::ceil(x - (std::numeric_limits<T>::epsilon() * std::abs(x)));
   }
+  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
+  friend constexpr auto cld(::simd::Unroll<R, C, W, T> a,
+                            MultiplicativeInverse b)
+    -> ::simd::Unroll<R, C, W, T> {
+    ::simd::Unroll<R, C, W, T> x = a * b.inverse_;
+    return ceil(x - (std::numeric_limits<T>::epsilon() * abs(x)));
+  }
+  /// @brief cld for non-negative inputs
+  friend constexpr auto cldnn(T a, MultiplicativeInverse b) -> T {
+    T x = a * b.inverse_;
+    // push towards -infinity, before rounding up
+    // hacky attempt to accommodate rounding error
+    return std::ceil(x - (std::numeric_limits<T>::epsilon() * x));
+  }
+  /// @brief cld for non-negative inputs
+  template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
+  friend constexpr auto cldnn(::simd::Unroll<R, C, W, T> a,
+                              MultiplicativeInverse b)
+    -> ::simd::Unroll<R, C, W, T> {
+    ::simd::Unroll<R, C, W, T> x = a * b.inverse_;
+    return ceil(x - (std::numeric_limits<T>::epsilon() * x));
+  }
   friend constexpr auto operator%(T a, MultiplicativeInverse b) -> T {
     return std::round(a - ((a / b) * b.divisor_));
   }

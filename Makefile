@@ -18,11 +18,11 @@ else
 endif
 
 
-build-clang/no-san-libcpp/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san-libcpp/ -DCMAKE_BUILD_TYPE=Debug
+build-clang/no-san-libcxx/:
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san-libcxx/ -DCMAKE_BUILD_TYPE=Debug
 
-build-clang/san-libcpp/:
-	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san-libcpp/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
+build-clang/san-libcxx/:
+	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/san-libcxx/ -DCMAKE_BUILD_TYPE=Debug -DUSE_SANITIZER='Address;Undefined'
 
 build-clang/no-san/:
 	CXXFLAGS="-stdlib=libstdc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/no-san/ -DCMAKE_BUILD_TYPE=Debug
@@ -48,13 +48,13 @@ build-clang/type/:
 build-clang/release/:
 	CXXFLAGS="-stdlib=libc++" CXX=clang++ cmake $(NINJAGEN) -S test -B build-clang/release/ -DCMAKE_BUILD_TYPE=RELEASE
 
-clang-no-san-libcpp: build-clang/no-san-libcpp/
-	cmake --build build-clang/no-san-libcpp/
-	cmake --build build-clang/no-san-libcpp/ --target test
+clang-no-san-libcxx: build-clang/no-san-libcxx/
+	cmake --build build-clang/no-san-libcxx/
+	cmake --build build-clang/no-san-libcxx/ --target test
 
-clang-san-libcpp: build-clang/san-libcpp/
-	cmake --build build-clang/san-libcpp/
-	cmake --build build-clang/san-libcpp/ --target test
+clang-san-libcxx: build-clang/san-libcxx/
+	cmake --build build-clang/san-libcxx/
+	cmake --build build-clang/san-libcxx/ --target test
 
 clang-no-san: build-clang/no-san/
 	cmake --build build-clang/no-san/

@@ -18,7 +18,7 @@ void BM_sortperm_double16(Bench &bench);
 void BM_sortperm_float32(Bench &bench);
 void BM_sortperm_double32(Bench &bench);
 
-int main() {
+auto main() -> int {
   Bench bench;
 
   // Simplex benchmarks

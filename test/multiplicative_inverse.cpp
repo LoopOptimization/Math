@@ -195,6 +195,29 @@ void testSplit() {
   expect(result_f_1[1] == 80.0f / 16.0f);
 }
 
+void testCldNN() {
+  // Test cldnn (ceiling division for non-negative inputs) for floating point
+  // types. For non-negative a and positive b, cldnn should equal std::ceil(a/b)
+
+  // Test float
+  for (float j = 1.0f; j <= 100.0f; j += 1.0f) {
+    auto mijf = MultiplicativeInverse(j);
+    for (float i = 0.0f; i <= 1000.0f; i += 1.0f) {
+      float cref = std::ceil(i / j);
+      expect(cref == cldnn(i, mijf));
+    }
+  }
+
+  // Test double
+  for (double j = 1.0; j <= 100.0; j += 1.0) {
+    auto mijd = MultiplicativeInverse(j);
+    for (double i = 0.0; i <= 1000.0; i += 1.0) {
+      double cref = std::ceil(i / j);
+      expect(cref == cldnn(i, mijd));
+    }
+  }
+}
+
 void testCat() {
   // Test SVector<double, 8> split and cat
   using S8 = ::math::SVector<double, 8>;
@@ -267,5 +290,6 @@ int main() {
   "MultiplicativeInverseVector"_test = [] { svector(); };
   "MultiplicativeInverseSplit"_test = [] { testSplit(); };
   "MultiplicativeInverseCat"_test = [] { testCat(); };
+  "MultiplicativeInverseCldNN"_test = [] { testCldNN(); };
   return 0;
 }
