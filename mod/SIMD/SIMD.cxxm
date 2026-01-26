@@ -7973,6 +7973,45 @@ TRIVIAL constexpr auto wideload(const T *ptr, std::ptrdiff_t len)
   }
 }
 
+template <std::ptrdiff_t L, typename T>
+TRIVIAL constexpr void widestore(T *ptr, SVec<T, L> vec) {
+  static constexpr std::ptrdiff_t W = simd::Width<T>;
+  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
+    store(ptr, mask::None<L>{}, vec.data_[0]);
+  } else {
+    static_assert(W < L, "small non-power-of-two not currently supported");
+    static constexpr std::ptrdiff_t N = L / W;
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n)
+      store(ptr + W * n, mask::None<W>{}, vec.data_[n]);
+  }
+}
+
+template <std::ptrdiff_t L, typename T>
+TRIVIAL constexpr void widestore(T *ptr, SVec<T, L> vec, std::ptrdiff_t len) {
+  static constexpr std::ptrdiff_t W = simd::VecLen<L, T>;
+  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
+    store(ptr, mask::create<W>(len), vec.data_[0]);
+  } else {
+    static_assert(W < L, "small non-power-of-two not currently supported");
+    static constexpr std::ptrdiff_t N = L / W;
+#ifdef __AVX512VL__
+    auto ufull{simd::index::tailmask<W>(0, len)};
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n) {
+      auto u{ufull.template sub<W>()};
+      if (u.mask_.any()) store(ptr + u.index_, u.mask_, vec.data_[n]);
+    }
+#else
+    std::ptrdiff_t l = len / W, n = 0;
+    for (; n < l; ++n) store(ptr + W * n, mask::None<W>{}, vec.data_[n]);
+    if (len % W)
+      store(ptr + W * n, simd::index::tailmask<W>(W * n, len).mask_,
+            vec.data_[n]);
+#endif
+  }
+}
+
 } // namespace simd
 
 namespace math { using std::trunc, std::ceil; } // namespace math
