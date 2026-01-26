@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Primary Build Targets
 - `make clang-san`: Build and test with Clang using AddressSanitizer and UBSan using libstdc++
 - `make clang-no-san`: Build and test with Clang without sanitizers using libstdc++
-- `make clang-san-libcpp`: Build and test with Clang using AddressSanitizer and UBSan using libc++
-- `make clang-no-san-libcpp`: Build and test with Clang without sanitizers using libc++
+- `make clang-san-libcxx`: Build and test with Clang using AddressSanitizer and UBSan using libc++
+- `make clang-no-san-libcxx`: Build and test with Clang without sanitizers using libc++
 
 ### Architecture-Specific Builds
 - `make clang-avx2`: Build targeting AVX2 instructions (x86-64-v3)
@@ -147,6 +147,7 @@ The library uses C++23 modules:
 - SIMD operations use Clang's `ext_vector_type` for portable vectorization
 - Focus on integer operations distinguishes this from typical math libraries
 - Used by LoopModels for polyhedral compilation analysis
+- **LSP/clangd note**: The language server reads precompiled BMI (Binary Module Interface) files. When you modify a module, you must rebuild for clangd to see those changes in files that depend on the modified module. If the LSP reports missing methods or outdated errors, rebuild the project to update the BMI files.
 
 ## Important Development Considerations
 - The build system automatically detects CPU features (AVX2, AVX512) and adjusts targets accordingly
