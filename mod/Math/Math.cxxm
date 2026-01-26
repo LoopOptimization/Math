@@ -46,8 +46,6 @@ export import NormalForm;
 export import Simplex;
 
 // Optimization & Constraints
-export import BoxOpt;
-export import BoxOptInt;
 export import Constraints;
 
 // Specialized Math

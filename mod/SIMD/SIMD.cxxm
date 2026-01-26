@@ -7038,40 +7038,6 @@ TRIVIAL constexpr auto transpose(Unroll<R8, C, 8, T> u)
   return z;
 }
 
-template <std::ptrdiff_t L, typename T>
-TRIVIAL constexpr auto wideload(const T *ptr) -> SVec<T, L> {
-  static constexpr std::ptrdiff_t W = simd::Width<T>;
-  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
-    return {load(ptr, mask::None<L>{})};
-  } else {
-    static_assert(W < L, "small non-power-of-two not currently supported");
-    static constexpr std::ptrdiff_t N = L / W;
-    SVec<T, L> ret;
-#pragma clang loop unroll(full)
-    for (std::ptrdiff_t n = 0; n < N; ++n)
-      ret.data_[n] = load(ptr + W * n, mask::None<W>{});
-    return ret;
-  }
-}
-template <std::ptrdiff_t L, typename T>
-TRIVIAL constexpr auto wideload(const T *ptr, std::ptrdiff_t len)
-  -> SVec<T, L> {
-  static constexpr std::ptrdiff_t W = simd::VecLen<L, T>;
-  auto m{mask::create<W>(len)};
-  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
-    return {load(ptr, m)};
-  } else {
-    static_assert(W < L, "small non-power-of-two not currently supported");
-    static constexpr std::ptrdiff_t N = L / W;
-    SVec<T, L> ret;
-#pragma clang loop unroll(full)
-    for (std::ptrdiff_t n = 0; n < N; ++n)
-      ret.data_[n] = load(ptr + W * n, mask::None<W>{});
-    static constexpr std::ptrdiff_t last = N - 1;
-    ret.data_[last] = load(ptr + W * last, m);
-    return ret;
-  }
-}
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N, typename T,
           std::ptrdiff_t X, std::size_t NM = 1, typename MT = mask::None<N>>
 TRIVIAL constexpr auto loadunroll(const T *ptr, math::RowStride<X> rowStride,
@@ -7958,6 +7924,53 @@ TRIVIAL inline auto compressstore(T *p, std::array<std::uint64_t, R * C> masks,
     written += std::popcount(masks[i] & ((1ULL << W) - 1));
   }
   return written;
+}
+
+template <std::ptrdiff_t L, typename T>
+TRIVIAL constexpr auto wideload(const T *ptr) -> SVec<T, L> {
+  static constexpr std::ptrdiff_t W = simd::Width<T>;
+  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
+    return {load(ptr, mask::None<L>{})};
+  } else {
+    static_assert(W < L, "small non-power-of-two not currently supported");
+    static constexpr std::ptrdiff_t N = L / W;
+    SVec<T, L> ret;
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n)
+      ret.data_[n] = load(ptr + W * n, mask::None<W>{});
+    return ret;
+  }
+}
+template <std::ptrdiff_t L, typename T>
+TRIVIAL constexpr auto wideload(const T *ptr, std::ptrdiff_t len)
+  -> SVec<T, L> {
+  static constexpr std::ptrdiff_t W = simd::VecLen<L, T>;
+  auto m{mask::create<W>(len)};
+  if constexpr (W == L || ((W > L) && (std::popcount(std::size_t(L)) == 1))) {
+    return {load(ptr, m)};
+  } else {
+    static_assert(W < L, "small non-power-of-two not currently supported");
+    static constexpr std::ptrdiff_t N = L / W;
+    SVec<T, L> ret;
+#ifdef __AVX512VL__
+    auto ufull{simd::index::tailmask<W>(0, L)};
+#pragma clang loop unroll(full)
+    for (std::ptrdiff_t n = 0; n < N; ++n) {
+      auto u{ufull.template sub<W>()};
+      ret.data_[n] = load(ptr + u.index_, u.mask_);
+      // if (!ufull) break;
+    }
+#else
+    std::ptrdiff_t l = len / W, n = 0;
+    for (; n < l; ++n) ret.data_[n] = load(ptr + W * n, mask::None<W>{});
+    if (len % W) {
+      ret.data_[n] = load(ptr + W * n, simd::index::tailmask<W>(W * n, len));
+      ++n;
+    }
+    for (; n < N; ++n) ret.data_[n] = {};
+#endif
+    return ret;
+  }
 }
 
 } // namespace simd

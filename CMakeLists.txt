@@ -94,7 +94,6 @@ endif()
 target_compile_options(${PROJECT_NAME} PUBLIC -Wno-psabi)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wshadow -Werror)
 # -Wall) # TODO: enable Wall -Wpedantic -Wextra -Wall
-# -Wno-reference-tu-local-entity-in-other-tu)
 target_compile_features(
   ${PROJECT_NAME}
   PRIVATE cxx_std_23
