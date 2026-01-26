@@ -47,4 +47,4 @@ jobs:
             clang --version
             llvm-config --version
       - name: tests
-        run: make clang-no-san-libcpp clang-san-libcpp
+        run: make clang-no-san-libcxx clang-san-libcxx
