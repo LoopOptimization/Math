@@ -89,6 +89,6 @@ jobs:
 
       - run: git submodule update --init --recursive
       - name: tests
-        run: make clang-no-san-libcxx clang-san-libcxx
+        run: make no-san-libcxx san-libcxx
       - name: test-format
-        run: cmake --build build-clang/no-san-libcxx --target check-format
+        run: cmake --build build/no-san-libcxx --target check-format
