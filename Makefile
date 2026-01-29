@@ -2,11 +2,11 @@ HAVE_AVX512 := $(shell grep avx512 /proc/cpuinfo &> /dev/null; echo $$?)
 HAVE_AVX2 := $(shell grep avx2 /proc/cpuinfo &> /dev/null; echo $$?)
 
 ifeq ($(HAVE_AVX512),0)
-all: no-san san no-san-libcpp san-libcpp base-arch release avx2 avx512
+all: no-san san no-san-libcxx san-libcxx base-arch release avx2 avx512
 else ifeq ($(HAVE_AVX2),0)
-all: no-san san no-san-libcpp san-libcpp base-arch release avx2
+all: no-san san no-san-libcxx san-libcxx base-arch release avx2
 else
-all: no-san san no-san-libcpp san-libcpp base-arch release
+all: no-san san no-san-libcxx san-libcxx base-arch release
 endif
 
 build/no-san-libcxx/:
