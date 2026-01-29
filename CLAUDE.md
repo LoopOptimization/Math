@@ -5,33 +5,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ### Primary Build Targets
-- `make clang-san`: Build and test with Clang using AddressSanitizer and UBSan using libstdc++
-- `make clang-no-san`: Build and test with Clang without sanitizers using libstdc++
-- `make clang-san-libcxx`: Build and test with Clang using AddressSanitizer and UBSan using libc++
-- `make clang-no-san-libcxx`: Build and test with Clang without sanitizers using libc++
+- `make san`: Build and test with Clang using AddressSanitizer and UBSan using libstdc++
+- `make no-san`: Build and test with Clang without sanitizers using libstdc++
+- `make san-libcxx`: Build and test with Clang using AddressSanitizer and UBSan using libc++
+- `make no-san-libcxx`: Build and test with Clang without sanitizers using libc++
 
 ### Architecture-Specific Builds
-- `make clang-avx2`: Build targeting AVX2 instructions (x86-64-v3)
-- `make clang-avx512`: Build targeting AVX512 instructions (x86-64-v4) with libc++
-- `make clang-base-arch`: Build for baseline x86-64 architecture with libc++
+- `make avx2`: Build targeting AVX2 instructions (x86-64-v3)
+- `make avx512`: Build targeting AVX512 instructions (x86-64-v4) with libc++
+- `make base-arch`: Build for baseline x86-64 architecture with libc++
 
 ### Other Builds
-- `make clang-release`: Release build with Clang
-- `make clang-type`: Build with TypeSanitizer (Clang only)
-- `make clang-bench`: Build benchmarks with Clang
+- `make release`: Release build with Clang
+- `make type`: Build with TypeSanitizer (Clang only)
+- `make bench`: Build benchmarks with Clang
 
 ### Testing and Linting
 - Tests run automatically with build targets
 - `clang-tidy path/to/file`: Run the linter on specific files
-- Individual test executables are in `build-*/` directories
-- Run specific test patterns: `./build-clang/no-san/test_name`
-- Benchmark executables are in `build-*/` directories
+- Individual test executables are in `build/` directories
+- Run specific test patterns: `./build/no-san/test_name`
+- Benchmark executables are in `build/bench` directories
 
 ### Coverage Analysis
 - `make coverage-local`: Generate local HTML coverage reports with lcov
 - `make coverage-clean`: Clean coverage data files
 - `make coverage-check`: Verify coverage meets 85% threshold
-- Coverage reports available at: `build-clang/coverage/html/index.html`
+- Coverage reports available at: `build/coverage/html/index.html`
 - Coverage data excludes test files, external dependencies, and system headers
 
 ### Clean
