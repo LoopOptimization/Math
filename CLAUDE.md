@@ -155,3 +155,6 @@ The library uses C++23 modules:
 - Memory allocators can be configured (mimalloc, jemalloc) via CMake options
 - Sanitizer builds help catch subtle bugs in template-heavy code
 - Use ut framework for testing with individual test executables per test file
+
+## Remote Development
+- **Never use bash heredocs to write files on remote systems via SSH.** Heredocs can corrupt file contents due to shell escaping issues. Instead, write files locally and use `scp` to transfer them to the remote machine.

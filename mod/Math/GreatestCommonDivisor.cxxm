@@ -70,8 +70,11 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, I> x, simd::Vec<W, I> y)
 
   invariant(!(simd::cmp::eq<W, I>(x, invalid)).any());
   invariant(!(simd::cmp::eq<W, I>(y, invalid)).any());
+  // Mask shift amounts to avoid UB when crz returns bit_width (for zero input)
+  static constexpr I shift_mask = I(8 * sizeof(I) - 1);
   simd::Vec<W, I> b = constexpr_abs<W, I>(y), a = constexpr_abs<W, I>(x),
-                  bz = simd::crz<W, I>(y), az = simd::crz<W, I>(x);
+                  bz = simd::crz<W, I>(y) & shift_mask,
+                  az = simd::crz<W, I>(x) & shift_mask;
   auto on = ((a > 1) & (b > 1));
   simd::Vec<W, I> offb = (x == 0 ? b : (y == 0 ? a : one));
   if (!(simd::cmp::ne<W>(on, {})).any()) return offb;
@@ -80,7 +83,7 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, I> x, simd::Vec<W, I> y)
   for (;;) {
     a >>= az;
     simd::Vec<W, I> d = a - b;
-    az = simd::crz<W, I>(d);
+    az = simd::crz<W, I>(d) & shift_mask;
     b = (on & (a <= b)) ? a : b;
     on = on ? (d != zero) : on;
     if (!(simd::cmp::ne<W>(on, {})).any()) break;
