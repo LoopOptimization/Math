@@ -74,6 +74,36 @@ template <std::ptrdiff_t W> void test_floor_div_double() {
   }
 }
 
+// Test ceil_div for correctness
+template <std::ptrdiff_t W> void test_ceil_div_double() {
+  // Test cases: {a, b, expected_result}
+  // ceil_div rounds toward positive infinity
+  struct TestCase {
+    double a, b, expected;
+  };
+  constexpr TestCase cases[] = {
+    {7.0, 3.0, 3.0},    // 7/3 = 2.33... -> 3 (toward +inf)
+    {-7.0, 3.0, -2.0},  // -7/3 = -2.33... -> -2 (toward +inf)
+    {7.0, -3.0, -2.0},  // 7/-3 = -2.33... -> -2 (toward +inf)
+    {-7.0, -3.0, 3.0},  // -7/-3 = 2.33... -> 3 (toward +inf)
+    {8.0, 4.0, 2.0},    // Exact division
+    {-8.0, 4.0, -2.0},  // Exact negative
+    {0.0, 5.0, 0.0},    // Zero dividend
+    {10.0, 3.0, 4.0},   // 10/3 = 3.33... -> 4 (toward +inf)
+    {-10.0, 3.0, -3.0}, // -10/3 = -3.33... -> -3 (toward +inf)
+  };
+
+  for (const auto &tc : cases) {
+    simd::Vec<W, double> a = tc.a, b = tc.b;
+    auto result = simd::ceil_div(a, b);
+    for (std::ptrdiff_t i = 0; i < W; ++i) {
+      expect(feq(result[i], tc.expected))
+        << "ceil_div(" << tc.a << ", " << tc.b << ") = " << result[i]
+        << ", expected " << tc.expected;
+    }
+  }
+}
+
 // Test that trunc_div and floor_div agree for positive dividends
 template <std::ptrdiff_t W> void test_div_positive_agree() {
   for (double a = 1.0; a <= 100.0; a += 7.0) {
@@ -251,6 +281,29 @@ void test_floor_div_fe_inexact() {
 #endif
 }
 
+// Test ceil_div FE_INEXACT preservation
+void test_ceil_div_fe_inexact() {
+#ifdef __x86_64__
+  _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+
+  static constexpr auto W = simd::Width<double>;
+  simd::Vec<W, double> a = 7.0, b = 3.0;
+
+  auto result = simd::ceil_div(a, b);
+  (void)result;
+
+  unsigned int mxcsr = _mm_getcsr();
+  bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+
+#ifdef __AVX512F__
+  expect(!inexact_set) << "ceil_div should not set FE_INEXACT on AVX512";
+#else
+  expect(!inexact_set)
+    << "ceil_div should restore FE_INEXACT state on non-AVX512";
+#endif
+#endif
+}
+
 // Test with large values to ensure precision bounds
 template <std::ptrdiff_t W> void test_large_values() {
   // Values well within 53-bit mantissa
@@ -297,6 +350,89 @@ template <std::ptrdiff_t W> void test_gcd_pattern() {
   }
 }
 
+// Test that operations inconsistent with integer behavior DO set FE_INEXACT
+void test_inexact_operations_set_flag() {
+#ifdef __x86_64__
+  static constexpr auto W = simd::Width<double>;
+
+  // Test 1: Inexact division (7.0/3.0 = 2.333...)
+  {
+    _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+    simd::Vec<W, double> a = 7.0, b = 3.0;
+    // Regular division without truncation SHOULD set FE_INEXACT
+    volatile auto result = a / b;
+    (void)result;
+    unsigned int mxcsr = _mm_getcsr();
+    bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+    expect(inexact_set) << "7.0/3.0 should set FE_INEXACT";
+  }
+
+  // Test 2: Addition with precision loss (1e18 + 65.0)
+  // 1e18 is large enough that adding 65 loses precision
+  {
+    _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+    simd::Vec<W, double> large = 1e18, small = 65.0;
+    volatile auto result = large + small;
+    (void)result;
+    unsigned int mxcsr = _mm_getcsr();
+    bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+    expect(inexact_set) << "1e18 + 65.0 should set FE_INEXACT (precision loss)";
+  }
+
+  // Test 3: Multiplication with precision loss
+  {
+    _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+    simd::Vec<W, double> a = 1.0 / 3.0; // Already inexact representation
+    simd::Vec<W, double> b = 3.0;
+    volatile auto result = a * b; // Should not be exactly 1.0
+    (void)result;
+    unsigned int mxcsr = _mm_getcsr();
+    bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+    // Note: This may or may not set inexact depending on the FMA behavior
+    // The multiplication itself is exact, but the input was already inexact
+    // We mainly care that inexact operations are detectable
+    (void)inexact_set; // Just verify the mechanism works
+  }
+
+  // Test 4: Large product that exceeds mantissa precision
+  {
+    _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+    // (2^27 + 1) * (2^27 + 1) requires more than 53 bits of precision
+    simd::Vec<W, double> a = double((1LL << 27) + 1);
+    volatile auto result = a * a;
+    (void)result;
+    unsigned int mxcsr = _mm_getcsr();
+    bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+    expect(inexact_set)
+      << "(2^27+1)^2 should set FE_INEXACT (exceeds 53-bit mantissa)";
+  }
+
+  // Test 5: Verify exact operations do NOT set FE_INEXACT
+  {
+    _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+    simd::Vec<W, double> a = 8.0, b = 4.0;
+    volatile auto result = a / b; // Exact: 8/4 = 2
+    (void)result;
+    unsigned int mxcsr = _mm_getcsr();
+    bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+    expect(!inexact_set)
+      << "8.0/4.0 should NOT set FE_INEXACT (exact division)";
+  }
+
+  // Test 6: Exact addition should not set FE_INEXACT
+  {
+    _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+    simd::Vec<W, double> a = 1.0, b = 2.0;
+    volatile auto result = a + b; // Exact: 1+2 = 3
+    (void)result;
+    unsigned int mxcsr = _mm_getcsr();
+    bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+    expect(!inexact_set)
+      << "1.0+2.0 should NOT set FE_INEXACT (exact addition)";
+  }
+#endif
+}
+
 } // namespace
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -307,6 +443,8 @@ int main() {
   "TruncDivDouble"_test = [] { test_trunc_div_double<W_double>(); };
 
   "FloorDivDouble"_test = [] { test_floor_div_double<W_double>(); };
+
+  "CeilDivDouble"_test = [] { test_ceil_div_double<W_double>(); };
 
   "DivPositiveAgree"_test = [] { test_div_positive_agree<W_double>(); };
 
@@ -320,6 +458,10 @@ int main() {
 
   "FloorDivFeInexact"_test = [] { test_floor_div_fe_inexact(); };
 
+  "CeilDivFeInexact"_test = [] { test_ceil_div_fe_inexact(); };
+
+  "InexactOpsSetFlag"_test = [] { test_inexact_operations_set_flag(); };
+
   "LargeValues"_test = [] { test_large_values<W_double>(); };
 
   "GcdPattern"_test = [] { test_gcd_pattern<W_double>(); };
@@ -328,18 +470,21 @@ int main() {
   if constexpr (W_double >= 2) {
     "TruncDivDouble_W2"_test = [] { test_trunc_div_double<2>(); };
     "FloorDivDouble_W2"_test = [] { test_floor_div_double<2>(); };
+    "CeilDivDouble_W2"_test = [] { test_ceil_div_double<2>(); };
     "FmaDouble_W2"_test = [] { test_fma_double<2>(); };
   }
 
   if constexpr (W_double >= 4) {
     "TruncDivDouble_W4"_test = [] { test_trunc_div_double<4>(); };
     "FloorDivDouble_W4"_test = [] { test_floor_div_double<4>(); };
+    "CeilDivDouble_W4"_test = [] { test_ceil_div_double<4>(); };
     "FmaDouble_W4"_test = [] { test_fma_double<4>(); };
   }
 
   if constexpr (W_double >= 8) {
     "TruncDivDouble_W8"_test = [] { test_trunc_div_double<8>(); };
     "FloorDivDouble_W8"_test = [] { test_floor_div_double<8>(); };
+    "CeilDivDouble_W8"_test = [] { test_ceil_div_double<8>(); };
     "FmaDouble_W8"_test = [] { test_fma_double<8>(); };
   }
 

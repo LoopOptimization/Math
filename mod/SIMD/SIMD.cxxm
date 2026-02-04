@@ -4767,11 +4767,13 @@ TRIVIAL auto trunc_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
       __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
       _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x0B));
-  } else
-#else
-  FEnvGuard guard;
+  } else {
 #endif
+    FEnvGuard guard;
     return __builtin_elementwise_trunc(a / b);
+#ifdef __AVX512F__
+  }
+#endif
 }
 
 /// floor_div: a / b with floor toward negative infinity, preserving FE_INEXACT.
@@ -4791,11 +4793,39 @@ TRIVIAL auto floor_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
       __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
       _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x09));
-  } else
-#else
-  FEnvGuard guard;
+  } else {
 #endif
+    FEnvGuard guard;
     return __builtin_elementwise_floor(a / b);
+#ifdef __AVX512F__
+  }
+#endif
+}
+
+/// ceil_div: a / b with ceiling toward positive infinity, preserving
+/// FE_INEXACT. Uses FEnvGuard to save/restore FP exception state. On AVX512
+/// (512-bit), uses roundscale with SAE for the rounding step.
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL auto ceil_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+#ifdef __AVX512F__
+  if constexpr (W == 8 && std::same_as<T, double>) {
+    __m512d quotient = _mm512_div_round_pd(
+      __builtin_bit_cast(__m512d, a), __builtin_bit_cast(__m512d, b),
+      _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+    // _MM_FROUND_TO_POS_INF=2, _MM_FROUND_NO_EXC=8 -> 0x0A
+    return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_pd(quotient, 0x0A));
+  } else if constexpr (W == 16 && std::same_as<T, float>) {
+    __m512 quotient = _mm512_div_round_ps(
+      __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
+      _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+    return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x0A));
+  } else {
+#endif
+    FEnvGuard guard;
+    return __builtin_elementwise_ceil(a / b);
+#ifdef __AVX512F__
+  }
+#endif
 }
 
 /// fma: a * b + c (fused multiply-add)
