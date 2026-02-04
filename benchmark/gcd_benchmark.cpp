@@ -151,4 +151,3 @@ void BM_dgcdx_vec_double(Bench &bench) {
     }
   });
 }
-

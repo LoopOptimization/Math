@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build Commands
 
+- Avoid wiping the build directory unnecessarilly.
+
 ### Primary Build Targets
 - `make san`: Build and test with Clang using AddressSanitizer and UBSan using libstdc++
 - `make no-san`: Build and test with Clang without sanitizers using libstdc++

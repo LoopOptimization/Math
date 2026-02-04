@@ -328,8 +328,9 @@ int main() {
   };
 
   "VecDgcdxTest Double"_test = [] -> void {
-    // Use smaller bound to avoid floating point precision issues in Bezout check
-    // (a*x + b*y involves products that can exceed double precision for large inputs)
+    // Use smaller bound to avoid floating point precision issues in Bezout
+    // check (a*x + b*y involves products that can exceed double precision for
+    // large inputs)
     static constexpr std::int64_t bound = 1Z << 26; // ~67 million
     constexpr std::ptrdiff_t W = simd::Width<double>;
     std::random_device rd;

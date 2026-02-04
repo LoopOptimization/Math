@@ -4722,7 +4722,99 @@ TRIVIAL constexpr auto crz(Vec<W, T> v) {
 
 template <std::ptrdiff_t W, std::floating_point T>
 TRIVIAL constexpr auto trunc(Vec<W, T> v) {
+  return __builtin_elementwise_trunc(v);
+}
+
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto floor(Vec<W, T> v) {
   return __builtin_elementwise_floor(v);
+}
+
+/// FEnvGuard saves and restores floating-point environment to preserve
+/// FE_INEXACT status across intentional rounding operations.
+/// On x86, uses _mm_getcsr/_mm_setcsr for efficiency.
+/// On other platforms, uses std::fenv functions.
+struct FEnvGuard {
+#ifdef __x86_64__
+  unsigned int saved_;
+  TRIVIAL FEnvGuard() : saved_(_mm_getcsr()) {}
+  TRIVIAL ~FEnvGuard() { _mm_setcsr(saved_); }
+#else
+  std::fenv_t saved_;
+  FEnvGuard() { std::fegetenv(&saved_); }
+  ~FEnvGuard() { std::fesetenv(&saved_); }
+#endif
+  FEnvGuard(const FEnvGuard &) = delete;
+  auto operator=(const FEnvGuard &) -> FEnvGuard & = delete;
+};
+
+/// trunc_div: a / b with truncation toward zero, preserving FE_INEXACT.
+/// Matches C++ integer division semantics.
+/// Uses FEnvGuard to save/restore FP exception state.
+/// On AVX512 (512-bit), uses roundscale with SAE for the rounding step.
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL auto trunc_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+#ifdef __AVX512F__
+  if constexpr (W == 8 && std::same_as<T, double>) {
+    __m512d quotient = _mm512_div_round_pd(
+      __builtin_bit_cast(__m512d, a), __builtin_bit_cast(__m512d, b),
+      _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    // roundscale with imm8: bits[3:0]=rounding mode, bits[7:4]=scale (0 for no
+    // scale) _MM_FROUND_TO_ZERO=3, _MM_FROUND_NO_EXC=8 -> 0x0B
+    return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_pd(quotient, 0x0B));
+  } else if constexpr (W == 16 && std::same_as<T, float>) {
+    __m512 quotient = _mm512_div_round_ps(
+      __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
+      _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+    return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x0B));
+  } else
+#else
+  FEnvGuard guard;
+#endif
+    return __builtin_elementwise_trunc(a / b);
+}
+
+/// floor_div: a / b with floor toward negative infinity, preserving FE_INEXACT.
+/// Uses FEnvGuard to save/restore FP exception state.
+/// On AVX512 (512-bit), uses roundscale with SAE for the rounding step.
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL auto floor_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+#ifdef __AVX512F__
+  if constexpr (W == 8 && std::same_as<T, double>) {
+    __m512d quotient = _mm512_div_round_pd(
+      __builtin_bit_cast(__m512d, a), __builtin_bit_cast(__m512d, b),
+      _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    // _MM_FROUND_TO_NEG_INF=1, _MM_FROUND_NO_EXC=8 -> 0x09
+    return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_pd(quotient, 0x09));
+  } else if constexpr (W == 16 && std::same_as<T, float>) {
+    __m512 quotient = _mm512_div_round_ps(
+      __builtin_bit_cast(__m512, a), __builtin_bit_cast(__m512, b),
+      _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+    return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x09));
+  } else
+#else
+  FEnvGuard guard;
+#endif
+    return __builtin_elementwise_floor(a / b);
+}
+
+/// fma: a * b + c (fused multiply-add)
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto fma(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c) -> Vec<W, T> {
+  return __builtin_elementwise_fma(a, b, c);
+}
+
+/// fms: a * b - c (fused multiply-subtract)
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto fms(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c) -> Vec<W, T> {
+  return __builtin_elementwise_fma(a, b, -c);
+}
+
+/// fnma: c - a * b (fused negative multiply-add, common in row operations)
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto fnma(Vec<W, T> a, Vec<W, T> b, Vec<W, T> c)
+  -> Vec<W, T> {
+  return __builtin_elementwise_fma(-a, b, c);
 }
 
 template <typename T>
@@ -5422,7 +5514,7 @@ private:
     Unroll b;
     POLYMATHFULLUNROLL
     for (std::ptrdiff_t i = 0; i < L; ++i)
-      b.data_[i] = __builtin_elementwise_floor(a.data_[i]);
+      b.data_[i] = __builtin_elementwise_trunc(a.data_[i]);
     return b;
   }
   TRIVIAL friend constexpr auto ceil(Unroll a) -> Unroll {
@@ -6200,7 +6292,7 @@ public:
 private:
   TRIVIAL friend constexpr auto trunc(Unroll a) -> Unroll {
     if constexpr (N == 1) return {std::trunc(a.vec_)};
-    else return {__builtin_elementwise_floor(a.vec_)};
+    else return {__builtin_elementwise_trunc(a.vec_)};
   }
   TRIVIAL friend constexpr auto ceil(Unroll a) -> Unroll {
     if constexpr (N == 1) return {std::ceil(a.vec_)};
