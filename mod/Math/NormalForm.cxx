@@ -265,8 +265,9 @@ void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c,
   auto [A, B] = AB;
   const Row M = A.numRow();
   invariant(M, B.numRow());
+  std::int64_t Arc = A[r, c];
   for (std::ptrdiff_t j = 0; j < r; ++j) {
-    std::int64_t Arc = A[r, c], Ajc = A[j, c];
+    std::int64_t Ajc = A[j, c];
     if (!Ajc) continue;
     std::int64_t g = gcd(Arc, Ajc), x = Arc / g, y = Ajc / g;
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
@@ -277,13 +278,14 @@ void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Col<> c,
   // greater rows in previous columns have been zeroed out
   // therefore it is safe to use them for row operations with this row
   for (auto j = std::ptrdiff_t(r); ++j < M;) {
-    std::int64_t Arc = A[r, c], Ajc = A[j, c];
+    std::int64_t Ajc = A[j, c];
     if (!Ajc) continue;
     const auto [p, q, Arcr, Ajcr] = NormalForm::gcdxScale(Arc, Ajc);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutPtrVector<std::int64_t> Ar = AB[i][r, _], Aj = AB[i][j, _];
       Pair(Ar, Aj) << Tuple(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
     }
+    Arc = A[r, c];
   }
 }
 // use col `c` to zero the remaining cols of row `r`
@@ -292,8 +294,9 @@ void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Row<> r,
   auto [A, B] = AB;
   const Col N = A.numCol();
   invariant(N, B.numCol());
+  std::int64_t Arc = A[r, c];
   for (std::ptrdiff_t j = 0; j < c; ++j) {
-    std::int64_t Arc = A[r, c], Arj = A[r, j];
+    std::int64_t Arj = A[r, j];
     if (!Arj) continue;
     auto [x, y] = divgcd(Arc, Arj);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
@@ -304,20 +307,22 @@ void zeroColumnPair(std::array<MutPtrMatrix<std::int64_t>, 2> AB, Row<> r,
   // greater rows in previous columns have been zeroed out
   // therefore it is safe to use them for row operations with this row
   for (auto j = std::ptrdiff_t(c); ++j < N;) {
-    std::int64_t Arc = A[r, c], Arj = A[r, j];
+    std::int64_t Arj = A[r, j];
     if (!Arj) continue;
     const auto [p, q, Arcr, Ajcr] = NormalForm::gcdxScale(Arc, Arj);
     for (std::ptrdiff_t i = 0; i < 2; ++i) {
       MutArray<std::int64_t, StridedRange<>> Ac = AB[i][_, c], Aj = AB[i][_, j];
       Pair(Ac, Aj) << Tuple(q * Aj + p * Ac, Arcr * Aj - Ajcr * Ac);
     }
+    Arc = A[r, c]; // reload in case it changed
   }
 }
 // use row `r` to zero the remaining rows of column `c`
 void zeroColumn(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r) {
   const Row M = A.numRow();
+  std::int64_t Arc = A[r, c];
   for (std::ptrdiff_t j = 0; j < r; ++j) {
-    std::int64_t Arc = A[r, c], Ajc = A[j, c];
+    std::int64_t Ajc = A[j, c];
     invariant(Arc != std::numeric_limits<std::int64_t>::min());
     invariant(Ajc != std::numeric_limits<std::int64_t>::min());
     if (!Ajc) continue;
@@ -326,12 +331,13 @@ void zeroColumn(MutPtrMatrix<std::int64_t> A, Col<> c, Row<> r) {
   }
   // greater rows in previous columns have been zeroed out
   // therefore it is safe to use them for row operations with this row
-  for (std::ptrdiff_t j = std::ptrdiff_t(r) + 1; j < M; ++j) {
-    std::int64_t Arc = A[r, c], Ajc = A[j, c];
+  for (std::ptrdiff_t j = std::ptrdiff_t(r); ++j < M;) {
+    std::int64_t Ajc = A[j, c];
     if (!Ajc) continue;
     const auto [p, q, Arcr, Ajcr] = NormalForm::gcdxScale(Arc, Ajc);
     MutPtrVector<std::int64_t> Ar = A[r, _], Aj = A[j, _];
     Pair(Ar, Aj) << Pair(q * Aj + p * Ar, Arcr * Aj - Ajcr * Ar);
+    Arc = A[r, c]; // reload in case it changed
   }
 }
 

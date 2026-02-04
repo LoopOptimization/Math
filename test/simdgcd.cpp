@@ -118,7 +118,6 @@ int main() {
     }
   };
 
-  // TODO: Re-enable float/double tests after fixing SVec construction
   "UnrollGCDTest Float"_test = [] -> void {
     static constexpr std::int32_t bound = 1
                                           << std::numeric_limits<float>::digits;
@@ -302,6 +301,98 @@ int main() {
     expect(n.extract_value(1) == 35);  // lcm(5, 7) = 35
     expect(n.extract_value(2) == 77);  // lcm(7, 11) = 77
     expect(n.extract_value(3) == 143); // lcm(11, 13) = 143
+  };
+
+  "VecDgcdxTest Int64"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 1000; ++i) {
+      auto [a, b, z, rg] = fillGCD<W>(gen);
+      auto [g, x, y, adg, bdg] = ::math::dgcdx<W>(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t aj = vecget<W>(a, j), bj = vecget<W>(b, j);
+        std::int64_t gj = vecget<W>(g, j), xj = vecget<W>(x, j),
+                     yj = vecget<W>(y, j);
+        std::int64_t adgj = vecget<W>(adg, j), bdgj = vecget<W>(bdg, j);
+        // GCD magnitude should match; sign may differ based on inputs
+        expect(std::abs(gj) == z[j]);
+        // Bezout identity: a*x + b*y == g
+        expect(aj * xj + bj * yj == gj);
+        if (gj != 0) {
+          expect(std::abs(adgj) == std::abs(aj / gj));
+          expect(std::abs(bdgj) == std::abs(bj / gj));
+        }
+      }
+    }
+  };
+
+  "VecDgcdxTest Double"_test = [] -> void {
+    // Use smaller bound to avoid floating point precision issues in Bezout
+    // check (a*x + b*y involves products that can exceed double precision for
+    // large inputs)
+    static constexpr std::int64_t bound = 1Z << 26; // ~67 million
+    constexpr std::ptrdiff_t W = simd::Width<double>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 1000; ++i) {
+      auto [aarr, barr, z, rg_unused] =
+        fillGCDUnroll<std::int64_t, W>(gen, -bound, bound);
+      simd::Vec<W, double> a, b;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a[j] = double(aarr[j]);
+        b[j] = double(barr[j]);
+      }
+      auto [g, x, y, adg, bdg] = ::math::dgcdx<W>(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        double aj = a[j], bj = b[j], gj = g[j], xj = x[j], yj = y[j];
+        // GCD magnitude should match; sign may differ based on inputs
+        expect(std::abs(std::int64_t(gj)) == z[j]);
+        // Bezout identity: a*x + b*y == g
+        double bezout = aj * xj + bj * yj;
+        expect(bezout == gj);
+      }
+    }
+  };
+
+  "VecLcmTest Int64"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 1000; ++i) {
+      auto [aarr, barr, z_unused, rg_unused] =
+        fillGCDUnroll<std::int64_t, W>(gen, -65535, 65535);
+      simd::Vec<W, std::int64_t> a, b;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a[j] = aarr[j];
+        b[j] = barr[j];
+      }
+      auto lcm_result = ::math::lcm(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t expected = std::lcm(aarr[j], barr[j]);
+        expect(fatal(eq(lcm_result[j], expected)));
+      }
+    }
+  };
+
+  "VecLcmTest Double"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<double>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    for (std::ptrdiff_t i = 0; i < 1000; ++i) {
+      auto [aarr, barr, z_unused, rg_unused] =
+        fillGCDUnroll<std::int64_t, W>(gen, -65536, 65536);
+      simd::Vec<W, double> a, b;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a[j] = double(aarr[j]);
+        b[j] = double(barr[j]);
+      }
+      auto lcm_result = ::math::lcm(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t expected = std::lcm(aarr[j], barr[j]);
+        expect(fatal(eq(std::int64_t(lcm_result[j]), expected)));
+      }
+    }
   };
 
   return 0;

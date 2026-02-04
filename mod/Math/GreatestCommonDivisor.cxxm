@@ -259,16 +259,21 @@ TRIVIAL constexpr auto dgcdx(simd::Vec<W, T> a, simd::Vec<W, T> b)
   static constexpr simd::Vec<W, T> zero = simd::vbroadcast<W, T>(0);
   simd::Vec<W, T> s_old = one, s = zero;
   simd::Vec<W, T> t_old = zero, t = one;
-  auto m = r != zero;
+  auto m = simd::cmp::ne<W, T>(r, zero);
   while (m.any()) {
-    simd::Vec<W, T> quotient = r_old / r;
-    if constexpr (std::floating_point<T>) quotient = trunc(quotient);
+    // Use safe divisor to avoid division by zero; masked lanes use 1
+    simd::Vec<W, T> safe_r = m.select(r, one);
+    simd::Vec<W, T> quotient = r_old / safe_r;
+    if constexpr (std::floating_point<T>) quotient = simd::trunc(quotient);
     simd::Vec<W, T> r_next = r_old - (quotient * r),
                     s_next = s_old - (quotient * s),
                     t_next = t_old - (quotient * t);
-    r_old = r, s_old = s, t_old = t;
+    // Only update old values for lanes still active; finished lanes keep GCD
+    r_old = m.select(r, r_old);
+    s_old = m.select(s, s_old);
+    t_old = m.select(t, t_old);
     r = m.select(r_next, r), s = m.select(s_next, s), t = m.select(t_next, t);
-    m = simd::cmp::ne(r, zero);
+    m = simd::cmp::ne<W, T>(r, zero);
   }
   // Solving for `t` at the end has 1 extra division, but lets us remove
   // the `t` updates in the loop:
@@ -291,6 +296,12 @@ TRIVIAL constexpr auto divgcd(std::int64_t a, std::int64_t b)
   auto [g, x, y, t, s] = dgcdx(a, b);
   return {t, s};
 }
+template <std::ptrdiff_t W, std::integral I>
+TRIVIAL constexpr auto lcm(simd::Vec<W, I> a, simd::Vec<W, I> b)
+  -> simd::Vec<W, I> {
+  simd::Vec<W, I> ax = constexpr_abs<W, I>(a), ay = constexpr_abs<W, I>(b);
+  return ax * (ay / gcd<W>(ax, ay));
+}
 template <std::ptrdiff_t W, std::floating_point T>
 TRIVIAL constexpr auto lcm(simd::Vec<W, T> a, simd::Vec<W, T> b)
   -> simd::Vec<W, T> {
@@ -301,14 +312,18 @@ TRIVIAL constexpr auto lcm(simd::Vec<W, T> a, simd::Vec<W, T> b)
   static constexpr simd::Vec<W, T> one = simd::vbroadcast<W, T>(1);
   static constexpr simd::Vec<W, T> zero = simd::vbroadcast<W, T>(0);
   simd::Vec<W, T> s_old = one, s = zero;
-  auto m = simd::cmp::ne(r, zero);
+  auto m = simd::cmp::ne<W, T>(r, zero);
   while (m.any()) {
-    simd::Vec<W, T> quotient = simd::trunc(r_old / r),
+    // Use safe divisor to avoid division by zero; masked lanes use 1
+    simd::Vec<W, T> safe_r = m.select(r, one);
+    simd::Vec<W, T> quotient = simd::trunc(r_old / safe_r),
                     r_next = r_old - (quotient * r),
                     s_next = s_old - (quotient * s);
-    r_old = r, s_old = s;
+    // Only update old values for lanes still active
+    r_old = m.select(r, r_old);
+    s_old = m.select(s, s_old);
     r = m.select(r_next, r), s = m.select(s_next, s);
-    m = simd::cmp::ne(r, zero);
+    m = simd::cmp::ne<W, T>(r, zero);
   }
   // if b was negative
   // s is based on min
