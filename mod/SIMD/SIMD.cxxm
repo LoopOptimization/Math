@@ -4748,19 +4748,25 @@ struct FEnvGuard {
   auto operator=(const FEnvGuard &) -> FEnvGuard & = delete;
 };
 
-/// trunc_div: a / b with truncation toward zero, preserving FE_INEXACT.
-/// Matches C++ integer division semantics.
-/// Uses FEnvGuard to save/restore FP exception state.
-/// On AVX512 (512-bit), uses roundscale with SAE for the rounding step.
+/// Concept to detect full-width AVX512 vectors that use SAE (suppressed
+/// exceptions) and don't need FEnvGuard.
+template <std::ptrdiff_t N, typename T>
+concept FullWidthAVX512 =
+#ifdef __AVX512F__
+  (N == 8 && std::same_as<T, double>) || (N == 16 && std::same_as<T, float>);
+#else
+  false;
+#endif
+
+/// Internal helper: trunc(a/b) without FEnvGuard management.
+/// Caller is responsible for FEnvGuard if needed.
 template <std::ptrdiff_t W, std::floating_point T>
-TRIVIAL auto trunc_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+TRIVIAL auto trunc_div_impl(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
 #ifdef __AVX512F__
   if constexpr (W == 8 && std::same_as<T, double>) {
     __m512d quotient = _mm512_div_round_pd(
       __builtin_bit_cast(__m512d, a), __builtin_bit_cast(__m512d, b),
       _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
-    // roundscale with imm8: bits[3:0]=rounding mode, bits[7:4]=scale (0 for no
-    // scale) _MM_FROUND_TO_ZERO=3, _MM_FROUND_NO_EXC=8 -> 0x0B
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_pd(quotient, 0x0B));
   } else if constexpr (W == 16 && std::same_as<T, float>) {
     __m512 quotient = _mm512_div_round_ps(
@@ -4769,24 +4775,21 @@ TRIVIAL auto trunc_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x0B));
   } else {
 #endif
-    FEnvGuard guard;
     return __builtin_elementwise_trunc(a / b);
 #ifdef __AVX512F__
   }
 #endif
 }
 
-/// floor_div: a / b with floor toward negative infinity, preserving FE_INEXACT.
-/// Uses FEnvGuard to save/restore FP exception state.
-/// On AVX512 (512-bit), uses roundscale with SAE for the rounding step.
+/// Internal helper: floor(a/b) without FEnvGuard management.
+/// Caller is responsible for FEnvGuard if needed.
 template <std::ptrdiff_t W, std::floating_point T>
-TRIVIAL auto floor_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+TRIVIAL auto floor_div_impl(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
 #ifdef __AVX512F__
   if constexpr (W == 8 && std::same_as<T, double>) {
     __m512d quotient = _mm512_div_round_pd(
       __builtin_bit_cast(__m512d, a), __builtin_bit_cast(__m512d, b),
       _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
-    // _MM_FROUND_TO_NEG_INF=1, _MM_FROUND_NO_EXC=8 -> 0x09
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_pd(quotient, 0x09));
   } else if constexpr (W == 16 && std::same_as<T, float>) {
     __m512 quotient = _mm512_div_round_ps(
@@ -4795,24 +4798,21 @@ TRIVIAL auto floor_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x09));
   } else {
 #endif
-    FEnvGuard guard;
     return __builtin_elementwise_floor(a / b);
 #ifdef __AVX512F__
   }
 #endif
 }
 
-/// ceil_div: a / b with ceiling toward positive infinity, preserving
-/// FE_INEXACT. Uses FEnvGuard to save/restore FP exception state. On AVX512
-/// (512-bit), uses roundscale with SAE for the rounding step.
+/// Internal helper: ceil(a/b) without FEnvGuard management.
+/// Caller is responsible for FEnvGuard if needed.
 template <std::ptrdiff_t W, std::floating_point T>
-TRIVIAL auto ceil_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+TRIVIAL auto ceil_div_impl(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
 #ifdef __AVX512F__
   if constexpr (W == 8 && std::same_as<T, double>) {
     __m512d quotient = _mm512_div_round_pd(
       __builtin_bit_cast(__m512d, a), __builtin_bit_cast(__m512d, b),
       _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
-    // _MM_FROUND_TO_POS_INF=2, _MM_FROUND_NO_EXC=8 -> 0x0A
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_pd(quotient, 0x0A));
   } else if constexpr (W == 16 && std::same_as<T, float>) {
     __m512 quotient = _mm512_div_round_ps(
@@ -4821,11 +4821,50 @@ TRIVIAL auto ceil_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
     return __builtin_bit_cast(Vec<W, T>, _mm512_roundscale_ps(quotient, 0x0A));
   } else {
 #endif
-    FEnvGuard guard;
     return __builtin_elementwise_ceil(a / b);
 #ifdef __AVX512F__
   }
 #endif
+}
+
+/// trunc_div: a / b with truncation toward zero, preserving FE_INEXACT.
+/// Matches C++ integer division semantics.
+/// Uses FEnvGuard to save/restore FP exception state (skipped for full-width
+/// AVX512 which uses SAE).
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL auto trunc_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+  if constexpr (FullWidthAVX512<W, T>) {
+    return trunc_div_impl(a, b);
+  } else {
+    FEnvGuard guard;
+    return trunc_div_impl(a, b);
+  }
+}
+
+/// floor_div: a / b with floor toward negative infinity, preserving FE_INEXACT.
+/// Uses FEnvGuard to save/restore FP exception state (skipped for full-width
+/// AVX512 which uses SAE).
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL auto floor_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+  if constexpr (FullWidthAVX512<W, T>) {
+    return floor_div_impl(a, b);
+  } else {
+    FEnvGuard guard;
+    return floor_div_impl(a, b);
+  }
+}
+
+/// ceil_div: a / b with ceiling toward positive infinity, preserving
+/// FE_INEXACT. Uses FEnvGuard to save/restore FP exception state (skipped for
+/// full-width AVX512 which uses SAE).
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL auto ceil_div(Vec<W, T> a, Vec<W, T> b) -> Vec<W, T> {
+  if constexpr (FullWidthAVX512<W, T>) {
+    return ceil_div_impl(a, b);
+  } else {
+    FEnvGuard guard;
+    return ceil_div_impl(a, b);
+  }
 }
 
 /// fma: a * b + c (fused multiply-add)
@@ -5655,6 +5694,45 @@ private:
                                           const Unroll<R1, C1, W1, T1> &b) {
     return applyop<false>(a, b, std::divides<>{});
   }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto ceil_div(Unroll a,
+                                         const Unroll<R1, C1, W1, T1> &b) {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::ceil_div_impl(x, y); });
+    } else {
+      FEnvGuard guard;
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::ceil_div_impl(x, y); });
+    }
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto trunc_div(Unroll a,
+                                          const Unroll<R1, C1, W1, T1> &b) {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::trunc_div_impl(x, y); });
+    } else {
+      FEnvGuard guard;
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::trunc_div_impl(x, y); });
+    }
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto floor_div(Unroll a,
+                                          const Unroll<R1, C1, W1, T1> &b) {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::floor_div_impl(x, y); });
+    } else {
+      FEnvGuard guard;
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::floor_div_impl(x, y); });
+    }
+  }
 
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
@@ -5789,6 +5867,54 @@ private:
     for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a.data_[i] / b;
     return c;
   }
+  TRIVIAL friend constexpr auto ceil_div(Unroll a, VT b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::ceil_div_impl(a.data_[i], b);
+      return c;
+    } else {
+      FEnvGuard guard;
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::ceil_div_impl(a.data_[i], b);
+      return c;
+    }
+  }
+  TRIVIAL friend constexpr auto trunc_div(Unroll a, VT b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::trunc_div_impl(a.data_[i], b);
+      return c;
+    } else {
+      FEnvGuard guard;
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::trunc_div_impl(a.data_[i], b);
+      return c;
+    }
+  }
+  TRIVIAL friend constexpr auto floor_div(Unroll a, VT b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::floor_div_impl(a.data_[i], b);
+      return c;
+    } else {
+      FEnvGuard guard;
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::floor_div_impl(a.data_[i], b);
+      return c;
+    }
+  }
   TRIVIAL friend constexpr auto operator&(Unroll a, VT b) -> Unroll {
     Unroll<R, C, N, T> c;
     POLYMATHFULLUNROLL
@@ -5838,6 +5964,21 @@ private:
                                           std::convertible_to<T> auto b)
     -> Unroll requires(N != 1) {
     return a / ::simd::vbroadcast<N, T>(b);
+  }
+  TRIVIAL friend constexpr auto ceil_div(Unroll a,
+                                         std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return ceil_div(a, ::simd::vbroadcast<N, T>(b));
+  }
+  TRIVIAL friend constexpr auto trunc_div(Unroll a,
+                                          std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return trunc_div(a, ::simd::vbroadcast<N, T>(b));
+  }
+  TRIVIAL friend constexpr auto floor_div(Unroll a,
+                                          std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return floor_div(a, ::simd::vbroadcast<N, T>(b));
   }
   TRIVIAL friend constexpr auto operator&(Unroll a,
                                           std::convertible_to<T> auto b)
@@ -5889,6 +6030,54 @@ private:
     for (std::ptrdiff_t i = 0; i < R * C; ++i) c.data_[i] = a / b.data_[i];
     return c;
   }
+  TRIVIAL friend constexpr auto ceil_div(VT a, Unroll b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::ceil_div_impl(a, b.data_[i]);
+      return c;
+    } else {
+      FEnvGuard guard;
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::ceil_div_impl(a, b.data_[i]);
+      return c;
+    }
+  }
+  TRIVIAL friend constexpr auto trunc_div(VT a, Unroll b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::trunc_div_impl(a, b.data_[i]);
+      return c;
+    } else {
+      FEnvGuard guard;
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::trunc_div_impl(a, b.data_[i]);
+      return c;
+    }
+  }
+  TRIVIAL friend constexpr auto floor_div(VT a, Unroll b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::floor_div_impl(a, b.data_[i]);
+      return c;
+    } else {
+      FEnvGuard guard;
+      Unroll<R, C, N, T> c;
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t i = 0; i < R * C; ++i)
+        c.data_[i] = ::simd::floor_div_impl(a, b.data_[i]);
+      return c;
+    }
+  }
   TRIVIAL friend constexpr auto operator&(VT a, Unroll b) -> Unroll {
     Unroll<R, C, N, T> c;
     POLYMATHFULLUNROLL
@@ -5934,6 +6123,18 @@ private:
   TRIVIAL friend constexpr auto operator/(T b, Unroll a) -> Unroll
     requires(N != 1) {
     return ::simd::vbroadcast<N, T>(b) / a;
+  }
+  TRIVIAL friend constexpr auto ceil_div(T b, Unroll a) -> Unroll
+    requires(N != 1) {
+    return ceil_div(::simd::vbroadcast<N, T>(b), a);
+  }
+  TRIVIAL friend constexpr auto trunc_div(T b, Unroll a) -> Unroll
+    requires(N != 1) {
+    return trunc_div(::simd::vbroadcast<N, T>(b), a);
+  }
+  TRIVIAL friend constexpr auto floor_div(T b, Unroll a) -> Unroll
+    requires(N != 1) {
+    return floor_div(::simd::vbroadcast<N, T>(b), a);
   }
   TRIVIAL friend constexpr auto operator&(T b, Unroll a) -> Unroll
     requires(N != 1) {
@@ -6407,6 +6608,45 @@ private:
   }
   template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
             typename T1>
+  TRIVIAL friend constexpr auto ceil_div(Unroll a,
+                                         const Unroll<R1, C1, W1, T1> &b) {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::ceil_div_impl(x, y); });
+    } else {
+      FEnvGuard guard;
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::ceil_div_impl(x, y); });
+    }
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto trunc_div(Unroll a,
+                                          const Unroll<R1, C1, W1, T1> &b) {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::trunc_div_impl(x, y); });
+    } else {
+      FEnvGuard guard;
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::trunc_div_impl(x, y); });
+    }
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
+  TRIVIAL friend constexpr auto floor_div(Unroll a,
+                                          const Unroll<R1, C1, W1, T1> &b) {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::floor_div_impl(x, y); });
+    } else {
+      FEnvGuard guard;
+      return applyop<false>(
+        a, b, [](auto x, auto y) { return ::simd::floor_div_impl(x, y); });
+    }
+  }
+  template <std::ptrdiff_t R1, std::ptrdiff_t C1, std::ptrdiff_t W1,
+            typename T1>
   TRIVIAL friend constexpr auto operator&(Unroll a,
                                           const Unroll<R1, C1, W1, T1> &b) {
     return applyop<false>(a, b, std::bit_and<>{});
@@ -6623,6 +6863,30 @@ private:
   TRIVIAL friend constexpr auto operator/(Unroll a, VT b) -> Unroll {
     return {a.vec_ / b};
   }
+  TRIVIAL friend constexpr auto ceil_div(Unroll a, VT b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return {::simd::ceil_div_impl(a.vec_, b)};
+    } else {
+      FEnvGuard guard;
+      return {::simd::ceil_div_impl(a.vec_, b)};
+    }
+  }
+  TRIVIAL friend constexpr auto trunc_div(Unroll a, VT b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return {::simd::trunc_div_impl(a.vec_, b)};
+    } else {
+      FEnvGuard guard;
+      return {::simd::trunc_div_impl(a.vec_, b)};
+    }
+  }
+  TRIVIAL friend constexpr auto floor_div(Unroll a, VT b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return {::simd::floor_div_impl(a.vec_, b)};
+    } else {
+      FEnvGuard guard;
+      return {::simd::floor_div_impl(a.vec_, b)};
+    }
+  }
   TRIVIAL friend constexpr auto operator&(Unroll a, VT b) -> Unroll {
     return {a.vec_ & b};
   }
@@ -6657,6 +6921,21 @@ private:
                                           std::convertible_to<T> auto b)
     -> Unroll requires(N != 1) {
     return a / ::simd::vbroadcast<N, T>(b);
+  }
+  TRIVIAL friend constexpr auto ceil_div(Unroll a,
+                                         std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return ceil_div(a, ::simd::vbroadcast<N, T>(b));
+  }
+  TRIVIAL friend constexpr auto trunc_div(Unroll a,
+                                          std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return trunc_div(a, ::simd::vbroadcast<N, T>(b));
+  }
+  TRIVIAL friend constexpr auto floor_div(Unroll a,
+                                          std::convertible_to<T> auto b)
+    -> Unroll requires(N != 1) {
+    return floor_div(a, ::simd::vbroadcast<N, T>(b));
   }
   TRIVIAL friend constexpr auto operator&(Unroll a,
                                           std::convertible_to<T> auto b)
@@ -6696,6 +6975,30 @@ private:
   TRIVIAL friend constexpr auto operator/(VT a, Unroll b) -> Unroll {
     return {a / b.vec_};
   }
+  TRIVIAL friend constexpr auto ceil_div(VT a, Unroll b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return {::simd::ceil_div_impl(a, b.vec_)};
+    } else {
+      FEnvGuard guard;
+      return {::simd::ceil_div_impl(a, b.vec_)};
+    }
+  }
+  TRIVIAL friend constexpr auto trunc_div(VT a, Unroll b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return {::simd::trunc_div_impl(a, b.vec_)};
+    } else {
+      FEnvGuard guard;
+      return {::simd::trunc_div_impl(a, b.vec_)};
+    }
+  }
+  TRIVIAL friend constexpr auto floor_div(VT a, Unroll b) -> Unroll {
+    if constexpr (FullWidthAVX512<N, T>) {
+      return {::simd::floor_div_impl(a, b.vec_)};
+    } else {
+      FEnvGuard guard;
+      return {::simd::floor_div_impl(a, b.vec_)};
+    }
+  }
   TRIVIAL friend constexpr auto operator&(VT a, Unroll b) -> Unroll {
     return {a & b.vec_};
   }
@@ -6726,6 +7029,18 @@ private:
   TRIVIAL friend constexpr auto operator/(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(N != 1) {
     return ::simd::vbroadcast<N, T>(b) / a;
+  }
+  TRIVIAL friend constexpr auto ceil_div(ConvertibleToAndScalar<T> auto b,
+                                         Unroll a) -> Unroll requires(N != 1) {
+    return ceil_div(::simd::vbroadcast<N, T>(b), a);
+  }
+  TRIVIAL friend constexpr auto trunc_div(ConvertibleToAndScalar<T> auto b,
+                                          Unroll a) -> Unroll requires(N != 1) {
+    return trunc_div(::simd::vbroadcast<N, T>(b), a);
+  }
+  TRIVIAL friend constexpr auto floor_div(ConvertibleToAndScalar<T> auto b,
+                                          Unroll a) -> Unroll requires(N != 1) {
+    return floor_div(::simd::vbroadcast<N, T>(b), a);
   }
   TRIVIAL friend constexpr auto operator&(ConvertibleToAndScalar<T> auto b,
                                           Unroll a) -> Unroll requires(N != 1) {

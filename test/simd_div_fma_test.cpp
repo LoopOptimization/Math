@@ -433,6 +433,143 @@ void test_inexact_operations_set_flag() {
 #endif
 }
 
+// Test Unroll rounding division variants
+template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t W>
+void test_unroll_rounding_div() {
+  using Unroll = simd::Unroll<R, C, W, double>;
+  using VT = typename Unroll::VT;
+
+  // Create test data
+  Unroll a_unroll;
+  Unroll b_unroll;
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    if constexpr (W == 1) {
+      a_unroll[i] = 7.0 + double(i);
+      b_unroll[i] = 3.0 + double(i % 2);
+    } else {
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a_unroll[i][j] = 7.0 + double(i * W + j);
+        b_unroll[i][j] = 3.0 + double((i * W + j) % 3);
+      }
+    }
+  }
+
+  // Test Unroll-Unroll (uses ADL to find friend functions)
+  auto ceil_uu = ceil_div(a_unroll, b_unroll);
+  auto floor_uu = floor_div(a_unroll, b_unroll);
+  auto trunc_uu = trunc_div(a_unroll, b_unroll);
+  (void)ceil_uu;
+  (void)floor_uu;
+  (void)trunc_uu;
+
+  // Test Unroll-VT
+  VT b_vt;
+  if constexpr (W == 1) b_vt = 3.0;
+  else
+    for (std::ptrdiff_t j = 0; j < W; ++j) b_vt[j] = 3.0 + double(j % 2);
+  auto ceil_uvt = ceil_div(a_unroll, b_vt);
+  auto floor_uvt = floor_div(a_unroll, b_vt);
+  auto trunc_uvt = trunc_div(a_unroll, b_vt);
+  (void)ceil_uvt;
+  (void)floor_uvt;
+  (void)trunc_uvt;
+
+  // Test VT-Unroll
+  VT a_vt;
+  if constexpr (W == 1) a_vt = 10.0;
+  else
+    for (std::ptrdiff_t j = 0; j < W; ++j) a_vt[j] = 10.0 + double(j);
+  auto ceil_vtu = ceil_div(a_vt, b_unroll);
+  auto floor_vtu = floor_div(a_vt, b_unroll);
+  auto trunc_vtu = trunc_div(a_vt, b_unroll);
+  (void)ceil_vtu;
+  (void)floor_vtu;
+  (void)trunc_vtu;
+
+  // Test Unroll-scalar and scalar-Unroll (only for W != 1)
+  if constexpr (W != 1) {
+    auto ceil_us = ceil_div(a_unroll, 3.0);
+    auto floor_us = floor_div(a_unroll, 3.0);
+    auto trunc_us = trunc_div(a_unroll, 3.0);
+    (void)ceil_us;
+    (void)floor_us;
+    (void)trunc_us;
+
+    auto ceil_su = ceil_div(10.0, b_unroll);
+    auto floor_su = floor_div(10.0, b_unroll);
+    auto trunc_su = trunc_div(10.0, b_unroll);
+    (void)ceil_su;
+    (void)floor_su;
+    (void)trunc_su;
+  }
+
+  // Verify correctness for a sample
+  for (std::ptrdiff_t i = 0; i < R * C; ++i) {
+    if constexpr (W == 1) {
+      double a = a_unroll[i];
+      double b = b_unroll[i];
+      expect(feq(ceil_uu[i], std::ceil(a / b)))
+        << "Unroll-Unroll ceil_div mismatch at " << i;
+      expect(feq(floor_uu[i], std::floor(a / b)))
+        << "Unroll-Unroll floor_div mismatch at " << i;
+      expect(feq(trunc_uu[i], std::trunc(a / b)))
+        << "Unroll-Unroll trunc_div mismatch at " << i;
+    } else {
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        double a = a_unroll[i][j];
+        double b = b_unroll[i][j];
+        expect(feq(ceil_uu[i][j], std::ceil(a / b)))
+          << "Unroll-Unroll ceil_div mismatch at [" << i << "][" << j << "]";
+        expect(feq(floor_uu[i][j], std::floor(a / b)))
+          << "Unroll-Unroll floor_div mismatch at [" << i << "][" << j << "]";
+        expect(feq(trunc_uu[i][j], std::trunc(a / b)))
+          << "Unroll-Unroll trunc_div mismatch at [" << i << "][" << j << "]";
+      }
+    }
+  }
+}
+
+// Test that FEnvGuard is correctly used for Unroll operations
+void test_unroll_fe_inexact_preservation() {
+#ifdef __x86_64__
+  static constexpr auto W = simd::Width<double>;
+  using Unroll = simd::Unroll<2, 2, W, double>;
+  using VT = typename Unroll::VT;
+
+  // Clear exception flags
+  _mm_setcsr(_mm_getcsr() & ~_MM_EXCEPT_MASK);
+
+  // Create test data with inexact division
+  Unroll a_unroll;
+  VT b_vt;
+  for (std::ptrdiff_t i = 0; i < 4; ++i)
+    for (std::ptrdiff_t j = 0; j < W; ++j) a_unroll[i][j] = 7.0;
+  for (std::ptrdiff_t j = 0; j < W; ++j) b_vt[j] = 3.0;
+
+  // Perform rounding division (should NOT set FE_INEXACT due to guard)
+  auto result = ceil_div(a_unroll, b_vt);
+  (void)result;
+
+  unsigned int mxcsr = _mm_getcsr();
+  bool inexact_set = (mxcsr & _MM_EXCEPT_INEXACT) != 0;
+
+#ifdef __AVX512F__
+  if constexpr (W == 8) {
+    // Full-width AVX512 uses SAE, so FE_INEXACT should not be set
+    expect(!inexact_set)
+      << "Unroll ceil_div should not set FE_INEXACT on full-width AVX512";
+  } else {
+    // Non-full-width should use FEnvGuard to restore
+    expect(!inexact_set)
+      << "Unroll ceil_div should restore FE_INEXACT state via FEnvGuard";
+  }
+#else
+  expect(!inexact_set)
+    << "Unroll ceil_div should restore FE_INEXACT state via FEnvGuard";
+#endif
+#endif
+}
+
 } // namespace
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
@@ -465,6 +602,21 @@ int main() {
   "LargeValues"_test = [] { test_large_values<W_double>(); };
 
   "GcdPattern"_test = [] { test_gcd_pattern<W_double>(); };
+
+  // Test Unroll rounding division variants
+  "UnrollRoundingDiv_1_1"_test = [] {
+    test_unroll_rounding_div<1, 1, W_double>();
+  };
+  "UnrollRoundingDiv_2_2"_test = [] {
+    test_unroll_rounding_div<2, 2, W_double>();
+  };
+  "UnrollRoundingDiv_1_4"_test = [] {
+    test_unroll_rounding_div<1, 4, W_double>();
+  };
+
+  "UnrollFeInexactPreservation"_test = [] {
+    test_unroll_fe_inexact_preservation();
+  };
 
   // Test with different SIMD widths if available
   if constexpr (W_double >= 2) {
