@@ -908,6 +908,59 @@ template auto zeroWithRowOp<DEFAULT_BATCH>(
   std::array<std::int64_t, DEFAULT_BATCH> coeffs, Row<> j, Col<> k,
   std::int64_t f, std::ptrdiff_t zero_idx) -> std::int64_t;
 
+void zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col) {
+  std::ptrdiff_t M = std::ptrdiff_t(A.numRow());
+  std::ptrdiff_t pivot = std::ptrdiff_t(pivot_row);
+
+  constexpr std::ptrdiff_t B = DEFAULT_BATCH;
+  std::array<std::ptrdiff_t, B> rows;
+  std::array<std::int64_t, B> coeffs;
+  std::ptrdiff_t i = 0;
+
+  while (true) {
+    auto [success, next_i, zero_idx] =
+      collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
+    if (!success) break;
+    zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
+    i = next_i;
+  }
+  for (; i < M; ++i) {
+    if (i == pivot) continue;
+    zeroWithRowOp(A, row(i), pivot_row, pivot_col);
+  }
+}
+
+auto zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col,
+                std::int64_t f) -> std::int64_t {
+  std::ptrdiff_t M = std::ptrdiff_t(A.numRow());
+  std::ptrdiff_t pivot = std::ptrdiff_t(pivot_row);
+
+  constexpr std::ptrdiff_t B = DEFAULT_BATCH;
+  std::array<std::ptrdiff_t, B> rows;
+  std::array<std::int64_t, B> coeffs;
+  std::ptrdiff_t i = 0;
+
+  while (true) {
+    auto [success, next_i, zero_idx] =
+      collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
+    if (!success) break;
+    if (zero_idx >= 0) {
+      f = zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col, f, zero_idx);
+    } else {
+      zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
+    }
+    i = next_i;
+  }
+  for (; i < M; ++i) {
+    if (i == pivot) continue;
+    if (i == 0)
+      f = zeroWithRowOp(A, row(i), pivot_row, pivot_col, f);
+    else
+      zeroWithRowOp(A, row(i), pivot_row, pivot_col);
+  }
+  return f;
+}
+
 void bareiss(MutPtrMatrix<std::int64_t> A,
              MutPtrVector<std::ptrdiff_t> pivots) {
   const auto [M, N] = shape(A);

@@ -138,6 +138,13 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
                    std::array<std::int64_t, B> coeffs, Row<> j, Col<> k,
                    std::int64_t f, std::ptrdiff_t zero_idx) -> std::int64_t;
 
+// Zero all rows of column pivot_col using pivot_row
+void zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col);
+
+// Same with factor tracking for row 0
+auto zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col,
+                std::int64_t f) -> std::int64_t;
+
 namespace detail {
 void zeroSupDiagonal(MutPtrMatrix<std::int64_t> A,
                      MutSquarePtrMatrix<std::int64_t> K, std::ptrdiff_t i,
