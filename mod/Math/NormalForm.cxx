@@ -636,16 +636,17 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
 
 // Batched versions for improved memory bandwidth
 
-// Collect exactly B eligible rows starting from start_row
-// Returns {success, next_start_row, zero_idx}
-// success = true if found B eligible rows, false otherwise
+// Collect up to B eligible rows starting from start_row
+// Returns {count, zero_idx}
+// count = number of rows collected (0 to B)
 // zero_idx = index of row 0 in batch, or -1 if not present
+// start_row is updated to the next row to process
 template <std::ptrdiff_t B>
 auto collectBatch(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
                   std::ptrdiff_t pivot_row, Col<> col_k,
-                  std::ptrdiff_t start_row, std::array<std::ptrdiff_t, B> &rows,
+                  std::ptrdiff_t &start_row, std::array<std::ptrdiff_t, B> &rows,
                   std::array<std::int64_t, B> &coeffs)
-  -> std::tuple<bool, std::ptrdiff_t, std::ptrdiff_t> {
+  -> std::pair<std::ptrdiff_t, std::ptrdiff_t> {
   std::ptrdiff_t count = 0, zero_idx = -1;
   std::ptrdiff_t i = start_row;
   for (; i < num_rows && count < B; ++i) {
@@ -657,7 +658,8 @@ auto collectBatch(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
     coeffs[count] = Aik;
     ++count;
   }
-  return {count == B, i, zero_idx};
+  start_row = i;
+  return {count, zero_idx};
 }
 
 // Batched elimination without factor tracking
@@ -894,10 +896,10 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
 template auto
 collectBatch<DEFAULT_BATCH>(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
                             std::ptrdiff_t pivot_row, Col<> col_k,
-                            std::ptrdiff_t start_row,
+                            std::ptrdiff_t &start_row,
                             std::array<std::ptrdiff_t, DEFAULT_BATCH> &rows,
                             std::array<std::int64_t, DEFAULT_BATCH> &coeffs)
-  -> std::tuple<bool, std::ptrdiff_t, std::ptrdiff_t>;
+  -> std::pair<std::ptrdiff_t, std::ptrdiff_t>;
 
 template void zeroWithRowOp<DEFAULT_BATCH>(
   MutPtrMatrix<std::int64_t> A, std::array<std::ptrdiff_t, DEFAULT_BATCH> rows,
@@ -917,16 +919,16 @@ void zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col) 
   std::array<std::int64_t, B> coeffs;
   std::ptrdiff_t i = 0;
 
-  while (true) {
-    auto [success, next_i, zero_idx] =
-      collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
-    if (!success) break;
-    zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
-    i = next_i;
-  }
-  for (; i < M; ++i) {
-    if (i == pivot) continue;
-    zeroWithRowOp(A, row(i), pivot_row, pivot_col);
+  while (i < M) {
+    auto [count, zero_idx] = collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
+    if (count == 0) break;
+    if (count == B) {
+      zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
+    } else {
+      for (std::ptrdiff_t j = 0; j < count; ++j)
+        zeroWithRowOp(A, row(rows[j]), pivot_row, pivot_col);
+      break;
+    }
   }
 }
 
@@ -940,23 +942,23 @@ auto zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col,
   std::array<std::int64_t, B> coeffs;
   std::ptrdiff_t i = 0;
 
-  while (true) {
-    auto [success, next_i, zero_idx] =
-      collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
-    if (!success) break;
-    if (zero_idx >= 0) {
-      f = zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col, f, zero_idx);
+  while (i < M) {
+    auto [count, zero_idx] = collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
+    if (count == 0) break;
+    if (count == B) {
+      if (zero_idx >= 0)
+        f = zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col, f, zero_idx);
+      else
+        zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
     } else {
-      zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
+      for (std::ptrdiff_t j = 0; j < count; ++j) {
+        if (rows[j] == 0)
+          f = zeroWithRowOp(A, row(0), pivot_row, pivot_col, f);
+        else
+          zeroWithRowOp(A, row(rows[j]), pivot_row, pivot_col);
+      }
+      break;
     }
-    i = next_i;
-  }
-  for (; i < M; ++i) {
-    if (i == pivot) continue;
-    if (i == 0)
-      f = zeroWithRowOp(A, row(i), pivot_row, pivot_col, f);
-    else
-      zeroWithRowOp(A, row(i), pivot_row, pivot_col);
   }
   return f;
 }

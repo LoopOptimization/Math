@@ -123,9 +123,9 @@ inline constexpr std::ptrdiff_t DEFAULT_BATCH = simd::Width<std::int64_t>;
 template <std::ptrdiff_t B = DEFAULT_BATCH>
 auto collectBatch(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
                   std::ptrdiff_t pivot_row, Col<> col_k,
-                  std::ptrdiff_t start_row, std::array<std::ptrdiff_t, B> &rows,
+                  std::ptrdiff_t &start_row, std::array<std::ptrdiff_t, B> &rows,
                   std::array<std::int64_t, B> &coeffs)
-  -> std::tuple<bool, std::ptrdiff_t, std::ptrdiff_t>;
+  -> std::pair<std::ptrdiff_t, std::ptrdiff_t>;
 
 template <std::ptrdiff_t B = DEFAULT_BATCH>
 void zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
