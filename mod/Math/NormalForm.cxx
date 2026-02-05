@@ -633,6 +633,281 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
     }
   }
 }
+
+// Batched versions for improved memory bandwidth
+
+// Collect exactly B eligible rows starting from start_row
+// Returns {success, next_start_row, zero_idx}
+// success = true if found B eligible rows, false otherwise
+// zero_idx = index of row 0 in batch, or -1 if not present
+template <std::ptrdiff_t B>
+auto collectBatch(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
+                  std::ptrdiff_t pivot_row, Col<> col_k,
+                  std::ptrdiff_t start_row, std::array<std::ptrdiff_t, B> &rows,
+                  std::array<std::int64_t, B> &coeffs)
+  -> std::tuple<bool, std::ptrdiff_t, std::ptrdiff_t> {
+  std::ptrdiff_t count = 0, zero_idx = -1;
+  std::ptrdiff_t i = start_row;
+  for (; i < num_rows && count < B; ++i) {
+    if (i == pivot_row) continue;
+    std::int64_t Aik = A[i, col_k];
+    if (Aik == 0) continue;
+    if (i == 0) zero_idx = count;
+    rows[count] = i;
+    coeffs[count] = Aik;
+    ++count;
+  }
+  return {count == B, i, zero_idx};
+}
+
+// Batched elimination without factor tracking
+template <std::ptrdiff_t B>
+void zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
+                   std::array<std::ptrdiff_t, B> rows,
+                   std::array<std::int64_t, B> coeffs, Row<> j, Col<> k) {
+  static constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+  static_assert(B == W, "Batch size must equal SIMD width");
+  static constexpr simd::Vec<W, std::int64_t> one =
+    simd::Vec<W, std::int64_t>{} + 1;
+
+  std::int64_t Ajk = A[j, k];
+  invariant(Ajk != 0);
+
+  // Pre-compute GCD-reduced coefficients using SIMD
+  // Load coeffs using unaligned SIMD load (B == W by design)
+  simd::Vec<W, std::int64_t> v_aik_coeff =
+    simd::load(coeffs.data(), simd::mask::None<W>{});
+  simd::Vec<W, std::int64_t> v_ajk_broadcast =
+    simd::vbroadcast<W, std::int64_t>(Ajk);
+
+  // Parallel GCD computation for all B pairs
+  simd::Vec<W, std::int64_t> v_gcd = gcd<W>(v_aik_coeff, v_ajk_broadcast);
+
+  // Parallel division with mask for g != 1
+  auto needs_reduce = simd::cmp::ne<W, std::int64_t>(v_gcd, one);
+  simd::Vec<W, std::int64_t> v_aik_reduced =
+    needs_reduce.select(v_aik_coeff / v_gcd, v_aik_coeff);
+  simd::Vec<W, std::int64_t> v_ajk_reduced =
+    needs_reduce.select(v_ajk_broadcast / v_gcd, v_ajk_broadcast);
+
+  // Broadcast coefficients to SIMD vectors for row operations
+  std::array<simd::Vec<W, std::int64_t>, B> vAjk, vAik, vg;
+  for (std::ptrdiff_t b = 0; b < B; ++b) {
+    vAjk[b] = simd::vbroadcast<W, std::int64_t>(v_ajk_reduced[b]);
+    vAik[b] = simd::vbroadcast<W, std::int64_t>(v_aik_reduced[b]);
+    vg[b] = simd::Vec<W, std::int64_t>{v_ajk_reduced[b]};
+  }
+
+  PtrMatrix<std::int64_t> C = A; // const ref
+  std::ptrdiff_t L = std::ptrdiff_t(A.numCol());
+  std::ptrdiff_t global_l = 0;
+
+  // SIMD mask for GCD tracking: active if Ajk_reduced != 1
+  auto active_mask = simd::cmp::ne<W, std::int64_t>(v_ajk_reduced, one);
+
+  // Main loop: process columns with GCD tracking
+  if (active_mask.any()) {
+    for (; global_l < L; global_l += W) {
+      auto u{simd::index::unrollmask<1, W>(L, global_l)};
+      if (!u) break;
+
+      // Load pivot row once
+      simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
+
+      // Apply to all B target rows
+      for (std::ptrdiff_t b = 0; b < B; ++b) {
+        std::ptrdiff_t row_i = rows[b];
+        simd::Vec<W, std::int64_t> Ail =
+          (vAjk[b] * C[row_i, u].vec_) - (vAik[b] * Ajl);
+        A[row_i, u] = Ail;
+
+        // GCD tracking for active lanes (check via intmask bit)
+        if (active_mask.intmask() & (1ULL << b)) {
+          vg[b] = gcd<W>(Ail, vg[b]);
+          // Check if this lane's GCD is still > 1
+          if (!simd::cmp::gt<W, std::int64_t>(vg[b], one).any()) {
+            // Clear this lane from active_mask
+            active_mask =
+              decltype(active_mask){active_mask.intmask() & ~(1ULL << b)};
+          }
+        }
+      }
+      if (!active_mask.any()) {
+        global_l += W; // Move past the column we just processed
+        break;
+      }
+    }
+  }
+
+  // Continue without GCD tracking for remaining columns
+  for (; global_l < L; global_l += W) {
+    auto u{simd::index::unrollmask<1, W>(L, global_l)};
+    if (!u) break;
+
+    simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
+    for (std::ptrdiff_t b = 0; b < B; ++b) {
+      std::ptrdiff_t row_i = rows[b];
+      A[row_i, u] = (vAjk[b] * C[row_i, u].vec_) - (vAik[b] * Ajl);
+    }
+  }
+
+  // Post-loop: apply GCD reduction to each row
+  // Check active lanes via intmask
+  std::uint64_t remaining_mask = active_mask.intmask();
+  for (std::ptrdiff_t b = 0; b < B; ++b) {
+    if ((remaining_mask & (1ULL << b)) &&
+        simd::cmp::gt<W, std::int64_t>(vg[b], one).any()) {
+      std::int64_t g = gcdreduce<W>(vg[b]);
+      if (g > 1) {
+        std::ptrdiff_t row_i = rows[b];
+        for (std::ptrdiff_t ll = 0; ll < L; ++ll)
+          if (std::int64_t Ail = A[row_i, ll]) A[row_i, ll] = Ail / g;
+      }
+    }
+  }
+}
+
+// Batched elimination with factor tracking
+// zero_idx: index in batch where row 0 is (-1 if not present)
+template <std::ptrdiff_t B>
+auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
+                   std::array<std::ptrdiff_t, B> rows,
+                   std::array<std::int64_t, B> coeffs, Row<> j, Col<> k,
+                   std::int64_t f, std::ptrdiff_t zero_idx) -> std::int64_t {
+  static constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+  static_assert(B == W, "Batch size must equal SIMD width");
+  static constexpr simd::Vec<W, std::int64_t> one =
+    simd::Vec<W, std::int64_t>{} + 1;
+
+  std::int64_t Ajk = A[j, k];
+  invariant(Ajk != 0);
+
+  // Pre-compute GCD-reduced coefficients using SIMD
+  // Load coeffs using unaligned SIMD load (B == W by design)
+  simd::Vec<W, std::int64_t> v_aik_coeff =
+    simd::load(coeffs.data(), simd::mask::None<W>{});
+  simd::Vec<W, std::int64_t> v_ajk_broadcast =
+    simd::vbroadcast<W, std::int64_t>(Ajk);
+
+  // Parallel GCD computation for all B pairs
+  simd::Vec<W, std::int64_t> v_gcd = gcd<W>(v_aik_coeff, v_ajk_broadcast);
+
+  // Parallel division with mask for g != 1
+  auto needs_reduce = simd::cmp::ne<W, std::int64_t>(v_gcd, one);
+  simd::Vec<W, std::int64_t> v_aik_reduced =
+    needs_reduce.select(v_aik_coeff / v_gcd, v_aik_coeff);
+  simd::Vec<W, std::int64_t> v_ajk_reduced =
+    needs_reduce.select(v_ajk_broadcast / v_gcd, v_ajk_broadcast);
+
+  // Compute ret = f * Ajk_reduced[zero_idx] if zero_idx is valid
+  std::int64_t ret = f;
+  if (zero_idx >= 0) ret = f * v_ajk_reduced[zero_idx];
+
+  // Broadcast coefficients to SIMD vectors for row operations
+  std::array<simd::Vec<W, std::int64_t>, B> vAjk, vAik, vg;
+  for (std::ptrdiff_t b = 0; b < B; ++b) {
+    vAjk[b] = simd::vbroadcast<W, std::int64_t>(v_ajk_reduced[b]);
+    vAik[b] = simd::vbroadcast<W, std::int64_t>(v_aik_reduced[b]);
+    vg[b] = (b == zero_idx) ? simd::Vec<W, std::int64_t>{ret}
+                            : simd::Vec<W, std::int64_t>{v_ajk_reduced[b]};
+  }
+
+  PtrMatrix<std::int64_t> C = A; // const ref
+  std::ptrdiff_t L = std::ptrdiff_t(A.numCol());
+  std::ptrdiff_t global_l = 0;
+
+  // SIMD mask for GCD tracking
+  // Build check vector: use ret for zero_idx, Ajk_reduced otherwise
+  simd::Vec<W, std::int64_t> check_vec = v_ajk_reduced;
+  if (zero_idx >= 0) check_vec[zero_idx] = ret;
+  auto active_mask = simd::cmp::ne<W, std::int64_t>(check_vec, one);
+
+  // Main loop: process columns with GCD tracking
+  if (active_mask.any()) {
+    for (; global_l < L; global_l += W) {
+      auto u{simd::index::unrollmask<1, W>(L, global_l)};
+      if (!u) break;
+
+      // Load pivot row once
+      simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
+
+      // Apply to all B target rows
+      for (std::ptrdiff_t b = 0; b < B; ++b) {
+        std::ptrdiff_t row_i = rows[b];
+        simd::Vec<W, std::int64_t> Ail =
+          (vAjk[b] * C[row_i, u].vec_) - (vAik[b] * Ajl);
+        A[row_i, u] = Ail;
+
+        // GCD tracking for active lanes (check via intmask bit)
+        if (active_mask.intmask() & (1ULL << b)) {
+          vg[b] = gcd<W>(Ail, vg[b]);
+          // Check if this lane's GCD is still > 1
+          if (!simd::cmp::gt<W, std::int64_t>(vg[b], one).any()) {
+            // Clear this lane from active_mask
+            active_mask =
+              decltype(active_mask){active_mask.intmask() & ~(1ULL << b)};
+          }
+        }
+      }
+      if (!active_mask.any()) {
+        global_l += W; // Move past the column we just processed
+        break;
+      }
+    }
+  }
+
+  // Continue without GCD tracking for remaining columns
+  for (; global_l < L; global_l += W) {
+    auto u{simd::index::unrollmask<1, W>(L, global_l)};
+    if (!u) break;
+
+    simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
+    for (std::ptrdiff_t b = 0; b < B; ++b) {
+      std::ptrdiff_t row_i = rows[b];
+      A[row_i, u] = (vAjk[b] * C[row_i, u].vec_) - (vAik[b] * Ajl);
+    }
+  }
+
+  // Post-loop: apply GCD reduction to each row
+  // Check active lanes via intmask
+  std::uint64_t remaining_mask = active_mask.intmask();
+  for (std::ptrdiff_t b = 0; b < B; ++b) {
+    if ((remaining_mask & (1ULL << b)) &&
+        simd::cmp::gt<W, std::int64_t>(vg[b], one).any()) {
+      std::int64_t g = gcdreduce<W>(vg[b]);
+      if (g > 1) {
+        std::ptrdiff_t row_i = rows[b];
+        for (std::ptrdiff_t ll = 0; ll < L; ++ll)
+          if (std::int64_t Ail = A[row_i, ll]) A[row_i, ll] = Ail / g;
+        if (b == zero_idx) {
+          std::int64_t r = ret / g;
+          invariant(r * g, ret);
+          ret = r;
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+// Explicit template instantiations
+template auto
+collectBatch<DEFAULT_BATCH>(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
+                            std::ptrdiff_t pivot_row, Col<> col_k,
+                            std::ptrdiff_t start_row,
+                            std::array<std::ptrdiff_t, DEFAULT_BATCH> &rows,
+                            std::array<std::int64_t, DEFAULT_BATCH> &coeffs)
+  -> std::tuple<bool, std::ptrdiff_t, std::ptrdiff_t>;
+
+template void zeroWithRowOp<DEFAULT_BATCH>(
+  MutPtrMatrix<std::int64_t> A, std::array<std::ptrdiff_t, DEFAULT_BATCH> rows,
+  std::array<std::int64_t, DEFAULT_BATCH> coeffs, Row<> j, Col<> k);
+
+template auto zeroWithRowOp<DEFAULT_BATCH>(
+  MutPtrMatrix<std::int64_t> A, std::array<std::ptrdiff_t, DEFAULT_BATCH> rows,
+  std::array<std::int64_t, DEFAULT_BATCH> coeffs, Row<> j, Col<> k,
+  std::int64_t f, std::ptrdiff_t zero_idx) -> std::int64_t;
+
 void bareiss(MutPtrMatrix<std::int64_t> A,
              MutPtrVector<std::ptrdiff_t> pivots) {
   const auto [M, N] = shape(A);
