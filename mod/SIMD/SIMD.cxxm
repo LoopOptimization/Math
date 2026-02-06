@@ -201,7 +201,8 @@ template <std::ptrdiff_t W> struct Bit {
   [[nodiscard]] TRIVIAL constexpr auto split() const
     -> std::array<Bit<W / 2>, 2> {
     static constexpr std::ptrdiff_t Whalf = W / 2;
-    return {Bit<Whalf>{mask_}, Bit<Whalf>{mask_ >> Whalf}};
+    return {Bit<Whalf>{mask_ & ((1ULL << Whalf) - 1ULL)},
+            Bit<Whalf>{mask_ >> Whalf}};
   }
   [[nodiscard]] TRIVIAL constexpr auto cat(Bit<W> b) const -> Bit<2 * W> {
     static_assert(W <= 32);
@@ -1762,6 +1763,48 @@ struct Unroll {
     }
   }
 
+  // Cast operator: split direction. Unroll<R,C,W> -> Unroll<R,CU,N> where CU > C
+#ifdef __AVX512VL__
+  template <std::ptrdiff_t CU, std::ptrdiff_t N>
+  TRIVIAL constexpr operator Unroll<R, CU, N>() const
+#else
+  template <std::ptrdiff_t CU, std::ptrdiff_t N, std::size_t NewBytes>
+  TRIVIAL constexpr operator Unroll<R, CU, N, NewBytes>() const
+#endif
+    requires((CU * N == C * W) && (CU > C) && (CU % C == 0)) {
+    static_assert(std::popcount(std::size_t(CU / C)) == 1,
+                  "CU / C must be a power of 2");
+    if constexpr (CU == 2 * C) {
+#ifdef __AVX512VL__
+      Unroll<R, CU, N> result;
+#else
+      Unroll<R, CU, N, NewBytes> result;
+#endif
+      POLYMATHFULLUNROLL
+      for (std::ptrdiff_t r = 0; r < R; ++r) {
+        POLYMATHFULLUNROLL
+        for (std::ptrdiff_t c = 0; c < C; ++c) {
+          std::ptrdiff_t src_idx = (r * C) + c;
+          std::ptrdiff_t dst_idx0 = (r * CU) + (2 * c);
+          std::ptrdiff_t dst_idx1 = dst_idx0 + 1;
+          auto s = data_[src_idx].split();
+          result.data_[dst_idx0] = s[0];
+          result.data_[dst_idx1] = s[1];
+        }
+      }
+      return result;
+    } else {
+      static constexpr std::ptrdiff_t C2 = C << 1;
+      static constexpr std::ptrdiff_t W2 = W >> 1;
+#ifdef __AVX512VL__
+      Unroll<R, C2, W2> intermediate = *this;
+#else
+      Unroll<R, C2, W2, Bytes> intermediate = *this;
+#endif
+      return intermediate;
+    }
+  }
+
   TRIVIAL constexpr auto operator~() const -> Unroll {
     Unroll result;
     POLYMATHFULLUNROLL
@@ -1907,6 +1950,31 @@ using MaskType = std::conditional_t<N == 1, bool, mask::Vector<N, Bytes>>;
 #endif
     auto s = mask_.split();
     return std::array<U, 2>{U{s[0]}, U{s[1]}};
+  }
+
+  // Cast operator: split direction. Unroll<1,1,N> -> Unroll<1,CU,N2>
+#ifdef __AVX512VL__
+  template <std::ptrdiff_t CU, std::ptrdiff_t N2>
+  TRIVIAL constexpr operator Unroll<1Z, CU, N2>() const
+#else
+  template <std::ptrdiff_t CU, std::ptrdiff_t N2, std::size_t NewBytes>
+  TRIVIAL constexpr operator Unroll<1Z, CU, N2, NewBytes>() const
+#endif
+    requires((CU * N2 == N) && (CU > 1)) {
+    static_assert(std::popcount(std::size_t(CU)) == 1,
+                  "CU must be a power of 2");
+    if constexpr (CU == 2) {
+      auto s = mask_.split();
+      return {s[0], s[1]};
+    } else {
+      static constexpr std::ptrdiff_t Nhalf = N >> 1;
+#ifdef __AVX512VL__
+      Unroll<1Z, 2Z, Nhalf> intermediate = *this;
+#else
+      Unroll<1Z, 2Z, Nhalf, Bytes> intermediate = *this;
+#endif
+      return intermediate;
+    }
   }
 
   TRIVIAL constexpr operator bool() const requires(N == 1) { return mask_; }
@@ -4896,6 +4964,13 @@ constexpr std::ptrdiff_t VecLen =
 
 template <typename T, std::ptrdiff_t W = Width<T>>
 using SVec = Unroll<1Z, W / VecLen<W, T>, VecLen<W, T>, T>;
+
+template <typename T, std::ptrdiff_t W = Width<T>>
+#ifdef __AVX512F__
+using MaskFor = mask::Unroll<1Z, W / VecLen<W, T>, VecLen<W, T>>;
+#else
+using MaskFor = mask::Unroll<1Z, W / VecLen<W, T>, VecLen<W, T>, sizeof(T)>;
+#endif
 
 // returns { vector_size, num_vectors, remainder }
 template <std::ptrdiff_t L, typename T>
