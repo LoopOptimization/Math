@@ -6,7 +6,8 @@ import Simplex;
 import std;
 
 void BM_Simplex0(Bench &bench) {
-  auto tableau = utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_0.binmat");
+  auto tableau =
+    utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_0.binmat");
   alloc::OwningArena<> alloc;
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;
   std::ptrdiff_t numVar = std::ptrdiff_t(tableau.numCol()) - 1;
@@ -30,7 +31,8 @@ void BM_Simplex0(Bench &bench) {
 }
 
 void BM_Simplex1(Bench &bench) {
-  auto tableau = utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_1.binmat");
+  auto tableau =
+    utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_1.binmat");
 
   alloc::OwningArena<> alloc;
   std::ptrdiff_t numCon = std::ptrdiff_t(tableau.numRow()) - 1;

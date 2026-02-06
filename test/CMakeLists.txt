@@ -181,23 +181,27 @@ enable_testing()
 set(MATH_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../data")
 foreach(test_source ${test_sources})
   get_filename_component(test_name ${test_source} NAME_WE)
-  target_compile_definitions(${test_name} PRIVATE
-    MATH_DATA_DIR="${MATH_DATA_DIR}")
+  target_compile_definitions(${test_name}
+                             PRIVATE MATH_DATA_DIR="${MATH_DATA_DIR}")
 endforeach()
 
 # ---- Binary matrix generator tool ----
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_binmat.cpp")
-  add_executable(generate_binmat "${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_binmat.cpp")
+  add_executable(generate_binmat
+                 "${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_binmat.cpp")
   target_link_libraries(generate_binmat PRIVATE Math)
-  set_target_properties(generate_binmat PROPERTIES
-    CXX_STANDARD 23
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON)
+  set_target_properties(
+    generate_binmat
+    PROPERTIES CXX_STANDARD 23
+               CXX_VISIBILITY_PRESET hidden
+               VISIBILITY_INLINES_HIDDEN ON)
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(generate_binmat PRIVATE -ferror-limit=8 -fcolor-diagnostics)
+    target_compile_options(generate_binmat PRIVATE -ferror-limit=8
+                                                   -fcolor-diagnostics)
   endif()
-  set_target_properties(generate_binmat PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/..")
+  set_target_properties(
+    generate_binmat PROPERTIES RUNTIME_OUTPUT_DIRECTORY
+                               "${CMAKE_CURRENT_SOURCE_DIR}/..")
 endif()
 
 # ---- code coverage ----

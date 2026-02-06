@@ -96,8 +96,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Math nanobench)
 
 # ---- Data directory for binary matrix files ----
 set(MATH_DATA_DIR "${PROJECT_SOURCE_DIR}/../data")
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-  MATH_DATA_DIR="${MATH_DATA_DIR}")
+target_compile_definitions(${PROJECT_NAME}
+                           PRIVATE MATH_DATA_DIR="${MATH_DATA_DIR}")
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES
                                                "IntelLLVM"))
