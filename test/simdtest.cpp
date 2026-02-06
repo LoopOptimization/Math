@@ -215,7 +215,6 @@ void testMask1x1RecursiveSplitCast() {
     expect(eq(split[i].intmask(), original[i].intmask()));
 #else
   static constexpr std::size_t OldBytes = 8;
-  static constexpr std::size_t NewBytes = 4;
   static constexpr std::size_t MidBytes = 2;
   using Vec2 = simd::mask::Vector<2, OldBytes>;
   simd::mask::Unroll<1, 4, 2, OldBytes> original;
