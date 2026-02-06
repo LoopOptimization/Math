@@ -644,7 +644,8 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A, Row<> i, Row<> j, Col<> k) {
 template <std::ptrdiff_t B>
 auto collectBatch(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
                   std::ptrdiff_t pivot_row, Col<> col_k,
-                  std::ptrdiff_t &start_row, std::array<std::ptrdiff_t, B> &rows,
+                  std::ptrdiff_t &start_row,
+                  std::array<std::ptrdiff_t, B> &rows,
                   std::array<std::int64_t, B> &coeffs)
   -> std::pair<std::ptrdiff_t, std::ptrdiff_t> {
   std::ptrdiff_t count = 0, zero_idx = -1;
@@ -694,6 +695,7 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
 
   // Broadcast coefficients to SIMD vectors for row operations
   std::array<simd::Vec<W, std::int64_t>, B> vAjk, vAik, vg;
+#pragma clang loop unroll(full)
   for (std::ptrdiff_t b = 0; b < B; ++b) {
     vAjk[b] = simd::vbroadcast<W, std::int64_t>(v_ajk_reduced[b]);
     vAik[b] = simd::vbroadcast<W, std::int64_t>(v_aik_reduced[b]);
@@ -716,7 +718,8 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
       // Load pivot row once
       simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
 
-      // Apply to all B target rows
+// Apply to all B target rows
+#pragma clang loop unroll(full)
       for (std::ptrdiff_t b = 0; b < B; ++b) {
         std::ptrdiff_t row_i = rows[b];
         simd::Vec<W, std::int64_t> Ail =
@@ -747,6 +750,7 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
     if (!u) break;
 
     simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
+#pragma clang loop unroll(full)
     for (std::ptrdiff_t b = 0; b < B; ++b) {
       std::ptrdiff_t row_i = rows[b];
       A[row_i, u] = (vAjk[b] * C[row_i, u].vec_) - (vAik[b] * Ajl);
@@ -756,6 +760,7 @@ void zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
   // Post-loop: apply GCD reduction to each row
   // Check active lanes via intmask
   std::uint64_t remaining_mask = active_mask.intmask();
+#pragma clang loop unroll(full)
   for (std::ptrdiff_t b = 0; b < B; ++b) {
     if ((remaining_mask & (1ULL << b)) &&
         simd::cmp::gt<W, std::int64_t>(vg[b], one).any()) {
@@ -807,6 +812,7 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
 
   // Broadcast coefficients to SIMD vectors for row operations
   std::array<simd::Vec<W, std::int64_t>, B> vAjk, vAik, vg;
+#pragma clang loop unroll(full)
   for (std::ptrdiff_t b = 0; b < B; ++b) {
     vAjk[b] = simd::vbroadcast<W, std::int64_t>(v_ajk_reduced[b]);
     vAik[b] = simd::vbroadcast<W, std::int64_t>(v_aik_reduced[b]);
@@ -834,6 +840,7 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
       simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
 
       // Apply to all B target rows
+#pragma clang loop unroll(full)
       for (std::ptrdiff_t b = 0; b < B; ++b) {
         std::ptrdiff_t row_i = rows[b];
         simd::Vec<W, std::int64_t> Ail =
@@ -864,6 +871,7 @@ auto zeroWithRowOp(MutPtrMatrix<std::int64_t> A,
     if (!u) break;
 
     simd::Vec<W, std::int64_t> Ajl = C[j, u].vec_;
+#pragma clang loop unroll(full)
     for (std::ptrdiff_t b = 0; b < B; ++b) {
       std::ptrdiff_t row_i = rows[b];
       A[row_i, u] = (vAjk[b] * C[row_i, u].vec_) - (vAik[b] * Ajl);
@@ -910,7 +918,8 @@ template auto zeroWithRowOp<DEFAULT_BATCH>(
   std::array<std::int64_t, DEFAULT_BATCH> coeffs, Row<> j, Col<> k,
   std::int64_t f, std::ptrdiff_t zero_idx) -> std::int64_t;
 
-void zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col) {
+void zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row,
+                Col<> pivot_col) {
   std::ptrdiff_t M = std::ptrdiff_t(A.numRow());
   std::ptrdiff_t pivot = std::ptrdiff_t(pivot_row);
 
@@ -920,7 +929,8 @@ void zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col) 
   std::ptrdiff_t i = 0;
 
   while (i < M) {
-    auto [count, zero_idx] = collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
+    auto [count, zero_idx] =
+      collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
     if (count == 0) break;
     if (count == B) {
       zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
@@ -943,20 +953,18 @@ auto zeroColumn(MutPtrMatrix<std::int64_t> A, Row<> pivot_row, Col<> pivot_col,
   std::ptrdiff_t i = 0;
 
   while (i < M) {
-    auto [count, zero_idx] = collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
+    auto [count, zero_idx] =
+      collectBatch<B>(A, M, pivot, pivot_col, i, rows, coeffs);
     if (count == 0) break;
     if (count == B) {
       if (zero_idx >= 0)
-        f = zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col, f, zero_idx);
-      else
-        zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
+        f =
+          zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col, f, zero_idx);
+      else zeroWithRowOp<B>(A, rows, coeffs, pivot_row, pivot_col);
     } else {
-      for (std::ptrdiff_t j = 0; j < count; ++j) {
-        if (rows[j] == 0)
-          f = zeroWithRowOp(A, row(0), pivot_row, pivot_col, f);
-        else
-          zeroWithRowOp(A, row(rows[j]), pivot_row, pivot_col);
-      }
+      for (std::ptrdiff_t j = 0; j < count; ++j)
+        if (rows[j] == 0) f = zeroWithRowOp(A, row(0), pivot_row, pivot_col, f);
+        else zeroWithRowOp(A, row(rows[j]), pivot_row, pivot_col);
       break;
     }
   }
