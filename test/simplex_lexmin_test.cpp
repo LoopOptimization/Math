@@ -49,7 +49,7 @@ auto main(int argc, const char **argv) -> int {
     }
     expect(sol_sum == 3);
     for (std::ptrdiff_t i = 0; i < 37; ++i)
-      expect(sol[last - i] == (i == 28) || (i == 30) || (i == 33));
+      expect(sol[last - i] == ((i == 28) || (i == 30) || (i == 33)));
     {
       // test that we didn't invalidate the simplex
       // note that we do not initiate feasible
@@ -67,7 +67,7 @@ auto main(int argc, const char **argv) -> int {
       }
       expect(sum == 3);
       for (std::ptrdiff_t i = 0; i < 37; ++i)
-        expect(sol2[last - i] == (i == 28) || (i == 30) || (i == 33));
+        expect(sol2[last - i] == ((i == 28) || (i == 30) || (i == 33)));
     }
     {
       // test new simplex
@@ -95,7 +95,7 @@ auto main(int argc, const char **argv) -> int {
         // utils::print("sol2[last-", i, "] = ");
         // sol2[last - i].print();
         // utils::print('\n');
-        expect(sol2[last - i] == (i == 28) || (i == 30) || (i == 33));
+        expect(sol2[last - i] == ((i == 28) || (i == 30) || (i == 33)));
       }
     }
   };
