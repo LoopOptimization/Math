@@ -137,13 +137,11 @@ void zeroWithRowOpDouble(MutPtrMatrix<double> A,
   v_icoeffs = __builtin_convertvector(v_dcoeffs, simd::Vec<W, std::int64_t>);
 
   auto iAjk = static_cast<std::int64_t>(Ajk);
-  simd::Vec<W, std::int64_t> v_iajk =
-    simd::vbroadcast<W, std::int64_t>(iAjk);
+  simd::Vec<W, std::int64_t> v_iajk = simd::vbroadcast<W, std::int64_t>(iAjk);
 
   // Parallel GCD
   simd::Vec<W, std::int64_t> v_gcd = gcd<W>(v_icoeffs, v_iajk);
-  auto needs_reduce =
-    simd::cmp::ne<W, std::int64_t>(v_gcd, ione);
+  auto needs_reduce = simd::cmp::ne<W, std::int64_t>(v_gcd, ione);
   simd::Vec<W, std::int64_t> v_iaik_reduced =
     needs_reduce.select(v_icoeffs / v_gcd, v_icoeffs);
   simd::Vec<W, std::int64_t> v_iajk_reduced =
@@ -170,8 +168,7 @@ void zeroWithRowOpDouble(MutPtrMatrix<double> A,
   std::ptrdiff_t global_l = 0;
 
   // Active mask for GCD tracking
-  auto active_mask =
-    simd::cmp::ne<W, std::int64_t>(v_iajk_reduced, ione);
+  auto active_mask = simd::cmp::ne<W, std::int64_t>(v_iajk_reduced, ione);
 
   // Main loop with GCD tracking
   if (active_mask.any()) {
@@ -214,8 +211,7 @@ void zeroWithRowOpDouble(MutPtrMatrix<double> A,
 #pragma clang loop unroll(full)
     for (std::ptrdiff_t b = 0; b < BB; ++b) {
       std::ptrdiff_t row_i = rows[b];
-      A[row_i, u] =
-        simd::fnma(vAik_d[b], Ajl, vAjk_d[b] * C[row_i, u].vec_);
+      A[row_i, u] = simd::fnma(vAik_d[b], Ajl, vAjk_d[b] * C[row_i, u].vec_);
     }
   }
 
@@ -284,14 +280,12 @@ void BM_ZeroCol_Double_0(Bench &bench) {
   auto [pivot_row, pivot_col] = findPivot(tableau);
 
   // Convert to double
-  math::DenseMatrix<double> backup(
-    math::DenseDims(math::row(M), math::col(N)));
+  math::DenseMatrix<double> backup(math::DenseDims(math::row(M), math::col(N)));
   for (std::ptrdiff_t r = 0; r < M; ++r)
     for (std::ptrdiff_t c = 0; c < N; ++c)
       backup[r, c] = static_cast<double>(tableau[r, c]);
 
-  math::DenseMatrix<double> work(
-    math::DenseDims(math::row(M), math::col(N)));
+  math::DenseMatrix<double> work(math::DenseDims(math::row(M), math::col(N)));
   bench.run("zeroColumn double (tableau_0)", [&] {
     work << backup;
     zeroColumnDouble(work, math::row(pivot_row), math::col(pivot_col));
@@ -321,14 +315,12 @@ void BM_ZeroCol_Double_1(Bench &bench) {
   auto [pivot_row, pivot_col] = findPivot(tableau);
 
   // Convert to double
-  math::DenseMatrix<double> backup(
-    math::DenseDims(math::row(M), math::col(N)));
+  math::DenseMatrix<double> backup(math::DenseDims(math::row(M), math::col(N)));
   for (std::ptrdiff_t r = 0; r < M; ++r)
     for (std::ptrdiff_t c = 0; c < N; ++c)
       backup[r, c] = static_cast<double>(tableau[r, c]);
 
-  math::DenseMatrix<double> work(
-    math::DenseDims(math::row(M), math::col(N)));
+  math::DenseMatrix<double> work(math::DenseDims(math::row(M), math::col(N)));
   bench.run("zeroColumn double (tableau_1)", [&] {
     work << backup;
     zeroColumnDouble(work, math::row(pivot_row), math::col(pivot_col));

@@ -35,7 +35,8 @@ auto main(int argc, const char **argv) -> int {
   alloc::OwningArena<> managed_alloc;
 
   "LexMinSimplexTest"_test = [&managed_alloc] -> void {
-    auto tableau = utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_0.binmat");
+    auto tableau =
+      utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_0.binmat");
     alloc::Arena<> alloc = managed_alloc;
     Simplex &simp{simplexFromTableau(&alloc, tableau)};
     Vector<Rational> sol(length(37));
@@ -49,7 +50,7 @@ auto main(int argc, const char **argv) -> int {
     }
     expect(sol_sum == 3);
     for (std::ptrdiff_t i = 0; i < 37; ++i)
-      expect(sol[last - i] == ((i == 28) || (i == 30) || (i == 33)));
+      expect(sol[last - i] == (i == 28) || (i == 30) || (i == 33));
     {
       // test that we didn't invalidate the simplex
       // note that we do not initiate feasible
@@ -67,7 +68,7 @@ auto main(int argc, const char **argv) -> int {
       }
       expect(sum == 3);
       for (std::ptrdiff_t i = 0; i < 37; ++i)
-        expect(sol2[last - i] == ((i == 28) || (i == 30) || (i == 33)));
+        expect(sol2[last - i] == (i == 28) || (i == 30) || (i == 33));
     }
     {
       // test new simplex
@@ -95,14 +96,15 @@ auto main(int argc, const char **argv) -> int {
         // utils::print("sol2[last-", i, "] = ");
         // sol2[last - i].print();
         // utils::print('\n');
-        expect(sol2[last - i] == ((i == 28) || (i == 30) || (i == 33)));
+        expect(sol2[last - i] == (i == 28) || (i == 30) || (i == 33));
       }
     }
   };
 
   // NOLINTNEXTLINE(modernize-use-trailing-return-type)
   "LexMinSimplexTest2"_test = [&managed_alloc] {
-    auto tableau = utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_1.binmat");
+    auto tableau =
+      utils::readMatrixBinary(MATH_DATA_DIR "/simplex_tableau_1.binmat");
     alloc::Arena<> alloc = managed_alloc;
     Simplex &simp{simplexFromTableau(&alloc, tableau)};
     Vector<Rational> sol(length(15));
