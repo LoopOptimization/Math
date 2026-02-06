@@ -1,0 +1,72 @@
+module;
+#include <cstdio>
+export module MatrixBinaryIO;
+import ManagedArray;
+import std;
+
+export namespace utils {
+
+// Binary format: int64_t rows, int64_t cols, int64_t data[rows*cols]
+// Data is stored in row-major order.
+
+template <typename T>
+[[nodiscard]] auto writeMatrixBinary(const char *path,
+                                     math::PtrMatrix<T> mat) -> bool {
+  std::FILE *f = std::fopen(path, "wb");
+  if (!f) return false;
+  std::int64_t rows = mat.numRow();
+  std::int64_t cols = mat.numCol();
+  if (std::fwrite(&rows, sizeof(std::int64_t), 1, f) != 1) {
+    std::fclose(f);
+    return false;
+  }
+  if (std::fwrite(&cols, sizeof(std::int64_t), 1, f) != 1) {
+    std::fclose(f);
+    return false;
+  }
+  for (std::ptrdiff_t i = 0; i < rows; ++i) {
+    for (std::ptrdiff_t j = 0; j < cols; ++j) {
+      std::int64_t val = mat[i, j];
+      if (std::fwrite(&val, sizeof(std::int64_t), 1, f) != 1) {
+        std::fclose(f);
+        return false;
+      }
+    }
+  }
+  std::fclose(f);
+  return true;
+}
+
+[[nodiscard]] auto readMatrixBinary(const char *path)
+  -> math::DenseMatrix<std::int64_t> {
+  std::FILE *f = std::fopen(path, "rb");
+  if (!f) {
+    std::fprintf(stderr, "Failed to open file: %s\n", path);
+    return {};
+  }
+  std::int64_t rows, cols;
+  if (std::fread(&rows, sizeof(std::int64_t), 1, f) != 1) {
+    std::fclose(f);
+    return {};
+  }
+  if (std::fread(&cols, sizeof(std::int64_t), 1, f) != 1) {
+    std::fclose(f);
+    return {};
+  }
+  math::DenseMatrix<std::int64_t> mat(math::DenseDims(math::row(rows),
+                                                       math::col(cols)));
+  for (std::ptrdiff_t i = 0; i < rows; ++i) {
+    for (std::ptrdiff_t j = 0; j < cols; ++j) {
+      std::int64_t val;
+      if (std::fread(&val, sizeof(std::int64_t), 1, f) != 1) {
+        std::fclose(f);
+        return {};
+      }
+      mat[i, j] = val;
+    }
+  }
+  std::fclose(f);
+  return mat;
+}
+
+} // namespace utils

@@ -160,28 +160,7 @@ auto removeAugmentVars(
         std::int64_t Ccv = C[c, v--];
         if (Ccv == 0 || (basic_cons[v] >= 0)) continue;
         if (Ccv < 0) C[c, _] *= -1;
-        Row<> pivot_row = row(c);
-        Col<> pivot_col = ++col(v);
-        std::ptrdiff_t M = std::ptrdiff_t(C.numRow());
-
-        constexpr std::ptrdiff_t B = NormalForm::DEFAULT_BATCH;
-        std::array<std::ptrdiff_t, B> rows;
-        std::array<std::int64_t, B> coeffs;
-        std::ptrdiff_t ii = 0;
-
-        // Process full batches
-        while (true) {
-          auto [success, next_ii, zero_idx] =
-            NormalForm::collectBatch<B>(C, M, c, pivot_col, ii, rows, coeffs);
-          if (!success) break;
-          NormalForm::zeroWithRowOp<B>(C, rows, coeffs, pivot_row, pivot_col);
-          ii = next_ii;
-        }
-        // Process remainder one-at-a-time
-        for (; ii < M; ++ii) {
-          if (ii == c) continue;
-          NormalForm::zeroWithRowOp(C, row(ii), pivot_row, pivot_col);
-        }
+        NormalForm::zeroColumn(C, row(c), ++col(v));
         basic_vars[c] = Simplex::index_t(v);
         basic_cons[v] = Simplex::index_t(c);
         break;
@@ -468,37 +447,9 @@ auto Simplex::makeBasic(MutPtrMatrix<std::int64_t> C,
     getLeavingVariable(C, enteringVar);
   if (!leave_opt) return 0; // unbounded
   Simplex::index_t leaving_var = *leave_opt;
-  std::ptrdiff_t pivot = std::ptrdiff_t(leaving_var) + 1;
   Row<> pivot_row = ++row(leaving_var);
   Col<> pivot_col = ++col(enteringVar);
-  std::ptrdiff_t M = std::ptrdiff_t(C.numRow());
-
-  constexpr std::ptrdiff_t B = NormalForm::DEFAULT_BATCH;
-  std::array<std::ptrdiff_t, B> rows;
-  std::array<std::int64_t, B> coeffs;
-  std::ptrdiff_t i = 0;
-
-  // Process full batches
-  while (true) {
-    auto [success, next_i, zero_idx] =
-      NormalForm::collectBatch<B>(C, M, pivot, pivot_col, i, rows, coeffs);
-    if (!success) break; // Don't update i - remainder loop handles it
-    if (zero_idx >= 0) {
-      // Row 0 is in this batch - track factor
-      f = NormalForm::zeroWithRowOp<B>(C, rows, coeffs, pivot_row, pivot_col, f,
-                                       zero_idx);
-    } else {
-      NormalForm::zeroWithRowOp<B>(C, rows, coeffs, pivot_row, pivot_col);
-    }
-    i = next_i;
-  }
-  // Process remainder one-at-a-time
-  for (; i < M; ++i) {
-    if (i == pivot) continue;
-    if (i == 0)
-      f = NormalForm::zeroWithRowOp(C, row(i), pivot_row, pivot_col, f);
-    else NormalForm::zeroWithRowOp(C, row(i), pivot_row, pivot_col);
-  }
+  f = NormalForm::zeroColumn(C, pivot_row, pivot_col, f);
   // update basic vars and constraints
   MutPtrVector<Simplex::index_t> basic_vars{getBasicVariables()},
     basic_constraints{getBasicConstraints()};
@@ -518,29 +469,9 @@ auto Simplex::makeBasic(MutPtrMatrix<std::int64_t> C, Simplex::index_t ev)
 void Simplex::makeBasic(MutPtrMatrix<std::int64_t> C, Simplex::index_t ev,
                         Simplex::index_t l_var) {
   Simplex::index_t leaving_variable = l_var++;
-  std::ptrdiff_t pivot = std::ptrdiff_t(l_var);
   Row<> pivot_row = row(l_var);
   Col<> pivot_col = ++col(ev);
-  std::ptrdiff_t M = std::ptrdiff_t(C.numRow());
-
-  constexpr std::ptrdiff_t B = NormalForm::DEFAULT_BATCH;
-  std::array<std::ptrdiff_t, B> rows;
-  std::array<std::int64_t, B> coeffs;
-  std::ptrdiff_t i = 0;
-
-  // Process full batches
-  while (true) {
-    auto [success, next_i, zero_idx] =
-      NormalForm::collectBatch<B>(C, M, pivot, pivot_col, i, rows, coeffs);
-    if (!success) break; // Don't update i - remainder loop handles it
-    NormalForm::zeroWithRowOp<B>(C, rows, coeffs, pivot_row, pivot_col);
-    i = next_i;
-  }
-  // Process remainder one-at-a-time
-  for (; i < M; ++i) {
-    if (i == pivot) continue;
-    NormalForm::zeroWithRowOp(C, row(i), pivot_row, pivot_col);
-  }
+  NormalForm::zeroColumn(C, pivot_row, pivot_col);
   // update basic vars and constraints
   MutPtrVector<Simplex::index_t> basic_vars{getBasicVariables()},
     basic_constraints{getBasicConstraints()};
@@ -672,29 +603,8 @@ auto Simplex::makeZeroNonBasic(std::ptrdiff_t v) -> bool {
   // by `-1` is fine because `C[c,0] == 0`, guaranteed above
   std::ptrdiff_t evp1 = ev + 1;
   if (C[c, evp1] < 0) C[c, _] *= -1;
-  std::ptrdiff_t pivot = std::ptrdiff_t(c);
-  Row<> pivot_row = row(c);
-  Col<> pivot_col = col(evp1);
-  std::ptrdiff_t M = std::ptrdiff_t(C.numRow());
-
-  constexpr std::ptrdiff_t B = NormalForm::DEFAULT_BATCH;
-  std::array<std::ptrdiff_t, B> rows;
-  std::array<std::int64_t, B> coeffs;
-  std::ptrdiff_t ii = 1; // start from row 1
-
-  // Process full batches
-  while (true) {
-    auto [success, next_ii, zero_idx] =
-      NormalForm::collectBatch<B>(C, M, pivot, pivot_col, ii, rows, coeffs);
-    if (!success) break;
-    NormalForm::zeroWithRowOp<B>(C, rows, coeffs, pivot_row, pivot_col);
-    ii = next_ii;
-  }
-  // Process remainder one-at-a-time
-  for (; ii < M; ++ii) {
-    if (ii == pivot) continue;
-    NormalForm::zeroWithRowOp(C, row(ii), pivot_row, pivot_col);
-  }
+  // Subset matrix to exclude row 0, adjust pivot_row accordingly
+  NormalForm::zeroColumn(C[_(1, end), _], row(c - 1), col(evp1));
   std::int64_t old_basic_var = basic_vars[cc];
   invariant(old_basic_var == std::int64_t(v));
   basic_vars[cc] = Simplex::index_t(ev);

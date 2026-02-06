@@ -303,6 +303,114 @@ int main() {
     expect(n.extract_value(3) == 143); // lcm(11, 13) = 143
   };
 
+  // Test Fibonacci pairs near 2^53 (worst case for Euclidean GCD)
+  "GCD Fibonacci Near 2^53"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    // Fibonacci numbers near 2^53:
+    // F(76) = 3416454622906707, F(77) = 5527939700884757
+    // gcd of consecutive Fibonacci numbers is always 1
+    simd::Vec<W, std::int64_t> a, b;
+    constexpr std::int64_t fibs[] = {
+      1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597,
+      2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393, 196418,
+      317811, 514229, 832040, 1346269, 2178309, 3524578, 5702887, 9227465,
+      14930352, 24157817, 39088169, 63245986, 102334155, 165580141, 267914296,
+      433494437, 701408733, 1134903170, 1836311903, 2971215073, 4807526976,
+      7778742049, 12586269025, 20365011074, 32951280099, 53316291173,
+      86267571272, 139583862445, 225851433717, 365435296162, 591286729879,
+      956722026041, 1548008755920, 2504730781961, 4052739537881, 6557470319842,
+      10610209857723, 17167680177565, 27777890035288, 44945570212853,
+      72723460248141, 117669030460994, 190392490709135, 308061521170129,
+      498454011879264, 806515533049393, 1304969544928657, 2111485077978050,
+      3416454622906707, 5527939700884757};
+    constexpr std::ptrdiff_t nfibs =
+      std::ptrdiff_t(sizeof(fibs) / sizeof(fibs[0]));
+    // Use pairs of consecutive Fibonacci numbers (gcd should be 1)
+    for (std::ptrdiff_t i = 0; i + 2 * W <= nfibs; i += W) {
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a[j] = fibs[i + j];
+        b[j] = fibs[i + j + 1];
+      }
+      simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) expect(eq(vecget<W>(g, j), 1Z));
+    }
+    // Also test large Fibonacci pairs near 2^53 boundary
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      std::ptrdiff_t idx = nfibs - 2 - j;
+      a[j] = fibs[idx];
+      b[j] = fibs[idx + 1];
+    }
+    simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+    for (std::ptrdiff_t j = 0; j < W; ++j) expect(eq(vecget<W>(g, j), 1Z));
+  };
+
+  // Test values > 2^53 to exercise binary GCD fallback
+  "GCD Large Values Above 2^53"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    constexpr std::int64_t big = (1Z << 53) + 1;
+    simd::Vec<W, std::int64_t> a, b;
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      a[j] = big * (j + 2);
+      b[j] = big * (j + 3);
+    }
+    simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      std::int64_t expected = std::gcd(a[j], b[j]);
+      expect(eq(vecget<W>(g, j), expected));
+    }
+    // Mixed: some lanes > 2^53, some below
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      a[j] = (j % 2 == 0) ? big * 6 : 12;
+      b[j] = (j % 2 == 0) ? big * 10 : 18;
+    }
+    g = ::math::gcd<W>(a, b);
+    for (std::ptrdiff_t j = 0; j < W; ++j) {
+      std::int64_t expected = std::gcd(a[j], b[j]);
+      expect(eq(vecget<W>(g, j), expected));
+    }
+  };
+
+  // Test small values (< 10), matching typical simplex distribution
+  "GCD Small Values"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<std::int64_t> distrib(-9, 9);
+    for (std::ptrdiff_t i = 0; i < 10000; ++i) {
+      simd::Vec<W, std::int64_t> a, b;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a[j] = distrib(gen);
+        b[j] = distrib(gen);
+      }
+      simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t expected = std::gcd(a[j], b[j]);
+        expect(eq(vecget<W>(g, j), expected));
+      }
+    }
+  };
+
+  // Test random values bounded by 2^53 (Euclidean FP path)
+  "GCD Random 53bit Values"_test = [] -> void {
+    constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    constexpr std::int64_t bound = 1Z << 53;
+    std::uniform_int_distribution<std::int64_t> distrib(-bound + 1, bound - 1);
+    for (std::ptrdiff_t i = 0; i < 10000; ++i) {
+      simd::Vec<W, std::int64_t> a, b;
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        a[j] = distrib(gen);
+        b[j] = distrib(gen);
+      }
+      simd::Vec<W, std::int64_t> g = ::math::gcd<W>(a, b);
+      for (std::ptrdiff_t j = 0; j < W; ++j) {
+        std::int64_t expected = std::gcd(a[j], b[j]);
+        expect(eq(vecget<W>(g, j), expected));
+      }
+    }
+  };
+
   "VecDgcdxTest Int64"_test = [] -> void {
     constexpr std::ptrdiff_t W = simd::Width<std::int64_t>;
     std::random_device rd;

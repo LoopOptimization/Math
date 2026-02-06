@@ -28,6 +28,12 @@ void BM_dgcdx_scalar_int64(Bench &bench);
 void BM_dgcdx_vec_int64(Bench &bench);
 void BM_dgcdx_vec_double(Bench &bench);
 
+// ZeroColumn benchmark functions
+void BM_ZeroCol_Int64_0(Bench &bench);
+void BM_ZeroCol_Double_0(Bench &bench);
+void BM_ZeroCol_Int64_1(Bench &bench);
+void BM_ZeroCol_Double_1(Bench &bench);
+
 auto main(int argc, char *argv[]) -> int {
   Bench bench;
   std::string_view filter = (argc == 2) ? argv[1] : "";
@@ -78,6 +84,15 @@ auto main(int argc, char *argv[]) -> int {
     BM_dgcdx_scalar_int64(bench);
     BM_dgcdx_vec_int64(bench);
     BM_dgcdx_vec_double(bench);
+  }
+
+  // ZeroColumn benchmarks
+  if (should_run("ZeroColumn Benchmarks")) {
+    bench.title("ZeroColumn Benchmarks");
+    BM_ZeroCol_Int64_0(bench);
+    BM_ZeroCol_Double_0(bench);
+    BM_ZeroCol_Int64_1(bench);
+    BM_ZeroCol_Double_1(bench);
   }
 
   return 0;

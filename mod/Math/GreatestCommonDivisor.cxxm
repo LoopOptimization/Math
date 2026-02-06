@@ -58,9 +58,68 @@ template <std::integral T> TRIVIAL constexpr auto gcd(T x, T y) -> T {
   }
   return b << k;
 }
-// TODO: add `Unroll` method, use in vectorized GCD?
+// Euclidean GCD via double-precision FP division.
+// Exact for |values| <= 2^53 (all exactly representable in double).
+// Converges in ~1-2 iterations for typical small simplex values.
+template <std::ptrdiff_t W>
+TRIVIAL constexpr auto gcd_euclidean_fp(simd::Vec<W, std::int64_t> x,
+                                        simd::Vec<W, std::int64_t> y)
+  -> simd::Vec<W, std::int64_t> {
+  static constexpr simd::Vec<W, double> dzero = {};
+  static constexpr simd::Vec<W, double> done = dzero + 1.0;
+
+  simd::Vec<W, std::int64_t> a = constexpr_abs<W>(x), b = constexpr_abs<W>(y);
+  auto sw = a < b;
+  simd::Vec<W, std::int64_t> hi = sw ? b : a, lo = sw ? a : b;
+
+  auto m = simd::cmp::ne<W, std::int64_t>(lo, simd::Vec<W, std::int64_t>{});
+  if (!m.any()) return hi;
+
+  simd::Vec<W, double> dr_old =
+    __builtin_convertvector(hi, simd::Vec<W, double>);
+  simd::Vec<W, double> dr = __builtin_convertvector(lo, simd::Vec<W, double>);
+
+  auto dm = simd::cmp::ne<W, double>(dr, dzero);
+  while (dm.any()) {
+    simd::Vec<W, double> safe_dr = dm.select(dr, done);
+    simd::Vec<W, double> dq = simd::trunc(dr_old / safe_dr);
+    simd::Vec<W, double> dr_next = simd::fnma(dq, safe_dr, dr_old);
+    dr_old = dm.select(dr, dr_old);
+    dr = dm.select(dr_next, dr);
+    dm = simd::cmp::ne<W, double>(dr, dzero);
+  }
+  return __builtin_convertvector(dr_old, simd::Vec<W, std::int64_t>);
+}
+
+// Euclidean GCD directly on floating-point vectors (integer-valued inputs).
+template <std::ptrdiff_t W, std::floating_point T>
+TRIVIAL constexpr auto gcd_euclidean_fp(simd::Vec<W, T> x, simd::Vec<W, T> y)
+  -> simd::Vec<W, T> {
+  static constexpr simd::Vec<W, T> fzero = {};
+  static constexpr simd::Vec<W, T> fone = fzero + T(1);
+
+  simd::Vec<W, T> a = constexpr_abs<W>(x), b = constexpr_abs<W>(y);
+  auto sw = a < b;
+  simd::Vec<W, T> hi = sw ? b : a, lo = sw ? a : b;
+
+  auto m = simd::cmp::ne<W, T>(lo, fzero);
+  if (!m.any()) return hi;
+
+  simd::Vec<W, T> r_old = hi, r = lo;
+  auto dm = m;
+  while (dm.any()) {
+    simd::Vec<W, T> safe_r = dm.select(r, fone);
+    simd::Vec<W, T> q = simd::trunc(r_old / safe_r);
+    simd::Vec<W, T> r_next = simd::fnma(q, safe_r, r_old);
+    r_old = dm.select(r, r_old);
+    r = dm.select(r_next, r);
+    dm = simd::cmp::ne<W, T>(r, fzero);
+  }
+  return r_old;
+}
+
 template <std::ptrdiff_t W, std::integral I>
-TRIVIAL constexpr auto gcd(simd::Vec<W, I> x, simd::Vec<W, I> y)
+TRIVIAL constexpr auto gcd_binary(simd::Vec<W, I> x, simd::Vec<W, I> y)
   -> simd::Vec<W, I> {
   static_assert(W * sizeof(I) >= 16);
   static constexpr simd::Vec<W, I> zero = {};
@@ -90,6 +149,20 @@ TRIVIAL constexpr auto gcd(simd::Vec<W, I> x, simd::Vec<W, I> y)
     a = constexpr_abs<W, I>(d);
   }
   return b << k;
+}
+
+// TODO: add `Unroll` method, use in vectorized GCD?
+template <std::ptrdiff_t W, std::integral I>
+TRIVIAL constexpr auto gcd(simd::Vec<W, I> x, simd::Vec<W, I> y)
+  -> simd::Vec<W, I> {
+  if constexpr (sizeof(I) == 8) {
+    static constexpr simd::Vec<W, I> bound =
+      simd::Vec<W, I>{} + (I(1) << std::numeric_limits<double>::digits);
+    simd::Vec<W, I> ax = constexpr_abs<W, I>(x), bx = constexpr_abs<W, I>(y);
+    if (!simd::cmp::ge<W, I>(ax | bx, bound).any())
+      return gcd_euclidean_fp<W>(x, y);
+  }
+  return gcd_binary<W>(x, y);
 }
 template <>
 TRIVIAL constexpr auto gcd<1, std::int64_t>(simd::Vec<1, std::int64_t> x,
@@ -190,14 +263,24 @@ TRIVIAL constexpr auto gcdreduce(simd::Unroll<1, 1, N, std::int32_t> v)
 }
 
 // GCD for Unroll types (float - assumes integer-valued inputs)
+// Uses Euclidean algorithm directly in FP, avoiding int conversion.
 template <std::ptrdiff_t R, std::ptrdiff_t C, std::ptrdiff_t N,
           std::floating_point F>
+requires((R * C) != 1)
 TRIVIAL constexpr auto gcd(simd::Unroll<R, C, N, F> x,
-                           simd::Unroll<R, C, N, F> y) {
-  using I = std::conditional_t<sizeof(F) == 4, std::int32_t, std::int64_t>;
-  // Convert to int32, compute GCD, convert back
-  simd::Unroll<R, C, N, I> xi = x, yi = y;
-  return gcd(xi, yi);
+                           simd::Unroll<R, C, N, F> y)
+  -> simd::Unroll<R, C, N, F> {
+  simd::Unroll<R, C, N, F> result;
+  POLYMATHFULLUNROLL
+  for (std::ptrdiff_t i = 0; i < R * C; ++i)
+    result.data_[i] = gcd_euclidean_fp<N>(x.data_[i], y.data_[i]);
+  return result;
+}
+template <std::ptrdiff_t N, std::floating_point F>
+TRIVIAL constexpr auto gcd(simd::Unroll<1, 1, N, F> x,
+                           simd::Unroll<1, 1, N, F> y)
+  -> simd::Unroll<1, 1, N, F> {
+  return {gcd_euclidean_fp<N>(x.vec_, y.vec_)};
 }
 
 template <std::integral I> TRIVIAL constexpr auto lcm(I x, I y) -> I {
