@@ -135,6 +135,135 @@ void testMaskSelectWithCast() {
 #endif
 }
 
+template <std::ptrdiff_t N> void testMaskUnrollSplitCast() {
+  // Test split: Unroll<1,N,4> -> Unroll<1,2*N,2> (round-trip with cat)
+#ifdef __AVX512VL__
+  simd::mask::Unroll<1, 2 * N, 2> original;
+  for (std::ptrdiff_t i = 0; i < 2 * N; ++i)
+    original[i] =
+      simd::mask::Bit<2>{static_cast<std::uint64_t>(i % 2 ? 0b11 : 0b00)};
+
+  // Cat to narrower C
+  simd::mask::Unroll<1, N, 4> catted = original;
+  // Split back
+  simd::mask::Unroll<1, 2 * N, 2> split = catted;
+
+  for (std::ptrdiff_t i = 0; i < 2 * N; ++i)
+    expect(eq(split[i].intmask(), original[i].intmask()));
+#else
+  static constexpr std::size_t OldBytes = 8;
+  static constexpr std::size_t NewBytes = 4;
+  using Vec2 = simd::mask::Vector<2, OldBytes>;
+  simd::mask::Unroll<1, 2 * N, 2, OldBytes> original;
+  for (std::ptrdiff_t i = 0; i < 2 * N; ++i)
+    if (i % 2) original[i] = Vec2{{-1, -1}};
+    else original[i] = Vec2{{0, 0}};
+
+  // Cat to narrower C
+  simd::mask::Unroll<1, N, 4, NewBytes> catted = original;
+  // Split back
+  simd::mask::Unroll<1, 2 * N, 2, OldBytes> split = catted;
+
+  for (std::ptrdiff_t i = 0; i < 2 * N; ++i)
+    expect(eq(split[i].popcount(), original[i].popcount()));
+#endif
+}
+
+void testMask1x1SplitCast() {
+  // Test 1x1 split: Unroll<1,1,4> -> Unroll<1,2,2> (CU=2 base case)
+#ifdef __AVX512VL__
+  simd::mask::Unroll<1, 2, 2> original;
+  original[0] = simd::mask::Bit<2>{0b11};
+  original[1] = simd::mask::Bit<2>{0b01};
+
+  simd::mask::Unroll<1, 1, 4> catted = original;
+  simd::mask::Unroll<1, 2, 2> split = catted;
+
+  expect(eq(split[0].intmask(), original[0].intmask()));
+  expect(eq(split[1].intmask(), original[1].intmask()));
+#else
+  static constexpr std::size_t OldBytes = 8;
+  static constexpr std::size_t NewBytes = 4;
+  using Vec2 = simd::mask::Vector<2, OldBytes>;
+  simd::mask::Unroll<1, 2, 2, OldBytes> original;
+  original[0] = Vec2{{-1, -1}};
+  original[1] = Vec2{{-1, 0}};
+
+  simd::mask::Unroll<1, 1, 4, NewBytes> catted = original;
+  simd::mask::Unroll<1, 2, 2, OldBytes> split = catted;
+
+  expect(eq(split[0].popcount(), original[0].popcount()));
+  expect(eq(split[1].popcount(), original[1].popcount()));
+#endif
+}
+
+void testMask1x1RecursiveSplitCast() {
+  // Test 1x1 recursive split: Unroll<1,1,8> -> Unroll<1,4,2> (CU=4)
+#ifdef __AVX512VL__
+  simd::mask::Unroll<1, 4, 2> original;
+  original[0] = simd::mask::Bit<2>{0b11};
+  original[1] = simd::mask::Bit<2>{0b01};
+  original[2] = simd::mask::Bit<2>{0b10};
+  original[3] = simd::mask::Bit<2>{0b00};
+
+  // Cat all the way down to Unroll<1,1,8>
+  simd::mask::Unroll<1, 1, 8> catted = original;
+  // Split back up to Unroll<1,4,2>
+  simd::mask::Unroll<1, 4, 2> split = catted;
+
+  for (std::ptrdiff_t i = 0; i < 4; ++i)
+    expect(eq(split[i].intmask(), original[i].intmask()));
+#else
+  static constexpr std::size_t OldBytes = 8;
+  static constexpr std::size_t NewBytes = 4;
+  static constexpr std::size_t MidBytes = 2;
+  using Vec2 = simd::mask::Vector<2, OldBytes>;
+  simd::mask::Unroll<1, 4, 2, OldBytes> original;
+  original[0] = Vec2{{-1, -1}};
+  original[1] = Vec2{{-1, 0}};
+  original[2] = Vec2{{0, -1}};
+  original[3] = Vec2{{0, 0}};
+
+  simd::mask::Unroll<1, 1, 8, MidBytes> catted = original;
+  simd::mask::Unroll<1, 4, 2, OldBytes> split = catted;
+
+  for (std::ptrdiff_t i = 0; i < 4; ++i)
+    expect(eq(split[i].popcount(), original[i].popcount()));
+#endif
+}
+
+void testMaskUnrollMultiRowSplit() {
+  // Test multi-row split: Unroll<2,1,4> -> Unroll<2,2,2> (R > 1)
+#ifdef __AVX512VL__
+  simd::mask::Unroll<2, 2, 2> original;
+  original[0] = simd::mask::Bit<2>{0b11};
+  original[1] = simd::mask::Bit<2>{0b01};
+  original[2] = simd::mask::Bit<2>{0b10};
+  original[3] = simd::mask::Bit<2>{0b00};
+
+  simd::mask::Unroll<2, 1, 4> catted = original;
+  simd::mask::Unroll<2, 2, 2> split = catted;
+
+  for (std::ptrdiff_t i = 0; i < 4; ++i)
+    expect(eq(split[i].intmask(), original[i].intmask()));
+#else
+  static constexpr std::size_t OldBytes = 8;
+  static constexpr std::size_t NewBytes = 4;
+  using Vec2 = simd::mask::Vector<2, OldBytes>;
+  simd::mask::Unroll<2, 2, 2, OldBytes> original;
+  original[0] = Vec2{{-1, -1}};
+  original[1] = Vec2{{-1, 0}};
+  original[2] = Vec2{{0, -1}};
+  original[3] = Vec2{{0, 0}};
+
+  simd::mask::Unroll<2, 1, 4, NewBytes> catted = original;
+  simd::mask::Unroll<2, 2, 2, OldBytes> split = catted;
+
+  for (std::ptrdiff_t i = 0; i < 4; ++i)
+    expect(eq(split[i].popcount(), original[i].popcount()));
+#endif
+}
+
 template <std::ptrdiff_t L, typename S, typename D> void castTest() {
   simd::SVec<S, L> a{simd::SVec<S, L>::range(0)};
   a *= a + a;
@@ -1229,6 +1358,17 @@ auto main() -> int {
       std::int64_t expected = (1LL << 1) | (1LL << W);
       expect(eq(imask, expected)) << "1x2 intmask pattern mismatch";
     }
+  };
+  "MaskUnrollSplitCast"_test = [] -> void {
+    testMaskUnrollSplitCast<4>();
+    testMaskUnrollSplitCast<1>();
+  };
+  "Mask1x1SplitCast"_test = [] -> void { testMask1x1SplitCast(); };
+  "Mask1x1RecursiveSplitCast"_test = [] -> void {
+    testMask1x1RecursiveSplitCast();
+  };
+  "MaskUnrollMultiRowSplit"_test = [] -> void {
+    testMaskUnrollMultiRowSplit();
   };
 
   return 0;
