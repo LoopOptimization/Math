@@ -950,6 +950,9 @@ auto Simplex::copy(alloc::Arena<> *alloc) const -> Simplex & {
   Simplex &res = create(alloc, row(getNumCons()), col(getNumVars()),
                         getConCap(), getVarCap());
   res << *this;
+#ifndef NDEBUG
+  res.in_canonical_form_ = in_canonical_form_;
+#endif
   return res;
 }
 auto Simplex::operator<<(const Simplex &other) -> Simplex & {
