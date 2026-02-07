@@ -647,7 +647,7 @@ auto collectBatch(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
                   std::ptrdiff_t &start_row,
                   std::array<std::ptrdiff_t, B> &rows,
                   std::array<std::int64_t, B> &coeffs)
-  -> std::pair<std::ptrdiff_t, std::ptrdiff_t> {
+  -> std::array<std::ptrdiff_t, 2> {
   std::ptrdiff_t count = 0, zero_idx = -1;
   std::ptrdiff_t i = start_row;
   for (; i < num_rows && count < B; ++i) {
@@ -907,7 +907,7 @@ collectBatch<DEFAULT_BATCH>(PtrMatrix<std::int64_t> A, std::ptrdiff_t num_rows,
                             std::ptrdiff_t &start_row,
                             std::array<std::ptrdiff_t, DEFAULT_BATCH> &rows,
                             std::array<std::int64_t, DEFAULT_BATCH> &coeffs)
-  -> std::pair<std::ptrdiff_t, std::ptrdiff_t>;
+  -> std::array<std::ptrdiff_t, 2>;
 
 template void zeroWithRowOp<DEFAULT_BATCH>(
   MutPtrMatrix<std::int64_t> A, std::array<std::ptrdiff_t, DEFAULT_BATCH> rows,
