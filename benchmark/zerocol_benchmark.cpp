@@ -12,8 +12,7 @@ namespace {
 using namespace math;
 
 // Find a (pivot_row, pivot_col) where the column has many nonzero entries
-auto findPivot(PtrMatrix<std::int64_t> A)
-  -> std::pair<std::ptrdiff_t, std::ptrdiff_t> {
+auto findPivot(PtrMatrix<std::int64_t> A) -> std::array<std::ptrdiff_t, 2> {
   auto [M, N] = shape(A);
   std::ptrdiff_t best_row = 0, best_col = 0, best_count = 0;
   for (std::ptrdiff_t c = 0; c < N; ++c) {
@@ -47,7 +46,7 @@ auto collectBatchDouble(PtrMatrix<double> A, std::ptrdiff_t num_rows,
                         std::ptrdiff_t &start_row,
                         std::array<std::ptrdiff_t, BB> &rows,
                         std::array<double, BB> &coeffs)
-  -> std::pair<std::ptrdiff_t, std::ptrdiff_t> {
+  -> std::array<std::ptrdiff_t, 2> {
   std::ptrdiff_t count = 0, zero_idx = -1;
   std::ptrdiff_t i = start_row;
   for (; i < num_rows && count < BB; ++i) {
