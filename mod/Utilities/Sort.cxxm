@@ -51,7 +51,7 @@ template <std::ptrdiff_t N> requires(N == 16 || N == 32) struct SortPerm {
   [[nodiscard]] auto operator()(math::SVector<T, N> x) const
     -> math::SVector<T, N>
     requires(std::same_as<T, float> || std::same_as<T, double> ||
-             std::same_as<T, std::uint16_t> ||
+             std::same_as<T, std::uint16_t> || std::same_as<T, int> ||
              std::same_as<T, std::uint64_t>) {
     return detail::sortperm_apply<T, N>(*this, x);
   }
@@ -70,7 +70,8 @@ struct TopHalfPerm {
 
   template <typename T>
   requires(std::same_as<T, float> || std::same_as<T, double> ||
-           std::same_as<T, std::uint16_t> || std::same_as<T, std::uint64_t>)
+           std::same_as<T, std::uint16_t> || std::same_as<T, int> ||
+           std::same_as<T, std::uint64_t>)
   [[nodiscard]] auto operator()(math::SVector<T, 32> x) const
     -> math::SVector<T, 16> {
     return detail::tophalfperm_apply<T>(*this, x);
