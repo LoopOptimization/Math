@@ -8,9 +8,9 @@ export namespace utils {
 
 struct TinyString {
   // 21 to allow for typemin<std::int64_t> + new-line char
-  static constexpr std::ptrdiff_t n_elts = 21;
+  static constexpr std::ptrdiff_t n_elts = 28;
   char data_[n_elts];
-  std::ptrdiff_t len_{};
+  int len_{};
   constexpr operator std::string_view() const {
     utils::assume(len_ >= 0 && len_ <= n_elts);
     return {data_, std::size_t(len_)};
