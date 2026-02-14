@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 
 import BaseUtils;
 import MultiplicativeInverse;
 import StaticArray;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using ::math::MultiplicativeInverse, ::math::cld;
 
 void testBasicAssertions() {

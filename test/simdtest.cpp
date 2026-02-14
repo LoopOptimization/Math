@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 import AxisTypes;
 import ExprTemplates;
 import ManagedArray;
 import SIMD;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 namespace {
 void testMaskCat() {

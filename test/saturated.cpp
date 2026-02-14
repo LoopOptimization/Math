@@ -1,8 +1,8 @@
-import boost.ut;
+import Testing;
 import Saturated;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 void testBasicAssertions() {
 

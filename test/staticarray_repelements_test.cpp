@@ -1,9 +1,9 @@
-import boost.ut;
+import Testing;
 import StaticArray;
 import SIMD;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 namespace {
 

@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 import Arena;
 import Array;
 import ManagedArray;
@@ -6,7 +6,7 @@ import MatDim;
 import NormalForm;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using ::math::DenseMatrix, ::math::DenseDims, ::math::row, ::math::col;
 
 namespace {

@@ -1,10 +1,10 @@
-import boost.ut;
+import Testing;
 import Array;
 import CorePrint;
 import ManagedArray;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using namespace ::math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

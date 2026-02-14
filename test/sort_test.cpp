@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 
 import Sort;
 import StaticArray;
 import std;
 
 using ::math::SVector;
-using namespace boost::ut;
+using namespace testing;
 
 auto main() -> int {
   "sort_fp64"_test = [] -> void {

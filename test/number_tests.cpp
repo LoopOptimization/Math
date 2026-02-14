@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 
 import CorePrint;
 import Int8;
 import std;
 
 using numbers::i8, numbers::u8, numbers::Flag8;
-using namespace boost::ut;
+using namespace testing;
 static_assert(utils::Printable<numbers::i8>);
 static_assert(utils::Printable<numbers::u8>);
 

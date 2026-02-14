@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -15,7 +15,7 @@ import UniformScaling;
 
 using namespace ::math;
 using utils::operator""_mat;
-using namespace boost::ut;
+using namespace testing;
 
 namespace {
 auto isHNF(PtrMatrix<std::int64_t> A) -> bool {

@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 import ArrayParse;
 import CorePrint;
 import ManagedArray;
 import NormalForm;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using namespace ::math;
 using utils::operator""_mat;
 

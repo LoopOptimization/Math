@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 import Arena;
 import Array;
 import ArrayConcepts;
@@ -14,7 +14,7 @@ import std;
 
 using namespace ::math;
 using utils::operator""_mat;
-using namespace boost::ut;
+using namespace testing;
 
 auto simplexFromTableau(alloc::Arena<> *alloc, PtrMatrix<std::int64_t> tableau)
   -> Simplex & {

@@ -110,9 +110,14 @@ include(../cmake/CPM.cmake)
 # ---- compile_commands.json ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(BOOST_UT_DISABLE_MODULE OFF)
 add_subdirectory("${CMAKE_SOURCE_DIR}/.." "extern_build/math")
-add_subdirectory("${CMAKE_SOURCE_DIR}/../extern/ut" "extern_build/ut")
+
+add_library(TestLib)
+target_sources(TestLib
+  PUBLIC FILE_SET CXX_MODULES FILES ${CMAKE_CURRENT_SOURCE_DIR}/Testing.cxxm
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Testing.cxx)
+target_link_libraries(TestLib PUBLIC Math)
+set_target_properties(TestLib PROPERTIES CXX_STANDARD 23)
 
 cpmaddpackage("gh:TheLartians/Format.cmake@1.7.3")
 
@@ -128,7 +133,7 @@ file(GLOB test_sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 foreach(test_source ${test_sources})
   get_filename_component(test_name ${test_source} NAME_WE)
   add_executable(${test_name} ${test_source})
-  target_link_libraries(${test_name} PRIVATE Math ut_module)
+  target_link_libraries(${test_name} PRIVATE TestLib)
   set_target_properties(
     ${test_name}
     PROPERTIES CXX_STANDARD 23

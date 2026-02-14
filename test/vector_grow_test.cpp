@@ -1,6 +1,6 @@
-import boost.ut;
+import Testing;
 
-using namespace boost::ut;
+using namespace testing;
 import ManagedArray;
 import std;
 

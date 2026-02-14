@@ -1,11 +1,11 @@
 #ifdef __x86_64__
 #include <immintrin.h>
 #endif
-import boost.ut;
+import Testing;
 import SIMD;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 namespace {
 

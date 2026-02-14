@@ -1,8 +1,8 @@
-import boost.ut;
+import Testing;
 import std;
 import Tuple;
 
-using namespace boost::ut;
+using namespace testing;
 using containers::Tuple, containers::tie, containers::Add, containers::Pair;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

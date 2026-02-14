@@ -1,8 +1,8 @@
-import boost.ut;
+import Testing;
 import Optional;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 void testBasicAssertions() {

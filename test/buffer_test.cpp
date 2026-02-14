@@ -1,8 +1,8 @@
-import boost.ut;
+import Testing;
 import Buffer;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using containers::Buffer;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

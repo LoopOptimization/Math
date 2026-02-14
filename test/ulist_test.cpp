@@ -1,9 +1,9 @@
-import boost.ut;
+import Testing;
 import Arena;
 import std;
 import UnrolledList;
 
-using namespace boost::ut;
+using namespace testing;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)
 void testBasicAssertions() {

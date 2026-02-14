@@ -1,8 +1,8 @@
-import boost.ut;
+import Testing;
 import Arena;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using namespace alloc;
 
 auto main() -> int {

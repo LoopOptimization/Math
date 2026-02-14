@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 import Array;
 import ArrayParse;
 import CorePrint;
@@ -7,7 +7,7 @@ import MatDim;
 import StaticArray;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using namespace ::math;
 using utils::operator""_mat;
 

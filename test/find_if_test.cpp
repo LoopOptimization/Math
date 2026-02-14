@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 
 import Arena;
 import Comparisons;
@@ -7,7 +7,7 @@ import StaticArray;
 import std;
 
 using namespace ::math;
-using namespace boost::ut;
+using namespace testing;
 
 int main() {
   "find_if vector tests"_test = [] {

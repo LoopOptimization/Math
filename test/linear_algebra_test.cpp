@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 
 import CorePrint;
 import BaseUtils;
@@ -9,7 +9,7 @@ import Rational;
 import Reductions;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 using namespace ::math;
 
 // NOLINTNEXTLINE(modernize-use-trailing-return-type)

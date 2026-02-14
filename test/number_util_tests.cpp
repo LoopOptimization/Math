@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 
 import BaseUtils;
 import StaticArray;
 import SIMD;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 void testBasicAssertions() {
 

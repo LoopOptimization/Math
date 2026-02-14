@@ -1,6 +1,6 @@
 #include <algorithm>
 
-import boost.ut;
+import Testing;
 
 import Arena;
 import ArrayParse;
@@ -16,7 +16,7 @@ using containers::BitSet, containers::BitSets, ::math::Vector,
   utils::operator""_mat;
 
 auto main() -> int {
-  using namespace boost::ut;
+  using namespace testing;
 
   "BitSet BasicAssertions"_test = [] -> void {
     BitSet bs(1000);

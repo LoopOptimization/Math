@@ -1,10 +1,10 @@
-import boost.ut;
+import Testing;
 import CorePrint;
 import Permutation;
 import std;
 import TinyVector;
 
-using namespace boost::ut;
+using namespace testing;
 using Order = utils::Order<>;
 
 auto main() -> int {

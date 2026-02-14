@@ -1,11 +1,11 @@
-import boost.ut;
+import Testing;
 
 import Arena;
 import ListRange;
 import ManagedArray;
 import std;
 
-using namespace boost::ut;
+using namespace testing;
 
 template <typename T> class List {
   T data_;

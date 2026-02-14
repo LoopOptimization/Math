@@ -1,4 +1,4 @@
-import boost.ut;
+import Testing;
 import Array;
 import ArrayParse;
 import ExprTemplates;
@@ -7,7 +7,7 @@ import std;
 
 using namespace ::math;
 using utils::operator""_mat;
-using namespace boost::ut;
+using namespace testing;
 
 int main() {
   "Conditional with SIMD mask test"_test = [] {
