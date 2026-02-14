@@ -1,0 +1,266 @@
+module;
+#include <cstdio>
+export module Testing;
+import CorePrint;
+import std;
+
+export namespace testing {
+
+// --- Options and configuration ---
+struct options {
+  std::string_view filter{};
+};
+struct override {};
+template <class = override> inline options cfg{};
+
+// --- integral_constant for _i / _l literals ---
+template <auto N> struct integral_constant {
+  using value_type = decltype(N);
+  static constexpr auto value = N;
+  constexpr operator value_type() const { return N; }
+};
+
+// --- Unwrap helper: extracts value from integral_constant, passes others through ---
+namespace detail {
+template <class T> constexpr auto unwrap(const T &x) -> const T & { return x; }
+template <auto N>
+constexpr auto unwrap(integral_constant<N>) -> decltype(N) {
+  return N;
+}
+} // namespace detail
+
+// --- Comparison structs ---
+template <class L, class R> struct eq_ {
+  L lhs_;
+  R rhs_;
+  constexpr explicit operator bool() const {
+    return detail::unwrap(lhs_) == detail::unwrap(rhs_);
+  }
+  constexpr auto lhs() const -> const L & { return lhs_; }
+  constexpr auto rhs() const -> const R & { return rhs_; }
+  static constexpr auto op_name() -> std::string_view { return " == "; }
+};
+
+template <class L, class R> struct ge_ {
+  L lhs_;
+  R rhs_;
+  constexpr explicit operator bool() const {
+    return detail::unwrap(lhs_) >= detail::unwrap(rhs_);
+  }
+  constexpr auto lhs() const -> const L & { return lhs_; }
+  constexpr auto rhs() const -> const R & { return rhs_; }
+  static constexpr auto op_name() -> std::string_view { return " >= "; }
+};
+
+template <class L, class R> struct lt_ {
+  L lhs_;
+  R rhs_;
+  constexpr explicit operator bool() const {
+    return detail::unwrap(lhs_) < detail::unwrap(rhs_);
+  }
+  constexpr auto lhs() const -> const L & { return lhs_; }
+  constexpr auto rhs() const -> const R & { return rhs_; }
+  static constexpr auto op_name() -> std::string_view { return " < "; }
+};
+
+template <class L, class R, class E> struct approx_ {
+  L lhs_;
+  R rhs_;
+  E eps_;
+  constexpr explicit operator bool() const {
+    auto d = lhs_ - rhs_;
+    return (d < E{} ? E{} - d : d) < eps_;
+  }
+  constexpr auto lhs() const -> const L & { return lhs_; }
+  constexpr auto rhs() const -> const R & { return rhs_; }
+  static constexpr auto op_name() -> std::string_view { return " ≈ "; }
+};
+
+// --- Factory functions ---
+constexpr auto eq(auto lhs, auto rhs) {
+  return eq_<decltype(lhs), decltype(rhs)>{lhs, rhs};
+}
+constexpr auto ge(auto lhs, auto rhs) {
+  return ge_<decltype(lhs), decltype(rhs)>{lhs, rhs};
+}
+constexpr auto lt(auto lhs, auto rhs) {
+  return lt_<decltype(lhs), decltype(rhs)>{lhs, rhs};
+}
+constexpr auto approx(auto lhs, auto rhs, auto eps) {
+  return approx_<decltype(lhs), decltype(rhs), decltype(eps)>{lhs, rhs, eps};
+}
+
+// --- Concepts for comparison expression types ---
+template <class T>
+concept ComparisonExpr = requires(const T &t) {
+  { static_cast<bool>(t) };
+  { t.lhs() };
+  { t.rhs() };
+  { T::op_name() } -> std::same_as<std::string_view>;
+};
+
+// --- Non-template declarations (defined in .cxx) ---
+void report_pass();
+void report_fail(const char *file, unsigned line);
+void set_fatal_location(const char *file, unsigned line);
+[[noreturn]] void do_fatal_abort();
+auto should_run_test(std::string_view name) -> bool;
+void begin_test(std::string_view name);
+void end_test(std::string_view name);
+
+// --- Print helpers for comparison values ---
+namespace detail {
+
+template <class T>
+concept UtilsPrintable = requires(const T &x) {
+  { ::utils::print(x) };
+};
+
+template <class T> inline void print_value(const T &v) {
+  decltype(auto) u = unwrap(v);
+  using U = std::remove_cvref_t<decltype(u)>;
+  if constexpr (UtilsPrintable<U>) ::utils::print(u);
+  else std::fwrite("<\?\?>", 1, 4, stdout);
+}
+
+} // namespace detail
+
+// --- expect_result for << chaining ---
+struct expect_result {
+  bool passed_;
+  constexpr explicit operator bool() const { return passed_; }
+  template <class T>
+  auto operator<<(const T &msg) const -> const expect_result & {
+    if (!passed_) {
+      ::utils::print("  ");
+      detail::print_value(msg);
+    }
+    return *this;
+  }
+};
+
+// --- expect function ---
+template <ComparisonExpr TExpr>
+auto expect(const TExpr &expr,
+            std::source_location loc = std::source_location::current())
+  -> expect_result {
+  if (static_cast<bool>(expr)) {
+    report_pass();
+    return {true};
+  }
+  report_fail(loc.file_name(), loc.line());
+  ::utils::print("  ");
+  detail::print_value(expr.lhs());
+  ::utils::print(TExpr::op_name());
+  detail::print_value(expr.rhs());
+  ::utils::print('\n');
+  return {false};
+}
+
+// bool overload for plain expect(bool_expr)
+inline auto expect(bool expr,
+                   std::source_location loc = std::source_location::current())
+  -> expect_result {
+  if (expr) {
+    report_pass();
+    return {true};
+  }
+  report_fail(loc.file_name(), loc.line());
+  return {false};
+}
+
+// --- fatal ---
+struct fatal_wrapper {
+  bool passed_;
+  constexpr explicit operator bool() const {
+    if (!passed_) do_fatal_abort();
+    return true;
+  }
+};
+
+// fatal_wrapper overload: fatal already evaluated + reported; just pass through
+inline auto expect(fatal_wrapper fw,
+                   std::source_location = std::source_location::current())
+  -> expect_result {
+  if (!fw.passed_) do_fatal_abort();
+  return {fw.passed_};
+}
+
+struct fatal_fn {
+  template <class TExpr>
+  auto operator()(const TExpr &expr,
+                  std::source_location loc =
+                    std::source_location::current()) const -> fatal_wrapper {
+    set_fatal_location(loc.file_name(), loc.line());
+    if constexpr (ComparisonExpr<TExpr>) {
+      auto r = expect(expr, loc);
+      return {static_cast<bool>(r)};
+    } else {
+      auto r = expect(static_cast<bool>(expr), loc);
+      return {static_cast<bool>(r)};
+    }
+  }
+};
+inline constexpr fatal_fn fatal{};
+
+// --- test_registrar ---
+struct test_registrar {
+  std::string_view name_;
+  template <class F> void operator=(F fn) const {
+    if (!should_run_test(name_)) return;
+    begin_test(name_);
+    fn();
+    end_test(name_);
+  }
+};
+
+// --- UDL operators ---
+consteval auto operator""_test(const char *name, std::size_t len)
+  -> test_registrar {
+  return {{name, len}};
+}
+
+template <char... Cs> consteval auto operator""_i() {
+  constexpr auto N = [] {
+    int result = 0;
+    bool neg = false;
+    for (char c : {Cs...}) {
+      if (c == '-') neg = true;
+      else result = result * 10 + (c - '0');
+    }
+    return neg ? -result : result;
+  }();
+  return integral_constant<N>{};
+}
+
+template <char... Cs> consteval auto operator""_l() {
+  constexpr auto N = [] {
+    std::int64_t result = 0;
+    bool neg = false;
+    for (char c : {Cs...}) {
+      if (c == '-') neg = true;
+      else result = result * 10 + (c - '0');
+    }
+    return neg ? -result : result;
+  }();
+  return integral_constant<N>{};
+}
+
+consteval auto operator""_d(long double v) -> double {
+  return static_cast<double>(v);
+}
+
+// --- operator== for integral_constant (enables result[0] == 5_i) ---
+template <class L, auto N>
+constexpr auto operator==(const L &lhs, integral_constant<N>)
+  -> eq_<L, decltype(N)> {
+  return {lhs, N};
+}
+
+// --- get helper ---
+template <class T> constexpr auto get() -> T & {
+  static T instance{};
+  return instance;
+}
+
+} // namespace testing

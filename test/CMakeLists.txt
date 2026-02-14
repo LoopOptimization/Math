@@ -36,7 +36,7 @@ if(APPLE)
   )
 endif()
 add_compile_options(
-  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti;-fno-threadsafe-statics>"
+  "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions;-fno-omit-frame-pointer;-fno-rtti;-fno-threadsafe-statics;-Werror>"
 )
 # add_compile_options("-save-temps") # for preprocessed source
 if((USE_SANITIZER MATCHES "([Uu]ndefined)") OR (USE_SANITIZER MATCHES
