@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 2
           lfs: true # simplex_lexmin_test
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: "**/cpm_modules"
           key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
